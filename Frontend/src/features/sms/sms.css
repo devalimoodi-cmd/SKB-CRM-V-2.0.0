@@ -1,0 +1,704 @@
+/* ============================================
+   پیامک
+   ============================================ */
+
+/* ===== کانتینر اصلی ===== */
+.sms-container {
+  padding: 20px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* ===== هدر ===== */
+.sms-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.sms-header h1 {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1e293b;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sms-header h1 i {
+  color: #3b82f6;
+}
+
+.sms-header-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.btn-refresh {
+  padding: 10px 16px;
+  background: #f8fafc;
+  border: 1px solid #eef2f6;
+  border-radius: 8px;
+  cursor: pointer;
+  color: #64748b;
+  transition: all 0.3s ease;
+}
+
+.btn-refresh:hover {
+  background: #f1f5f9;
+  transform: rotate(180deg);
+}
+
+/* ===== اعتبار ===== */
+.sms-credit {
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #eef2f6;
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sms-credit .credit-label {
+  font-size: 13px;
+  color: #64748b;
+}
+
+.sms-credit .credit-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.sms-credit .credit-value.credit-low {
+  color: #dc2626;
+}
+
+.sms-credit .credit-value.credit-medium {
+  color: #f59e0b;
+}
+
+.sms-credit .credit-value.credit-high {
+  color: #10b981;
+}
+
+/* ===== آمار ===== */
+.sms-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.stat-item {
+  background: white;
+  padding: 16px 20px;
+  border-radius: 12px;
+  border: 1px solid #eef2f6;
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+.stat-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+.stat-value {
+  display: block;
+  font-size: 24px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.stat-value.delivered {
+  color: #10b981;
+}
+
+.stat-value.failed {
+  color: #dc2626;
+}
+
+.stat-value.pending {
+  color: #f59e0b;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: #94a3b8;
+  margin-top: 4px;
+}
+
+/* ===== فیلترها ===== */
+.sms-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 24px;
+  padding: 16px 20px;
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #eef2f6;
+}
+
+.filter-group {
+  position: relative;
+  flex: 1;
+  min-width: 150px;
+}
+
+.filter-input {
+  width: 100%;
+  padding: 10px 40px 10px 14px;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  font-family: "Vazir", sans-serif;
+  font-size: 13px;
+  transition: all 0.3s ease;
+  background: #fafbfc;
+  color: #1e293b;
+}
+
+.filter-input:focus {
+  outline: none;
+  border-color: #2c7a6e;
+  box-shadow: 0 0 0 3px rgba(44, 122, 110, 0.1);
+  background: white;
+}
+
+.filter-icon {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+}
+
+.filter-select {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  font-family: "Vazir", sans-serif;
+  font-size: 13px;
+  background: #fafbfc;
+  cursor: pointer;
+  color: #1e293b;
+  transition: all 0.3s ease;
+}
+
+.filter-select:focus {
+  outline: none;
+  border-color: #2c7a6e;
+  box-shadow: 0 0 0 3px rgba(44, 122, 110, 0.1);
+}
+
+.btn-reset-filters {
+  padding: 10px 20px;
+  background: #f1f5f9;
+  border: 1px solid #eef2f6;
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: "Vazir", sans-serif;
+  font-size: 13px;
+  color: #64748b;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-reset-filters:hover {
+  background: #e2e8f0;
+  transform: translateY(-2px);
+}
+
+/* ===== فرم ارسال ===== */
+.sms-send-form {
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #eef2f6;
+  padding: 24px;
+  margin-bottom: 24px;
+}
+
+.sms-send-form .form-group {
+  margin-bottom: 16px;
+}
+
+.sms-send-form .form-group:last-child {
+  margin-bottom: 0;
+}
+
+.sms-send-form .form-group label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: #1e293b;
+  margin-bottom: 6px;
+}
+
+.sms-send-form .form-group label .required {
+  color: #dc2626;
+}
+
+.sms-send-form .form-control {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  font-family: "Vazir", sans-serif;
+  font-size: 13px;
+  transition: all 0.3s ease;
+  background: white;
+  color: #1e293b;
+}
+
+.sms-send-form .form-control:focus {
+  outline: none;
+  border-color: #2c7a6e;
+  box-shadow: 0 0 0 3px rgba(44, 122, 110, 0.1);
+}
+
+.sms-send-form .form-control:disabled {
+  background: #f8f9fa;
+  cursor: not-allowed;
+}
+
+.sms-send-form textarea.form-control {
+  resize: vertical;
+  min-height: 120px;
+  font-family: "Vazir", sans-serif;
+  line-height: 1.8;
+}
+
+.char-counter {
+  text-align: left;
+  font-size: 12px;
+  color: #94a3b8;
+  margin-top: 6px;
+}
+
+.char-counter #charCount {
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.char-counter .over-limit {
+  color: #dc2626 !important;
+}
+
+/* ===== پیش‌نمایش ===== */
+.sms-preview {
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 16px;
+  min-height: 80px;
+  border: 1px dashed #dee2e6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sms-preview .preview-content {
+  text-align: center;
+  color: #94a3b8;
+  font-size: 14px;
+}
+
+.sms-preview .preview-content i {
+  font-size: 24px;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.sms-preview .preview-content .preview-message {
+  color: #1e293b;
+  text-align: right;
+  padding: 12px;
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #eef2f6;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+/* ===== دکمه‌های فرم ===== */
+.sms-send-form .form-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+
+.btn-send-sms,
+.btn-send-bulk,
+.btn-clear {
+  padding: 10px 24px;
+  border: none;
+  border-radius: 8px;
+  font-family: "Vazir", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-send-sms {
+  background: #2c7a6e;
+  color: white;
+}
+
+.btn-send-sms:hover {
+  background: #035552;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(44, 122, 110, 0.3);
+}
+
+.btn-send-sms:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.btn-send-bulk {
+  background: #8b5cf6;
+  color: white;
+}
+
+.btn-send-bulk:hover {
+  background: #7c3aed;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+}
+
+.btn-clear {
+  background: #f1f5f9;
+  color: #64748b;
+  border: 1px solid #eef2f6;
+}
+
+.btn-clear:hover {
+  background: #e2e8f0;
+  transform: translateY(-2px);
+}
+
+/* ===== تاریخچه ===== */
+.sms-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sms-history-item {
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #eef2f6;
+  padding: 16px 20px;
+  transition: all 0.3s ease;
+}
+
+.sms-history-item:hover {
+  transform: translateX(-4px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+}
+
+.sms-history-item.pending {
+  border-right: 4px solid #f59e0b;
+}
+
+.sms-history-item.sent {
+  border-right: 4px solid #3b82f6;
+}
+
+.sms-history-item.delivered {
+  border-right: 4px solid #10b981;
+}
+
+.sms-history-item.failed {
+  border-right: 4px solid #dc2626;
+}
+
+.sms-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.sms-item-info {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.sms-item-info span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.sms-item-info .sms-customer {
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.sms-item-status .status-badge {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.sms-item-body {
+  padding: 12px 0;
+  border-top: 1px solid #f1f5f9;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.sms-message {
+  font-size: 14px;
+  color: #1e293b;
+  line-height: 1.8;
+  padding: 8px 12px;
+  background: #f8fafc;
+  border-radius: 8px;
+  margin-bottom: 10px;
+}
+
+.sms-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.sms-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.sms-item-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.sms-item-actions button {
+  padding: 6px 14px;
+  border: none;
+  border-radius: 6px;
+  font-family: "Vazir", sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.btn-check-status {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+.btn-check-status:hover {
+  background: #2563eb;
+  color: white;
+  transform: translateY(-2px);
+}
+
+.btn-resend {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.btn-resend:hover {
+  background: #d97706;
+  color: white;
+  transform: translateY(-2px);
+}
+
+/* ===== صفحه‌بندی ===== */
+.sms-pagination {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.sms-pagination .page-btn {
+  min-width: 36px;
+  height: 36px;
+  border: 1px solid #e5e7eb;
+  background: white;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: "Vazir", sans-serif;
+  font-size: 13px;
+  color: #475569;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sms-pagination .page-btn:hover:not(:disabled) {
+  background: #2c7a6e;
+  color: white;
+  border-color: #2c7a6e;
+  transform: translateY(-2px);
+}
+
+.sms-pagination .page-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.sms-pagination .page-btn.active {
+  background: #2c7a6e;
+  color: white;
+  border-color: #2c7a6e;
+  box-shadow: 0 2px 8px rgba(44, 122, 110, 0.3);
+}
+
+.sms-pagination .page-dots {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  height: 36px;
+  color: #94a3b8;
+}
+
+/* ===== وضعیت خالی ===== */
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #eef2f6;
+}
+
+.empty-state i {
+  font-size: 48px;
+  color: #cbd5e1;
+  display: block;
+  margin-bottom: 16px;
+}
+
+.empty-state h4 {
+  font-size: 18px;
+  color: #64748b;
+  margin-bottom: 8px;
+}
+
+.empty-state p {
+  font-size: 14px;
+  color: #94a3b8;
+}
+
+/* ===== ریسپانسیو ===== */
+@media (max-width: 992px) {
+  .sms-send-form .form-actions {
+    flex-direction: column;
+  }
+
+  .btn-send-sms,
+  .btn-send-bulk,
+  .btn-clear {
+    justify-content: center;
+    width: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  .sms-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .sms-header-actions {
+    flex-wrap: wrap;
+  }
+
+  .sms-filters {
+    flex-direction: column;
+  }
+
+  .filter-group {
+    min-width: auto;
+  }
+
+  .sms-item-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .sms-item-info {
+    font-size: 12px;
+    gap: 8px;
+  }
+
+  .sms-meta {
+    font-size: 11px;
+    gap: 8px;
+  }
+
+  .sms-item-actions {
+    flex-direction: column;
+  }
+
+  .sms-item-actions button {
+    justify-content: center;
+    width: 100%;
+  }
+
+  .sms-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .sms-container {
+    padding: 12px;
+  }
+
+  .sms-send-form {
+    padding: 16px;
+  }
+
+  .sms-send-form .form-control {
+    font-size: 12px;
+    padding: 8px 12px;
+  }
+
+  .sms-message {
+    font-size: 13px;
+    padding: 6px 10px;
+  }
+
+  .sms-credit .credit-value {
+    font-size: 18px;
+  }
+}

@@ -1,0 +1,1303 @@
+<!-- pages/customer-info.html -->
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>اطلاعات مشتری | سامانه مدیریت مشتریان</title>
+
+
+    <!-- ===== Vendor Styles ===== -->
+    <link rel="stylesheet" href="./../vendor/fontawesome-7.1.0/css/all.min.css">
+
+    <link rel="stylesheet" href="./../../node_modules/bootstrap/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="./../../node_modules/@mdi/font/css/materialdesignicons.min.css">
+    <link rel="stylesheet" href="./../../node_modules/persian-datepicker/dist/css/persian-datepicker.min.css">
+
+
+    <!-- ===== Core Styles ===== -->
+    <link rel="stylesheet" href="./../styles/reset.css">
+    <link rel="stylesheet" href="./../styles/variables.css">
+    <link rel="stylesheet" href="./../styles/global.css">
+    <link rel="stylesheet" href="./../styles/notification.css">
+
+    <!-- ===== Shared Components Styles ===== -->
+    <!-- Shared Layouts -->
+    <link rel="stylesheet" href="../shared/layouts/Header/header.css">
+    <link rel="stylesheet" href="../shared/layouts/Footer/footer.css">
+
+    <!-- Shared Components -->
+    <link rel="stylesheet" href="../shared/components/Breadcrumb/breadcrumb.css">
+    <link rel="stylesheet" href="../shared/components/Modal/modal.css">
+    <link rel="stylesheet" href="../shared/components/Accordion/accordion.css">
+
+    <!-- ===== Feature Styles ===== -->
+    <link rel="stylesheet" href="./../features/customer-info/section-header/section-header.css">
+    <link rel="stylesheet" href="./../features/customer-info/customer-info.css">
+    <link rel="stylesheet" href="./../features/customer-info/sections/basic-info/basic-info.css">
+    <link rel="stylesheet" href="./../features/customer-info/sections/chart-dashboard/chart-dashboard.css">
+    <link rel="stylesheet" href="./../features/customer-info/sections/hall-management/halls.css">
+    <link rel="stylesheet" href="./../features/customer-info/sections/hatchery/hatchery.css">
+    <link rel="stylesheet" href="./../features/customer-info/sections/weekly/weekly.css">
+    <link rel="stylesheet" href="./../features/customer-info/sections/visit-report/visit-report.css">
+
+    <link rel="icon" type="image/png" href="/assets/images/favicon.ico">
+</head>
+
+<body>
+
+    <!-- ===== FULL PAGE LOADING OVERLAY ===== -->
+    <div id="pageLoadingOverlay" style="
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: #f5f7fb;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 999999;
+        transition: opacity 0.5s ease;
+    ">
+        <div style="
+            width: 60px;
+            height: 60px;
+            border: 4px solid #e2e8f0;
+            border-top-color: #2c7a6e;
+            border-radius: 50%;
+            animation: pageLoaderSpin 0.8s linear infinite;
+            margin-bottom: 20px;
+        "></div>
+        <div style="
+            font-family: 'Vazir', sans-serif;
+            color: #2c7a6e;
+            font-size: 16px;
+            font-weight: 600;
+        ">در حال بارگذاری...</div>
+        <div style="
+            font-family: 'Vazir', sans-serif;
+            color: #94a3b8;
+            font-size: 12px;
+            margin-top: 8px;
+        ">سامانه مدیریت مشتریان</div>
+        <style>
+            @keyframes pageLoaderSpin {
+                to {
+                    transform: rotate(360deg);
+                }
+            }
+        </style>
+    </div>
+
+    <!-- ===== HEADER ===== -->
+    <header id="main-header"></header>
+
+    <!-- ===== BREADCRUMB ===== -->
+    <div class="breadcrumb-container">
+        <nav class="breadcrumb_wraper">
+            <ol class="breadcrumb_main">
+                <li class="breadcrumb-item">
+                    <a href="/" class="breadcrumb-item-link">
+                        <i class="fas fa-home"></i>
+                        <span class="breadcrumb-item_text">صفحه اصلی</span>
+                    </a>
+                </li>
+                <li class="breadcrumb-item">
+                    <a href="/customer-info" class="breadcrumb-item-link">
+                        <i class="fas fa-user-circle"></i>
+                        <span class="breadcrumb-item_text">اطلاعات مشتری</span>
+                    </a>
+                </li>
+            </ol>
+        </nav>
+    </div>
+
+    <!-- ===== MAIN CONTENT ===== -->
+    <div class="container-fluid">
+        <div class="main-container">
+            <div class="row main-container-UserTask-Wraper">
+
+                <!-- ===== SIDEBAR ===== -->
+                <div class="col-3">
+                    <div class="UserTask-sidebar">
+                        <div class="UserTask-sidebar_item">
+                            <div class="sidebar-menu-item customer-Basic-Information" data-menu="basic-info">
+                                <div class="menu-icon-wrapper">
+                                    <i class="fas fa-user menu-icon"></i>
+                                </div>
+                                <div class="menu-content">
+                                    <span class="menu-title">اطلاعات پایه</span>
+                                    <span class="menu-description">اطلاعات پایه مشتری</span>
+                                </div>
+                                <i class="fas fa-chevron-left menu-arrow"></i>
+                            </div>
+
+                            <div class="sidebar-menu-item customer-Dashbord" data-menu="chart-dashboard">
+                                <div class="menu-icon-wrapper">
+                                    <i class="fas fa-chart-line menu-icon"></i>
+                                </div>
+                                <div class="menu-content">
+                                    <span class="menu-title">داشبورد</span>
+                                    <span class="menu-description">نمایش آمار و ارقام مشتری به صورت نمودار</span>
+                                </div>
+                                <i class="fas fa-chevron-left menu-arrow"></i>
+                            </div>
+
+                            <div class="sidebar-menu-item customer-Halls" data-menu="hall-management">
+                                <div class="menu-icon-wrapper">
+                                    <i class="fas fa-warehouse menu-icon"></i>
+                                </div>
+                                <div class="menu-content">
+                                    <span class="menu-title">مدیریت سالن های مشتری</span>
+                                    <span class="menu-description">مدیریت و ثبت اطلاعات سالن‌ها</span>
+                                </div>
+                                <i class="fas fa-chevron-left menu-arrow"></i>
+                            </div>
+
+                            <div class="sidebar-menu-item customer-Chicken_rearing" data-menu="hatchery">
+                                <div class="menu-icon-wrapper">
+                                    <i class="fas fa-egg menu-icon"></i>
+                                </div>
+                                <div class="menu-content">
+                                    <span class="menu-title">مدیریت جوجه ریزی</span>
+                                    <span class="menu-description">ثبت و مشاهده دوره‌های جوجه ریزی</span>
+                                </div>
+                                <i class="fas fa-chevron-left menu-arrow"></i>
+                            </div>
+
+                            <div class="sidebar-menu-item customer-Weekly_information" data-menu="weekly">
+                                <div class="menu-icon-wrapper">
+                                    <i class="fas fa-chart-line menu-icon"></i>
+                                </div>
+                                <div class="menu-content">
+                                    <span class="menu-title">مدیریت هفتگی</span>
+                                    <span class="menu-description">مشاهده گزارشات عملکرد هفتگی</span>
+                                </div>
+                                <i class="fas fa-chevron-left menu-arrow"></i>
+                            </div>
+
+                            <div class="sidebar-menu-item customer-Weekly_labratory" data-menu="experiment">
+                                <div class="menu-icon-wrapper">
+                                    <i class="fas fa-flask menu-icon"></i>
+                                </div>
+                                <div class="menu-content">
+                                    <span class="menu-title">مدیریت آزمایشات</span>
+                                    <span class="menu-description">نتایج آزمایشات و آنالیزها</span>
+                                </div>
+                                <i class="fas fa-chevron-left menu-arrow"></i>
+                            </div>
+
+                            <div class="sidebar-menu-item customer-Weekly_export" data-menu="order-management">
+                                <div class="menu-icon-wrapper">
+                                    <i class="fas fa-truck menu-icon"></i>
+                                </div>
+                                <div class="menu-content">
+                                    <span class="menu-title">مدیریت سفارشات مشتری</span>
+                                    <span class="menu-description">مدیریت خروجی محصولات</span>
+                                </div>
+                                <i class="fas fa-chevron-left menu-arrow"></i>
+                            </div>
+
+                            <div class="sidebar-menu-item customer-Weekly_Formulation" data-menu="formulation">
+                                <div class="menu-icon-wrapper">
+                                    <i class="fas fa-folder menu-icon"></i>
+                                </div>
+                                <div class="menu-content">
+                                    <span class="menu-title">مدیریت فرمولاسیون</span>
+                                    <span class="menu-description">مدیریت خروجی محصولات</span>
+                                </div>
+                                <i class="fas fa-chevron-left menu-arrow"></i>
+                            </div>
+
+                            <div class="sidebar-menu-item customer-Weekly_visit_report" data-menu="visit-report">
+                                <div class="menu-icon-wrapper">
+                                    <i class="fas fa-clipboard-list menu-icon"></i>
+                                </div>
+                                <div class="menu-content">
+                                    <span class="menu-title">گزارش بازدید</span>
+                                    <span class="menu-description">مشاهده گزارشات بازدید میدانی</span>
+                                </div>
+                                <i class="fas fa-chevron-left menu-arrow"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ===== CONTENT AREA ===== -->
+                <div class="col-9">
+                    <!-- هدر اطلاعات مشتری -->
+                    <div class="customer-halls__section__header">
+                        <div class="customer-info-header">
+                            <div class="customer-main-info">
+                                <div class="customer-avatar-wrapper">
+                                    <div class="customer-avatar">
+                                        <i class="fas fa-user-circle"></i>
+                                        <span class="customer-status active"></span>
+                                    </div>
+                                </div>
+                                <div class="customer-details">
+                                    <h2 class="customer-name">
+                                        <span id="customerFullName">.....</span>
+                                        <span class="customer-code">(کد: <span id="customerCode">....</span>)</span>
+                                    </h2>
+                                    <div class="customer-farm">
+                                        <i class="fas fa-warehouse"></i>
+                                        <span id="customerFarmName">.....</span>
+                                    </div>
+                                    <div class="customer-location">
+                                        <i class="fas fa-map-marker-alt"></i>
+                                        <span id="customerLocation">.....</span>
+                                    </div>
+                                    <div class="customer-meta-info"></div>
+                                </div>
+                            </div>
+
+                            <div class="customer-stats-weather-row">
+                                <div class="farm-stats-info">
+                                    <div class="stat-card">
+                                        <div class="stat-icon"><i class="fas fa-warehouse"></i></div>
+                                        <div class="stat-content">
+                                            <span class="stat-label">سالن های فعال</span>
+                                            <span class="stat-value" id="totalHalls">0</span>
+                                        </div>
+                                    </div>
+                                    <div class="stat-card">
+                                        <div class="stat-icon"><i class="fas fa-droplet"></i></div>
+                                        <div class="stat-content">
+                                            <span class="stat-label">گله های فعال</span>
+                                            <span class="stat-value" id="activeFlocks">0</span>
+                                        </div>
+                                    </div>
+                                    <div class="stat-card">
+                                        <div class="stat-icon"><i class="fas fa-calendar-alt"></i></div>
+                                        <div class="stat-content">
+                                            <span class="stat-label">دوره های فعال</span>
+                                            <span class="stat-value" id="activePeriods">0</span>
+                                        </div>
+                                    </div>
+                                    <div class="stat-card">
+                                        <div class="stat-icon"><i class="fas fa-egg"></i></div>
+                                        <div class="stat-content">
+                                            <span class="stat-label">مجموع جوجه ریزی</span>
+                                            <span class="stat-value" id="totalChicks">0</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="customer-weather-wrapper">
+                                    <div class="customer-air-quality" id="weatherWidget">
+                                        <div class="weather-inactive" id="weatherInactive" style="display: none;">
+                                            <div class="weather-placeholder">
+                                                <i class="fas fa-cloud-sun"></i>
+                                                <span>اطلاعات آب و هوا</span>
+                                                <p>برای مشاهده کلیک کنید</p>
+                                                <button class="weather-activate-btn"
+                                                    onclick="loadWeatherAndAirQuality()">
+                                                    <i class="fas fa-sync-alt"></i> دریافت
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="weather-loading" id="weatherLoading" style="display: none;">
+                                            <i class="fas fa-spinner fa-spin"></i>
+                                            <span>در حال دریافت...</span>
+                                        </div>
+                                        <div class="weather-content" id="weatherContent" style="display: block;"></div>
+                                        <div class="weather-error" id="weatherError" style="display: none;"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Basic Information -->
+                    <div class="Basic-Information content-wrapper" id="Basic-Information">
+                        <div class="skb-customer-form">
+                            <div class="skb-form-header">
+                                <span class="skb-form-title">
+                                    <i class="fas fa-user-plus"></i>
+                                    اطلاعات ثبت نام مشتری
+                                </span>
+                            </div>
+                            <div class="skb-form-body">
+                                <!-- ستون اول -->
+                                <div class="skb-form-col">
+                                    <div class="skb-form-row">
+                                        <div class="skb-input-wrapper">
+                                            <div class="skb-input-container">
+                                                <i class="fas fa-building skb-input-icon"></i>
+                                                <input type="text" id="skb-company-name"
+                                                    class="skb-input-field profile-field" placeholder=" ">
+                                                <label class="skb-input-label">نام مجموعه</label>
+                                            </div>
+                                        </div>
+                                        <div class="skb-input-wrapper">
+                                            <div class="skb-input-container">
+                                                <i class="fas fa-user skb-input-icon"></i>
+                                                <input type="text" id="skb-full-name"
+                                                    class="skb-input-field profile-field" placeholder=" ">
+                                                <label class="skb-input-label">نام و نام خانوادگی</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="skb-form-row">
+                                        <div class="skb-input-wrapper">
+                                            <div class="skb-input-container">
+                                                <i class="fas fa-warehouse skb-input-icon"></i>
+                                                <input type="text" id="skb-farm-name"
+                                                    class="skb-input-field profile-field" placeholder=" ">
+                                                <label class="skb-input-label">نام فارم</label>
+                                            </div>
+                                        </div>
+                                        <div class="skb-input-wrapper">
+                                            <div class="skb-input-container">
+                                                <i class="fas fa-mobile-alt skb-input-icon"></i>
+                                                <input type="tel" id="skb-mobile" class="skb-input-field profile-field"
+                                                    placeholder=" " maxlength="11">
+                                                <label class="skb-input-label">همراه</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- ستون دوم -->
+                                <div class="skb-form-col">
+                                    <div class="skb-form-row">
+                                        <div class="skb-input-wrapper">
+                                            <div class="skb-input-container">
+                                                <i class="fas fa-mobile-alt skb-input-icon"></i>
+                                                <input type="tel" id="messenger" class="skb-input-field profile-field"
+                                                    placeholder=" " maxlength="11">
+                                                <label class="skb-input-label">شماره پیامرسان</label>
+                                            </div>
+                                        </div>
+                                        <div class="skb-input-wrapper">
+                                            <div class="skb-input-container">
+                                                <i class="fas fa-birthday-cake skb-input-icon"></i>
+                                                <input type="text" id="skb-birthdate"
+                                                    class="skb-input-field profile-field" placeholder=" ">
+                                                <label class="skb-input-label">تاریخ تولد</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="skb-form-row">
+                                        <div class="skb-input-wrapper">
+                                            <div class="skb-input-container">
+                                                <i class="fas fa-envelope skb-input-icon"></i>
+                                                <input type="email" id="skb-email" class="skb-input-field profile-field"
+                                                    placeholder=" ">
+                                                <label class="skb-input-label">پست الکترونیک</label>
+                                            </div>
+                                        </div>
+                                        <div class="skb-input-wrapper">
+                                            <div class="skb-input-container skb-select-container">
+                                                <i class="fas fa-history skb-input-icon"></i>
+                                                <select id="skb-poultry-experience"
+                                                    class="skb-input-field profile-field skb-select">
+                                                    <option value="">انتخاب سابقه فعالیت</option>
+                                                    <option value="less-than-1">کمتر از ۱ سال</option>
+                                                    <option value="1-3">۱ تا ۳ سال</option>
+                                                    <option value="3-5">۳ تا ۵ سال</option>
+                                                    <option value="5-10">۵ تا ۱۰ سال</option>
+                                                    <option value="more-than-10">بیش از ۱۰ سال</option>
+                                                </select>
+                                                <label class="skb-input-label">سابقه مرغداری</label>
+                                                <i class="fas fa-chevron-down skb-select-arrow"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- ستون سوم -->
+                                <div class="skb-form-col">
+                                    <div class="skb-form-row">
+                                        <div class="skb-input-wrapper">
+                                            <div class="skb-input-container skb-select-container">
+                                                <i class="fas fa-graduation-cap skb-input-icon"></i>
+                                                <select id="skb-education"
+                                                    class="skb-input-field profile-field skb-select">
+                                                    <option value="">انتخاب سطح تحصیلات</option>
+                                                </select>
+                                                <label class="skb-input-label">سطح تحصیلات</label>
+                                                <i class="fas fa-chevron-down skb-select-arrow"></i>
+                                            </div>
+                                        </div>
+                                        <div class="skb-input-wrapper">
+                                            <div class="skb-input-container skb-select-container">
+                                                <i class="fas fa-users skb-input-icon"></i>
+                                                <select id="skb-department"
+                                                    class="skb-input-field profile-field skb-select">
+                                                    <option value="">انتخاب دپارتمان</option>
+                                                </select>
+                                                <label class="skb-input-label">دپارتمان</label>
+                                                <i class="fas fa-chevron-down skb-select-arrow"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="skb-form-row">
+                                        <div class="skb-input-wrapper">
+                                            <div class="skb-input-container skb-select-container">
+                                                <i class="fas fa-venus-mars skb-input-icon"></i>
+                                                <select id="skb-gender"
+                                                    class="skb-input-field profile-field skb-select">
+                                                    <option value="">انتخاب جنسیت</option>
+                                                    <option value="مرد">مرد</option>
+                                                    <option value="زن">زن</option>
+                                                </select>
+                                                <label class="skb-input-label">جنسیت مشتری</label>
+                                                <i class="fas fa-chevron-down skb-select-arrow"></i>
+                                            </div>
+                                        </div>
+                                        <div class="skb-input-wrapper">
+                                            <div class="skb-input-container skb-select-container">
+                                                <i class="fas fa-map-marker-alt skb-input-icon"></i>
+                                                <select id="skb-province"
+                                                    class="skb-input-field profile-field skb-select">
+                                                    <option value="">انتخاب استان</option>
+                                                </select>
+                                                <label class="skb-input-label">استان</label>
+                                                <i class="fas fa-chevron-down skb-select-arrow"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- ستون چهارم -->
+                                <div class="skb-form-col">
+                                    <div class="skb-form-row">
+                                        <div class="skb-input-wrapper">
+                                            <div class="skb-input-container skb-select-container">
+                                                <i class="fas fa-city skb-input-icon"></i>
+                                                <select id="skb-city" class="skb-input-field profile-field skb-select">
+                                                    <option value="">انتخاب شهرستان</option>
+                                                </select>
+                                                <label class="skb-input-label">شهرستان</label>
+                                                <i class="fas fa-chevron-down skb-select-arrow"></i>
+                                            </div>
+                                        </div>
+                                        <div class="skb-input-wrapper">
+                                            <div class="skb-input-container">
+                                                <i class="fas fa-mail-bulk skb-input-icon"></i>
+                                                <input type="text" id="skb-postal-code"
+                                                    class="skb-input-field profile-field" placeholder=" "
+                                                    maxlength="10">
+                                                <label class="skb-input-label">کدپستی</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="skb-form-row">
+                                        <div class="skb-input-wrapper skb-full-width">
+                                            <div class="skb-input-container">
+                                                <i class="fas fa-map-marked-alt skb-input-icon"></i>
+                                                <input type="text" id="skb-farm-address"
+                                                    class="skb-input-field profile-field" placeholder=" ">
+                                                <label class="skb-input-label">آدرس مرغداری</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="skb-form-row">
+                                        <div class="skb-input-wrapper">
+                                            <div class="skb-input-container skb-select-container">
+                                                <i class="fas fa-handshake skb-input-icon"></i>
+                                                <select id="skb-how-know"
+                                                    class="skb-input-field profile-field skb-select">
+                                                    <option value="">انتخاب نحوه آشنایی</option>
+                                                    <option value="شبکه‌های اجتماعی">شبکه‌های اجتماعی</option>
+                                                    <option value="دوستان و آشنایان">دوستان و آشنایان</option>
+                                                    <option value="تبلیغات">تبلیغات</option>
+                                                    <option value="نمایشگاه">نمایشگاه</option>
+                                                    <option value="وبسایت">وبسایت</option>
+                                                    <option value="سایر">سایر</option>
+                                                </select>
+                                                <label class="skb-input-label">نحوه آشنایی با کارخانه</label>
+                                                <i class="fas fa-chevron-down skb-select-arrow"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="skb-form-footer">
+                                <div class="skb-form-actions">
+                                    <button class="skb-edit-btn" id="skb-edit-btn">
+                                        <i class="fas fa-edit"></i> ویرایش اطلاعات
+                                    </button>
+                                    <button class="skb-submit-btn" id="skb-submit-btn" style="display:none;">
+                                        <i class="fas fa-save"></i> بروزرسانی اطلاعات
+                                    </button>
+                                    <button class="skb-cancel-btn" id="skb-cancel-btn" style="display:none;">
+                                        <i class="fas fa-times-circle"></i> انصراف
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Chart Dashboard -->
+                    <div class="Chart-Dashboard content-wrapper" id="Chart-Dashboard">
+                        <div class="skb-charts-container"></div>
+                    </div>
+
+                    <!-- Hall Management -->
+                    <div class="customer-AddHals content-wrapper" id="customer-AddHals">
+                        <div class="section-header">
+                            <h3><i class="fas fa-warehouse"></i> لیست سالن‌های ثبت شده</h3>
+                            <div class="section-header-actions">
+                                <button class="btn-report-all-hall" onclick="generateHallsReport()"><i
+                                        class="fas fa-file"></i> دریافت گزارش کامل سالن ها</button>
+                            </div>
+                        </div>
+                        <div class="tabs-container">
+                            <div class="tabs-header">
+                                <button class="tab-btn" data-tab="period"><i class="fas fa-history"></i> اطلاعات
+                                    دوره</button>
+                                <button class="tab-btn active" data-tab="basic"><i class="fas fa-info-circle"></i>
+                                    اطلاعات پایه سالن</button>
+                                <button class="tab-btn" data-tab="physical"><i class="fas fa-ruler"></i> اطلاعات فیزیکی
+                                    سالن</button>
+                                <button class="tab-btn" data-tab="systems"><i class="fas fa-microchip"></i> سیستم‌های
+                                    سالن</button>
+                                <button class="tab-btn" data-tab="water-food"><i class="fas fa-tint"></i> آبخوری و
+                                    دانخوری</button>
+                            </div>
+
+                            <div id="periodTab" class="tab-content">
+                                <div class="form-section">
+                                    <h3 class="form-section-title">اطلاعات دوره پرورش</h3>
+                                    <div class="form-grid">
+                                        <div class="form-group"><label>شماره دوره</label><input type="text"
+                                                id="periodId" readonly disabled style="background:#f5f5f5;"></div>
+                                        <div class="form-group"><label>نام دوره پرورش <span
+                                                    class="required">*</span></label><input type="text" id="periodName"
+                                                placeholder="مثال: دوره پاییز ۱۴۰۴"></div>
+                                        <div class="form-group"><label>تاریخ شروع <span
+                                                    class="required">*</span></label>
+                                            <div class="date-input-wrapper"><input type="text" id="startDate"
+                                                    placeholder="۱۴۰۴/۰۱/۰۱"><i
+                                                    class="fas fa-calendar-alt date-icon"></i></div>
+                                        </div>
+                                        <div class="form-group"><label>تاریخ پایان</label><input type="text"
+                                                id="endDate" readonly disabled style="background:#f5f5f5;"></div>
+                                    </div>
+                                </div>
+                                <div class="form-actions">
+                                    <button class="btn btn-secondary" onclick="resetPeriodTab()">ریست فرم</button>
+                                    <button class="btn btn-primary" onclick="savePeriodInfo()">شروع دوره جدید</button>
+                                </div>
+                            </div>
+
+                            <div id="basicTab" class="tab-content active">
+                                <div class="form-section">
+                                    <h3 class="form-section-title">اطلاعات پایه سالن</h3>
+                                    <div class="form-grid">
+                                        <div class="form-group"><label>شماره سالن <span
+                                                    class="required">*</span></label><select id="hallNumber"
+                                                class="hall-select"></select></div>
+                                        <div class="form-group"><label>شماره دوره <span
+                                                    class="required">*</span></label><select id="PeriodNumber"
+                                                class="period-select"></select></div>
+                                        <div class="form-group"><label>نام سالن <span
+                                                    class="required">*</span></label><input type="text" id="hallName"
+                                                placeholder="مثال: سالن شماره یک"></div>
+                                        <div class="form-group"><label>ظرفیت اسمی سالن (قطعه)</label><input
+                                                type="number" id="capacity" placeholder="مثال: ۱۰۰۰۰"></div>
+                                        <div class="form-group"><label>ارتفاع از سطح دریا (متر)</label><input
+                                                type="number" id="altitude" placeholder="مثال: ۱۲۰۰"></div>
+                                        <div class="form-group"><label>نوع سالن</label><select id="hallType">
+                                                <option value="">انتخاب کنید...</option>
+                                                <option value="باز">باز</option>
+                                                <option value="بسته">بسته</option>
+                                                <option value="نیمه باز">نیمه باز</option>
+                                            </select></div>
+                                        <div class="form-group"><label>سال ساخت</label><input type="number"
+                                                id="buildYear" placeholder="مثال: ۱۴۰۰"></div>
+                                        <div class="form-group"><label>کارشناس خدمات</label><select
+                                                id="expert"></select></div>
+                                        <div class="form-group"><label>نام اپراتور سالن</label><input type="text"
+                                                id="operator" placeholder="نام اپراتور"></div>
+                                    </div>
+                                </div>
+                                <div class="form-actions">
+                                    <button class="btn btn-secondary" onclick="resetTab('basic')">ریست فرم</button>
+                                    <button class="btn btn-primary" onclick="saveBasicInfo()">ذخیره اطلاعات
+                                        پایه</button>
+                                </div>
+                            </div>
+
+                            <div id="physicalTab" class="tab-content">
+                                <div class="form-section">
+                                    <h3 class="form-section-title">اطلاعات فیزیکی سالن</h3>
+                                    <div class="form-grid">
+                                        <div class="form-group"><label>شماره سالن <span
+                                                    class="required">*</span></label><select id="physicalHallNumber"
+                                                class="hall-select"></select></div>
+                                        <div class="form-group"><label>طول سالن (متر)</label><input type="number"
+                                                id="length" step="0.01" placeholder="مثال: ۵۰"></div>
+                                        <div class="form-group"><label>عرض سالن (متر)</label><input type="number"
+                                                id="width" step="0.01" placeholder="مثال: ۲۰"></div>
+                                        <div class="form-group"><label>ارتفاع (متر)</label><input type="number"
+                                                id="height" step="0.01" placeholder="مثال: ۴"></div>
+                                        <div class="form-group"><label>مساحت (متر مربع)</label><input type="number"
+                                                id="area" step="0.01" readonly style="background:#f5f5f5;"></div>
+                                        <div class="form-group"><label>جنس کف سالن</label><select
+                                                id="floorMaterial"></select></div>
+                                        <div class="form-group full-width-field"><label>توضیحات</label><textarea
+                                                id="Hall-Physical-Description" rows="8" class="textarea-field"
+                                                placeholder="توضیحات تکمیلی..."></textarea></div>
+                                    </div>
+                                </div>
+                                <div class="form-actions">
+                                    <button class="btn btn-secondary" onclick="resetTab('physical')">ریست فرم</button>
+                                    <button class="btn btn-primary" onclick="savePhysicalInfo()">ذخیره اطلاعات
+                                        فیزیکی</button>
+                                </div>
+                            </div>
+
+                            <div id="systemsTab" class="tab-content">
+                                <div class="form-section">
+                                    <h3 class="form-section-title">اطلاعات سیستم‌های سالن</h3>
+                                    <div class="form-grid">
+                                        <div class="form-group"><label>شماره سالن <span
+                                                    class="required">*</span></label><select id="systemsHallNumber"
+                                                class="hall-select"></select></div>
+                                        <div class="form-group"><label>تعداد فن‌ها</label><input type="number"
+                                                id="fanCount" placeholder="مثال: ۸"></div>
+                                        <div class="form-group"><label>اندازه فن‌ها (اینچ)</label><input type="text"
+                                                id="fanSize" placeholder="مثال: ۳۶"></div>
+                                        <div class="form-group"><label>ظرفیت فن‌ها (متر مکعب بر ساعت)</label><input
+                                                type="text" id="fanCapacity" placeholder="مثال: ۲۰۰۰۰"></div>
+                                        <div class="form-group"><label>تعداد هیتر</label><input type="number"
+                                                id="heaterCount" placeholder="مثال: ۴"></div>
+                                        <div class="form-group"><label>نوع سیستم گرمایش</label><select
+                                                id="heatingType"></select></div>
+                                        <div class="form-group"><label>نوع سیستم سرمایش</label><select
+                                                id="coolingType"></select></div>
+                                        <div class="form-group"><label>نوع سیستم تهویه</label><select
+                                                id="ventilationType"></select></div>
+                                        <div class="form-group"><label>نوع سیستم ورودی بهداشتی</label><select
+                                                id="sanitarySystem"></select></div>
+                                        <div class="form-group"><label>نوع سیستم روشنایی</label><select
+                                                id="lighthingSystem"></select></div>
+                                        <div class="form-group full-width-field"><label>توضیحات</label><textarea
+                                                id="Hall-System-Description" rows="8" class="textarea-field"
+                                                placeholder="توضیحات تکمیلی..."></textarea></div>
+                                    </div>
+                                </div>
+                                <div class="form-actions">
+                                    <button class="btn btn-secondary" onclick="resetTab('systems')">ریست فرم</button>
+                                    <button class="btn btn-primary" onclick="saveSystemsInfo()">ذخیره اطلاعات
+                                        سیستم‌ها</button>
+                                </div>
+                            </div>
+
+                            <div id="waterFoodTab" class="tab-content">
+                                <div class="form-section">
+                                    <h3 class="form-section-title">اطلاعات آبخوری و دانخوری</h3>
+                                    <div class="form-grid">
+                                        <div class="form-group"><label>شماره سالن <span
+                                                    class="required">*</span></label><select id="wfHallNumber"
+                                                class="hall-select"></select></div>
+                                        <div class="form-group"><label>نوع آبخوری</label><select
+                                                id="waterType"></select></div>
+                                        <div class="form-group"><label>نوع دانخوری</label><select
+                                                id="foodType"></select></div>
+                                        <div class="form-group"><label>تعداد خطوط آبخوری</label><input type="number"
+                                                id="waterLines" placeholder="مثال: ۴"></div>
+                                        <div class="form-group"><label>تعداد خطوط دانخوری</label><input type="number"
+                                                id="foodLines" placeholder="مثال: ۴"></div>
+                                        <div class="form-group"><label>سیستم دان دهی اتوماتیک</label>
+                                            <div class="radio-group"><label class="radio-item"><input type="radio"
+                                                        name="autoFood" value="دارد"> دارد</label><label
+                                                    class="radio-item"><input type="radio" name="autoFood"
+                                                        value="ندارد"> ندارد</label></div>
+                                        </div>
+                                        <div class="form-group full-width-field"><label>توضیحات</label><textarea
+                                                id="Hall-water-feed-Description" rows="8" class="textarea-field"
+                                                placeholder="توضیحات تکمیلی..."></textarea></div>
+                                    </div>
+                                </div>
+                                <div class="form-actions">
+                                    <button class="btn btn-secondary" onclick="resetTab('water-food')">ریست فرم</button>
+                                    <button class="btn btn-primary" onclick="saveWaterFoodInfo()">ذخیره اطلاعات آبخوری و
+                                        دانخوری</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="halls-list-section">
+                            <div id="hallsListContainer" class="halls-list">
+                                <div class="loading">در حال بارگذاری سالن‌ها...</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Hatchery Management -->
+                    <div class="Hatchery-Management content-wrapper" id="Hatchery-Management">
+                        <div class="weekly-card__header">
+                            <div class="weekly-card__title">
+                                <i class="fas fa-egg"></i>
+                                <h3>مدیریت دوره‌های جوجه ریزی</h3>
+                                <span class="week-badge" id="chickBadge">دوره جدید</span>
+                            </div>
+                            <div class="weekly-card__actions">
+                                <button class="btn-report-all-hall" onclick="generateChickReport()">
+                                    <i class="fas fa-file"></i> دریافت گزارش کامل جوجه ریزی
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="tabs-container">
+                            <div class="tabs-header">
+                                <button class="tab-btn active" data-tab="chick-period-info"><i
+                                        class="fas fa-history"></i> ثبت دوره پرورش (جدید) +</button>
+                                <button class="tab-btn" data-tab="chick-periods-list"><i
+                                        class="fas fa-calendar-week"></i> مدیریت دوره های پرورش مرغدار</button>
+                                <button class="tab-btn" data-tab="chick-register"><i class="fas fa-egg"></i> ثبت گله های
+                                    سالن ها</button>
+                                <button class="tab-btn" data-tab="chick-list"><i class="fas fa-list"></i> لیست گله
+                                    ها</button>
+                                <button class="tab-btn" data-tab="chick-hygiene-info"><i class="fas fa-shield-alt"></i>
+                                    برنامه ضدعفونی</button>
+                                <button class="tab-btn" data-tab="chick-hygiene-list"><i class="fas fa-list"></i> لیست
+                                    ضدعفونی</button>
+                            </div>
+
+                            <div id="chickPeriodInfoTab" class="tab-content active">
+                                <div class="form-section">
+                                    <h3 class="form-section-title">اطلاعات دوره پرورش</h3>
+                                    <div class="form-grid">
+                                        <div class="form-group"><label>شماره دوره</label><input type="text"
+                                                id="chickPeriodId" readonly disabled></div>
+                                        <div class="form-group"><label>نام دوره پرورش <span
+                                                    class="required">*</span></label><input type="text"
+                                                id="chickPeriodName" placeholder="مثال: دوره پاییز ۱۴۰۴"></div>
+                                        <div class="form-group"><label>تاریخ شروع <span
+                                                    class="required">*</span></label>
+                                            <div class="date-input-wrapper"><input type="text" id="chickStartDate"
+                                                    placeholder="۱۴۰۴/۰۱/۰۱"><i
+                                                    class="fas fa-calendar-alt date-icon"></i></div>
+                                        </div>
+                                        <div class="form-group"><label>تاریخ پایان</label><input type="text"
+                                                id="chickEndDate" readonly disabled></div>
+                                    </div>
+                                </div>
+                                <div class="form-actions">
+                                    <button class="btn btn-secondary" onclick="resetChickPeriodTab()">ریست فرم</button>
+                                    <button class="btn btn-primary" onclick="saveChickPeriodInfo()">شروع دوره
+                                        جدید</button>
+                                </div>
+                            </div>
+
+                            <div id="chickPeriodsListTab" class="tab-content">
+                                <div class="table-container">
+                                    <div class="table-header">
+                                        <h3><i class="fas fa-calendar-alt"></i> لیست دوره‌های پرورش</h3>
+                                    </div>
+                                    <div class="skb-table-responsive">
+                                        <table class="skb-data-table" id="allPeriodsTable">
+                                            <thead>
+                                                <tr>
+                                                    <th>ردیف</th>
+                                                    <th>شماره دوره</th>
+                                                    <th>نام دوره</th>
+                                                    <th>تاریخ شروع</th>
+                                                    <th>تاریخ پایان</th>
+                                                    <th>تراکم کل</th>
+                                                    <th>وضعیت</th>
+                                                    <th>عملیات</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="allPeriodsTableBody">
+                                                <tr>
+                                                    <td colspan="8" style="text-align:center;">در حال بارگذاری...</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div id="chickRegisterTab" class="tab-content">
+                                <div class="form-section">
+                                    <h3 class="form-section-title">ثبت دوره جوجه ریزی جدید</h3>
+                                    <div class="form-grid">
+                                        <div class="form-group"><label>شماره گله</label><input type="text"
+                                                id="skb-flock-number" readonly disabled></div>
+                                        <div class="form-group"><label>سالن <span
+                                                    class="required">*</span></label><select id="skb-hall-select"
+                                                class="hall-select"
+                                                onchange="loadHallAreaForChick(this.value)"></select></div>
+                                        <div class="form-group"><label>دوره جوجه ریزی <span
+                                                    class="required">*</span></label><select id="skb-period-select"
+                                                class="period-select"></select></div>
+                                        <div class="form-group"><label>تاریخ جوجه ریزی <span
+                                                    class="required">*</span></label><input type="text"
+                                                id="skb-chick-date"></div>
+                                        <div class="form-group"><label>مبدا جوجه</label><select
+                                                id="skb-chick-source"></select></div>
+                                        <div class="form-group"><label>نژاد جوجه</label><select
+                                                id="skb-chick-breed"></select></div>
+                                        <div class="form-group"><label>سن جوجه در بدو ورود (روز)</label><input
+                                                type="number" id="skb-chick-age" step="0.1" placeholder="مثال: 1"></div>
+                                        <div class="form-group"><label>میانگین وزن اولیه (گرم)</label><input
+                                                type="number" id="skb-initial-weight" step="0.01"
+                                                placeholder="مثال: 42.5"></div>
+                                        <div class="form-group"><label>مجموع کل بار جوجه (قطعه)</label><input
+                                                type="number" id="skb-total-load" placeholder="مثال: 2100"
+                                                oninput="calculateDensity()"></div>
+                                        <div class="form-group"><label>تعداد جوجه ریزی (قطعه)</label><input
+                                                type="number" id="skb-chick-count" placeholder="مثال: 10000"
+                                                oninput="calculateDensity()"></div>
+                                        <div class="form-group"><label>تراکم سالن فعلی (قطعه/مترمربع)</label><input
+                                                type="text" id="skb-current-density" readonly disabled></div>
+                                    </div>
+                                </div>
+                                <div class="form-actions">
+                                    <button class="btn btn-secondary" onclick="resetChickRegisterTab()">ریست
+                                        فرم</button>
+                                    <button class="btn btn-primary" onclick="saveChickRegister()">ذخیره جوجه
+                                        ریزی</button>
+                                </div>
+                            </div>
+
+                            <div id="chickListTab" class="tab-content">
+                                <div class="table-container">
+                                    <div class="table-header">
+                                        <h3><i class="fas fa-table-list"></i> لیست دوره‌های جوجه ریزی</h3>
+                                    </div>
+                                    <div class="skb-table-responsive">
+                                        <table class="skb-data-table" id="skbPeriodsTable">
+                                            <thead>
+                                                <tr>
+                                                    <th>شماره دوره</th>
+                                                    <th>سالن</th>
+                                                    <th>تاریخ جوجه ریزی</th>
+                                                    <th>شماره گله</th>
+                                                    <th>نژاد</th>
+                                                    <th>تعداد جوجه</th>
+                                                    <th>وضعیت</th>
+                                                    <th>عملیات</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="skbPeriodsTableBody">
+                                                <tr>
+                                                    <td colspan="8" style="text-align:center;">در حال بارگذاری...</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div id="chickHygieneInfoTab" class="tab-content">
+                                <div class="form-section">
+                                    <h3 class="form-section-title">بهداشت و ضدعفونی سالن</h3>
+                                    <div class="form-grid">
+                                        <div class="form-group"><label>شماره سالن <span
+                                                    class="required">*</span></label><select id="chickHealthHallNumber"
+                                                class="hall-select"></select></div>
+                                        <div class="form-group"><label>آخرین تاریخ شستشو</label><input type="text"
+                                                id="chickLastWashDate" class="date-input"></div>
+                                        <div class="form-group"><label>آخرین تاریخ ضدعفونی</label><input type="text"
+                                                id="chickLastDisinfectDate" class="date-input"></div>
+                                        <div class="form-group"><label>نوع مواد ضدعفونی</label><input type="text"
+                                                id="chickDisinfectMaterial" placeholder="مثال: فرمالین"></div>
+                                        <div class="form-group full-width-field"><label>توضیحات</label><textarea
+                                                id="chickHygieneDescription" rows="3"
+                                                placeholder="توضیحات تکمیلی..."></textarea></div>
+                                    </div>
+                                </div>
+                                <div class="form-actions">
+                                    <button class="btn btn-secondary" onclick="resetChickHygieneTab()">ریست فرم</button>
+                                    <button class="btn btn-primary" onclick="saveChickHygieneInfo()">ذخیره اطلاعات
+                                        بهداشتی</button>
+                                </div>
+                            </div>
+
+                            <div id="chickHygieneListTab" class="tab-content">
+                                <div class="table-container">
+                                    <div class="table-header">
+                                        <h3><i class="fas fa-shield-alt"></i> تاریخچه ضدعفونی سالن‌ها</h3>
+                                    </div>
+                                    <div class="skb-table-responsive">
+                                        <table class="skb-data-table" id="hygieneHistoryTable">
+                                            <thead>
+                                                <tr>
+                                                    <th>ردیف</th>
+                                                    <th>سالن</th>
+                                                    <th>تاریخ شستشو</th>
+                                                    <th>تاریخ ضدعفونی</th>
+                                                    <th>نوع مواد ضدعفونی</th>
+                                                    <th>توضیحات</th>
+                                                    <th>عملیات</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="hygieneHistoryTableBody">
+                                                <tr>
+                                                    <td colspan="7" style="text-align:center;">در حال بارگذاری...</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Weekly Management -->
+                    <div class="weekly-card content-wrapper" id="weekly-card">
+                        <div class="weekly-card__header">
+                            <div class="weekly-card__title">
+                                <i class="fas fa-calendar-week"></i>
+                                <h3>گزارش هفتگی مرغداری</h3>
+                                <span class="week-badge" id="weekBadge">هفته جاری</span>
+                            </div>
+                            <div class="weekly-card__actions">
+                                <button class="btn-report-all-hall" onclick="generateFullWeeklyReport()">
+                                    <i class="fas fa-file"></i> دریافت گزارش کامل هفتگی
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="weekly-card__form">
+                            <div class="filter-section">
+                                <div class="filter-title"><i class="fas fa-sliders-h"></i> فیلترهای انتخاب</div>
+                                <div class="filter-row">
+                                    <div class="filter-group"><label><i class="fas fa-calendar-alt"></i> انتخاب دوره
+                                            جوجه‌ریزی</label><select id="filter-period" class="filter-select">
+                                            <option value="">همه دوره‌ها</option>
+                                        </select></div>
+                                    <div class="filter-group"><label><i class="fas fa-warehouse"></i> انتخاب
+                                            سالن</label><select id="filter-hall" class="filter-select">
+                                            <option value="">همه سالن‌ها</option>
+                                        </select></div>
+                                    <div class="filter-group"><label><i class="fas fa-egg"></i> انتخاب
+                                            گله</label><select id="filter-flock" class="filter-select">
+                                            <option value="">انتخاب گله...</option>
+                                        </select></div>
+                                </div>
+                            </div>
+
+                            <div class="weekly-layout">
+                                <div class="weeks-list">
+                                    <div class="weeks-header">
+                                        <span><i class="fas fa-list"></i> لیست هفته‌ها</span>
+                                        <div class="weeks-controls">
+                                            <button class="btn-control-weeks btn-expand-all" onclick="openAllWeeks()"><i
+                                                    class="fas fa-chevron-down"></i> باز کردن همه</button>
+                                            <button class="btn-control-weeks btn-collapse-all"
+                                                onclick="closeAllWeeks()"><i class="fas fa-chevron-up"></i> بستن
+                                                همه</button>
+                                        </div>
+                                    </div>
+                                    <div class="weeks-accordion" id="weeksAccordion">
+                                        <div class="empty-state"><i class="fas fa-calendar-week"></i>
+                                            <p>لطفاً یک گله را انتخاب کنید</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeWeekEditor()"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Visit Report -->
+                    <div class="Visit-Report content-wrapper" id="Visit-Report">
+                        <div class="skb-visit-section">
+                            <div class="skb-visit-header">
+                                <span class="skb-visit-title"><i class="fas fa-clipboard-list"></i> گزارش بازدید از
+                                    فارم</span>
+                            </div>
+                            <div class="skb-visit-body">
+                                <div class="skb-visit-form">
+                                    <div class="skb-visit-row">
+                                        <div class="skb-input-wrapper">
+                                            <div class="skb-input-container"><i
+                                                    class="fas fa-calendar-alt skb-input-icon"></i><input type="text"
+                                                    id="visit-date" class="skb-input-field" placeholder=" "><label
+                                                    class="skb-input-label">تاریخ بازدید <span
+                                                        class="required">*</span></label></div>
+                                        </div>
+                                        <div class="skb-input-wrapper">
+                                            <div class="skb-input-container skb-select-container"><i
+                                                    class="fas fa-share-alt skb-input-icon"></i><select
+                                                    id="visit-forward" class="skb-input-field skb-select-field">
+                                                    <option value="">انتخاب کنید...</option>
+                                                    <option value="nutrition">واحد تغذیه</option>
+                                                    <option value="health">واحد بهداشت</option>
+                                                    <option value="production">واحد تولید</option>
+                                                    <option value="sales">واحد فروش</option>
+                                                    <option value="quality">واحد کنترل کیفیت</option>
+                                                    <option value="management">مدیریت</option>
+                                                </select><label class="skb-input-label">ارجاع به</label><i
+                                                    class="fas fa-chevron-down skb-select-arrow"></i></div>
+                                        </div>
+                                        <div class="skb-input-wrapper">
+                                            <div class="skb-input-container skb-select-container"><i
+                                                    class="fas fa-calendar-week skb-input-icon"></i><select
+                                                    id="visit-period" class="skb-input-field skb-select-field">
+                                                    <option value="">در حال بارگذاری...</option>
+                                                </select><label class="skb-input-label">دوره جوجه‌ریزی <span
+                                                        class="required">*</span></label><i
+                                                    class="fas fa-chevron-down skb-select-arrow"></i></div>
+                                        </div>
+                                    </div>
+
+                                    <div class="skb-visit-row">
+                                        <div class="skb-input-wrapper">
+                                            <div class="skb-input-container skb-select-container skb-multi-select"><i
+                                                    class="fas fa-warehouse skb-input-icon"></i><select id="visit-halls"
+                                                    class="skb-input-field skb-select-field" multiple size="3">
+                                                    <option value="">در حال بارگذاری...</option>
+                                                </select><label class="skb-input-label">سالن‌های بازدید شده (انتخاب
+                                                    چندگانه) <span class="required">*</span></label><i
+                                                    class="fas fa-chevron-down skb-select-arrow"></i></div>
+                                            <div class="skb-selected-visit-halls" id="selectedVisitHalls"></div>
+                                        </div>
+                                        <div class="skb-input-wrapper">
+                                            <div class="skb-input-container skb-select-container skb-multi-select"><i
+                                                    class="fas fa-user-tie skb-input-icon"></i><select
+                                                    id="visit-experts" class="skb-input-field skb-select-field" multiple
+                                                    size="3">
+                                                    <option value="">در حال بارگذاری...</option>
+                                                </select><label class="skb-input-label">کارشناسان بازدید کننده (انتخاب
+                                                    چندگانه) <span class="required">*</span></label><i
+                                                    class="fas fa-chevron-down skb-select-arrow"></i></div>
+                                            <div class="skb-selected-experts" id="selectedExperts"></div>
+                                        </div>
+                                    </div>
+
+                                    <div class="skb-visit-row">
+                                        <div class="skb-input-wrapper full-width">
+                                            <div class="skb-input-container"><i
+                                                    class="fas fa-file-alt skb-input-icon"></i><textarea
+                                                    id="visit-description" rows="5" class="skb-input-field"
+                                                    placeholder=" "></textarea><label class="skb-input-label">شرح گزارش
+                                                    بازدید <span class="required">*</span></label></div>
+                                        </div>
+                                    </div>
+
+                                    <div class="skb-visit-subsection">
+                                        <div class="skb-visit-subtitle"><i class="fas fa-paperclip"></i> پیوست مستندات
+                                        </div>
+                                        <div class="skb-attachment-buttons">
+                                            <button type="button" class="skb-attach-btn"
+                                                onclick="document.getElementById('file-input').click()"><i
+                                                    class="fas fa-file"></i> افزودن فایل</button>
+                                            <button type="button" class="skb-attach-btn"
+                                                onclick="addVideoAttachment()"><i class="fas fa-video"></i> افزودن
+                                                ویدیو</button>
+                                            <span class="skb-video-limit-note">حداکثر ۵۰۰ مگابایت</span>
+                                        </div>
+                                        <input type="file" id="file-input" style="display:none;" multiple
+                                            onchange="handleFiles(this.files)">
+                                        <div id="attachments-list" class="skb-attachments-list"></div>
+                                    </div>
+
+                                    <div class="skb-visit-actions">
+                                        <button class="skb-visit-save" onclick="saveVisitReport()"><i
+                                                class="fas fa-save"></i> ذخیره گزارش</button>
+                                        <button class="skb-visit-reset" onclick="resetVisitForm()"><i
+                                                class="fas fa-undo"></i> پاک کردن فرم</button>
+                                    </div>
+                                </div>
+
+                                <div class="skb-visit-table-section">
+                                    <div class="skb-visit-table-header">
+                                        <span class="skb-visit-table-title"><i class="fas fa-list"></i> لیست گزارشات
+                                            بازدید</span>
+                                        <div class="skb-visit-search">
+                                            <div class="skb-input-wrapper">
+                                                <div class="skb-input-container"><i
+                                                        class="fas fa-search skb-input-icon"></i><input type="text"
+                                                        id="visit-search" class="skb-input-field" placeholder=" "
+                                                        onkeyup="filterVisits()"><label class="skb-input-label">جستجوی
+                                                        گزارش...</label></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="skb-table-responsive">
+                                        <table class="skb-data-table" id="visitsTable">
+                                            <thead>
+                                                <tr>
+                                                    <th>ردیف</th>
+                                                    <th>تاریخ بازدید</th>
+                                                    <th>دوره</th>
+                                                    <th>سالن‌های بازدید شده</th>
+                                                    <th>کارشناسان</th>
+                                                    <th>ارجاع به</th>
+                                                    <th>تاریخ و ساعت ثبت</th>
+                                                    <th>ثبت‌کننده</th>
+                                                    <th>پیوست</th>
+                                                    <th>وضعیت</th>
+                                                    <th>عملیات</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="visitsTableBody">
+                                                <tr>
+                                                    <td colspan="11" style="text-align:center;">هیچ گزارشی ثبت نشده است
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="viewVisitModal" class="skb-modal-overlay">
+                            <div class="skb-modal-container skb-modal-large">
+                                <div class="skb-modal-header">
+                                    <span class="skb-modal-title"><i class="fas fa-eye"></i> مشاهده گزارش بازدید</span>
+                                    <button class="skb-modal-close" onclick="closeViewVisitModal()"><i
+                                            class="fas fa-times"></i></button>
+                                </div>
+                                <div class="skb-modal-body" id="viewVisitBody"></div>
+                                <div class="skb-modal-footer">
+                                    <button class="skb-print-btn" onclick="window.printVisitReport()"><i
+                                            class="fas fa-print"></i> پرینت گزارش</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== FOOTER ===== -->
+    <footer id="main-footer"></footer>
+
+    <!-- ===== SCRIPTS ===== -->
+
+    <!-- 1. Vendor Scripts -->
+
+    <script src="./../../node_modules/jquery/dist/jquery.min.js"></script>
+    <script src="./../../node_modules/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="./../../node_modules/sweetalert2/dist/sweetalert2.all.min.js"></script>
+    <script src="./../../node_modules/persian-date/dist/persian-date.min.js"></script>
+    <script src="./../../node_modules/persian-datepicker/dist/js/persian-datepicker.min.js"></script>
+    <script src="./../../node_modules/chart.js/dist/chart.umd.min.js"></script>
+
+
+    <!-- 2. Core Services -->
+    <script type="module" src="./../core/constants/api.const.js"></script>
+    <script type="module" src="./../core/constants/config.const.js"></script>
+    <script type="module" src="./../core/services/cache.service.js"></script>
+    <script type="module" src="./../core/services/api.service.js"></script>
+    <script type="module" src="./../core/services/auth.service.js"></script>
+    <script type="module" src="./../core/services/state.service.js"></script>
+    <script type="module" src="./../core/services/notification.service.js"></script>
+    <script type="module" src="./../core/services/router.service.js"></script>
+
+    <!-- 3. Utils -->
+    <script type="module" src="./../core/utils/date.utils.js"></script>
+    <script type="module" src="./../core/utils/string.utils.js"></script>
+    <script type="module" src="./../core/utils/dom.utils.js"></script>
+    <script type="module" src="./../core/utils/form.utils.js"></script>
+    <script type="module" src="./../core/utils/number.utils.js"></script>
+
+    <!-- 4. Shared Components -->
+    <script type="module" src="./../shared/components/Accordion/accordion.service.js"></script>
+    <script type="module" src="./../shared/components/Dropdown/dropdown.service.js"></script>
+    <script type="module" src="./../shared/components/Modal/modal.service.js"></script>
+    <script type="module" src="./../shared/components/Form/form.service.js"></script>
+    <script type="module" src="./../shared/components/Table/table.service.js"></script>
+
+    <!-- 5. Layouts -->
+    <script type="module" src="./../shared/layouts/Header/header.service.js"></script>
+    <script type="module" src="./../shared/layouts/Header/header-bookmarks.service.js"></script>
+    <script type="module" src="./../shared/layouts/Header/header-dropdown.service.js"></script>
+    <script type="module" src="./../shared/layouts/Footer/footer.service.js"></script>
+    <script type="module" src="./../shared/layouts/Sidebar/sidebar.service.js"></script>
+
+    <!-- 6. Features: Customer Info (همه سرویس‌ها قبل از app.service.js) -->
+    <script type="module" src="./../features/customer-info/section-header/section-header.service.js"></script>
+    <script type="module" src="./../features/customer-info/customer-info.service.js"></script>
+
+    <!-- Sections -->
+    <script type="module" src="./../features/customer-info/sections/basic-info/basic-info.api.js"></script>
+    <script type="module" src="./../features/customer-info/sections/basic-info/basic-info.renderer.js"></script>
+    <script type="module" src="./../features/customer-info/sections/basic-info/basic-info.service.js"></script>
+
+    <script type="module" src="./../features/customer-info/sections/chart-dashboard/chart-dashboard.api.js"></script>
+    <script type="module"
+        src="./../features/customer-info/sections/chart-dashboard/chart-dashboard.renderer.js"></script>
+    <script type="module"
+        src="./../features/customer-info/sections/chart-dashboard/chart-dashboard.service.js"></script>
+
+    <script type="module" src="./../features/customer-info/sections/hall-management/halls.api.js"></script>
+    <script type="module" src="./../features/customer-info/sections/hall-management/halls.renderer.js"></script>
+    <script type="module" src="./../features/customer-info/sections/hall-management/halls.service.js"></script>
+    <script type="module" src="./../features/customer-info/sections/hall-management/halls.validation.js"></script>
+
+    <script type="module" src="./../features/customer-info/sections/hatchery/hatchery.api.js"></script>
+    <script type="module" src="./../features/customer-info/sections/hatchery/hatchery.renderer.js"></script>
+    <script type="module" src="./../features/customer-info/sections/hatchery/hatchery.service.js"></script>
+    <script type="module" src="./../features/customer-info/sections/hatchery/hatchery.form.service.js"></script>
+    <script type="module" src="./../features/customer-info/sections/hatchery/hatchery.tabs.service.js"></script>
+    <script type="module" src="./../features/customer-info/sections/hatchery/hatchery.validation.js"></script>
+
+    <script type="module" src="./../features/customer-info/sections/weekly/weekly.api.js"></script>
+    <script type="module" src="./../features/customer-info/sections/weekly/weekly.renderer.js"></script>
+    <script type="module" src="./../features/customer-info/sections/weekly/weekly.service.js"></script>
+    <script type="module" src="./../features/customer-info/sections/weekly/weekly.validation.js"></script>
+
+    <script type="module" src="./../features/customer-info/sections/visit-report/visit-report.api.js"></script>
+    <script type="module" src="./../features/customer-info/sections/visit-report/visit-report.renderer.js"></script>
+    <script type="module" src="./../features/customer-info/sections/visit-report/visit-report.service.js"></script>
+    <script type="module" src="./../features/customer-info/sections/visit-report/visit-report.validation.js"></script>
+
+    <!-- 7. App Service (آخرین بار لود شود) -->
+    <script type="module" src="./../core/services/app.service.js"></script>
+
+    <!-- 8. Init (بعد از app.service.js) -->
+    <script type="module">
+        import { customerInfoService } from './../features/customer-info/customer-info.service.js';
+
+        // قرار دادن در window
+        window.customerInfoService = customerInfoService;
+        window.CustomerInfoService = customerInfoService.constructor;
+
+        document.addEventListener('DOMContentLoaded', async function () {
+            try {
+                // صبر کنید تا appService کامل شود
+                if (window.appService && !window.appService.initialized) {
+                    await new Promise(resolve => {
+                        const checkApp = setInterval(() => {
+                            if (window.appService.initialized) {
+                                clearInterval(checkApp);
+                                resolve();
+                            }
+                        }, 100);
+                    });
+                }
+
+                // مقداردهی سرویس اطلاعات مشتری
+                await customerInfoService.init();
+                console.log('✅ Customer Info page loaded successfully');
+            } catch (error) {
+                console.error('❌ Error initializing customer info:', error);
+            } finally {
+                // مخفی کردن لودینگ
+                const overlay = document.getElementById('pageLoadingOverlay');
+                if (overlay) {
+                    overlay.style.opacity = '0';
+                    setTimeout(() => {
+                        overlay.style.display = 'none';
+                    }, 500);
+                }
+            }
+        });
+    </script>
+
+
+
+
+
+</body>
+
+</html>

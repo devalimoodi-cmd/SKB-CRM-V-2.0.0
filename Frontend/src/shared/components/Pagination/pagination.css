@@ -1,0 +1,244 @@
+/* ============================================
+   صفحه‌بندی - کامپوننت قابل استفاده مجدد
+   ============================================ */
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 0;
+  flex-wrap: wrap;
+}
+
+/* ===== دکمه‌ها ===== */
+.pagination-btn {
+  min-width: 36px;
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid #e5e7eb;
+  background: white;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: "Vazir", sans-serif;
+  font-size: 13px;
+  color: #475569;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background: #2c7a6e;
+  color: white;
+  border-color: #2c7a6e;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(44, 122, 110, 0.3);
+}
+
+.pagination-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.pagination-btn.active {
+  background: #2c7a6e;
+  color: white;
+  border-color: #2c7a6e;
+  box-shadow: 0 2px 8px rgba(44, 122, 110, 0.3);
+}
+
+/* ===== سه نقطه ===== */
+.pagination-dots {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  height: 36px;
+  color: #94a3b8;
+  font-size: 14px;
+}
+
+/* ===== اطلاعات ===== */
+.pagination-info {
+  font-size: 13px;
+  color: #64748b;
+  background: #f1f5f9;
+  padding: 6px 16px;
+  border-radius: 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pagination-info .highlight {
+  font-weight: 600;
+  color: #2c7a6e;
+}
+
+/* ===== انتخابگر تعداد ===== */
+.pagination-size {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.pagination-size select {
+  padding: 6px 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: white;
+  font-family: "Vazir", sans-serif;
+  cursor: pointer;
+  color: #1e293b;
+  transition: all 0.3s ease;
+}
+
+.pagination-size select:hover {
+  border-color: #2c7a6e;
+}
+
+/* ===== انواع مختلف ===== */
+
+/* کوچک */
+.pagination-sm .pagination-btn {
+  min-width: 30px;
+  height: 30px;
+  font-size: 11px;
+  padding: 0 8px;
+}
+
+.pagination-sm .pagination-dots {
+  min-width: 30px;
+  height: 30px;
+  font-size: 12px;
+}
+
+/* بزرگ */
+.pagination-lg .pagination-btn {
+  min-width: 44px;
+  height: 44px;
+  font-size: 15px;
+  padding: 0 16px;
+}
+
+.pagination-lg .pagination-dots {
+  min-width: 44px;
+  height: 44px;
+  font-size: 16px;
+}
+
+/* ساده (بدون حاشیه) */
+.pagination-simple .pagination-btn {
+  border: none;
+  background: transparent;
+}
+
+.pagination-simple .pagination-btn:hover:not(:disabled) {
+  background: #f1f5f9;
+  color: #2c7a6e;
+  box-shadow: none;
+}
+
+.pagination-simple .pagination-btn.active {
+  background: #2c7a6e;
+  color: white;
+}
+
+/* ===== راست‌چین ===== */
+.pagination-right {
+  justify-content: flex-end;
+}
+
+/* ===== چپ‌چین ===== */
+.pagination-left {
+  justify-content: flex-start;
+}
+
+/* ===== ریسپانسیو ===== */
+@media (max-width: 768px) {
+  .pagination {
+    gap: 4px;
+  }
+
+  .pagination-btn {
+    min-width: 32px;
+    height: 32px;
+    font-size: 12px;
+    padding: 0 8px;
+  }
+
+  .pagination-dots {
+    min-width: 32px;
+    height: 32px;
+    font-size: 12px;
+  }
+
+  .pagination-info {
+    font-size: 12px;
+    padding: 4px 12px;
+  }
+
+  .pagination-size {
+    font-size: 12px;
+  }
+
+  .pagination-size select {
+    padding: 4px 10px;
+    font-size: 12px;
+  }
+
+  .pagination-lg .pagination-btn {
+    min-width: 38px;
+    height: 38px;
+    font-size: 14px;
+  }
+
+  .pagination-sm .pagination-btn {
+    min-width: 28px;
+    height: 28px;
+    font-size: 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .pagination {
+    gap: 3px;
+  }
+
+  .pagination-btn {
+    min-width: 28px;
+    height: 28px;
+    font-size: 11px;
+    padding: 0 6px;
+  }
+
+  .pagination-dots {
+    min-width: 28px;
+    height: 28px;
+    font-size: 11px;
+  }
+
+  .pagination-info {
+    font-size: 11px;
+    padding: 3px 10px;
+    order: 2;
+  }
+
+  .pagination-size {
+    font-size: 11px;
+    order: 3;
+    width: 100%;
+    justify-content: center;
+  }
+
+  .pagination {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+}

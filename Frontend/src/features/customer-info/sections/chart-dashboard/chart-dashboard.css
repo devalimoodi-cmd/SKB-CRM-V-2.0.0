@@ -1,0 +1,376 @@
+/* ============================================
+   کانتینر اصلی نمودارها
+   ============================================ */
+
+.skb-charts-container {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  border: 1px solid #eef2f6;
+}
+
+/* ============================================
+   دکمه‌های کنترل آکاردئون
+   ============================================ */
+
+.accordion-controls {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+
+.accordion-control-btn {
+  padding: 8px 18px;
+  border: 1px solid #eef2f6;
+  border-radius: 8px;
+  background: white;
+  cursor: pointer;
+  font-family: "Vazir", sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #1e293b;
+}
+
+.accordion-control-btn:hover {
+  background: #2c7a6e;
+  color: white;
+  border-color: #2c7a6e;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(44, 122, 110, 0.3);
+}
+
+.accordion-control-btn i {
+  font-size: 13px;
+}
+
+/* ============================================
+   آیتم آکاردئون
+   ============================================ */
+
+.skb-charts-accordion-item {
+  background: #ffffff;
+  border-radius: 14px;
+  margin-bottom: 14px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  border: 1px solid #eef2f6;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.skb-charts-accordion-item:hover {
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+}
+
+.skb-charts-accordion-item.open {
+  border-color: #2c7a6e;
+  box-shadow: 0 4px 20px rgba(44, 122, 110, 0.12);
+}
+
+/* ============================================
+   هدر آکاردئون
+   ============================================ */
+
+.skb-charts-accordion-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background: #fafbfc;
+  user-select: none;
+}
+
+.skb-charts-accordion-header:hover {
+  background: #f8f9fa;
+}
+
+.skb-charts-accordion-header.open {
+  background: linear-gradient(135deg, #2c7a6e 0%, #035552 100%);
+}
+
+.skb-charts-accordion-header.open .accordion-title {
+  color: white;
+}
+
+.skb-charts-accordion-header.open .accordion-title i {
+  color: white;
+}
+
+.skb-charts-accordion-header.open .accordion-badge {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+.skb-charts-accordion-header.open .accordion-icon {
+  color: white;
+}
+
+.accordion-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 600;
+  font-size: 15px;
+  color: #1e293b;
+  transition: color 0.3s ease;
+}
+
+.accordion-title i {
+  font-size: 18px;
+  color: #2c7a6e;
+  transition: color 0.3s ease;
+}
+
+.accordion-badge {
+  background: rgba(44, 122, 110, 0.1);
+  color: #2c7a6e;
+  padding: 2px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.accordion-icon {
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  color: #94a3b8;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.skb-charts-accordion-header.open .accordion-icon {
+  transform: rotate(180deg);
+}
+
+/* ============================================
+   بدنه آکاردئون
+   ============================================ */
+
+.skb-charts-accordion-body {
+  display: none;
+  padding: 0;
+  background: #ffffff;
+  border-top: 1px solid #eef2f6;
+}
+
+.skb-charts-accordion-body.open {
+  display: block;
+  padding: 20px;
+  animation: accordionSlideDown 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes accordionSlideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ============================================
+   ردیف نمودارها
+   ============================================ */
+
+.skb-charts-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.skb-charts-row:last-child {
+  margin-bottom: 0;
+}
+
+/* ============================================
+   کارت نمودار
+   ============================================ */
+
+.skb-chart-card {
+  background: #f8f9fa;
+  border-radius: 12px;
+  padding: 18px 16px 16px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid #eef2f6;
+}
+
+.skb-chart-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+  transform: translateY(-2px);
+  background: white;
+}
+
+.skb-chart-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+  padding-bottom: 10px;
+  margin-bottom: 14px;
+  border-bottom: 3px solid;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.skb-chart-title i {
+  font-size: 16px;
+}
+
+.skb-chart-card canvas {
+  width: 100% !important;
+  height: auto !important;
+  max-height: 180px;
+}
+
+/* ============================================
+   آمار پایین نمودار
+   ============================================ */
+
+.skb-chart-stats {
+  display: flex;
+  gap: 16px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid #eef2f6;
+  flex-wrap: wrap;
+}
+
+.skb-stat-item {
+  font-size: 12px;
+  color: #64748b;
+  background: white;
+  padding: 4px 12px;
+  border-radius: 20px;
+  border: 1px solid #eef2f6;
+}
+
+.skb-stat-item span {
+  font-weight: 600;
+  color: #1e293b;
+  margin-left: 2px;
+}
+
+/* ============================================
+   وضعیت خالی
+   ============================================ */
+
+.charts-empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  background: #f8f9fa;
+  border-radius: 12px;
+  color: #94a3b8;
+}
+
+.charts-empty-state i {
+  font-size: 48px;
+  display: block;
+  margin-bottom: 16px;
+  color: #ced4da;
+}
+
+.charts-empty-state h4 {
+  font-size: 18px;
+  color: #64748b;
+  margin-bottom: 8px;
+}
+
+.charts-empty-state p {
+  font-size: 14px;
+  margin: 0;
+}
+
+/* ============================================
+   ریسپانسیو
+   ============================================ */
+
+@media (max-width: 992px) {
+  .skb-charts-container {
+    padding: 16px;
+  }
+  .skb-charts-row {
+    gap: 12px;
+  }
+  .accordion-title {
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 768px) {
+  .skb-charts-container {
+    padding: 12px;
+  }
+  .skb-charts-row {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .skb-charts-accordion-header {
+    padding: 14px 16px;
+  }
+  .accordion-title {
+    font-size: 13px;
+    flex-wrap: wrap;
+  }
+  .skb-charts-accordion-body.open {
+    padding: 14px;
+  }
+  .skb-chart-card {
+    padding: 14px 12px 12px;
+  }
+  .accordion-controls {
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .accordion-control-btn {
+    font-size: 12px;
+    padding: 6px 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .skb-charts-container {
+    padding: 10px;
+  }
+  .skb-charts-accordion-header {
+    padding: 12px 14px;
+  }
+  .accordion-title {
+    font-size: 12px;
+  }
+  .accordion-badge {
+    font-size: 9px;
+    padding: 2px 8px;
+  }
+  .skb-charts-accordion-body.open {
+    padding: 10px;
+  }
+  .skb-chart-card {
+    padding: 10px 8px 8px;
+  }
+  .skb-chart-title {
+    font-size: 12px;
+  }
+  .skb-chart-stats {
+    gap: 6px;
+    margin-top: 8px;
+    padding-top: 8px;
+  }
+  .skb-stat-item {
+    font-size: 10px;
+    padding: 2px 8px;
+  }
+  .accordion-control-btn {
+    font-size: 11px;
+    padding: 5px 10px;
+  }
+}

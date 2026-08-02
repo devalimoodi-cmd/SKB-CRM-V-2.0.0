@@ -1,0 +1,636 @@
+/* ============================================
+   هدر - چیدمان اصلی (هماهنگ با header.html)
+   ============================================ */
+
+.header-desktop {
+  background: #ffffff;
+  border-bottom: 1px solid #eef2f6;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  padding: 8px 20px;
+}
+
+.header-wrapper {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 1440px;
+  margin: 0 auto;
+  gap: 20px;
+}
+
+/* ===== بخش راست ===== */
+.header-wrapper_right {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+/* ===== بخش وسط ===== */
+.header-wrapper_center {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  justify-content: center;
+}
+
+/* ===== بخش چپ ===== */
+.header-wrapper_left {
+  display: flex;
+  align-items: center;
+}
+
+.header-wrapper_left_logo-wra {
+  display: flex;
+  align-items: center;
+}
+
+.skb-logo {
+  height: 40px;
+  width: auto;
+}
+
+/* ===== ناوبری ===== */
+.header-nav {
+  display: flex;
+  gap: 4px;
+  background: #f8fafc;
+  padding: 4px;
+  border-radius: 12px;
+}
+
+.header-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  font-family: "Vazir", sans-serif;
+}
+
+.header-nav-item:hover {
+  background: #e2e8f0;
+  color: #1e293b;
+}
+
+.header-nav-item.active {
+  background: #2c7a6e;
+  color: white;
+}
+
+.header-nav-item i {
+  font-size: 16px;
+}
+
+/* ===== حساب کاربری ===== */
+.accuont-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 10px;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.accuont-wrapper:hover {
+  background: #f1f5f9;
+}
+
+.account-wra_image {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 2px solid #e2e8f0;
+  flex-shrink: 0;
+}
+
+.account-wra_image .image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.account-wra_arrow-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #1e293b;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.account-wra_arrow-btn .fa-arrow-down {
+  font-size: 12px;
+  color: #94a3b8;
+  transition: transform 0.3s ease;
+}
+
+.account-wra_arrow-btn.active .fa-arrow-down {
+  transform: rotate(180deg);
+}
+
+.account-content_Name {
+  color: #1e293b;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* ===== دکمه‌های نوتیفیکیشن ===== */
+.button-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  position: relative;
+}
+
+.wra_button_items {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 10px;
+  background: #f8fafc;
+  color: #64748b;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  transition: all 0.2s ease;
+}
+
+.wra_button_items:hover {
+  background: #f1f5f9;
+  color: #1e293b;
+}
+
+.wra_button_items.active {
+  background: #2c7a6e;
+  color: white;
+}
+
+.wra_button_items .quantity {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: #dc2626;
+  color: white;
+  font-size: 10px;
+  font-weight: 600;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  border: 2px solid white;
+}
+
+/* ===== دراپ‌داون‌ها ===== */
+.account-content_dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  min-width: 320px;
+  max-width: 400px;
+  border: 1px solid #eef2f6;
+  z-index: 9999;
+  display: none;
+  padding: 8px 0;
+}
+
+.account-content_dropdown.show {
+  display: block;
+}
+
+.wra_bookmarks_content,
+.reminder-wra,
+.wra_alert_content {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  min-width: 360px;
+  max-width: 420px;
+  max-height: 480px;
+  overflow-y: auto;
+  border: 1px solid #eef2f6;
+  z-index: 9999;
+  display: none;
+  padding: 8px 0;
+}
+
+.wra_bookmarks_content.show,
+.reminder-wra.show,
+.wra_alert_content.show {
+  display: block;
+}
+
+/* ===== اسکرول ===== */
+.wra_bookmarks_content::-webkit-scrollbar,
+.reminder-wra::-webkit-scrollbar,
+.wra_alert_content::-webkit-scrollbar {
+  width: 4px;
+}
+
+.wra_bookmarks_content::-webkit-scrollbar-track,
+.reminder-wra::-webkit-scrollbar-track,
+.wra_alert_content::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 10px;
+}
+
+.wra_bookmarks_content::-webkit-scrollbar-thumb,
+.reminder-wra::-webkit-scrollbar-thumb,
+.wra_alert_content::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 10px;
+}
+
+/* ===== ریسپانسیو ===== */
+@media (max-width: 992px) {
+  .header-desktop {
+    padding: 8px 16px;
+  }
+
+  .header-wrapper_right {
+    gap: 12px;
+  }
+
+  .account-content_Name {
+    font-size: 13px;
+  }
+
+  .wra_button_items {
+    width: 36px;
+    height: 36px;
+    font-size: 16px;
+  }
+
+  .account-content_dropdown {
+    min-width: 280px;
+    right: -20px;
+  }
+
+  .wra_bookmarks_content,
+  .reminder-wra,
+  .wra_alert_content {
+    min-width: 300px;
+    max-width: 360px;
+    right: -40px;
+  }
+}
+
+@media (max-width: 768px) {
+  .header-desktop {
+    padding: 6px 10px;
+  }
+
+  .header-wrapper {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .header-wrapper_right {
+    flex: 1;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+
+  .header-wrapper_center {
+    order: 3;
+    width: 100%;
+    justify-content: center;
+  }
+
+  .header-nav {
+    width: 100%;
+    justify-content: center;
+    gap: 4px;
+    padding: 3px;
+  }
+
+  .header-nav-item {
+    padding: 4px 10px;
+    font-size: 11px;
+    gap: 4px;
+  }
+
+  .header-nav-item span {
+    display: none;
+  }
+
+  .header-nav-item i {
+    font-size: 14px;
+  }
+
+  .account-wra_image {
+    width: 32px;
+    height: 32px;
+  }
+
+  .account-content_Name {
+    font-size: 11px;
+  }
+
+  .account-wra_arrow-btn .fa-arrow-down {
+    font-size: 10px;
+  }
+
+  .wra_button_items {
+    width: 32px;
+    height: 32px;
+    font-size: 14px;
+    border-radius: 8px;
+  }
+
+  .wra_button_items .quantity {
+    font-size: 8px;
+    min-width: 14px;
+    height: 14px;
+    top: -3px;
+    right: -3px;
+  }
+
+  .skb-logo {
+    height: 28px;
+  }
+
+  .account-content_dropdown,
+  .wra_bookmarks_content,
+  .reminder-wra,
+  .wra_alert_content {
+    position: fixed !important;
+    top: 60px !important;
+    right: 10px !important;
+    left: 10px !important;
+    min-width: auto !important;
+    max-width: none !important;
+    width: auto !important;
+    max-height: 70vh !important;
+    border-radius: 12px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .header-desktop {
+    padding: 4px 8px;
+  }
+
+  .header-wrapper_right {
+    gap: 4px;
+  }
+
+  .accuont-wrapper {
+    padding: 2px 4px;
+    gap: 6px;
+  }
+
+  .account-wra_image {
+    width: 28px;
+    height: 28px;
+    border-width: 1px;
+  }
+
+  .account-content_Name {
+    font-size: 10px;
+  }
+
+  .wra_button_items {
+    width: 28px;
+    height: 28px;
+    font-size: 12px;
+    border-radius: 6px;
+  }
+
+  .wra_button_items .quantity {
+    font-size: 7px;
+    min-width: 12px;
+    height: 12px;
+    top: -2px;
+    right: -2px;
+    border-width: 1px;
+  }
+
+  .skb-logo {
+    height: 24px;
+  }
+
+  .header-nav-item {
+    padding: 3px 8px;
+    font-size: 10px;
+  }
+
+  .header-nav-item i {
+    font-size: 12px;
+  }
+
+  .account-content_dropdown,
+  .wra_bookmarks_content,
+  .reminder-wra,
+  .wra_alert_content {
+    top: 52px !important;
+    right: 6px !important;
+    left: 6px !important;
+    border-radius: 10px !important;
+    padding: 12px 0 !important;
+  }
+}
+
+/* shared/layouts/Header/header.css - اضافه کردن به انتهای فایل */
+
+/* ===== دراپ‌داون بوکمارک ===== */
+.wra_bookmarks_content {
+  position: absolute !important;
+  top: calc(100% + 8px) !important;
+  right: 0 !important;
+  background: #ffffff !important;
+  border-radius: 16px !important;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15) !important;
+  min-width: 360px !important;
+  max-width: 420px !important;
+  max-height: 480px !important;
+  overflow-y: auto !important;
+  border: 1px solid #eef2f6 !important;
+  z-index: 99999 !important;
+  display: none !important;
+  padding: 8px 0 !important;
+}
+
+.wra_bookmarks_content.show {
+  display: block !important;
+}
+
+/* ===== دراپ‌داون یادآوری ===== */
+.reminder-wra {
+  position: absolute !important;
+  top: calc(100% + 8px) !important;
+  right: 0 !important;
+  background: #ffffff !important;
+  border-radius: 16px !important;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15) !important;
+  min-width: 360px !important;
+  max-width: 420px !important;
+  max-height: 480px !important;
+  overflow-y: auto !important;
+  border: 1px solid #eef2f6 !important;
+  z-index: 99999 !important;
+  display: none !important;
+  padding: 8px 0 !important;
+}
+
+.reminder-wra.show {
+  display: block !important;
+}
+
+/* ===== دراپ‌داون ایمیل ===== */
+.wra_alert_content {
+  position: absolute !important;
+  top: calc(100% + 8px) !important;
+  right: 0 !important;
+  background: #ffffff !important;
+  border-radius: 16px !important;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15) !important;
+  min-width: 360px !important;
+  max-width: 420px !important;
+  max-height: 480px !important;
+  overflow-y: auto !important;
+  border: 1px solid #eef2f6 !important;
+  z-index: 99999 !important;
+  display: none !important;
+  padding: 8px 0 !important;
+}
+
+.wra_alert_content.show {
+  display: block !important;
+}
+
+/* ===== استایل آیتم‌های دراپ‌داون ===== */
+.dropdown-body {
+  padding: 4px 0;
+}
+
+.dropdown-empty {
+  text-align: center;
+  padding: 30px 20px;
+  color: #94a3b8;
+  font-size: 14px;
+}
+
+.dropdown-empty i {
+  font-size: 36px;
+  display: block;
+  margin-bottom: 10px;
+  color: #cbd5e1;
+}
+
+/* ===== آیتم بوکمارک در دراپ‌داون ===== */
+.dropdown-item {
+  cursor: pointer;
+  padding: 0 12px;
+  margin-bottom: 4px;
+}
+
+.dropdown-item:last-child {
+  margin-bottom: 0;
+}
+
+.dropdown-item .bookmark-item-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: #f8fafc;
+  border-radius: 12px;
+  border: 1px solid #eef2f6;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.dropdown-item .bookmark-item-header:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.bookmark-item-header .bookmark-icon-wrap {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.bookmark-item-header .bookmark-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.bookmark-item-header .bookmark-info .title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e293b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bookmark-item-header .bookmark-info .meta {
+  display: flex;
+  gap: 6px;
+  margin-top: 3px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.bookmark-item-header .bookmark-info .meta .priority-tag {
+  padding: 0 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.bookmark-item-header .bookmark-info .meta .customer-name {
+  font-size: 11px;
+  color: #64748b;
+}
+
+.bookmark-item-header .bookmark-info .meta .due-date {
+  font-size: 10px;
+  padding: 0 6px;
+  border-radius: 4px;
+}
+
+.bookmark-item-header .bookmark-info .meta .due-date.overdue {
+  color: #dc2626;
+  background: #fee2e2;
+}
+
+.bookmark-item-header .bookmark-info .meta .due-date.normal {
+  color: #64748b;
+  background: #f1f5f9;
+}
+
+.bookmark-item-header .arrow-icon {
+  color: #94a3b8;
+  font-size: 12px;
+  flex-shrink: 0;
+}

@@ -1,0 +1,600 @@
+/* ============================================
+   بخش مدیریت جوجه‌ریزی
+   ============================================ */
+
+.Hatchery-Management {
+  padding: 0.3rem;
+}
+
+/* ============================================
+   هدر بخش
+   ============================================ */
+
+.weekly-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 16px 22px;
+  margin-bottom: 20px;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  transition: all 0.3s ease;
+}
+
+.weekly-card__header:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+  border-color: #cbd5e1;
+}
+
+.weekly-card__title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  position: relative;
+  padding-right: 14px;
+}
+
+.weekly-card__title::before {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 24px;
+  background: #2c7a6e;
+  border-radius: 2px;
+}
+
+.weekly-card__title i {
+  font-size: 22px;
+  color: #2c7a6e;
+  margin-right: 4px;
+}
+
+.weekly-card__title h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.week-badge {
+  background: rgba(44, 122, 110, 0.1);
+  color: #2c7a6e;
+  padding: 3px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid rgba(44, 122, 110, 0.15);
+}
+
+.weekly-card__actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* ===== دکمه گزارش PDF (مشابه btn-report-all-hall) ===== */
+.Hatchery-Management .weekly-card__actions .action-btn.report,
+.Hatchery-Management .weekly-card__actions .action-btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 8px;
+  font-family: "Vazir", sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: white;
+  background: #8b5cf6;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
+}
+
+.Hatchery-Management .weekly-card__actions .action-btn.report:hover,
+.Hatchery-Management .weekly-card__actions .action-btn:hover {
+  background: #7c3aed;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+}
+
+.Hatchery-Management .weekly-card__actions .action-btn.report i,
+.Hatchery-Management .weekly-card__actions .action-btn i {
+  font-size: 14px;
+}
+
+/* ============================================
+   تب‌ها
+   ============================================ */
+
+.tabs-container {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  border: 1px solid #eef2f6;
+}
+
+.tabs-header {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  border-bottom: 2px solid #e9ecef;
+  margin-bottom: 20px;
+  padding-bottom: 4px;
+}
+
+.tab-btn {
+  padding: 10px 18px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-family: "Vazir", sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: #64748b;
+  border-radius: 8px 8px 0 0;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tab-btn:hover {
+  background: #f8f9fa;
+  color: #1e293b;
+}
+
+.tab-btn.active {
+  background: #2c7a6e;
+  color: white;
+  box-shadow: 0 4px 12px rgba(44, 122, 110, 0.3);
+}
+
+.tab-btn i {
+  font-size: 14px;
+}
+
+.tab-content {
+  display: none;
+  animation: fadeIn 0.3s ease;
+}
+
+.tab-content.active {
+  display: block;
+}
+
+/* ============================================
+   فرم‌ها
+   ============================================ */
+
+.form-section {
+  padding: 16px 0;
+}
+
+.form-section-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 16px;
+  padding-bottom: 10px;
+  border-bottom: 3px solid #2c7a6e;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-group.full-width-field {
+  grid-column: 1 / -1;
+}
+
+.form-group label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #1e293b;
+}
+
+.form-group label .required {
+  color: #dc2626;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  padding: 10px 12px;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  font-family: "Vazir", sans-serif;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  background: white;
+  color: #1e293b;
+  width: 100%;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: #2c7a6e;
+  box-shadow: 0 0 0 3px rgba(44, 122, 110, 0.1);
+}
+
+.form-group input:disabled,
+.form-group select:disabled,
+.form-group input[readonly] {
+  background: #f8f9fa;
+  cursor: not-allowed;
+  opacity: 0.8;
+}
+
+.form-group textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+/* ============================================
+   تاریخ شمسی
+   ============================================ */
+
+.date-input-wrapper {
+  position: relative;
+}
+
+.date-input-wrapper input {
+  padding-left: 40px;
+}
+
+.date-input-wrapper .date-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+  pointer-events: none;
+  font-size: 16px;
+}
+
+/* ============================================
+   دکمه‌های فرم
+   ============================================ */
+
+.form-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+
+.btn {
+  padding: 10px 24px;
+  border: none;
+  border-radius: 8px;
+  font-family: "Vazir", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-primary {
+  background: #2c7a6e;
+  color: white;
+}
+
+.btn-primary:hover {
+  background: #035552;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(44, 122, 110, 0.3);
+}
+
+.btn-secondary {
+  background: #dee2e6;
+  color: #1e293b;
+}
+
+.btn-secondary:hover {
+  background: #ced4da;
+  transform: translateY(-2px);
+}
+
+/* ============================================
+   جدول‌ها
+   ============================================ */
+
+.table-container {
+  background: white;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  transition: box-shadow 0.3s ease;
+}
+
+.table-container:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+}
+
+.table-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 22px;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border-bottom: 1px solid #eef2f6;
+}
+
+.table-header h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: #1e293b;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  position: relative;
+  padding-right: 14px;
+}
+
+.table-header h3::before {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 22px;
+  background: #2c7a6e;
+  border-radius: 2px;
+}
+
+.table-header h3 i {
+  color: #2c7a6e;
+  font-size: 18px;
+  margin-right: 4px;
+}
+
+.skb-table-responsive {
+  overflow-x: auto;
+  padding: 0;
+}
+
+.skb-data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.skb-data-table thead th {
+  background: linear-gradient(135deg, #2c7a6e 0%, #035552 100%);
+  padding: 12px 16px;
+  text-align: center;
+  font-weight: 500;
+  color: white;
+  white-space: nowrap;
+  font-size: 12px;
+  letter-spacing: 0.3px;
+}
+
+.skb-data-table thead th:first-child {
+  text-align: center;
+}
+
+.skb-data-table tbody td {
+  padding: 11px 16px;
+  border-bottom: 1px solid #f1f5f9;
+  vertical-align: middle;
+  text-align: center;
+  color: #1e293b;
+  font-size: 12.5px;
+}
+
+.skb-data-table tbody tr {
+  transition: all 0.2s ease;
+}
+
+.skb-data-table tbody tr:hover {
+  background: #f8fafc;
+}
+
+.skb-data-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* وضعیت درون جدول */
+.skb-data-table .status-badge {
+  display: inline-block;
+  padding: 3px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.skb-data-table .status-badge.active,
+.skb-data-table .status-badge.success {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.skb-data-table .status-badge.inactive {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.skb-data-table .status-badge.info {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+/* ============================================
+   وضعیت‌ها
+   ============================================ */
+
+.status-badge {
+  display: inline-block;
+  padding: 4px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.status-badge.active {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.status-badge.inactive {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.status-badge.success {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.status-badge.danger {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.status-badge.info {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+.status-badge.secondary {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+/* ============================================
+   دکمه‌های عملیات
+   ============================================ */
+
+.action-buttons {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.action-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
+
+.action-btn:hover {
+  transform: scale(1.1);
+}
+
+.action-btn.view {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+.action-btn.edit {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.action-btn.delete {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.action-btn.disable {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.action-btn.enable {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+/* ============================================
+   ریسپانسیو
+   ============================================ */
+
+@media (max-width: 992px) {
+  .form-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .tabs-header {
+    flex-direction: column;
+  }
+
+  .tab-btn {
+    justify-content: center;
+    border-radius: 6px;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .form-actions {
+    flex-direction: column;
+  }
+
+  .form-actions .btn {
+    justify-content: center;
+    width: 100%;
+  }
+
+  .table-header {
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
+  }
+
+  .btn-refresh {
+    justify-content: center;
+  }
+
+  .weekly-card__header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .weekly-card__actions {
+    width: 100%;
+  }
+
+  .weekly-card__actions .action-btn {
+    flex: 1;
+    justify-content: center;
+  }
+}

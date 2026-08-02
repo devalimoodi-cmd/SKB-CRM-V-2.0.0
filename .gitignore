@@ -1,0 +1,88 @@
+# ===== Node Modules =====
+Backend/node_modules/
+Frontend/node_modules/
+node_modules/
+
+
+# ===== Frontend =====
+Frontend/src/vendor/   
+
+
+# ===== Environment Files =====
+Backend/.env
+Backend/.env.local
+Backend/.env.*.local
+Frontend/.env
+Frontend/.env.local
+Frontend/.env.*.local
+.env
+.env.local
+*.env
+
+# ===== Logs =====
+Backend/logs/
+Backend/npm-debug.log*
+Backend/yarn-debug.log*
+Backend/yarn-error.log*
+Frontend/logs/
+Frontend/npm-debug.log*
+Frontend/yarn-debug.log*
+Frontend/yarn-error.log*
+*.log
+
+# ===== Build Outputs =====
+Backend/dist/
+Backend/build/
+Frontend/dist/
+Frontend/build/
+Frontend/.next/
+Frontend/out/
+
+# ===== Cache =====
+.cache/
+*.cache
+Backend/.cache/
+Frontend/.cache/
+
+# ===== OS Files =====
+.DS_Store
+Thumbs.db
+desktop.ini
+*.tmp
+
+# ===== IDE =====
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ===== Uploads (اختیاری - می‌خوای آپلود بشن یا نه؟) =====
+# اگه می‌خوای فایل‌های آپلود شده رو ignore کنی (توصیه می‌شه):
+Backend/uploads/
+
+# اگه می‌خوای فقط ساختار پوشه‌ها بمونه ولی فایل‌های داخلش نریزن:
+# Backend/uploads/*/*.jpg
+# Backend/uploads/*/*.png
+
+# ===== Database =====
+*.sqlite
+*.sqlite3
+*.db
+Backend/*.sqlite
+
+# ===== Temp Files =====
+tmp/
+temp/
+Backend/tmp/
+Frontend/tmp/
+
+# ===== Package Lock (اختیاری) =====
+# package-lock.json
+# yarn.lock
+
+# ===== Other =====
+*.log
+*.pid
+*.seed
+*.pid.lock

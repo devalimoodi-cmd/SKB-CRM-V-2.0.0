@@ -1,0 +1,701 @@
+/* ============================================
+   بخش مدیریت هفتگی
+   ============================================ */
+
+.weekly-card {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  border: 1px solid #eef2f6;
+}
+
+/* ============================================
+   فیلترها
+   ============================================ */
+
+.filter-section {
+  background: #f8f9fa;
+  border-radius: 12px;
+  padding: 14px 18px;
+  margin-bottom: 20px;
+  border: 1px solid #eef2f6;
+}
+
+.filter-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #2c7a6e;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.filter-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.filter-group label {
+  font-size: 11px;
+  font-weight: 500;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.filter-select {
+  padding: 7px 10px;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  font-family: "Vazir", sans-serif;
+  font-size: 12px;
+  background: white;
+  color: #1e293b;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.filter-select:focus {
+  outline: none;
+  border-color: #2c7a6e;
+  box-shadow: 0 0 0 3px rgba(44, 122, 110, 0.1);
+}
+
+/* ============================================
+   فرم ویرایش هفته
+   ============================================ */
+
+.week-edit-form {
+  padding: 10px 14px;
+}
+
+.week-edit-form .form-section {
+  margin-bottom: 10px;
+  background: #fafbfc;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid #eef2f6;
+}
+
+.week-edit-form .form-section h4 {
+  font-size: 11px;
+  font-weight: 700;
+  color: #2c7a6e;
+  margin: 0 0 6px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid #e8f5f0;
+}
+
+.week-edit-form .form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 6px;
+}
+
+.week-edit-form .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.week-edit-form .form-group label {
+  font-size: 10px;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+.week-edit-form input[type="text"],
+.week-edit-form input[type="number"],
+.week-edit-form select {
+  width: 100%;
+  padding: 5px 8px;
+  border: 1px solid #e2e8f0;
+  border-radius: 5px;
+  font-family: "Vazir", sans-serif;
+  font-size: 11px;
+  transition: all 0.2s ease;
+  background: white;
+  color: #1e293b;
+}
+
+.week-edit-form input:focus,
+.week-edit-form select:focus {
+  outline: none;
+  border-color: #2c7a6e;
+  box-shadow: 0 0 0 2px rgba(44, 122, 110, 0.1);
+}
+
+.week-edit-form input:disabled {
+  background: #f8f9fa;
+  color: #94a3b8;
+}
+
+.week-edit-form select[multiple] {
+  min-height: 40px;
+  padding: 3px 6px;
+}
+
+.week-edit-form select[multiple] option {
+  padding: 1px 4px;
+  font-size: 10px;
+}
+
+.week-edit-form textarea {
+  width: 100%;
+  min-height: 35px;
+  padding: 5px 8px;
+  border: 1px solid #e2e8f0;
+  border-radius: 5px;
+  font-family: "Vazir", sans-serif;
+  font-size: 11px;
+  resize: vertical;
+  transition: all 0.2s ease;
+}
+
+.week-edit-form textarea:focus {
+  outline: none;
+  border-color: #2c7a6e;
+  box-shadow: 0 0 0 2px rgba(44, 122, 110, 0.1);
+}
+
+/* دکمه‌های فرم */
+.week-edit-form .form-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+  padding-top: 6px;
+  border-top: 1px solid #eef2f6;
+}
+
+.week-edit-form .form-actions button {
+  padding: 5px 14px;
+  border: none;
+  border-radius: 5px;
+  font-family: "Vazir", sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.2s ease;
+}
+
+.btn-save-week {
+  background: #2c7a6e;
+  color: white;
+}
+
+.btn-save-week:hover {
+  background: #035552;
+}
+
+.btn-cancel-week {
+  background: #e2e8f0;
+  color: #475569;
+}
+
+.btn-cancel-week:hover {
+  background: #cbd5e1;
+}
+
+/* ===== هدر لیست هفته‌ها ===== */
+.weeks-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+  padding: 10px 14px;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+}
+
+.weeks-header span {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.weeks-header span i {
+  color: #2c7a6e;
+  font-size: 16px;
+}
+
+.weeks-controls {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.btn-control-weeks {
+  padding: 6px 14px;
+  border: none;
+  border-radius: 6px;
+  font-family: "Vazir", sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-expand-all {
+  background: #2c7a6e;
+  color: white;
+}
+
+.btn-expand-all:hover {
+  background: #035552;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(44, 122, 110, 0.3);
+}
+
+.btn-collapse-all {
+  background: #dee2e6;
+  color: #1e293b;
+}
+
+.btn-collapse-all:hover {
+  background: #ced4da;
+  transform: translateY(-2px);
+}
+
+.btn-Report-All-week {
+  background: #8b5cf6;
+  color: white;
+}
+
+.btn-Report-All-week:hover {
+  background: #7c3aed;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+}
+
+/* ============================================
+   کارت گله
+   ============================================ */
+
+.flock-card {
+  background: #ffffff;
+  border-radius: 12px;
+  margin-bottom: 16px;
+  overflow: hidden;
+  border: 1px solid #eef2f6;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.flock-card:hover {
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.flock-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 18px;
+  background: linear-gradient(135deg, #2c7a6e 0%, #035552 100%);
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border-radius: 12px 12px 0 0;
+  user-select: none;
+}
+
+.flock-card-header:hover {
+  background: linear-gradient(135deg, #035552 0%, #022e2a 100%);
+}
+
+.flock-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.flock-info i {
+  font-size: 20px;
+  opacity: 0.9;
+}
+
+.flock-title {
+  font-weight: 700;
+  font-size: 0.95rem;
+  letter-spacing: 0.3px;
+}
+
+.flock-date,
+.flock-age {
+  font-size: 0.7rem;
+  opacity: 0.9;
+  background: rgba(255, 255, 255, 0.15);
+  padding: 3px 10px;
+  border-radius: 20px;
+}
+
+.flock-accordion-icon {
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  font-size: 1rem;
+  opacity: 0.8;
+  flex-shrink: 0;
+}
+
+.flock-accordion-icon.rotated {
+  transform: rotate(180deg);
+}
+
+.flock-card-body {
+  display: none;
+  padding: 0;
+  background: #f8fafc;
+  border-top: 1px solid #eef2f6;
+}
+
+.flock-card-body[style*="display: block"] {
+  display: block !important;
+}
+
+.flock-card-body .weeks-list-container {
+  padding: 14px;
+}
+
+/* ============================================
+   آیتم هفته
+   ============================================ */
+
+.week-accordion-item {
+  background: #ffffff;
+  border-radius: 10px;
+  margin-bottom: 10px;
+  overflow: hidden;
+  border: 1px solid #eef2f6;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+}
+
+.week-accordion-item:last-child {
+  margin-bottom: 0;
+}
+
+.week-accordion-item:hover {
+  border-color: #cbd5e1;
+}
+
+.week-accordion-item.open {
+  border-color: #2c7a6e;
+  box-shadow: 0 4px 20px rgba(44, 122, 110, 0.12);
+}
+
+.week-accordion-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  cursor: pointer;
+  background: #ffffff;
+  transition: all 0.3s ease;
+  user-select: none;
+  gap: 10px;
+}
+
+.week-accordion-header:hover {
+  background: #f8fafc;
+}
+
+.week-accordion-item.open .week-accordion-header {
+  background: #f0fdf4;
+  border-bottom: 1px solid #bbf7d0;
+}
+
+.week-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  flex: 1;
+}
+
+.week-number {
+  font-weight: 700;
+  font-size: 14px;
+  color: #2c7a6e;
+  background: rgba(44, 122, 110, 0.1);
+  padding: 3px 12px;
+  border-radius: 30px;
+  min-width: 70px;
+  text-align: center;
+}
+
+.week-date {
+  font-size: 12px;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.week-status {
+  font-size: 10px;
+  padding: 2px 10px;
+  border-radius: 20px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.week-status.saved {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.week-status.pending {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.week-accordion-icon {
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  color: #94a3b8;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.week-accordion-item.open .week-accordion-icon {
+  transform: rotate(180deg);
+  color: #2c7a6e;
+}
+
+.week-accordion-body {
+  display: none;
+  padding: 0;
+  background: #ffffff;
+  border-top: 1px solid #eef2f6;
+}
+
+.week-accordion-item.open .week-accordion-body {
+  display: block;
+  animation: weekSlideDown 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes weekSlideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ============================================
+   وضعیت خالی
+   ============================================ */
+
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  background: #f8f9fa;
+  border-radius: 12px;
+  color: #94a3b8;
+  font-size: 14px;
+}
+
+.empty-state i {
+  font-size: 40px;
+  display: block;
+  margin-bottom: 14px;
+  color: #ced4da;
+}
+
+.empty-state p {
+  margin: 0;
+}
+
+/* ============================================
+   ریسپانسیو
+   ============================================ */
+
+@media (max-width: 992px) {
+  .week-edit-form .form-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .weekly-card {
+    padding: 16px;
+  }
+
+  .filter-row {
+    grid-template-columns: 1fr;
+  }
+
+  .weeks-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .weeks-controls {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .weeks-controls button {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .flock-card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px 14px;
+  }
+
+  .flock-info {
+    width: 100%;
+  }
+
+  .flock-accordion-icon {
+    align-self: flex-end;
+  }
+
+  .week-accordion-header {
+    flex-wrap: wrap;
+    padding: 10px 12px;
+  }
+
+  .week-info {
+    gap: 6px;
+    width: 100%;
+  }
+
+  .week-number {
+    font-size: 12px;
+    padding: 2px 10px;
+    min-width: 55px;
+  }
+
+  .week-date {
+    font-size: 10px;
+  }
+
+  .week-status {
+    font-size: 9px;
+    padding: 2px 8px;
+  }
+
+  .week-edit-form {
+    padding: 12px;
+  }
+
+  .week-edit-form .form-row {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .week-edit-form .form-actions {
+    flex-direction: column;
+  }
+
+  .week-edit-form .form-actions button {
+    justify-content: center;
+    padding: 8px;
+    width: 100%;
+  }
+
+  .flock-card-body .weeks-list-container {
+    padding: 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .weekly-card {
+    padding: 12px;
+  }
+
+  .filter-section {
+    padding: 12px 14px;
+  }
+
+  .filter-title {
+    font-size: 12px;
+  }
+
+  .flock-card-header {
+    padding: 10px 12px;
+  }
+
+  .flock-title {
+    font-size: 12px;
+  }
+
+  .flock-date,
+  .flock-age {
+    font-size: 9px;
+    padding: 2px 8px;
+  }
+
+  .week-accordion-header {
+    padding: 8px 10px;
+  }
+
+  .week-number {
+    font-size: 11px;
+    padding: 2px 8px;
+    min-width: 45px;
+  }
+
+  .week-date {
+    font-size: 9px;
+  }
+
+  .week-edit-form {
+    padding: 8px;
+  }
+
+  .week-edit-form .form-group input,
+  .week-edit-form .form-group select,
+  .week-edit-form .form-group textarea {
+    font-size: 11px;
+    padding: 5px 8px;
+  }
+
+  .week-edit-form .form-group label {
+    font-size: 10px;
+  }
+
+  .week-edit-form .form-section h4 {
+    font-size: 12px;
+  }
+
+  .weeks-header span {
+    font-size: 14px;
+  }
+
+  .btn-control-weeks {
+    font-size: 11px;
+    padding: 5px 10px;
+  }
+}

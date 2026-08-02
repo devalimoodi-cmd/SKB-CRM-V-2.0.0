@@ -1,0 +1,283 @@
+/* ============================================
+   جدول - کامپوننت قابل استفاده مجدد
+   ============================================ */
+
+.table-container {
+  width: 100%;
+  overflow-x: auto;
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #eef2f6;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: "Vazir", sans-serif;
+  font-size: 14px;
+}
+
+/* ===== هدر ===== */
+.table thead {
+  background: linear-gradient(135deg, #2c7a6e 0%, #035552 100%);
+}
+
+.table thead th {
+  padding: 14px 16px;
+  color: white;
+  font-weight: 500;
+  text-align: right;
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+.table thead th:first-child {
+  border-radius: 12px 0 0 0;
+}
+
+.table thead th:last-child {
+  border-radius: 0 12px 0 0;
+}
+
+/* ===== بدنه ===== */
+.table tbody tr {
+  transition: all 0.2s ease;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.table tbody tr:hover {
+  background: #f8fafc;
+}
+
+.table tbody td {
+  padding: 12px 16px;
+  color: #1e293b;
+  font-size: 13px;
+  vertical-align: middle;
+}
+
+/* ===== فوتر ===== */
+.table tfoot {
+  background: #f8fafc;
+  border-top: 2px solid #eef2f6;
+}
+
+.table tfoot td {
+  padding: 12px 16px;
+}
+
+/* ===== انواع مختلف ===== */
+
+/* جدول با حاشیه */
+.table-bordered {
+  border-collapse: collapse;
+}
+
+.table-bordered th,
+.table-bordered td {
+  border: 1px solid #eef2f6;
+}
+
+/* جدول با خطوط افقی */
+.table-striped tbody tr:nth-child(even) {
+  background: #f8fafc;
+}
+
+.table-striped tbody tr:nth-child(even):hover {
+  background: #f1f5f9;
+}
+
+/* جدول جمع‌وجور */
+.table-compact th,
+.table-compact td {
+  padding: 8px 12px;
+  font-size: 12px;
+}
+
+/* جدول با حالت هاور */
+.table-hover tbody tr:hover {
+  background: #f1f5f9;
+}
+
+/* ===== ستون‌ها ===== */
+.table .text-center {
+  text-align: center;
+}
+
+.table .text-right {
+  text-align: right;
+}
+
+.table .text-left {
+  text-align: left;
+}
+
+.table .text-nowrap {
+  white-space: nowrap;
+}
+
+/* ===== وضعیت‌ها ===== */
+.table .status-badge {
+  display: inline-block;
+  padding: 4px 14px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.table .status-badge.active {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.table .status-badge.inactive {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.table .status-badge.pending {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+/* ===== دکمه‌های عملیات ===== */
+.table .action-buttons {
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.table .action-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
+
+.table .action-btn:hover {
+  transform: scale(1.1);
+}
+
+.table .action-btn.view {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+.table .action-btn.edit {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.table .action-btn.delete {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.table .action-btn.disable {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.table .action-btn.enable {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+.table .action-btn.print {
+  background: #e8f5e9;
+  color: #10b981;
+}
+
+/* ===== خالی ===== */
+.table-empty {
+  text-align: center;
+  padding: 40px 20px;
+  color: #94a3b8;
+}
+
+.table-empty i {
+  font-size: 40px;
+  display: block;
+  margin-bottom: 12px;
+  color: #cbd5e1;
+}
+
+/* ===== بارگذاری ===== */
+.table-loading {
+  text-align: center;
+  padding: 40px 20px;
+  color: #94a3b8;
+}
+
+.table-loading .spinner {
+  display: inline-block;
+  width: 30px;
+  height: 30px;
+  border: 3px solid #f1f5f9;
+  border-top-color: #2c7a6e;
+  border-radius: 50%;
+  animation: tableSpin 1s linear infinite;
+  margin-bottom: 12px;
+}
+
+@keyframes tableSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ===== اسکرول ===== */
+.table-container::-webkit-scrollbar {
+  height: 8px;
+}
+
+.table-container::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 10px;
+}
+
+.table-container::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 10px;
+}
+
+.table-container::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* ===== ریسپانسیو ===== */
+@media (max-width: 768px) {
+  .table thead th {
+    padding: 10px 12px;
+    font-size: 12px;
+  }
+
+  .table tbody td {
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+
+  .table .action-btn {
+    width: 28px;
+    height: 28px;
+    font-size: 12px;
+  }
+
+  .table-compact th,
+  .table-compact td {
+    padding: 6px 10px;
+    font-size: 11px;
+  }
+}

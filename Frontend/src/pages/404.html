@@ -1,0 +1,155 @@
+<!-- pages/404.html -->
+<!DOCTYPE html>
+<html dir="rtl" lang="fa">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>صفحه یافت نشد</title>
+
+    <!-- Core Styles -->
+    <link rel="stylesheet" href="/styles/reset.css">
+    <link rel="stylesheet" href="/styles/variables.css">
+    <link rel="stylesheet" href="/styles/global.css">
+
+    <link rel="icon" type="image/png" href="/assets/images/favicon.ico">
+
+    <style>
+        body {
+            font-family: 'Vazir', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .error-container {
+            text-align: center;
+            background: white;
+            padding: 50px 60px;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+            max-width: 500px;
+            width: 100%;
+        }
+
+        .error-code {
+            font-size: 80px;
+            font-weight: 700;
+            color: #667eea;
+            line-height: 1;
+        }
+
+        .error-icon {
+            font-size: 60px;
+            color: #f59e0b;
+            display: block;
+            margin: 10px 0;
+        }
+
+        .error-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: #1e293b;
+            margin: 20px 0 10px;
+        }
+
+        .error-message {
+            color: #64748b;
+            margin-bottom: 30px;
+            font-size: 16px;
+        }
+
+        .btn-home {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            text-decoration: none;
+            font-family: 'Vazir', sans-serif;
+            transition: all 0.3s ease;
+        }
+
+        .btn-home:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-home i {
+            font-size: 18px;
+        }
+
+        .error-help {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #eef2f6;
+            font-size: 13px;
+            color: #94a3b8;
+        }
+
+        .error-help a {
+            color: #667eea;
+            text-decoration: none;
+        }
+
+        .error-help a:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 480px) {
+            .error-container {
+                padding: 30px 24px;
+            }
+
+            .error-code {
+                font-size: 60px;
+            }
+
+            .error-title {
+                font-size: 20px;
+            }
+
+            .error-message {
+                font-size: 14px;
+            }
+
+            .btn-home {
+                padding: 10px 24px;
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="error-container">
+        <div class="error-code">۴۰۴</div>
+        <i class="fas fa-search error-icon"></i>
+        <div class="error-title">⛔ صفحه یافت نشد</div>
+        <div class="error-message">
+            متأسفیم، صفحه‌ای که به دنبال آن هستید وجود ندارد یا به آدرس دیگری منتقل شده است.
+        </div>
+        <a href="/" class="btn-home">
+            <i class="fas fa-home"></i>
+            بازگشت به صفحه اصلی
+        </a>
+        <div class="error-help">
+            <i class="fas fa-info-circle"></i>
+            برای راهنمایی بیشتر با <a href="/contact">پشتیبانی</a> تماس بگیرید.
+        </div>
+    </div>
+
+    <script src="./../../node_modules/@fortawesome/fontawesome-free/js/all.min.js"></script>
+</body>
+
+</html>

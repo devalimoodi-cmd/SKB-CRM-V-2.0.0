@@ -1,0 +1,522 @@
+<!-- pages/customer-list.html -->
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مدیریت مشتریان | سامانه مدیریت مشتریان</title>
+
+    <!-- ===== Vendor Styles ===== -->
+    <link rel="stylesheet" href="./../../node_modules/bootstrap/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="./../vendor/fontawesome-7.1.0/css/all.min.css">
+    <link rel="stylesheet" href="./../../node_modules/@mdi/font/css/materialdesignicons.min.css">
+    <link rel="stylesheet" href="./../../node_modules/persian-datepicker/dist/css/persian-datepicker.min.css">
+
+    <!-- ===== Core Styles ===== -->
+    <link rel="stylesheet" href="/styles/reset.css">
+    <link rel="stylesheet" href="/styles/variables.css">
+    <link rel="stylesheet" href="/styles/global.css">
+
+    <!-- ===== Shared Components Styles ===== -->
+    <link rel="stylesheet" href="./../shared/layouts/Header/header.css">
+
+    <link rel="stylesheet" href="./../shared/layouts/Footer/footer.css">
+
+    <link rel="stylesheet" href="./../shared/components/Breadcrumb/breadcrumb.css">
+
+    <link rel="stylesheet" href="/shared/components/tooltip/tooltip.css">
+    <link rel="stylesheet" href="/shared/components/modal/modal.css">
+    <link rel="stylesheet" href="/shared/components/pagination/pagination.css">
+
+    <!-- ===== Feature Styles ===== -->
+    <link rel="stylesheet" href="/features/customer-list/customer-list.css">
+
+    <link rel="icon" type="image/png" href="/assets/images/favicon.ico">
+
+
+
+
+</head>
+
+<body>
+
+    <!-- ===== FULL PAGE LOADING OVERLAY ===== -->
+    <div id="pageLoadingOverlay" style="
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: #f5f7fb;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 999999;
+        transition: opacity 0.5s ease;
+    ">
+        <div style="
+            width: 60px;
+            height: 60px;
+            border: 4px solid #e2e8f0;
+            border-top-color: #2c7a6e;
+            border-radius: 50%;
+            animation: pageLoaderSpin 0.8s linear infinite;
+            margin-bottom: 20px;
+        "></div>
+        <div style="
+            font-family: 'Vazir', sans-serif;
+            color: #2c7a6e;
+            font-size: 16px;
+            font-weight: 600;
+        ">در حال بارگذاری...</div>
+        <div style="
+            font-family: 'Vazir', sans-serif;
+            color: #94a3b8;
+            font-size: 12px;
+            margin-top: 8px;
+        ">سامانه مدیریت مشتریان</div>
+        <style>
+            @keyframes pageLoaderSpin {
+                to {
+                    transform: rotate(360deg);
+                }
+            }
+        </style>
+    </div>
+
+    <!-- ===== HEADER ===== -->
+    <header id="main-header"></header>
+
+    <!-- ===== BREADCRUMB ===== -->
+    <div class="breadcrumb-container">
+        <nav class="breadcrumb_wraper">
+            <ol class="breadcrumb_main">
+                <li class="breadcrumb-item">
+                    <a href="/" class="breadcrumb-item-link">
+                        <i class="fas fa-home"></i>
+                        <span class="breadcrumb-item_text">صفحه اصلی</span>
+                    </a>
+                </li>
+                <li class="breadcrumb-item">
+                    <a href="/customer-list.html" class="breadcrumb-item-link">
+                        <i class="fas fa-users"></i>
+                        <span class="breadcrumb-item_text">مدیریت مشتریان</span>
+                    </a>
+                </li>
+            </ol>
+        </nav>
+    </div>
+
+    <!-- ===== MAIN CONTENT ===== -->
+    <div class="container-fluid">
+        <div class="main-container">
+
+            <!-- ===== Register Form ===== -->
+            <div class="customer-register-form">
+                <div class="register-header">
+                    <span class="register-header_title">
+                        <i class="fas fa-user-plus"></i>
+                        اطلاعات ثبت نام مشتری
+                    </span>
+                </div>
+
+                <div class="register-body">
+                    <!-- ستون اول -->
+                    <div class="form-col">
+                        <div class="form-row">
+                            <div class="filed-wraper">
+                                <div class="filed-flot-input">
+                                    <i class="fas fa-building float-icon"></i>
+                                    <input type="text" id="company-name" class="float-input" placeholder=" ">
+                                    <label class="float-label">نام مجموعه</label>
+                                </div>
+                            </div>
+                            <div class="filed-wraper">
+                                <div class="filed-flot-input">
+                                    <i class="fas fa-user float-icon"></i>
+                                    <input type="text" id="full-name" class="float-input" placeholder=" ">
+                                    <label class="float-label">نام و نام خانوادگی</label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="filed-wraper">
+                                <div class="filed-flot-input">
+                                    <i class="fas fa-warehouse float-icon"></i>
+                                    <input type="text" id="farm-name" class="float-input" placeholder=" ">
+                                    <label class="float-label">نام فارم</label>
+                                </div>
+                            </div>
+                            <div class="filed-wraper">
+                                <div class="filed-flot-input">
+                                    <i class="fas fa-mobile-alt float-icon"></i>
+                                    <input type="tel" id="mobile" class="float-input" placeholder="09151234565"
+                                        maxlength="11">
+                                    <label class="float-label">همراه</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ستون دوم -->
+                    <div class="form-col">
+                        <div class="form-row">
+                            <div class="filed-wraper">
+                                <div class="filed-flot-input">
+                                    <i class="fas fa-mobile-alt float-icon"></i>
+                                    <input type="tel" id="messenger" class="float-input" placeholder="09151234567"
+                                        maxlength="11">
+                                    <label class="float-label">شماره پیامرسان</label>
+                                </div>
+                            </div>
+                            <div class="filed-wraper">
+                                <div class="filed-flot-input">
+                                    <i class="fas fa-birthday-cake float-icon"></i>
+                                    <input type="text" id="birthdate" class="float-input" placeholder=" ">
+                                    <label class="float-label">تاریخ تولد</label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="filed-wraper">
+                                <div class="filed-flot-input">
+                                    <i class="fas fa-envelope float-icon"></i>
+                                    <input type="email" id="email" class="float-input" placeholder=" ">
+                                    <label class="float-label">پست الکترونیک</label>
+                                </div>
+                            </div>
+                            <div class="filed-wraper">
+                                <div class="filed-flot-input select-input">
+                                    <i class="fas fa-history float-icon"></i>
+                                    <select id="poultry-experience" class="float-input float-select">
+                                        <option value="">انتخاب سابقه فعالیت</option>
+                                        <option value="less-than-1">کمتر از ۱ سال</option>
+                                        <option value="1-3">۱ تا ۳ سال</option>
+                                        <option value="3-5">۳ تا ۵ سال</option>
+                                        <option value="5-10">۵ تا ۱۰ سال</option>
+                                        <option value="more-than-10">بیش از ۱۰ سال</option>
+                                    </select>
+                                    <label class="float-label">سابقه مرغداری</label>
+                                    <i class="fas fa-chevron-down select-arrow"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ستون سوم -->
+                    <div class="form-col">
+                        <div class="form-row">
+                            <div class="filed-wraper">
+                                <div class="filed-flot-input select-input">
+                                    <i class="fas fa-graduation-cap float-icon"></i>
+                                    <select id="education" class="float-input float-select">
+                                        <option value="">انتخاب سطح تحصیلات</option>
+                                    </select>
+                                    <label class="float-label">سطح تحصیلات</label>
+                                    <i class="fas fa-chevron-down select-arrow"></i>
+                                </div>
+                            </div>
+                            <div class="filed-wraper">
+                                <div class="filed-flot-input select-input">
+                                    <i class="fas fa-users float-icon"></i>
+                                    <select id="department" class="float-input float-select">
+                                        <option value="">انتخاب دپارتمان</option>
+                                    </select>
+                                    <label class="float-label">دپارتمان</label>
+                                    <i class="fas fa-chevron-down select-arrow"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="filed-wraper">
+                                <div class="filed-flot-input select-input">
+                                    <i class="fas fa-venus-mars float-icon"></i>
+                                    <select id="gender" class="float-input float-select">
+                                        <option value="">انتخاب جنسیت</option>
+                                        <option value="مرد">مرد</option>
+                                        <option value="زن">زن</option>
+                                    </select>
+                                    <label class="float-label">جنسیت مشتری</label>
+                                    <i class="fas fa-chevron-down select-arrow"></i>
+                                </div>
+                            </div>
+                            <div class="filed-wraper">
+                                <div class="filed-flot-input select-input">
+                                    <i class="fas fa-map-marker-alt float-icon"></i>
+                                    <select id="province" class="float-input float-select">
+                                        <option value="">انتخاب استان</option>
+                                    </select>
+                                    <label class="float-label">استان</label>
+                                    <i class="fas fa-chevron-down select-arrow"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ستون چهارم -->
+                    <div class="form-col">
+                        <div class="form-row">
+                            <div class="filed-wraper">
+                                <div class="filed-flot-input select-input">
+                                    <i class="fas fa-city float-icon"></i>
+                                    <select id="city" class="float-input float-select">
+                                        <option value="">انتخاب شهرستان</option>
+                                    </select>
+                                    <label class="float-label">شهرستان</label>
+                                    <i class="fas fa-chevron-down select-arrow"></i>
+                                </div>
+                            </div>
+                            <div class="filed-wraper">
+                                <div class="filed-flot-input">
+                                    <i class="fas fa-mail-bulk float-icon"></i>
+                                    <input type="text" id="postal-code" class="float-input" placeholder="1234567890"
+                                        maxlength="10">
+                                    <label class="float-label">کدپستی</label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="filed-wraper full-width">
+                                <div class="filed-flot-input">
+                                    <i class="fas fa-map-marked-alt float-icon"></i>
+                                    <input type="text" id="farm-address" class="float-input" placeholder=" ">
+                                    <label class="float-label">آدرس مرغداری</label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="filed-wraper full-width">
+                                <div class="filed-flot-input select-input">
+                                    <i class="fas fa-handshake float-icon"></i>
+                                    <select id="how-know" class="float-input float-select">
+                                        <option value="">انتخاب نحوه آشنایی</option>
+                                        <option value="شبکه‌های اجتماعی">شبکه‌های اجتماعی</option>
+                                        <option value="دوستان و آشنایان">دوستان و آشنایان</option>
+                                        <option value="تبلیغات">تبلیغات</option>
+                                        <option value="نمایشگاه">نمایشگاه</option>
+                                        <option value="وبسایت">وبسایت</option>
+                                        <option value="سایر">سایر</option>
+                                    </select>
+                                    <label class="float-label">نحوه آشنایی با کارخانه</label>
+                                    <i class="fas fa-chevron-down select-arrow"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button class="submit-btn">
+                        <i class="fas fa-check-circle"></i>
+                        ثبت نام مشتری
+                    </button>
+                    <button class="cancel-btn" type="button" style="display: none;">
+                        <i class="fas fa-times-circle"></i>
+                        انصراف
+                    </button>
+                </div>
+            </div>
+
+            <!-- ===== Customer List ===== -->
+            <div class="manegment-custumer-wraper">
+
+                <!-- Search Bar -->
+                <div class="search-bar-container">
+                    <div class="search-box-wrapper">
+                        <div class="search-box">
+                            <i class="fas fa-search search-box-icon"></i>
+                            <input type="text" id="tableSearchInput" class="search-box-input"
+                                placeholder="جستجو در جدول...">
+                            <button class="search-box-clear" id="clearSearchBtn" style="display: none;">
+                                <i class="fas fa-times-circle"></i>
+                            </button>
+                        </div>
+                        <div class="search-stats" id="searchStats">
+                            <span id="searchResultCount">0</span> نتیجه یافت شد
+                        </div>
+                        <div class="search-filter-group">
+                            <select id="searchColumnSelect" class="search-column-select">
+                                <option value="all">همه ستون‌ها</option>
+                                <option value="0">ID</option>
+                                <option value="1">نام مجموعه</option>
+                                <option value="2">نام مشتری</option>
+                                <option value="3">نام فارم</option>
+                                <option value="4">شماره تماس</option>
+                                <option value="5">شماره پیامرسان</option>
+                                <option value="6">تحصیلات</option>
+                                <option value="7">جنسیت</option>
+                                <option value="8">استان</option>
+                                <option value="9">شهر</option>
+                                <option value="10">تاریخ ثبت</option>
+                                <option value="11">وضعیت</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Table -->
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>نام مجموعه</th>
+                                <th>نام مشتری</th>
+                                <th>نام فارم</th>
+                                <th>شماره تماس</th>
+                                <th>شماره پیامرسان</th>
+                                <th>تحصیلات</th>
+                                <th>جنسیت</th>
+                                <th>استان</th>
+                                <th>شهر</th>
+                                <th>تاریخ ثبت</th>
+                                <th>وضعیت</th>
+                                <th>عملیات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="13" style="text-align: center; padding: 40px; color: #94a3b8;">
+                                    <i class="fas fa-spinner fa-spin"
+                                        style="font-size: 24px; display: block; margin-bottom: 10px;"></i>
+                                    <span>در حال بارگذاری...</span>
+                                </td>
+                            </tr>
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="13">
+                                    <div class="table-footer">
+                                        <div class="table-info">
+                                            نمایش <span id="startRow">0</span> تا <span id="endRow">0</span>
+                                            از <span id="totalRows">0</span> رکورد
+                                        </div>
+                                        <div class="table-pagination">
+                                            <button class="pagination-btn first-page" id="firstPage" title="اولین صفحه">
+                                                <i class="fas fa-angle-double-right"></i>
+                                            </button>
+                                            <button class="pagination-btn prev-page" id="prevPage" title="صفحه قبلی">
+                                                <i class="fas fa-angle-right"></i>
+                                            </button>
+                                            <div class="page-numbers" id="pageNumbers"></div>
+                                            <button class="pagination-btn next-page" id="nextPage" title="صفحه بعدی">
+                                                <i class="fas fa-angle-left"></i>
+                                            </button>
+                                            <button class="pagination-btn last-page" id="lastPage" title="آخرین صفحه">
+                                                <i class="fas fa-angle-double-left"></i>
+                                            </button>
+                                        </div>
+                                        <div class="page-size-selector">
+                                            <label>تعداد نمایش:</label>
+                                            <select id="pageSizeSelect">
+                                                <option value="5">۵</option>
+                                                <option value="10" selected>۱۰</option>
+                                                <option value="20">۲۰</option>
+                                                <option value="50">۵۰</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ===== FOOTER ===== -->
+    <footer id="main-footer"></footer>
+
+    <!-- ===== SCRIPTS ===== -->
+
+
+    <!-- ===== Vendor Scripts ===== -->
+
+
+
+    <script src="./../../node_modules/jquery/dist/jquery.min.js"></script>
+    <script src="./../../node_modules/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="./../../node_modules/sweetalert2/dist/sweetalert2.all.min.js"></script>
+    <script src="./../../node_modules/persian-date/dist/persian-date.min.js"></script>
+    <script src="./../../node_modules/persian-datepicker/dist/js/persian-datepicker.min.js"></script>
+    <script src="./../../node_modules/chart.js/dist/chart.umd.min.js"></script>
+
+
+    <!-- Core -->
+    <script type="module" src="./../core/constants/api.const.js"></script>
+
+    <script type="module" src="./../core/constants/config.const.js"></script>
+
+    <script type="module" src="./../core/services/cache.service.js"></script>
+    <script type="module" src="./../core/services/api.service.js"></script>
+    <script type="module" src="./../core/services/auth.service.js"></script>
+    <script type="module" src="./../core/services/state.service.js"></script>
+    <script type="module" src="./../core/services/notification.service.js"></script>
+    <script type="module" src="./../core/services/router.service.js"></script>
+
+    <script type="module" src="./../core/utils/date.utils.js"></script>
+    <script type="module" src="./../core/utils/string.utils.js"></script>
+    <script type="module" src="./../core/utils/dom.utils.js"></script>
+    <script type="module" src="./../core/utils/form.utils.js"></script>
+    <script type="module" src="/core/utils/number.utils.js"></script>
+
+    <!-- Shared Components -->
+    <script type="module" src="./../shared/components/Modal/modal.service.js"></script>
+    <script type="module" src="./../shared/components/Modal/modal.service.js"></script>
+    <script type="module" src="./../shared/components/Table/table.service.js"></script>
+
+    <!-- Layouts -->
+    <script type="module" src="./../shared/layouts/Header/header.service.js"></script>
+    <script type="module" src="./../shared/layouts/Header/header-bookmarks.service.js"></script>
+    <script type="module" src="./../shared/layouts/Header/header-dropdown.service.js"></script>
+    <script type="module" src="./../shared/layouts/Footer/footer.service.js"></script>
+
+    <!-- Features -->
+    <script type="module" src="./../features/customer-list/customer-list.api.js"></script>
+    <script type="module" src="./../features/customer-list/customer-list.renderer.js"></script>
+    <script type="module" src="./../features/customer-list/customer-list.validation.js"></script>
+    <script type="module" src="./../features/customer-list/customer-list.service.js"></script>
+
+    <!-- App -->
+    <script type="module" src="./../core/services/app.service.js"></script>
+
+    <!-- 7. Init -->
+    <script>
+        document.addEventListener('DOMContentLoaded', async function () {
+            try {
+                // ✅ 1. مقداردهی سرویس لیست مشتریان
+                if (typeof customerListService !== 'undefined') {
+                    await customerListService.init();
+                    console.log('✅ CustomerListService initialized');
+                } else {
+                    console.warn('⚠️ customerListService not found');
+                }
+
+                // ✅ 2. مقداردهی اپلیکیشن
+                if (typeof appService !== 'undefined') {
+                    await appService.init();
+                    console.log('✅ App initialized');
+                }
+            } catch (error) {
+                console.error('❌ Error initializing page:', error);
+            } finally {
+                // مخفی کردن لودینگ
+                const overlay = document.getElementById('pageLoadingOverlay');
+                if (overlay) {
+                    overlay.style.opacity = '0';
+                    setTimeout(() => {
+                        overlay.style.display = 'none';
+                    }, 500);
+                }
+            }
+        });
+    </script>
+
+</body>
+
+</html>

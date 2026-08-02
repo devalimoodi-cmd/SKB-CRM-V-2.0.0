@@ -1,0 +1,255 @@
+/* ============================================
+   تولتیپ - کامپوننت قابل استفاده مجدد
+   ============================================ */
+
+/* ===== کانتینر ===== */
+.tooltip-container {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ===== تولتیپ ===== */
+.tooltip {
+  position: absolute;
+  padding: 6px 12px;
+  background: #1e293b;
+  color: #ffffff;
+  font-family: "Vazir", sans-serif;
+  font-size: 12px;
+  border-radius: 6px;
+  white-space: nowrap;
+  z-index: 9999;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease;
+  pointer-events: none;
+}
+
+.tooltip-container:hover .tooltip {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* ===== موقعیت‌ها ===== */
+
+/* بالا */
+.tooltip-top {
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+}
+
+.tooltip-container:hover .tooltip-top {
+  transform: translateX(-50%) translateY(0);
+}
+
+.tooltip-top::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: #1e293b;
+}
+
+/* پایین */
+.tooltip-bottom {
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%) translateY(-4px);
+}
+
+.tooltip-container:hover .tooltip-bottom {
+  transform: translateX(-50%) translateY(0);
+}
+
+.tooltip-bottom::after {
+  content: "";
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-bottom-color: #1e293b;
+}
+
+/* راست */
+.tooltip-right {
+  left: calc(100% + 8px);
+  top: 50%;
+  transform: translateY(-50%) translateX(-4px);
+}
+
+.tooltip-container:hover .tooltip-right {
+  transform: translateY(-50%) translateX(0);
+}
+
+.tooltip-right::after {
+  content: "";
+  position: absolute;
+  right: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 6px solid transparent;
+  border-right-color: #1e293b;
+}
+
+/* چپ */
+.tooltip-left {
+  right: calc(100% + 8px);
+  top: 50%;
+  transform: translateY(-50%) translateX(4px);
+}
+
+.tooltip-container:hover .tooltip-left {
+  transform: translateY(-50%) translateX(0);
+}
+
+.tooltip-left::after {
+  content: "";
+  position: absolute;
+  left: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 6px solid transparent;
+  border-left-color: #1e293b;
+}
+
+/* ===== انواع ===== */
+
+/* با آیکون */
+.tooltip-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* بزرگ */
+.tooltip-lg {
+  font-size: 14px;
+  padding: 8px 16px;
+}
+
+/* کوچک */
+.tooltip-sm {
+  font-size: 11px;
+  padding: 4px 10px;
+}
+
+/* رنگی */
+.tooltip-primary {
+  background: #2c7a6e;
+}
+
+.tooltip-primary::after {
+  border-top-color: #2c7a6e;
+}
+
+.tooltip-primary.tooltip-bottom::after {
+  border-bottom-color: #2c7a6e;
+}
+
+.tooltip-primary.tooltip-right::after {
+  border-right-color: #2c7a6e;
+}
+
+.tooltip-primary.tooltip-left::after {
+  border-left-color: #2c7a6e;
+}
+
+.tooltip-danger {
+  background: #dc2626;
+}
+
+.tooltip-danger::after {
+  border-top-color: #dc2626;
+}
+
+.tooltip-danger.tooltip-bottom::after {
+  border-bottom-color: #dc2626;
+}
+
+.tooltip-danger.tooltip-right::after {
+  border-right-color: #dc2626;
+}
+
+.tooltip-danger.tooltip-left::after {
+  border-left-color: #dc2626;
+}
+
+.tooltip-success {
+  background: #10b981;
+}
+
+.tooltip-success::after {
+  border-top-color: #10b981;
+}
+
+.tooltip-success.tooltip-bottom::after {
+  border-bottom-color: #10b981;
+}
+
+.tooltip-success.tooltip-right::after {
+  border-right-color: #10b981;
+}
+
+.tooltip-success.tooltip-left::after {
+  border-left-color: #10b981;
+}
+
+.tooltip-warning {
+  background: #f59e0b;
+  color: #1e293b;
+}
+
+.tooltip-warning::after {
+  border-top-color: #f59e0b;
+}
+
+.tooltip-warning.tooltip-bottom::after {
+  border-bottom-color: #f59e0b;
+}
+
+.tooltip-warning.tooltip-right::after {
+  border-right-color: #f59e0b;
+}
+
+.tooltip-warning.tooltip-left::after {
+  border-left-color: #f59e0b;
+}
+
+/* ===== با تاخیر ===== */
+.tooltip-delay {
+  transition-delay: 0.3s;
+}
+
+/* ===== ریسپانسیو ===== */
+@media (max-width: 768px) {
+  .tooltip {
+    font-size: 11px;
+    padding: 4px 10px;
+    white-space: normal;
+    max-width: 200px;
+  }
+
+  .tooltip-lg {
+    font-size: 13px;
+    padding: 6px 14px;
+  }
+
+  .tooltip-sm {
+    font-size: 10px;
+    padding: 3px 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  .tooltip {
+    max-width: 160px;
+    font-size: 10px;
+    padding: 3px 8px;
+  }
+}

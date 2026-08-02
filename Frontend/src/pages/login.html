@@ -1,0 +1,525 @@
+<!-- pages/login.html -->
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ورود به سامانه | ستاره کیان بیرجند</title>
+
+    <!-- ===== Vendor Styles (مسیرهای اصلاح شده) ===== -->
+    <!-- ===== Vendor Styles ===== -->
+    <link rel="stylesheet" href="./../../node_modules/bootstrap/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="./../vendor/fontawesome-7.1.0/css/all.min.css">
+
+
+    <!-- ===== Core Styles ===== -->
+    <link rel="stylesheet" href="/styles/reset.css">
+    <link rel="stylesheet" href="/styles/variables.css">
+    <link rel="stylesheet" href="/styles/global.css">
+
+    <link rel="icon" type="image/png" href="/assets/images/favicon.ico">
+
+    <style>
+        /* ===== Login Page Styles ===== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            position: relative;
+            min-height: 100vh;
+            font-family: 'Vazir', sans-serif;
+            overflow-x: hidden;
+            background: #f5f7fb;
+        }
+
+        .login-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('/assets/images/login-bg.jpg') center/cover no-repeat;
+            z-index: -1;
+        }
+
+        .login-bg::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+        }
+
+        .login-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            max-width: 480px;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 24px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+            backdrop-filter: blur(10px);
+            padding: 40px;
+            animation: fadeInUp 0.5s ease;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translate(-50%, -40%);
+            }
+
+            to {
+                opacity: 1;
+                transform: translate(-50%, -50%);
+            }
+        }
+
+        .login-logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .login-logo img {
+            height: 60px;
+            width: auto;
+        }
+
+        .login-logo h1 {
+            font-size: 24px;
+            font-weight: 700;
+            color: #1e293b;
+            margin-top: 12px;
+        }
+
+        .login-logo p {
+            font-size: 13px;
+            color: #64748b;
+            margin-top: 4px;
+        }
+
+        .login-form {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .form-group {
+            position: relative;
+        }
+
+        .form-group .form-icon {
+            position: absolute;
+            right: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #94a3b8;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .form-group .form-control {
+            width: 100%;
+            padding: 12px 44px 12px 14px;
+            border: 1.5px solid #e5e7eb;
+            border-radius: 10px;
+            font-size: 14px;
+            font-family: 'Vazir', sans-serif;
+            transition: all 0.3s ease;
+            background: #f8fafc;
+            color: #1e293b;
+        }
+
+        .form-group .form-control:focus {
+            outline: none;
+            border-color: #2c7a6e;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(44, 122, 110, 0.1);
+        }
+
+        .form-group .form-control:focus+.form-icon {
+            color: #2c7a6e;
+        }
+
+        .form-group .form-control::placeholder {
+            color: #94a3b8;
+        }
+
+        .password-toggle {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #94a3b8;
+            cursor: pointer;
+            font-size: 16px;
+            padding: 4px;
+            transition: all 0.3s ease;
+        }
+
+        .password-toggle:hover {
+            color: #2c7a6e;
+        }
+
+        .login-options {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+        }
+
+        .login-options .form-check {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+
+        .login-options .form-check input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            accent-color: #2c7a6e;
+            cursor: pointer;
+        }
+
+        .login-options .form-check label {
+            cursor: pointer;
+            color: #475569;
+        }
+
+        .login-options .forgot-link {
+            color: #2c7a6e;
+            text-decoration: none;
+            font-size: 13px;
+            transition: all 0.3s ease;
+        }
+
+        .login-options .forgot-link:hover {
+            color: #035552;
+            text-decoration: underline;
+        }
+
+        .btn-login {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #2c7a6e 0%, #035552 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            font-family: 'Vazir', sans-serif;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .btn-login:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(44, 122, 110, 0.3);
+        }
+
+        .btn-login:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .btn-login .spinner {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        .btn-login.loading .spinner {
+            display: inline-block;
+        }
+
+        .btn-login.loading .btn-text {
+            display: none;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .login-footer {
+            margin-top: 24px;
+            padding-top: 20px;
+            border-top: 1px solid #eef2f6;
+            text-align: center;
+            font-size: 12px;
+            color: #94a3b8;
+        }
+
+        .login-footer a {
+            color: #2c7a6e;
+            text-decoration: none;
+        }
+
+        .login-footer a:hover {
+            text-decoration: underline;
+        }
+
+        .login-message {
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            display: none;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .login-message.error {
+            display: flex;
+            background: #fee2e2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+        }
+
+        .login-message.success {
+            display: flex;
+            background: #dcfce7;
+            color: #16a34a;
+            border: 1px solid #bbf7d0;
+        }
+
+        @media (max-width: 768px) {
+            .login-container {
+                padding: 30px 24px;
+                max-width: 95%;
+            }
+
+            .login-logo img {
+                height: 48px;
+            }
+
+            .login-logo h1 {
+                font-size: 20px;
+            }
+
+            .btn-login {
+                font-size: 15px;
+                padding: 12px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .login-container {
+                padding: 24px 16px;
+            }
+
+            .login-options {
+                flex-direction: column;
+                gap: 12px;
+                align-items: flex-start;
+            }
+
+            .login-logo h1 {
+                font-size: 18px;
+            }
+
+            .form-group .form-control {
+                font-size: 13px;
+                padding: 10px 40px 10px 12px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="login-bg"></div>
+
+    <div class="login-container">
+        <div class="login-logo">
+            <img src="/assets/images/skb-logo.png" alt="ستاره کیان بیرجند">
+            <h1>ورود به سِکاد</h1>
+            <p>سامانه مدیریت اطلاعات، خدمات و ارتباطات با مشتریان</p>
+        </div>
+
+        <form class="login-form" id="loginForm" autocomplete="off">
+            <div class="login-message" id="loginMessage">
+                <i class="fas fa-exclamation-circle"></i>
+                <span id="messageText"></span>
+            </div>
+
+            <div class="form-group">
+                <input type="text" class="form-control" id="username" placeholder="نام کاربری" autocomplete="username"
+                    required>
+                <i class="fas fa-user-circle form-icon"></i>
+            </div>
+
+            <div class="form-group">
+                <input type="password" class="form-control" id="password" placeholder="رمز عبور"
+                    autocomplete="current-password" required>
+                <i class="fas fa-lock form-icon"></i>
+                <button type="button" class="password-toggle" id="togglePassword" tabindex="-1">
+                    <i class="fas fa-eye-slash"></i>
+                </button>
+            </div>
+
+            <div class="login-options">
+                <label class="form-check">
+                    <input type="checkbox" id="rememberMe">
+                    <label for="rememberMe">مرا به خاطر بسپار</label>
+                </label>
+                <a href="#" class="forgot-link" id="forgotPasswordBtn">رمز عبور را فراموش کرده‌ام</a>
+            </div>
+
+            <button type="submit" class="btn-login" id="loginBtn">
+                <span class="btn-text">ورود</span>
+                <span class="spinner"></span>
+                <i class="fas fa-arrow-left btn-icon"></i>
+            </button>
+        </form>
+
+        <div class="login-footer">
+            <p>
+                <i class="fas fa-copyright"></i>
+                کلیه حقوق متعلق به واحد تحقیق و توسعه کارخانه ستاره کیان بیرجند است.
+            </p>
+            <p style="margin-top: 4px;">
+                <a href="/about">درباره ما</a> •
+                <a href="/help">راهنما</a> •
+                <a href="/contact">تماس با ما</a>
+            </p>
+        </div>
+    </div>
+
+    <!-- ===== SCRIPTS ===== -->
+
+    <!-- ✅ Vendor Scripts (مسیرهای اصلاح شده) -->
+    <script src="./../../node_modules/jquery/dist/jquery.min.js"></script>
+    <script src="./../../node_modules/sweetalert2/dist/sweetalert2.all.min.js"></script>
+
+    <!-- ✅ Core Scripts (همه با type="module") -->
+    <script type="module" src="/core/constants/api.const.js"></script>
+    <script type="module" src="./../core/constants/config.const.js"></script>
+    <script type="module" src="/core/services/cache.service.js"></script>
+    <script type="module" src="/core/services/api.service.js"></script>
+    <script type="module" src="/core/services/auth.service.js"></script>
+    <script type="module" src="/core/services/state.service.js"></script>
+    <script type="module" src="/core/services/notification.service.js"></script>
+
+    <!-- ✅ Utils (همه با type="module") -->
+    <script type="module" src="/core/utils/string.utils.js"></script>
+    <script type="module" src="/core/utils/dom.utils.js"></script>
+
+    <!-- ✅ Login Script (بدون module - چون از window استفاده می‌کنه) -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const form = document.getElementById('loginForm');
+            const username = document.getElementById('username');
+            const password = document.getElementById('password');
+            const rememberMe = document.getElementById('rememberMe');
+            const loginBtn = document.getElementById('loginBtn');
+            const togglePassword = document.getElementById('togglePassword');
+            const message = document.getElementById('loginMessage');
+            const messageText = document.getElementById('messageText');
+
+            function showMessage(text, type = 'error') {
+                message.className = `login-message ${type}`;
+                messageText.textContent = text;
+                message.style.display = text ? 'flex' : 'none';
+            }
+
+            togglePassword.addEventListener('click', function () {
+                const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
+                password.setAttribute('type', type);
+                const icon = this.querySelector('i');
+                icon.classList.toggle('fa-eye');
+                icon.classList.toggle('fa-eye-slash');
+            });
+
+            if (localStorage.getItem('rememberMe') === 'true') {
+                const savedUsername = localStorage.getItem('savedUsername');
+                if (savedUsername) {
+                    username.value = savedUsername;
+                    rememberMe.checked = true;
+                }
+            }
+
+            form.addEventListener('submit', async function (e) {
+                e.preventDefault();
+
+                const user = username.value.trim();
+                const pass = password.value;
+                const remember = rememberMe.checked;
+
+                if (!user || !pass) {
+                    showMessage('لطفاً نام کاربری و رمز عبور را وارد کنید', 'error');
+                    return;
+                }
+
+                loginBtn.disabled = true;
+                loginBtn.classList.add('loading');
+
+                try {
+                    // ✅ استفاده از authService که به صورت module لود شده
+                    const { authService } = await import('/core/services/auth.service.js');
+                    const result = await authService.login(user, pass);
+
+                    if (result) {
+                        showMessage('✅ ورود با موفقیت انجام شد', 'success');
+
+                        if (remember) {
+                            localStorage.setItem('savedUsername', user);
+                            localStorage.setItem('rememberMe', 'true');
+                        } else {
+                            localStorage.removeItem('savedUsername');
+                            localStorage.removeItem('rememberMe');
+                        }
+
+                        setTimeout(() => {
+                            const userRole = authService.getUserRole();
+                            if (['super_admin', 'admin', 'sub_admin'].includes(userRole)) {
+                                window.location.href = '/admin';
+                            } else if (userRole === 'expert') {
+                                window.location.href = '/';
+                            } else {
+                                window.location.href = '/customer-info';
+                            }
+                        }, 1000);
+                    }
+                } catch (error) {
+                    showMessage(error.message || 'نام کاربری یا رمز عبور اشتباه است', 'error');
+                } finally {
+                    loginBtn.disabled = false;
+                    loginBtn.classList.remove('loading');
+                }
+            });
+
+            document.getElementById('forgotPasswordBtn').addEventListener('click', function (e) {
+                e.preventDefault();
+                showMessage('لطفاً با پشتیبانی سیستم تماس بگیرید', 'info');
+            });
+
+            username.addEventListener('input', () => showMessage(''));
+            password.addEventListener('input', () => showMessage(''));
+        });
+    </script>
+
+</body>
+
+</html>

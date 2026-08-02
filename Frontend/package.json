@@ -1,0 +1,13 @@
+{
+  "dependencies": {
+    "@fortawesome/fontawesome-free": "^7.3.1",
+    "@mdi/font": "^7.4.47",
+    "bootstrap": "^5.3.8",
+    "chart.js": "^4.5.1",
+    "express": "^5.2.1",
+    "jquery": "^4.0.0",
+    "persian-date": "^1.1.0",
+    "persian-datepicker": "^1.2.0",
+    "sweetalert2": "^11.26.25"
+  }
+}

@@ -1,0 +1,340 @@
+/* ============================================
+   سایدبار - چیدمان اصلی
+   ============================================ */
+
+.sidebar {
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  border: 1px solid #eef2f6;
+  padding: 16px 12px;
+  position: sticky;
+  top: 80px;
+  flex: 0 0 280px;
+  max-height: calc(100vh - 100px);
+  overflow-y: auto;
+}
+
+.sidebar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.sidebar::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 10px;
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 10px;
+}
+
+/* ===== آیتم‌های سایدبار ===== */
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  padding: 12px 14px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  gap: 12px;
+  border-right: 3px solid transparent;
+  background: #fafbfc;
+  border: 1px solid #e5e7eb;
+  margin-bottom: 4px;
+}
+
+.sidebar-item:hover {
+  background: #f1f5f9;
+  border-right-color: #2c7a6e;
+  transform: translateX(-4px);
+}
+
+.sidebar-item.active {
+  background: #2c7a6e;
+  border-right-color: #2c7a6e;
+  border-color: transparent;
+}
+
+.sidebar-item.active .sidebar-icon {
+  color: white;
+}
+
+.sidebar-item.active .sidebar-title {
+  color: white;
+}
+
+.sidebar-item.active .sidebar-description {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.sidebar-item.active .sidebar-arrow {
+  color: white;
+}
+
+/* ===== آیکون ===== */
+.sidebar-icon-wrapper {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: white;
+  border-radius: 10px;
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+.sidebar-icon {
+  font-size: 20px;
+  color: #2c7a6e;
+  transition: all 0.3s ease;
+}
+
+.sidebar-item:hover .sidebar-icon {
+  transform: scale(1.1);
+}
+
+/* ===== محتوا ===== */
+.sidebar-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.sidebar-title {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e293b;
+  transition: all 0.3s ease;
+}
+
+.sidebar-description {
+  display: block;
+  font-size: 11px;
+  color: #64748b;
+  transition: all 0.3s ease;
+}
+
+.sidebar-arrow {
+  color: #94a3b8;
+  font-size: 12px;
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+}
+
+.sidebar-item.active .sidebar-arrow {
+  transform: rotate(-90deg);
+}
+
+/* ===== گروه‌ها ===== */
+.sidebar-group {
+  margin-bottom: 8px;
+}
+
+.sidebar-group-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 8px 14px 4px;
+}
+
+/* ===== انواع مختلف ===== */
+
+/* کوچک */
+.sidebar-compact {
+  flex: 0 0 200px;
+  padding: 12px 8px;
+}
+
+.sidebar-compact .sidebar-item {
+  padding: 8px 12px;
+  gap: 8px;
+}
+
+.sidebar-compact .sidebar-icon-wrapper {
+  width: 32px;
+  height: 32px;
+}
+
+.sidebar-compact .sidebar-icon {
+  font-size: 16px;
+}
+
+.sidebar-compact .sidebar-title {
+  font-size: 12px;
+}
+
+.sidebar-compact .sidebar-description {
+  display: none;
+}
+
+/* بزرگ */
+.sidebar-large {
+  flex: 0 0 320px;
+  padding: 20px 16px;
+}
+
+.sidebar-large .sidebar-item {
+  padding: 16px 18px;
+  gap: 16px;
+}
+
+.sidebar-large .sidebar-icon-wrapper {
+  width: 48px;
+  height: 48px;
+}
+
+.sidebar-large .sidebar-icon {
+  font-size: 24px;
+}
+
+.sidebar-large .sidebar-title {
+  font-size: 15px;
+}
+
+.sidebar-large .sidebar-description {
+  font-size: 12px;
+}
+
+/* ===== وضعیت خالی ===== */
+.sidebar-empty {
+  text-align: center;
+  padding: 30px 20px;
+  color: #94a3b8;
+}
+
+.sidebar-empty i {
+  font-size: 36px;
+  display: block;
+  margin-bottom: 12px;
+  color: #cbd5e1;
+}
+
+/* ===== ریسپانسیو ===== */
+@media (max-width: 992px) {
+  .sidebar {
+    flex: 1;
+    width: 100%;
+    position: static;
+    max-height: none;
+  }
+
+  .sidebar-item {
+    animation: menuSlideIn 0.3s ease forwards;
+    opacity: 0;
+  }
+
+  .sidebar-item:nth-child(1) {
+    animation-delay: 0.05s;
+  }
+  .sidebar-item:nth-child(2) {
+    animation-delay: 0.1s;
+  }
+  .sidebar-item:nth-child(3) {
+    animation-delay: 0.15s;
+  }
+  .sidebar-item:nth-child(4) {
+    animation-delay: 0.2s;
+  }
+  .sidebar-item:nth-child(5) {
+    animation-delay: 0.25s;
+  }
+  .sidebar-item:nth-child(6) {
+    animation-delay: 0.3s;
+  }
+  .sidebar-item:nth-child(7) {
+    animation-delay: 0.35s;
+  }
+  .sidebar-item:nth-child(8) {
+    animation-delay: 0.4s;
+  }
+  .sidebar-item:nth-child(9) {
+    animation-delay: 0.45s;
+  }
+
+  @keyframes menuSlideIn {
+    from {
+      opacity: 0;
+      transform: translateX(-20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .sidebar {
+    padding: 12px 8px;
+  }
+
+  .sidebar-item {
+    padding: 10px 12px;
+  }
+
+  .sidebar-icon-wrapper {
+    width: 34px;
+    height: 34px;
+  }
+
+  .sidebar-icon {
+    font-size: 16px;
+  }
+
+  .sidebar-title {
+    font-size: 12px;
+  }
+
+  .sidebar-description {
+    font-size: 10px;
+  }
+
+  .sidebar-large {
+    padding: 16px 12px;
+  }
+
+  .sidebar-large .sidebar-item {
+    padding: 12px 14px;
+  }
+
+  .sidebar-large .sidebar-icon-wrapper {
+    width: 40px;
+    height: 40px;
+  }
+
+  .sidebar-large .sidebar-icon {
+    font-size: 20px;
+  }
+
+  .sidebar-large .sidebar-title {
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .sidebar-item {
+    padding: 8px 10px;
+    gap: 8px;
+  }
+
+  .sidebar-icon-wrapper {
+    width: 30px;
+    height: 30px;
+  }
+
+  .sidebar-icon {
+    font-size: 14px;
+  }
+
+  .sidebar-title {
+    font-size: 11px;
+  }
+
+  .sidebar-description {
+    display: none;
+  }
+}

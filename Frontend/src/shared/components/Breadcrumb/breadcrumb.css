@@ -1,0 +1,131 @@
+/* ============================================
+   بردکام - کامپوننت قابل استفاده مجدد
+   ============================================ */
+
+.breadcrumb-container {
+  width: 100%;
+  margin: 10px 0 20px 0;
+  font-family: "Vazir", sans-serif;
+}
+
+.breadcrumb_wraper {
+  width: 100%;
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  border: 1px solid #eef2f6;
+  overflow: hidden;
+}
+
+.breadcrumb_main {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  padding: 12px 20px;
+  margin: 0;
+  list-style: none;
+  background: #ffffff;
+  direction: rtl;
+}
+
+/* ===== آیتم بردکام ===== */
+.breadcrumb-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.breadcrumb-item:not(:last-child)::after {
+  content: "›";
+  font-size: 16px;
+  color: #cbd5e1;
+  margin-right: 8px;
+}
+
+.breadcrumb-item:last-child .breadcrumb-item-link {
+  color: #2c7a6e;
+  font-weight: 500;
+}
+
+.breadcrumb-item:last-child .breadcrumb-item-link i {
+  color: #2c7a6e;
+}
+
+/* ===== لینک بردکام ===== */
+.breadcrumb-item-link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
+  color: #64748b;
+  transition: all 0.3s ease;
+}
+
+.breadcrumb-item-link i {
+  font-size: 14px;
+  color: #94a3b8;
+  transition: all 0.3s ease;
+}
+
+.breadcrumb-item-link:hover {
+  color: #2c7a6e;
+}
+
+.breadcrumb-item-link:hover i {
+  color: #2c7a6e;
+}
+
+.breadcrumb-item_text {
+  font-size: 13px;
+}
+
+/* ===== ریسپانسیو ===== */
+@media (max-width: 768px) {
+  .breadcrumb_main {
+    padding: 10px 15px;
+    flex-wrap: wrap;
+  }
+
+  .breadcrumb-item {
+    font-size: 11px;
+  }
+
+  .breadcrumb-item_text {
+    font-size: 11px;
+  }
+
+  .breadcrumb-item i {
+    font-size: 12px;
+  }
+
+  .breadcrumb-item:not(:last-child)::after {
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .breadcrumb_main {
+    padding: 8px 12px;
+  }
+
+  .breadcrumb-item {
+    font-size: 10px;
+    gap: 4px;
+  }
+
+  .breadcrumb-item:not(:last-child)::after {
+    font-size: 12px;
+    margin-right: 4px;
+  }
+
+  .breadcrumb-item_text {
+    font-size: 10px;
+  }
+
+  .breadcrumb-item-link i {
+    font-size: 11px;
+  }
+}

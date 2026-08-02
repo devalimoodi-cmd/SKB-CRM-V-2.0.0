@@ -1,0 +1,1090 @@
+/* ============================================
+   بخش گزارش بازدید
+   ============================================ */
+
+.skb-visit-section {
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  border: 1px solid #eef2f6;
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+
+.skb-visit-header {
+  background: linear-gradient(135deg, #2c7a6e 0%, #035552 100%);
+  padding: 18px 24px;
+  border-radius: 16px 16px 0 0;
+}
+
+.skb-visit-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: white;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.skb-visit-title i {
+  font-size: 22px;
+  opacity: 0.9;
+}
+
+.skb-visit-body {
+  padding: 24px;
+}
+
+/* ============================================
+   فرم گزارش
+   ============================================ */
+
+.skb-visit-form {
+  background: #f8f9fa;
+  border-radius: 12px;
+  padding: 24px;
+  border: 1px solid #eef2f6;
+}
+
+.skb-visit-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.skb-visit-row .skb-input-wrapper {
+  flex: 1;
+  min-width: 200px;
+}
+
+.skb-visit-row .full-width {
+  flex: 1 1 100%;
+}
+
+.skb-visit-form .skb-input-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  background: white;
+  transition: all 0.3s ease;
+  padding: 0 12px;
+}
+
+.skb-visit-form .skb-input-container:focus-within {
+  border-color: #2c7a6e;
+  box-shadow: 0 0 0 3px rgba(44, 122, 110, 0.1);
+}
+
+.skb-visit-form .skb-input-icon {
+  font-size: 14px;
+  color: #94a3b8;
+  margin-left: 10px;
+  flex-shrink: 0;
+  transition: color 0.3s ease;
+}
+
+.skb-visit-form .skb-input-field {
+  flex: 1;
+  background: transparent;
+  outline: none;
+  border: none;
+  font-size: 13px;
+  padding: 12px 0;
+  font-family: "Vazir", sans-serif;
+  color: #1e293b;
+  width: 100%;
+}
+
+.skb-visit-form .skb-input-label {
+  position: absolute;
+  right: 36px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: white;
+  padding: 0 4px;
+  color: #94a3b8;
+  font-size: 12px;
+  transition: all 0.3s ease;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.skb-visit-form .skb-input-field:focus ~ .skb-input-label,
+.skb-visit-form .skb-input-field:not(:placeholder-shown) ~ .skb-input-label {
+  top: 0;
+  font-size: 10px;
+  color: #2c7a6e;
+  transform: translateY(-50%);
+}
+
+/* ============================================
+   سلکت‌های چندگانه
+   ============================================ */
+
+.skb-visit-form select[multiple] {
+  min-height: 80px;
+  padding: 6px;
+}
+
+.skb-visit-form select[multiple] option {
+  padding: 6px 10px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.skb-visit-form select[multiple] option:checked {
+  background: #2c7a6e;
+  color: white;
+}
+
+.skb-selected-visit-halls,
+.skb-selected-experts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.skb-hall-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  background: rgba(44, 122, 110, 0.1);
+  color: #2c7a6e;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  border: 1px solid rgba(44, 122, 110, 0.15);
+}
+
+.skb-hall-tag i {
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #94a3b8;
+}
+
+.skb-hall-tag i:hover {
+  color: #dc2626;
+  transform: scale(1.2);
+}
+
+/* ============================================
+   پیوست‌ها
+   ============================================ */
+
+.skb-visit-subsection {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 2px solid #e9ecef;
+}
+
+.skb-visit-subtitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.skb-attachment-buttons {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.skb-attach-btn {
+  padding: 8px 18px;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  background: white;
+  cursor: pointer;
+  font-family: "Vazir", sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #1e293b;
+}
+
+.skb-attach-btn:hover {
+  background: #2c7a6e;
+  color: white;
+  border-color: #2c7a6e;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(44, 122, 110, 0.3);
+}
+
+.skb-video-limit-note {
+  font-size: 10px;
+  color: #94a3b8;
+  background: #f1f5f9;
+  padding: 5px 12px;
+  border-radius: 8px;
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.skb-attachments-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.skb-attachment-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #dee2e6;
+  font-size: 12px;
+  transition: all 0.2s ease;
+}
+
+.skb-attachment-item .remove-attach {
+  cursor: pointer;
+  color: #dc2626;
+  transition: all 0.2s ease;
+  font-size: 13px;
+}
+
+.skb-attachment-item .remove-attach:hover {
+  transform: scale(1.2);
+}
+
+/* ============================================
+   دکمه‌های فرم
+   ============================================ */
+
+.skb-visit-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.skb-visit-save,
+.skb-visit-reset {
+  padding: 10px 28px;
+  border: none;
+  border-radius: 8px;
+  font-family: "Vazir", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.skb-visit-save {
+  background: #2c7a6e;
+  color: white;
+}
+
+.skb-visit-save:hover {
+  background: #035552;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(44, 122, 110, 0.3);
+}
+
+.skb-visit-save:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.skb-visit-reset {
+  background: #dee2e6;
+  color: #1e293b;
+}
+
+.skb-visit-reset:hover {
+  background: #ced4da;
+  transform: translateY(-2px);
+}
+
+/* ============================================
+   جدول گزارشات
+   ============================================ */
+
+.skb-visit-table-section {
+  margin-top: 24px;
+}
+
+.skb-visit-table-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.skb-visit-table-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.skb-visit-table-title i {
+  color: #2c7a6e;
+}
+
+.skb-visit-search {
+  width: 260px;
+}
+
+/* ============================================
+   دکمه‌های عملیات
+   ============================================ */
+
+.skb-visit-actions-btns {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.skb-visit-btn {
+  padding: 5px 12px;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: "Vazir", sans-serif;
+}
+
+.skb-visit-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.skb-visit-btn.view {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+.skb-visit-btn.view:hover {
+  background: #2563eb;
+  color: white;
+}
+
+.skb-visit-btn.edit {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.skb-visit-btn.edit:hover {
+  background: #d97706;
+  color: white;
+}
+
+.skb-visit-btn.delete {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.skb-visit-btn.delete:hover {
+  background: #dc2626;
+  color: white;
+}
+
+.skb-visit-btn.print {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.skb-visit-btn.print:hover {
+  background: #16a34a;
+  color: white;
+}
+
+/* ============================================
+   وضعیت‌ها
+   ============================================ */
+
+.status-badge.read {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.status-badge.unread {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+/* ============================================
+   مودال
+   ============================================ */
+
+.skb-modal-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  z-index: 9999;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.skb-modal-overlay.active {
+  display: flex;
+}
+
+.skb-modal-container {
+  background: white;
+  border-radius: 16px;
+  max-width: 800px;
+  width: 100%;
+  max-height: 90vh;
+  overflow: hidden;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.3);
+  animation: modalSlideIn 0.3s cubic-bezier(0.34, 1.2, 0.64, 1);
+}
+
+.skb-modal-large {
+  max-width: 1100px;
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.skb-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  background: linear-gradient(135deg, #2c7a6e 0%, #035552 100%);
+  color: white;
+  border-radius: 16px 16px 0 0;
+}
+
+.skb-modal-title {
+  font-size: 18px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.skb-modal-close {
+  background: rgba(255, 255, 255, 0.15);
+  border: none;
+  color: white;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  font-size: 20px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.skb-modal-close:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: rotate(90deg);
+}
+
+.skb-modal-body {
+  padding: 24px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.skb-modal-footer {
+  padding: 16px 24px;
+  border-top: 1px solid #e9ecef;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* ============================================
+   مودال پیشرفت آپلود
+   ============================================ */
+
+.skb-upload-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(6px);
+  z-index: 10000;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.skb-upload-overlay.active {
+  display: flex;
+}
+
+.skb-upload-modal {
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 40px 48px;
+  max-width: 420px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 25px 70px rgba(0, 0, 0, 0.35);
+  animation: skb-upload-pop 0.3s cubic-bezier(0.34, 1.2, 0.64, 1);
+}
+
+@keyframes skb-upload-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.92) translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.skb-upload-icon {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #2c7a6e, #035552);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30px;
+  margin: 0 auto 18px;
+  box-shadow: 0 8px 24px rgba(44, 122, 110, 0.35);
+  animation: skb-upload-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes skb-upload-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.08);
+  }
+}
+
+.skb-upload-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 6px;
+  font-family: "Vazir", sans-serif;
+}
+
+.skb-upload-subtitle {
+  font-size: 13px;
+  color: #64748b;
+  margin-bottom: 20px;
+  font-family: "Vazir", sans-serif;
+}
+
+.skb-upload-progress-wrapper {
+  background: #f1f5f9;
+  border-radius: 50px;
+  height: 10px;
+  overflow: hidden;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.08);
+  margin-bottom: 10px;
+}
+
+.skb-upload-progress-bar {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #2c7a6e, #10b981);
+  border-radius: 50px;
+  transition: width 0.25s ease;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.4);
+}
+
+.skb-upload-percent {
+  font-size: 16px;
+  font-weight: 800;
+  color: #2c7a6e;
+  font-family: "Vazir", sans-serif;
+}
+
+.skb-upload-note {
+  margin-top: 14px;
+  font-size: 11px;
+  color: #94a3b8;
+  font-family: "Vazir", sans-serif;
+}
+
+/* ============================================
+   مودال جدید مشاهده گزارش
+   ============================================ */
+
+.skb-visit-report-detail {
+  font-family: "Vazir", sans-serif;
+}
+
+/* ===== سام‌ماری بار (هدر خلاصه) ===== */
+.skb-report-summary-bar {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border: 1px solid #eef2f6;
+  border-radius: 14px;
+  padding: 16px;
+}
+
+.skb-summary-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  transition: all 0.25s ease;
+}
+
+.skb-summary-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+}
+
+.skb-summary-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.skb-summary-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.skb-summary-text span {
+  font-size: 11px;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.skb-summary-text strong {
+  font-size: 13px;
+  color: #1e293b;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ===== کارت‌های اطلاعاتی ===== */
+.skb-report-info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.skb-report-info-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: #ffffff;
+  border: 1px solid #eef2f6;
+  border-radius: 12px;
+  padding: 14px 16px;
+  border-right: 3px solid var(--accent, #2c7a6e);
+  transition: all 0.25s ease;
+}
+
+.skb-report-info-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+.skb-report-info-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  background: var(--accent, #2c7a6e);
+  color: #ffffff;
+  flex-shrink: 0;
+}
+
+.skb-report-info-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.skb-report-info-label {
+  font-size: 11px;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.skb-report-info-value {
+  font-size: 13px;
+  color: #1e293b;
+  font-weight: 600;
+  line-height: 1.6;
+  word-break: break-word;
+}
+
+/* ===== عناوین بخش‌ها ===== */
+.skb-report-section-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #2c7a6e;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #eef2f6;
+  margin-bottom: 14px;
+}
+
+.skb-report-section-title i {
+  font-size: 16px;
+  color: #2c7a6e;
+}
+
+/* ===== شرح گزارش ===== */
+.skb-report-description-section {
+  margin-bottom: 24px;
+}
+
+.skb-report-description {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border-radius: 12px;
+  padding: 18px 22px;
+  border-right: 3px solid #2c7a6e;
+  line-height: 1.9;
+}
+
+.skb-report-description p {
+  margin: 0;
+  text-align: justify;
+  font-size: 13px;
+  color: #334155;
+}
+
+/* ===== بخش پیوست‌ها ===== */
+.skb-report-attachments-section {
+  margin-bottom: 20px;
+}
+
+.skb-modal-attachments {
+  background: #f8fafc;
+  border-radius: 14px;
+  padding: 16px;
+  border: 1px solid #eef2f6;
+}
+
+.skb-modal-attachments-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+  font-weight: 600;
+  color: #1e293b;
+  font-size: 13px;
+}
+
+.skb-modal-attachments-header span i {
+  color: #2c7a6e;
+  margin-left: 4px;
+}
+
+.skb-modal-download-all {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-family: "Vazir", sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.3s ease;
+}
+
+.skb-modal-download-all:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.skb-modal-attachments-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
+}
+
+.skb-modal-attachment-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #ffffff;
+  border: 1px solid #eef2f6;
+  border-radius: 10px;
+  padding: 10px 12px;
+  transition: all 0.25s ease;
+}
+
+.skb-modal-attachment-card:hover {
+  border-color: #2c7a6e;
+  box-shadow: 0 4px 12px rgba(44, 122, 110, 0.08);
+}
+
+.skb-modal-attachment-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.skb-modal-attachment-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.skb-modal-attachment-name {
+  font-size: 11px;
+  color: #1e293b;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.skb-modal-attachment-size {
+  font-size: 10px;
+  color: #94a3b8;
+}
+
+.skb-modal-attachment-download {
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 8px;
+  background: #f1f5f9;
+  color: #3b82f6;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  transition: all 0.25s ease;
+  flex-shrink: 0;
+}
+
+.skb-modal-attachment-download:hover {
+  background: #3b82f6;
+  color: #ffffff;
+  transform: scale(1.05);
+}
+
+/* ===== دکمه‌های مودال ===== */
+.skb-print-btn {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+  border: none;
+  padding: 10px 24px;
+  border-radius: 10px;
+  font-family: "Vazir", sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.25);
+}
+
+.skb-print-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(16, 185, 129, 0.35);
+}
+
+.skb-modal-footer {
+  gap: 10px;
+}
+
+/* ===== رسپانسیو مودال جدید ===== */
+@media (max-width: 768px) {
+  .skb-report-summary-bar {
+    grid-template-columns: 1fr;
+  }
+  .skb-report-info-grid {
+    grid-template-columns: 1fr;
+  }
+  .skb-modal-attachments-grid {
+    grid-template-columns: 1fr;
+  }
+  .skb-modal-attachments-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .skb-modal-download-all {
+    justify-content: center;
+  }
+}
+
+/* ============================================
+   ریسپانسیو
+   ============================================ */
+
+@media (max-width: 992px) {
+  .skb-visit-body {
+    padding: 20px;
+  }
+  .skb-visit-form {
+    padding: 20px;
+  }
+}
+
+@media (max-width: 768px) {
+  .skb-visit-body {
+    padding: 16px;
+  }
+  .skb-visit-form {
+    padding: 16px;
+  }
+  .skb-visit-row {
+    flex-direction: column;
+    gap: 14px;
+  }
+  .skb-visit-row .skb-input-wrapper {
+    min-width: auto;
+  }
+  .skb-visit-actions {
+    flex-direction: column;
+  }
+  .skb-visit-save,
+  .skb-visit-reset {
+    justify-content: center;
+    width: 100%;
+  }
+  .skb-visit-table-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .skb-visit-search {
+    width: 100%;
+  }
+  .skb-attachment-buttons {
+    flex-direction: column;
+  }
+  .skb-attach-btn {
+    justify-content: center;
+  }
+  .skb-modal-container {
+    max-width: 100%;
+    margin: 10px;
+    border-radius: 12px;
+  }
+  .skb-modal-large {
+    max-width: 100%;
+  }
+  .skb-modal-header {
+    padding: 14px 18px;
+  }
+  .skb-modal-title {
+    font-size: 16px;
+  }
+  .skb-modal-body {
+    padding: 16px;
+  }
+  .skb-modal-footer {
+    padding: 14px 18px;
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 480px) {
+  .skb-visit-body {
+    padding: 12px;
+  }
+  .skb-visit-form {
+    padding: 12px;
+  }
+  .skb-visit-header {
+    padding: 14px 16px;
+  }
+  .skb-visit-title {
+    font-size: 16px;
+  }
+  .skb-visit-btn {
+    font-size: 10px;
+    padding: 3px 8px;
+  }
+  .skb-attach-btn {
+    font-size: 12px;
+    padding: 6px 14px;
+  }
+}

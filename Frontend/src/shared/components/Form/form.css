@@ -1,0 +1,235 @@
+/* ============================================
+   فرم - کامپوننت قابل استفاده مجدد
+   ============================================ */
+
+/* ===== فرم ===== */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ===== گروه فرم ===== */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-group label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #1e293b;
+}
+
+.form-group label .required {
+  color: #dc2626;
+  margin-right: 2px;
+}
+
+.form-group .help-text {
+  font-size: 12px;
+  color: #94a3b8;
+  margin-top: 4px;
+}
+
+.form-group .error-text {
+  font-size: 12px;
+  color: #dc2626;
+  margin-top: 4px;
+  display: none;
+}
+
+.form-group.has-error .error-text {
+  display: block;
+}
+
+.form-group.has-error .form-control {
+  border-color: #dc2626;
+}
+
+/* ===== کنترل‌های فرم ===== */
+.form-control {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  font-family: "Vazir", sans-serif;
+  font-size: 13px;
+  transition: all 0.3s ease;
+  background: white;
+  color: #1e293b;
+  outline: none;
+}
+
+.form-control:focus {
+  border-color: #2c7a6e;
+  box-shadow: 0 0 0 3px rgba(44, 122, 110, 0.1);
+}
+
+.form-control:disabled {
+  background: #f8f9fa;
+  cursor: not-allowed;
+}
+
+.form-control::placeholder {
+  color: #94a3b8;
+}
+
+/* ===== فیلدهای خاص ===== */
+
+/* فیلد ورودی */
+.form-input {
+  position: relative;
+}
+
+.form-input .form-control {
+  padding-right: 40px;
+}
+
+.form-input .input-icon {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+  font-size: 16px;
+}
+
+.form-input .form-control:focus + .input-icon {
+  color: #2c7a6e;
+}
+
+/* فیلد با دکمه */
+.form-input-group {
+  display: flex;
+  gap: 8px;
+}
+
+.form-input-group .form-control {
+  flex: 1;
+}
+
+/* فیلد تاریخ */
+.form-date {
+  position: relative;
+}
+
+.form-date .form-control {
+  padding-left: 40px;
+}
+
+.form-date .date-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+  pointer-events: none;
+}
+
+/* ===== سلکت ===== */
+.form-select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-left: 36px;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2394a3b8' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: left 12px center;
+}
+
+.form-select option {
+  padding: 8px;
+}
+
+/* ===== چک‌باکس و رادیو ===== */
+.form-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.form-check input[type="checkbox"],
+.form-check input[type="radio"] {
+  width: 18px;
+  height: 18px;
+  accent-color: #2c7a6e;
+  cursor: pointer;
+}
+
+.form-check label {
+  cursor: pointer;
+  font-weight: 400;
+}
+
+/* ===== گروه چک‌باکس و رادیو ===== */
+.form-check-group {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+/* ===== دکمه‌های فرم ===== */
+.form-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+  padding-top: 16px;
+  border-top: 1px solid #eef2f6;
+  flex-wrap: wrap;
+}
+
+.form-actions .btn {
+  flex: 1;
+  justify-content: center;
+}
+
+/* ===== ردیف فرم ===== */
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.form-row-3 {
+  grid-template-columns: 1fr 1fr 1fr;
+}
+
+.form-row-4 {
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+}
+
+/* ===== ریسپانسیو ===== */
+@media (max-width: 992px) {
+  .form-row-4 {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .form-row,
+  .form-row-3,
+  .form-row-4 {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .form-actions {
+    flex-direction: column;
+  }
+
+  .form-actions .btn {
+    width: 100%;
+  }
+
+  .form-input-group {
+    flex-direction: column;
+  }
+
+  .form-check-group {
+    flex-direction: column;
+    gap: 8px;
+  }
+}

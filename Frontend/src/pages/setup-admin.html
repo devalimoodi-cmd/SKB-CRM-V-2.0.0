@@ -1,0 +1,355 @@
+<!-- pages/setup-admin.html -->
+<!DOCTYPE html>
+<html dir="rtl" lang="fa">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ساخت ادمین اصلی</title>
+
+    <!-- Vendor Styles -->
+    <link rel="stylesheet" href="./../../node_modules/@fortawesome/fontawesome-free/js/all.min.js">
+
+    <!-- Core Styles -->
+    <link rel="stylesheet" href="/styles/reset.css">
+    <link rel="stylesheet" href="/styles/variables.css">
+    <link rel="stylesheet" href="/styles/global.css">
+
+    <link rel="icon" type="image/png" href="/assets/images/favicon.ico">
+
+    <style>
+        body {
+            font-family: 'Vazir', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .setup-container {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+            max-width: 480px;
+            width: 100%;
+        }
+
+        .setup-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .setup-header .icon {
+            font-size: 64px;
+            color: #667eea;
+            display: block;
+            margin-bottom: 12px;
+        }
+
+        .setup-header h2 {
+            margin: 10px 0;
+            color: #1e293b;
+            font-size: 22px;
+        }
+
+        .setup-header p {
+            color: #64748b;
+            font-size: 14px;
+            margin-top: 4px;
+        }
+
+        .setup-header .sub {
+            font-size: 12px;
+            color: #94a3b8;
+            margin-top: 8px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            color: #1e293b;
+            margin-bottom: 4px;
+        }
+
+        .form-group .form-control {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1.5px solid #e5e7eb;
+            border-radius: 10px;
+            font-size: 14px;
+            font-family: 'Vazir', sans-serif;
+            transition: all 0.3s ease;
+            background: #f8fafc;
+            color: #1e293b;
+        }
+
+        .form-group .form-control:focus {
+            outline: none;
+            border-color: #667eea;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .form-group .form-control::placeholder {
+            color: #94a3b8;
+        }
+
+        .btn-submit {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            font-family: 'Vazir', sans-serif;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .btn-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-submit:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .btn-submit .spinner {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        .btn-submit.loading .spinner {
+            display: inline-block;
+        }
+
+        .btn-submit.loading .btn-text {
+            display: none;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .message {
+            margin-top: 16px;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            display: none;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .message.error {
+            display: flex;
+            background: #fee2e2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+        }
+
+        .message.success {
+            display: flex;
+            background: #dcfce7;
+            color: #16a34a;
+            border: 1px solid #bbf7d0;
+        }
+
+        .message i {
+            font-size: 18px;
+        }
+
+        @media (max-width: 480px) {
+            .setup-container {
+                padding: 24px 20px;
+            }
+
+            .setup-header .icon {
+                font-size: 48px;
+            }
+
+            .setup-header h2 {
+                font-size: 18px;
+            }
+
+            .btn-submit {
+                font-size: 14px;
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="setup-container">
+        <div class="setup-header">
+            <i class="fas fa-user-shield icon"></i>
+            <h2>تنظیمات اولیه سیستم</h2>
+            <p>خوش آمدید! لطفاً اطلاعات مدیر اصلی را وارد کنید</p>
+            <div class="sub">این شخص بالاترین سطح دسترسی را خواهد داشت</div>
+        </div>
+
+        <form id="setupForm" autocomplete="off">
+            <div class="form-group">
+                <label>نام</label>
+                <input type="text" class="form-control" id="firstName" placeholder="نام خود را وارد کنید" required>
+            </div>
+
+            <div class="form-group">
+                <label>نام خانوادگی</label>
+                <input type="text" class="form-control" id="lastName" placeholder="نام خانوادگی خود را وارد کنید"
+                    required>
+            </div>
+
+            <div class="form-group">
+                <label>نام کاربری</label>
+                <input type="text" class="form-control" id="username" placeholder="نام کاربری را انتخاب کنید" required>
+            </div>
+
+            <div class="form-group">
+                <label>ایمیل</label>
+                <input type="email" class="form-control" id="email" placeholder="ایمیل خود را وارد کنید" required>
+            </div>
+
+            <div class="form-group">
+                <label>رمز عبور</label>
+                <input type="password" class="form-control" id="password" placeholder="حداقل 6 کاراکتر" minlength="6"
+                    required>
+            </div>
+
+            <div class="form-group">
+                <label>شماره همراه</label>
+                <input type="tel" class="form-control" id="mobile" placeholder="مثال: 09123456789" maxlength="11"
+                    required>
+            </div>
+
+            <div id="message" class="message"></div>
+
+            <button type="submit" class="btn-submit" id="setupAdminBtn">
+                <span class="btn-text">ایجاد مدیر اصلی</span>
+                <span class="spinner"></span>
+                <i class="fas fa-user-shield"></i>
+            </button>
+        </form>
+    </div>
+
+    <!-- ===== SCRIPTS ===== -->
+
+    <!-- Vendor -->
+    <script src="./../../node_modules/jquery/dist/jquery.min.js"></script>
+    <script src="./../../node_modules/sweetalert2/dist/sweetalert2.all.min.js"></script>
+
+    <!-- Core -->
+    <script type="module" src="/core/constants/api.const.js"></script>
+    <script src="/core/constants/config.const.js"></script>
+    <script type="module" src="/core/services/api.service.js"></script>
+    <script src="/core/services/auth.service.js"></script>
+    <script src="/core/services/notification.service.js"></script>
+
+    <!-- Utils -->
+    <script src="/core/utils/string.utils.js"></script>
+
+    <!-- Setup Admin Script -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const form = document.getElementById('setupForm');
+            const btn = document.getElementById('setupAdminBtn');
+            const message = document.getElementById('message');
+
+            function showMessage(text, type = 'error') {
+                message.className = `message ${type}`;
+                message.innerHTML = `<i class="fas fa-${type === 'error' ? 'exclamation-circle' : 'check-circle'}"></i> ${text}`;
+                message.style.display = 'flex';
+            }
+
+            function hideMessage() {
+                message.className = 'message';
+                message.style.display = 'none';
+            }
+
+            form.addEventListener('submit', async function (e) {
+                e.preventDefault();
+                hideMessage();
+
+                const data = {
+                    first_name: document.getElementById('firstName').value.trim(),
+                    last_name: document.getElementById('lastName').value.trim(),
+                    username: document.getElementById('username').value.trim(),
+                    email: document.getElementById('email').value.trim(),
+                    password: document.getElementById('password').value,
+                    mobile_number: document.getElementById('mobile').value.trim()
+                };
+
+                // Validation
+                if (!data.first_name || !data.last_name || !data.username ||
+                    !data.email || !data.password || !data.mobile_number) {
+                    showMessage('لطفاً تمام فیلدها را پر کنید', 'error');
+                    return;
+                }
+
+                if (data.password.length < 6) {
+                    showMessage('رمز عبور باید حداقل 6 کاراکتر باشد', 'error');
+                    return;
+                }
+
+                if (!/^09[0-9]{9}$/.test(data.mobile_number)) {
+                    showMessage('شماره همراه باید با 09 شروع شود و 11 رقم باشد', 'error');
+                    return;
+                }
+
+                // Disable button
+                btn.disabled = true;
+                btn.classList.add('loading');
+
+                try {
+                    const result = await window.authService.setupAdmin(data);
+                    if (result) {
+                        showMessage('✅ مدیر اصلی با موفقیت ایجاد شد', 'success');
+                        setTimeout(() => {
+                            window.location.href = '/admin-panel.html';
+                        }, 1500);
+                    }
+                } catch (error) {
+                    showMessage(error.message || 'خطا در ایجاد مدیر اصلی', 'error');
+                } finally {
+                    btn.disabled = false;
+                    btn.classList.remove('loading');
+                }
+            });
+
+            // Validate mobile input
+            document.getElementById('mobile').addEventListener('input', function () {
+                this.value = this.value.replace(/[^0-9]/g, '');
+            });
+        });
+    </script>
+</body>
+
+</html>

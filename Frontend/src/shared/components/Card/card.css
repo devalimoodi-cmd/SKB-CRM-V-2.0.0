@@ -1,0 +1,248 @@
+/* ============================================
+   کارت - کامپوننت قابل استفاده مجدد
+   ============================================ */
+
+.card {
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  border: 1px solid #eef2f6;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.card:hover {
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+/* ===== هدر کارت ===== */
+.card-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid #eef2f6;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #fafbfc;
+}
+
+.card-header .card-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.card-header .card-title i {
+  color: #2c7a6e;
+}
+
+.card-header .card-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* ===== بدنه کارت ===== */
+.card-body {
+  padding: 20px;
+  color: #1e293b;
+}
+
+/* ===== فوتر کارت ===== */
+.card-footer {
+  padding: 16px 20px;
+  border-top: 1px solid #eef2f6;
+  background: #fafbfc;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* ===== انواع مختلف ===== */
+
+/* بدون حاشیه */
+.card-borderless {
+  border: none;
+  box-shadow: none;
+}
+
+.card-borderless:hover {
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+}
+
+/* با حاشیه رنگی */
+.card-primary {
+  border-top: 4px solid #2c7a6e;
+}
+
+.card-success {
+  border-top: 4px solid #10b981;
+}
+
+.card-danger {
+  border-top: 4px solid #dc2626;
+}
+
+.card-warning {
+  border-top: 4px solid #f59e0b;
+}
+
+.card-info {
+  border-top: 4px solid #3b82f6;
+}
+
+/* ===== کارت با عکس ===== */
+.card-image {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+}
+
+.card-image-top {
+  border-radius: 16px 16px 0 0;
+}
+
+.card-image-bottom {
+  border-radius: 0 0 16px 16px;
+}
+
+/* ===== کارت با آواتار ===== */
+.card-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  margin: -40px auto 0;
+  border: 4px solid white;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f1f5f9;
+  overflow: hidden;
+}
+
+.card-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.card-avatar i {
+  font-size: 40px;
+  color: #94a3b8;
+}
+
+/* ===== کارت با هدر رنگی ===== */
+.card-header-primary .card-header {
+  background: linear-gradient(135deg, #2c7a6e 0%, #035552 100%);
+  color: white;
+}
+
+.card-header-primary .card-header .card-title {
+  color: white;
+}
+
+.card-header-primary .card-header .card-title i {
+  color: white;
+}
+
+/* ===== کارت قابل کلیک ===== */
+.card-clickable {
+  cursor: pointer;
+}
+
+.card-clickable:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+}
+
+/* ===== کارت با آیکون ===== */
+.card-icon {
+  text-align: center;
+  padding: 30px 20px;
+}
+
+.card-icon .icon {
+  font-size: 48px;
+  color: #2c7a6e;
+  margin-bottom: 16px;
+  display: block;
+}
+
+.card-icon .card-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.card-icon .card-text {
+  color: #64748b;
+}
+
+/* ===== کارت آماری ===== */
+.card-stats {
+  text-align: center;
+  padding: 20px;
+}
+
+.card-stats .stat-number {
+  font-size: 32px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.card-stats .stat-label {
+  font-size: 14px;
+  color: #64748b;
+  margin-top: 4px;
+}
+
+.card-stats .stat-icon {
+  font-size: 32px;
+  color: #2c7a6e;
+  margin-bottom: 8px;
+  display: block;
+}
+
+/* ===== ریسپانسیو ===== */
+@media (max-width: 768px) {
+  .card-body {
+    padding: 16px;
+  }
+
+  .card-header {
+    padding: 14px 16px;
+  }
+
+  .card-header .card-title {
+    font-size: 15px;
+  }
+
+  .card-footer {
+    padding: 14px 16px;
+  }
+
+  .card-image {
+    height: 160px;
+  }
+
+  .card-avatar {
+    width: 64px;
+    height: 64px;
+    margin-top: -32px;
+  }
+
+  .card-avatar i {
+    font-size: 32px;
+  }
+
+  .card-stats .stat-number {
+    font-size: 28px;
+  }
+
+  .card-icon .icon {
+    font-size: 40px;
+  }
+}

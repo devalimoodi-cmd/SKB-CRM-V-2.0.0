@@ -1,0 +1,304 @@
+<!-- pages/index.html -->
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>داشبورد کارشناس | سامانه مدیریت مشتریان</title>
+
+    <!-- ===== Vendor Styles ===== -->
+    <link rel="stylesheet" href="./../vendor/bootstrap/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="./../vendor/fontawesome-7.1.0/css/all.min.css">
+    <link rel="stylesheet" href="./../vendor/mdi-font/css/material-design-iconic-font.min.css">
+
+    <!-- ===== Core Styles ===== -->
+    <link rel="stylesheet" href="/styles/reset.css">
+    <link rel="stylesheet" href="/styles/variables.css">
+    <link rel="stylesheet" href="/styles/global.css">
+
+    <!-- ===== Shared Components Styles ===== -->
+    <link rel="stylesheet" href="./../shared/layouts/Header/header.css">
+    <link rel="stylesheet" href="./../shared/components/Breadcrumb/breadcrumb.css">
+    <link rel="stylesheet" href="./../shared/layouts/Footer/footer.css">
+    <link rel="stylesheet" href="/shared/components/tooltip/tooltip.css">
+    <link rel="stylesheet" href="/shared/components/modal/modal.css">
+
+    <!-- ===== TaskCard Styles ===== -->
+    <link rel="stylesheet" href="/shared/components/TaskCard/TaskCard.css">
+
+    <!-- ===== Feature Styles ===== -->
+    <link rel="stylesheet" href="/features/dashboard/dashboard.css">
+
+    <link rel="icon" type="image/png" href="/assets/images/favicon.ico">
+
+    <!-- ===== Vendor Scripts ===== -->
+    <script src="./../vendor/jquery/dist/jquery.min.js"></script>
+    <script src="./../vendor/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="./../vendor/chart.js/dist/chart.umd.js"></script>
+    <script src="./../vendor/sweetalert2/dist/sweetalert2.all.min.js"></script>
+</head>
+
+<body>
+
+    <!-- ===== HEADER ===== -->
+    <header id="main-header"></header>
+
+    <!-- ===== BREADCRUMB ===== -->
+    <div class="breadcrumb-container">
+        <nav class="breadcrumb_wraper">
+            <ol class="breadcrumb_main">
+                <li class="breadcrumb-item">
+                    <a href="/" class="breadcrumb-item-link">
+                        <i class="fas fa-home"></i>
+                        <span class="breadcrumb-item_text">داشبورد کارشناس</span>
+                    </a>
+                </li>
+            </ol>
+        </nav>
+    </div>
+
+    <!-- ===== DASHBOARD CONTENT ===== -->
+    <div class="dashboard-container">
+
+        <!-- ===== LEFT: Charts ===== -->
+        <div class="dashboard-left">
+
+            <div class="chart-card">
+                <div class="chart-title" style="border-bottom-color: #4a90e2;">
+                    📊 روند وزن‌گیری
+                </div>
+                <canvas id="weightingCanvas"></canvas>
+                <div class="chart-stats">
+                    <div class="stat-item">
+                        <span>میانگین وزن</span>
+                        <span class="stat-value" id="avgWeight">-</span>
+                    </div>
+                    <div class="stat-item">
+                        <span>بیشترین وزن</span>
+                        <span class="stat-value" id="maxWeight">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chart-card">
+                <div class="chart-title" style="border-bottom-color: #ef4444;">
+                    ⚠️ نرخ تلفات
+                </div>
+                <canvas id="lossCanvas"></canvas>
+                <div class="chart-stats">
+                    <div class="stat-item">
+                        <span>کل تلفات</span>
+                        <span class="stat-value" id="totalLoss">-</span>
+                    </div>
+                    <div class="stat-item">
+                        <span>میانگین ماهانه</span>
+                        <span class="stat-value" id="avgLoss">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chart-card">
+                <div class="chart-title" style="border-bottom-color: #10b981;">
+                    🍽️ مصرف خوراک
+                </div>
+                <canvas id="feedCanvas"></canvas>
+                <div class="chart-stats">
+                    <div class="stat-item">
+                        <span>کل مصرف</span>
+                        <span class="stat-value" id="totalFeed">-</span>
+                    </div>
+                    <div class="stat-item">
+                        <span>میانگین روزانه</span>
+                        <span class="stat-value" id="avgFeed">-</span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- ===== CENTER: Task Lists ===== -->
+        <div class="dashboard-center">
+
+            <!-- Danger Section -->
+            <div class="accordion-section">
+                <div class="accordion-header" onclick="window.toggleAccordion('dangerSection')"
+                    data-section="dangerSection">
+                    <div class="task-section-title">
+                        <i class="fas fa-exclamation-circle" style="color: #dc2626;"></i>
+                        <span>سررسید امروز / گذشته</span>
+                        <span class="task-badge" id="dangerCount">0</span>
+                    </div>
+                    <i class="fas fa-chevron-down accordion-icon"></i>
+                </div>
+                <div class="accordion-body" id="dangerSection">
+                    <div class="task-section-actions">
+                        <button class="btn-remove-all" id="removeAllDanger" title="حذف همه از لیست">
+                            <i class="fas fa-times"></i> حذف همه
+                        </button>
+                    </div>
+                    <div class="task-list" id="dangerTaskList">
+                        <!-- توسط JS پر می‌شود -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Success Section -->
+            <div class="accordion-section">
+                <div class="accordion-header" onclick="window.toggleAccordion('successSection')"
+                    data-section="successSection">
+                    <div class="task-section-title">
+                        <i class="fas fa-clock" style="color: #16a34a;"></i>
+                        <span>نزدیک به سررسید</span>
+                        <span class="task-badge" id="successCount">0</span>
+                    </div>
+                    <i class="fas fa-chevron-down accordion-icon"></i>
+                </div>
+                <div class="accordion-body" id="successSection">
+                    <div class="task-section-actions">
+                        <button class="btn-send-sms" id="sendBulkSms">
+                            <i class="fas fa-sms"></i> ارسال پیامک گروهی
+                        </button>
+                    </div>
+                    <div class="task-list" id="successTaskList">
+                        <!-- توسط JS پر می‌شود -->
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- ===== RIGHT: Bookmarks ===== -->
+        <div class="dashboard-right">
+
+            <div class="accordion-section">
+                <div class="accordion-header" onclick="window.toggleAccordion('bookmarkSection')"
+                    data-section="bookmarkSection">
+                    <div class="bookmark-title">
+                        <i class="fas fa-bookmark"></i>
+                        <span>بوکمارک‌ها و یادآوری‌ها</span>
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn-add-bookmark" onclick="window.showCreateBookmarkModal()"
+                            title="بوکمارک جدید">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                        <button class="bookmark-refresh" id="refreshBookmarks">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                    </div>
+                    <i class="fas fa-chevron-down accordion-icon"></i>
+                </div>
+                <div class="accordion-body" id="bookmarkSection">
+                    <div class="bookmark-list" id="bookmarkList">
+                        <!-- توسط JS پر می‌شود -->
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- ===== MODALS ===== -->
+
+    <!-- Customer Detail Modal -->
+    <div class="modal-overlay" id="customerDetailModal">
+        <div class="modal-container modal-large">
+            <div class="modal-header">
+                <h3><i class="fas fa-user-circle"></i> <span id="modalCustomerName">اطلاعات مشتری</span></h3>
+                <button class="modal-close" id="closeModalBtn">&times;</button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <!-- توسط JS پر می‌شود -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" onclick="window.print()">
+                    <i class="fas fa-print"></i> پرینت
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bookmark Detail Modal -->
+    <div class="modal-overlay" id="bookmarkDetailModal">
+        <div class="modal-container modal-medium">
+            <div class="modal-header">
+                <h3><i class="fas fa-bookmark"></i> <span id="bookmarkModalTitle">جزئیات بوکمارک</span></h3>
+                <button class="modal-close" id="closeBookmarkModalBtn">&times;</button>
+            </div>
+            <div class="modal-body" id="bookmarkModalBody">
+                <!-- توسط JS پر می‌شود -->
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== FOOTER ===== -->
+    <footer id="main-footer"></footer>
+
+    <!-- ===== SCRIPTS ===== -->
+
+    <!-- ===== Vendor Scripts ===== -->
+    <script src="./../vendor/jquery/dist/jquery.min.js"></script>
+    <script src="./../vendor/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="./../vendor/chart.js/dist/chart.umd.js"></script>
+    <script src="./../vendor/sweetalert2/dist/sweetalert2.all.min.js"></script>
+
+    <!-- ===== Core ===== -->
+    <script type="module" src="/core/constants/api.const.js"></script>
+    <script type="module" src="/core/constants/config.const.js"></script>
+    <script type="module" src="/core/constants/sms.const.js"></script>
+
+    <script type="module" src="/core/services/cache.service.js"></script>
+    <script type="module" src="/core/services/api.service.js"></script>
+    <script type="module" src="/core/services/auth.service.js"></script>
+    <script type="module" src="/core/services/state.service.js"></script>
+    <script type="module" src="/core/services/notification.service.js"></script>
+    <script type="module" src="/core/services/router.service.js"></script>
+
+    <script type="module" src="/core/utils/date.utils.js"></script>
+    <script type="module" src="/core/utils/string.utils.js"></script>
+    <script type="module" src="/core/utils/dom.utils.js"></script>
+    <script type="module" src="/core/utils/form.utils.js"></script>
+    <script type="module" src="/core/utils/number.utils.js"></script>
+
+    <!-- ===== Shared Components ===== -->
+    <script type="module" src="/shared/components/Accordion/accordion.service.js"></script>
+    <script type="module" src="/shared/components/Dropdown/dropdown.service.js"></script>
+    <script type="module" src="/shared/components/Modal/modal.service.js"></script>
+    <script type="module" src="/shared/components/Form/form.service.js"></script>
+    <script type="module" src="/shared/components/Table/table.service.js"></script>
+    <script type="module" src="/shared/components/Card/card.service.js"></script>
+
+    <!-- ===== Layouts ===== -->
+    <script type="module" src="/shared/layouts/Header/header.service.js"></script>
+    <script type="module" src="/shared/layouts/Header/header-bookmarks.service.js"></script>
+    <script type="module" src="/shared/layouts/Header/header-dropdown.service.js"></script>
+    <script type="module" src="/shared/layouts/Footer/footer.service.js"></script>
+    <script type="module" src="/shared/layouts/Sidebar/sidebar.service.js"></script>
+
+    <!-- ===== Features ===== -->
+    <script type="module" src="/features/dashboard/dashboard.api.js"></script>
+    <script type="module" src="/features/dashboard/dashboard.renderer.js"></script>
+    <script type="module" src="/features/dashboard/dashboard.service.js"></script>
+
+    <!-- ===== App ===== -->
+    <script type="module" src="./../core/services/app.service.js"></script>
+
+    <!-- 7. Init -->
+    <script>
+        document.addEventListener('DOMContentLoaded', async function () {
+            try {
+                if (typeof appService !== 'undefined') {
+                    await appService.init();
+                    console.log('✅ App initialized');
+                }
+            } catch (error) {
+                console.error('❌ Error initializing app:', error);
+            }
+        });
+    </script>
+
+</body>
+
+</html>

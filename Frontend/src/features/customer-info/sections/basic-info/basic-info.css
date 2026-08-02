@@ -1,0 +1,324 @@
+/* ============================================
+   فرم اطلاعات مشتری (SKB Form)
+   ============================================ */
+
+.skb-customer-form {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  border: 1px solid #eef2f6;
+  margin-bottom: 20px;
+}
+
+/* ============================================
+   هدر فرم
+   ============================================ */
+
+.skb-form-header {
+  padding-bottom: 16px;
+  border-bottom: 2px solid #e9ecef;
+  margin-bottom: 24px;
+}
+
+.skb-form-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1e293b;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.skb-form-title i {
+  color: #2c7a6e;
+  font-size: 20px;
+}
+
+/* ============================================
+   بدنه فرم - گرید ۴ ستونه
+   ============================================ */
+
+.skb-form-body {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.skb-form-col {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.skb-form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ============================================
+   فیلدهای فرم
+   ============================================ */
+
+.skb-input-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.skb-input-wrapper.full-width {
+  grid-column: 1 / -1;
+}
+
+.skb-input-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  background: white;
+  transition: all 0.3s ease;
+  padding: 0 12px;
+  min-height: 44px;
+}
+
+.skb-input-container:focus-within {
+  border-color: #2c7a6e;
+  box-shadow: 0 0 0 3px rgba(44, 122, 110, 0.1);
+}
+
+.skb-input-icon {
+  font-size: 14px;
+  color: #94a3b8;
+  margin-left: 10px;
+  flex-shrink: 0;
+  transition: color 0.3s ease;
+}
+
+.skb-input-container:focus-within .skb-input-icon {
+  color: #2c7a6e;
+}
+
+.skb-input-field {
+  flex: 1;
+  background: transparent;
+  outline: none;
+  border: none;
+  font-size: 13px;
+  padding: 12px 0;
+  font-family: "Vazir", sans-serif;
+  color: #1e293b;
+  width: 100%;
+}
+
+.skb-input-field::placeholder {
+  opacity: 0;
+}
+
+.skb-input-field.profile-field {
+  background: #f8f9fa;
+}
+
+.skb-input-field.profile-field:focus {
+  background: white;
+}
+
+.skb-input-label {
+  position: absolute;
+  right: 36px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: white;
+  padding: 0 4px;
+  color: #94a3b8;
+  font-size: 12px;
+  transition: all 0.3s ease;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.skb-input-field:focus ~ .skb-input-label,
+.skb-input-field:not(:placeholder-shown) ~ .skb-input-label {
+  top: 0;
+  font-size: 10px;
+  color: #2c7a6e;
+  transform: translateY(-50%);
+}
+
+.skb-input-field.profile-field ~ .skb-input-label {
+  background: #f8f9fa;
+}
+
+.skb-input-field.profile-field:focus ~ .skb-input-label {
+  background: white;
+}
+
+/* ============================================
+   فیلدهای Select
+   ============================================ */
+
+.skb-select-container {
+  position: relative;
+}
+
+.skb-select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-left: 36px;
+  cursor: pointer;
+  background: transparent;
+}
+
+.skb-select-arrow {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+  font-size: 12px;
+  pointer-events: none;
+  transition: transform 0.3s ease;
+}
+
+.skb-select-container:focus-within .skb-select-arrow {
+  transform: translateY(-50%) rotate(180deg);
+  color: #2c7a6e;
+}
+
+.skb-select option {
+  padding: 8px;
+  font-family: "Vazir", sans-serif;
+  font-size: 13px;
+}
+
+/* ============================================
+   برچسب برای فیلدهای Select
+   ============================================ */
+
+.skb-select-container .skb-input-label {
+  right: 36px;
+  top: 0;
+  transform: translateY(-50%);
+  font-size: 10px;
+  color: #2c7a6e;
+  background: white;
+}
+
+.skb-select-container
+  .skb-input-field:not(:focus):placeholder-shown
+  ~ .skb-input-label {
+  top: 50%;
+  font-size: 12px;
+  color: #94a3b8;
+  transform: translateY(-50%);
+}
+
+.skb-select-container .skb-input-field.profile-field ~ .skb-input-label {
+  background: #f8f9fa;
+}
+
+.skb-select-container .skb-input-field.profile-field:focus ~ .skb-input-label {
+  background: white;
+}
+
+/* ============================================
+   دکمه‌های فرم
+   ============================================ */
+
+.skb-form-footer {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 2px solid #e9ecef;
+}
+
+.skb-form-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+}
+
+.skb-edit-btn,
+.skb-submit-btn,
+.skb-cancel-btn {
+  padding: 10px 28px;
+  border: none;
+  border-radius: 8px;
+  font-family: "Vazir", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.skb-edit-btn {
+  background: #2c7a6e;
+  color: white;
+}
+
+.skb-edit-btn:hover {
+  background: #035552;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(44, 122, 110, 0.3);
+}
+
+.skb-submit-btn {
+  background: #f59e0b;
+  color: white;
+}
+
+.skb-submit-btn:hover {
+  background: #d97706;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+}
+
+.skb-cancel-btn {
+  background: #dee2e6;
+  color: #1e293b;
+}
+
+.skb-cancel-btn:hover {
+  background: #ced4da;
+  transform: translateY(-2px);
+}
+
+/* ============================================
+   ریسپانسیو
+   ============================================ */
+
+@media (max-width: 1200px) {
+  .skb-form-body {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+  }
+}
+
+@media (max-width: 992px) {
+  .skb-form-body {
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+}
+
+@media (max-width: 768px) {
+  .skb-form-body {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .skb-form-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .skb-edit-btn,
+  .skb-submit-btn,
+  .skb-cancel-btn {
+    justify-content: center;
+    width: 100%;
+  }
+}

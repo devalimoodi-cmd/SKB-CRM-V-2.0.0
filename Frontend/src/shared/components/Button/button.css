@@ -1,0 +1,251 @@
+/* ============================================
+   دکمه - کامپوننت قابل استفاده مجدد
+   ============================================ */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 24px;
+  border: none;
+  border-radius: 8px;
+  font-family: "Vazir", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  text-decoration: none;
+  white-space: nowrap;
+  user-select: none;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.btn:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(44, 122, 110, 0.2);
+}
+
+/* ===== انواع ===== */
+
+/* Primary */
+.btn-primary {
+  background: #2c7a6e;
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: #035552;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(44, 122, 110, 0.3);
+}
+
+/* Secondary */
+.btn-secondary {
+  background: #dee2e6;
+  color: #1e293b;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: #ced4da;
+  transform: translateY(-2px);
+}
+
+/* Success */
+.btn-success {
+  background: #10b981;
+  color: white;
+}
+
+.btn-success:hover:not(:disabled) {
+  background: #059669;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+/* Danger */
+.btn-danger {
+  background: #dc2626;
+  color: white;
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: #b91c1c;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+}
+
+/* Warning */
+.btn-warning {
+  background: #f59e0b;
+  color: white;
+}
+
+.btn-warning:hover:not(:disabled) {
+  background: #d97706;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+}
+
+/* Info */
+.btn-info {
+  background: #3b82f6;
+  color: white;
+}
+
+.btn-info:hover:not(:disabled) {
+  background: #2563eb;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+/* Outline */
+.btn-outline {
+  background: transparent;
+  border: 2px solid #2c7a6e;
+  color: #2c7a6e;
+}
+
+.btn-outline:hover:not(:disabled) {
+  background: #2c7a6e;
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(44, 122, 110, 0.3);
+}
+
+/* Ghost */
+.btn-ghost {
+  background: transparent;
+  color: #1e293b;
+}
+
+.btn-ghost:hover:not(:disabled) {
+  background: #f1f5f9;
+  transform: translateY(-2px);
+}
+
+/* ===== سایزها ===== */
+
+/* Small */
+.btn-sm {
+  padding: 6px 14px;
+  font-size: 12px;
+  border-radius: 6px;
+}
+
+.btn-sm i {
+  font-size: 13px;
+}
+
+/* Large */
+.btn-lg {
+  padding: 14px 32px;
+  font-size: 16px;
+  border-radius: 10px;
+}
+
+.btn-lg i {
+  font-size: 18px;
+}
+
+/* ===== انواع خاص ===== */
+
+/* با آیکون */
+.btn-icon {
+  padding: 10px;
+  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+}
+
+.btn-icon.btn-sm {
+  width: 34px;
+  height: 34px;
+  padding: 6px;
+}
+
+.btn-icon.btn-lg {
+  width: 56px;
+  height: 56px;
+  padding: 14px;
+}
+
+/* بارگذاری */
+.btn-loading {
+  position: relative;
+  color: transparent !important;
+}
+
+.btn-loading::after {
+  content: "";
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: btnSpin 0.8s linear infinite;
+}
+
+.btn-loading.btn-outline::after {
+  border: 2px solid rgba(44, 122, 110, 0.3);
+  border-top-color: #2c7a6e;
+}
+
+@keyframes btnSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ===== گروه دکمه ===== */
+.btn-group {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.btn-group-vertical {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.btn-group .btn {
+  flex: 1;
+}
+
+/* ===== ریسپانسیو ===== */
+@media (max-width: 768px) {
+  .btn {
+    padding: 8px 18px;
+    font-size: 13px;
+  }
+
+  .btn-lg {
+    padding: 12px 24px;
+    font-size: 15px;
+  }
+
+  .btn-sm {
+    padding: 5px 12px;
+    font-size: 11px;
+  }
+
+  .btn-group {
+    flex-direction: column;
+  }
+
+  .btn-group .btn {
+    flex: none;
+    width: 100%;
+    justify-content: center;
+  }
+}

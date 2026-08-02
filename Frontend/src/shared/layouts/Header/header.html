@@ -1,0 +1,73 @@
+<header class="header-desktop">
+    <div class="header-wrapper">
+
+        <!-- ===== بخش راست ===== -->
+        <div class="header-wrapper_right">
+            <div class="accuont-wrapper">
+                <div class="account-wra_image">
+                    <img src="/assets/images/default-avatar.png" class="image" alt="Hader-user-avatar"
+                        id="headerAvatar" />
+                </div>
+                <div class="account-wra_arrow-btn dropdown-btn">
+                    <i class="fa fa-arrow-down"></i>
+                    <a class="account-content_Name" href="#" id="headerUserName">کاربر</a>
+                </div>
+            </div>
+            <div class="account-content_dropdown dropdown-menu" id="profileDropdown">
+                <!-- محتوا توسط JS پر می‌شود -->
+            </div>
+
+            <div class="button-wrapper">
+                <!-- دکمه یادآوری -->
+                <button type="button" class="wra_button_items dropdown-reminder-btn">
+                    <i class="fas fa-bell"></i>
+                    <span class="quantity" id="reminderCount">0</span>
+                </button>
+                <div class="reminder-wra dropdown-menu-reminder" id="reminderDropdown">
+                    <div class="dropdown-body"></div>
+                </div>
+
+                <!-- دکمه پیام‌ها -->
+                <button type="button" class="wra_button_items dropdown-email-btn">
+                    <i class="fas fa-envelope"></i>
+                    <span class="quantity" id="emailCount">0</span>
+                </button>
+                <div class="wra_alert_content dropdown-menu-email" id="emailDropdown">
+                    <div class="dropdown-body"></div>
+                </div>
+
+                <!-- دکمه بوکمارک -->
+                <button type="button" class="wra_button_items dropdown-bookmark-btn">
+                    <i class="fas fa-bookmark"></i>
+                    <span class="quantity" id="bookmarkCount">0</span>
+                </button>
+                <div class="wra_bookmarks_content dropdown-menu-bookmark" id="bookmarkDropdown">
+                    <div class="dropdown-body"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== بخش وسط (ناوبری) ===== -->
+        <div class="header-wrapper_center">
+            <nav class="header-nav" id="headerNav">
+                <a href="/" class="header-nav-item" data-page="dashboard">
+                    <i class="fas fa-chart-bar"></i><span>داشبورد</span>
+                </a>
+                <a href="/customers" class="header-nav-item" data-page="register">
+                    <i class="fas fa-user-plus"></i><span>ثبت نام</span>
+                </a>
+                <a href="/admin" class="header-nav-item" data-page="admin">
+                    <i class="fas fa-user-shield"></i><span>مدیریت</span>
+                </a>
+            </nav>
+        </div>
+
+        <!-- ===== بخش چپ (لوگو) ===== -->
+        <div class="header-wrapper_left">
+            <div class="header-wrapper_left_logo-wra">
+                <img class="skb-logo" src="/assets/images/skb-logo.png" alt="company-logo" id="headerLogo">
+            </div>
+        </div>
+
+    </div>
+</header>
