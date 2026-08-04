@@ -51,7 +51,7 @@ app.use(
       // ✅ سرور اختصاصی
       "http://192.168.168.72:3000",
       "http://192.168.168.72",
-      "http://192.168.168.72:5500",
+      "http://192.168.168.72:5000",
     ],
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
