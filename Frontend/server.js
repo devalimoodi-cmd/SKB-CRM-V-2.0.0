@@ -56,7 +56,7 @@ app.use("/node_modules", express.static(path.join(__dirname, "node_modules")));
 // ✅ API Proxy (به بک‌اند)
 // ============================================
 
-const API_URL = process.env.API_URL || "http://localhost:5000/api";
+const API_URL = process.env.API_URL || "http://192.168.168.72:5000/api";
 
 app.use("/api", async (req, res) => {
   if (!req.originalUrl.startsWith("/api")) {
