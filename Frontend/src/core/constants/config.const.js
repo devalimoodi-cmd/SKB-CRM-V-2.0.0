@@ -29,7 +29,7 @@ const CONFIG = (() => {
 
   const configs = {
     development: {
-      API_BASE_URL: detectedApi || "http://localhost:5000/api",
+      API_BASE_URL: detectedApi || "http://192.168.168.72:5000/api",
       APP_NAME: "SKB-CRM (Dev)",
       ENABLE_LOGS: true,
       DEFAULT_PAGE_SIZE: 10,
