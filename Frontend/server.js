@@ -15,17 +15,27 @@ app.use(express.urlencoded({ extended: true }));
 
 const srcPath = path.join(__dirname, "src");
 
+// ✅ گزینه عدم ذخیره در کش برای JS (تا مرورگر نسخه جدید را بگیرد)
+const noStoreCache = {
+  setHeaders: (res) => {
+    res.setHeader("Cache-Control", "no-store");
+  },
+};
+
 // 1. Assets (تصاویر، فونت‌ها)
 app.use("/assets", express.static(path.join(srcPath, "assets")));
 
 // 2. Core (هسته اصلی)
-app.use("/core", express.static(path.join(srcPath, "core")));
+app.use("/core", express.static(path.join(srcPath, "core"), noStoreCache));
 
 // 3. Features (ماژول‌های اصلی)
-app.use("/features", express.static(path.join(srcPath, "features")));
+app.use(
+  "/features",
+  express.static(path.join(srcPath, "features"), noStoreCache),
+);
 
 // 4. Shared (کامپوننت‌های اشتراکی)
-app.use("/shared", express.static(path.join(srcPath, "shared")));
+app.use("/shared", express.static(path.join(srcPath, "shared"), noStoreCache));
 
 // 5. Styles (استایل‌های سراسری)
 app.use("/styles", express.static(path.join(srcPath, "styles")));
@@ -34,7 +44,7 @@ app.use("/styles", express.static(path.join(srcPath, "styles")));
 app.use("/vendor", express.static(path.join(srcPath, "vendor")));
 
 // 7. Pages (صفحات HTML)
-app.use("/pages", express.static(path.join(srcPath, "pages")));
+app.use("/pages", express.static(path.join(srcPath, "pages"), noStoreCache));
 
 // 8. Public (فایل‌های عمومی)
 app.use("/public", express.static(path.join(srcPath, "public")));

@@ -3,10 +3,19 @@ import { CacheService } from "./cache.service.js";
 
 class ApiService {
   constructor() {
-    this.baseURL = API_CONSTANTS.BASE_URL;
     this.timeout = API_CONSTANTS.TIMEOUT;
     this.retryCount = API_CONSTANTS.RETRY_COUNT;
     this.cache = new CacheService();
+  }
+
+  // ✅ baseURL بهصورت پویا مقدار میگیرد (در هر درخواست، از CONFIG لحظهای
+  // بر اساس hostname مرورگر محاسبه میشود — لوکال یا سرور)
+  get baseURL() {
+    return (
+      window.CONFIG?.API_BASE_URL ||
+      API_CONSTANTS.BASE_URL ||
+      "http://localhost:5000/api"
+    );
   }
 
   getToken() {
