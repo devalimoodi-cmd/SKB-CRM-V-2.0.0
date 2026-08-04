@@ -1,9 +1,35 @@
 const CONFIG = (() => {
   const ENV = localStorage.getItem("app_env") || "development";
 
+  // ================================================================
+  // ✅ تشخیص خودکار آدرس API بر اساس hostname مرورگر
+  // بدون نیاز به تغییر دستی بین لوکال و سرور
+  // ================================================================
+  const detectApiBaseUrl = () => {
+    if (typeof window === "undefined") {
+      return "http://localhost:5000/api";
+    }
+    const hostname = window.location.hostname;
+
+    // لوکال / توسعه روی لپ‌تاپ → بک‌اند لوکال
+    if (hostname === "localhost" || hostname === "127.0.0.1") {
+      return "http://localhost:5000/api";
+    }
+
+    // سرور اختصاصی → بک‌اند همان سرور
+    if (hostname === "192.168.168.72") {
+      return "http://192.168.168.72:5000/api";
+    }
+
+    // هر آدرس/دامنه دیگر → fallback به production
+    return null;
+  };
+
+  const detectedApi = detectApiBaseUrl();
+
   const configs = {
     development: {
-      API_BASE_URL: "http://localhost:5000/api",
+      API_BASE_URL: detectedApi || "http://localhost:5000/api",
       APP_NAME: "SKB-CRM (Dev)",
       ENABLE_LOGS: true,
       DEFAULT_PAGE_SIZE: 10,
@@ -32,6 +58,11 @@ const CONFIG = (() => {
   };
 
   const current = configs[ENV] || configs.development;
+
+  // اگر hostname شناخته‌شده بود، اولویت با آن است (هم لوکال هم سرور)
+  if (detectedApi) {
+    current.API_BASE_URL = detectedApi;
+  }
 
   return {
     ...current,

@@ -48,6 +48,10 @@ app.use(
       "http://localhost:3000",
       "http://localhost:5500",
       "http://127.0.0.1:5500",
+      // ✅ سرور اختصاصی
+      "http://192.168.168.72:3000",
+      "http://192.168.168.72",
+      "http://192.168.168.72:5500",
     ],
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
