@@ -427,4 +427,9 @@ export const headerService = new HeaderService();
 if (typeof window !== "undefined") {
   window.HeaderService = headerService;
   window.headerService = headerService;
+
+  // ✅ تابع سراسری خروج از سیستم
+  window.logout = () => {
+    authService.logout("/login");
+  };
 }
