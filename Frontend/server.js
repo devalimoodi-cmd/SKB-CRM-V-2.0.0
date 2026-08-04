@@ -96,8 +96,24 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(srcPath, "pages", "dashboard.html"));
 });
 
+// ✅ ریدایرکت‌های با پسوند .html (برای سازگاری با app.service.js)
+// index.html → داشبورد
+app.get("/index.html", (req, res) => {
+  res.redirect("/");
+});
+
+// dashboard.html → داشبورد
+app.get("/dashboard.html", (req, res) => {
+  res.sendFile(path.join(srcPath, "pages", "dashboard.html"));
+});
+
 // لاگین
 app.get("/login", (req, res) => {
+  res.sendFile(path.join(srcPath, "pages", "login.html"));
+});
+
+// لاگین با پسوند html (app.service.js به این ریدایرکت می‌کند)
+app.get("/login.html", (req, res) => {
   res.sendFile(path.join(srcPath, "pages", "login.html"));
 });
 
@@ -106,8 +122,18 @@ app.get("/admin", (req, res) => {
   res.sendFile(path.join(srcPath, "pages", "admin-panel.html"));
 });
 
+// پنل ادمین با پسوند html
+app.get("/admin-panel.html", (req, res) => {
+  res.sendFile(path.join(srcPath, "pages", "admin-panel.html"));
+});
+
 // اطلاعات مشتری
 app.get("/customer-info", (req, res) => {
+  res.sendFile(path.join(srcPath, "pages", "customer-info.html"));
+});
+
+// اطلاعات مشتری با پسوند html
+app.get("/customer-info.html", (req, res) => {
   res.sendFile(path.join(srcPath, "pages", "customer-info.html"));
 });
 
@@ -116,8 +142,18 @@ app.get("/customers", (req, res) => {
   res.sendFile(path.join(srcPath, "pages", "customer-list.html"));
 });
 
+// لیست مشتریان با پسوند html
+app.get("/customer-list.html", (req, res) => {
+  res.sendFile(path.join(srcPath, "pages", "customer-list.html"));
+});
+
 // بوکمارک‌ها
 app.get("/bookmarks", (req, res) => {
+  res.sendFile(path.join(srcPath, "pages", "bookmarks.html"));
+});
+
+// بوکمارک‌ها با پسوند html
+app.get("/bookmarks.html", (req, res) => {
   res.sendFile(path.join(srcPath, "pages", "bookmarks.html"));
 });
 
@@ -126,8 +162,18 @@ app.get("/sms", (req, res) => {
   res.sendFile(path.join(srcPath, "pages", "sms.html"));
 });
 
+// پیامک با پسوند html
+app.get("/sms.html", (req, res) => {
+  res.sendFile(path.join(srcPath, "pages", "sms.html"));
+});
+
 // تنظیمات اولیه
 app.get("/setup-admin", (req, res) => {
+  res.sendFile(path.join(srcPath, "pages", "setup-admin.html"));
+});
+
+// تنظیمات اولیه با پسوند html
+app.get("/setup-admin.html", (req, res) => {
   res.sendFile(path.join(srcPath, "pages", "setup-admin.html"));
 });
 
