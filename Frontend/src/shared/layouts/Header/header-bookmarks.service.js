@@ -166,81 +166,158 @@ class HeaderBookmarksService {
     const customerName = bookmark.customer?.full_name || "بدون مشتری";
     const dueDate = bookmark.due_date
       ? convertToPersianDate(bookmark.due_date)
-      : "بدون تاریخ";
-    const typeText = bookmark.type === "reminder" ? "🔔 یادآوری" : "📌 بوکمارک";
+      : null;
+    const isOverdue =
+      bookmark.due_date && new Date(bookmark.due_date) < new Date();
+    const typeText = bookmark.type === "reminder" ? "یادآوری" : "بوکمارک";
+    const typeIcon = bookmark.type === "reminder" ? "fa-bell" : "fa-bookmark";
+
+    // استایل اولویت بر اساس رنگ‌ها
+    const priorityStyles = {
+      critical: {
+        gradient: "#dc2626,#ef4444",
+        shadow: "rgba(220,38,38,0.3)",
+        bg: "#fee2e2",
+        color: "#dc2626",
+      },
+      high: {
+        gradient: "#f59e0b,#fbbf24",
+        shadow: "rgba(245,158,11,0.3)",
+        bg: "#fef3c7",
+        color: "#b45309",
+      },
+      medium: {
+        gradient: "#3b82f6,#60a5fa",
+        shadow: "rgba(59,130,246,0.3)",
+        bg: "#dbeafe",
+        color: "#3b82f6",
+      },
+      low: {
+        gradient: "#94a3b8,#cbd5e1",
+        shadow: "rgba(148,163,184,0.3)",
+        bg: "#e2e8f0",
+        color: "#64748b",
+      },
+    };
+    const pr = priorityStyles[bookmark.priority] || priorityStyles.medium;
 
     const content = `
-        <div style="font-family: 'Vazir', sans-serif; direction: rtl; padding: 0;">
-            <div style="display: flex; align-items: center; gap: 16px; padding: 16px 20px; background: #f8fafc; border-radius: 12px; border-right: 4px solid ${priorityColor}; margin-bottom: 16px;">
-                <div style="width: 48px; height: 48px; border-radius: 50%; background: ${priorityColor}20; color: ${priorityColor}; display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0;">
-                    <i class="fas fa-${bookmark.type === "reminder" ? "bell" : "bookmark"}"></i>
-                </div>
-                <div style="flex: 1;">
-                    <div style="font-size: 16px; font-weight: 600; color: #1e293b;">
-                        ${bookmark.title}
-                    </div>
-                    <div style="font-size: 13px; color: #64748b;">
-                        ${typeText}
-                    </div>
-                </div>
-            </div>
-
-            <div style="padding: 14px 16px; background: #f8fafc; border-radius: 12px; margin-bottom: 12px;">
-                <div style="font-size: 12px; color: #94a3b8; margin-bottom: 4px;">توضیحات:</div>
-                <div style="font-size: 14px; color: #1e293b; line-height: 1.7; text-align: justify;">
-                    ${bookmark.description || "بدون توضیح"}
-                </div>
-            </div>
-
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px;">
-                <div style="padding: 10px 14px; background: #f8fafc; border-radius: 10px;">
-                    <div style="font-size: 10px; color: #94a3b8;">اولویت</div>
-                    <div style="font-weight: 600; color: ${priorityColor};">
-                        <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: ${priorityColor}; margin-left: 6px;"></span>
-                        ${priorityText}
-                    </div>
-                </div>
-                <div style="padding: 10px 14px; background: #f8fafc; border-radius: 10px;">
-                    <div style="font-size: 10px; color: #94a3b8;">نوع</div>
-                    <div style="font-weight: 600; color: #1e293b;">
-                        ${typeText}
-                    </div>
-                </div>
-                <div style="padding: 10px 14px; background: #f8fafc; border-radius: 10px;">
-                    <div style="font-size: 10px; color: #94a3b8;">مشتری</div>
-                    <div style="font-weight: 600; color: #1e293b;">
-                        👤 ${customerName}
-                    </div>
-                </div>
-                <div style="padding: 10px 14px; background: #f8fafc; border-radius: 10px;">
-                    <div style="font-size: 10px; color: #94a3b8;">تاریخ سررسید</div>
-                    <div style="font-weight: 600; color: ${bookmark.due_date && new Date(bookmark.due_date) < new Date() ? "#dc2626" : "#1e293b"};">
-                        📅 ${dueDate}
-                        ${bookmark.due_date && new Date(bookmark.due_date) < new Date() ? " ⚠️ سررسید شده" : ""}
-                    </div>
-                </div>
-            </div>
+      <div style="text-align:center; font-family:'Vazir','Vazirmatn',sans-serif; direction:rtl;">
+        <!-- آیکون مدور -->
+        <div style="width:72px; height:72px; border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 16px; font-size:30px; color:#fff; background:linear-gradient(135deg,${pr.gradient}); box-shadow:0 8px 32px ${pr.shadow}; position:relative;">
+          <i class="fas ${typeIcon}"></i>
         </div>
+
+        <!-- عنوان -->
+        <div style="font-size:20px; font-weight:800; color:#1e293b; margin-bottom:4px;">${bookmark.title || "بدون عنوان"}</div>
+        <div style="display:flex; align-items:center; justify-content:center; gap:8px; flex-wrap:wrap; margin-bottom:20px;">
+          <span style="font-size:11px; padding:2px 12px; border-radius:20px; background:rgba(44,122,110,0.08); color:#2c7a6e; font-weight:600; display:inline-flex; align-items:center; gap:4px;">
+            <i class="fas fa-tag"></i> ${typeText}
+          </span>
+          <span style="color:#e2e8f0;">|</span>
+          <span style="font-size:11px; padding:2px 10px; border-radius:20px; background:#f8fafc; color:#64748b; display:inline-flex; align-items:center; gap:4px;">
+            <i class="fas fa-hashtag"></i> #${bookmark.id}
+          </span>
+          ${
+            dueDate
+              ? `<span style="color:#e2e8f0;">|</span>
+                 <span style="font-size:11px; color:${isOverdue ? "#dc2626" : "#94a3b8"};"><i class="fas fa-clock"></i> ${dueDate} ${isOverdue ? "⚠️" : ""}</span>`
+              : ""
+          }
+        </div>
+
+        <!-- اطلاعات -->
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px; text-align:right;">
+          <div style="background:#fafbfc; border-radius:14px; padding:12px 16px; border:1px solid transparent;">
+            <div style="font-size:11px; font-weight:600; color:#64748b; display:flex; align-items:center; gap:6px; margin-bottom:2px;">
+              <i class="fas fa-user" style="color:#2c7a6e;"></i> مشتری
+            </div>
+            <div style="font-size:15px; font-weight:600; color:#2c7a6e; padding-right:4px;">${customerName}</div>
+          </div>
+          <div style="background:#fafbfc; border-radius:14px; padding:12px 16px; border:1px solid transparent;">
+            <div style="font-size:11px; font-weight:600; color:#64748b; display:flex; align-items:center; gap:6px; margin-bottom:2px;">
+              <i class="fas fa-flag" style="color:#2c7a6e;"></i> اولویت
+            </div>
+            <div style="font-size:15px; font-weight:600; padding-right:4px;">
+              <span style="font-size:12px; padding:2px 14px; border-radius:20px; font-weight:700; background:${pr.bg}; color:${pr.color}; display:inline-flex; align-items:center; gap:6px;">
+                <i class="fas fa-circle" style="font-size:8px;"></i> ${priorityText}
+              </span>
+            </div>
+          </div>
+          <div style="background:#fafbfc; border-radius:14px; padding:12px 16px; border:1px solid transparent;">
+            <div style="font-size:11px; font-weight:600; color:#64748b; display:flex; align-items:center; gap:6px; margin-bottom:2px;">
+              <i class="fas fa-tag" style="color:#2c7a6e;"></i> نوع
+            </div>
+            <div style="font-size:15px; font-weight:600; color:#1e293b; padding-right:4px;">
+              ${bookmark.type === "reminder" ? "🔔 یادآوری" : "📌 بوکمارک"}
+            </div>
+          </div>
+          ${
+            dueDate
+              ? `<div style="background:#fafbfc; border-radius:14px; padding:12px 16px; border:1px solid transparent;">
+                  <div style="font-size:11px; font-weight:600; color:#64748b; display:flex; align-items:center; gap:6px; margin-bottom:2px;">
+                    <i class="fas fa-calendar-alt" style="color:#2c7a6e;"></i> تاریخ سررسید
+                  </div>
+                  <div style="font-size:15px; font-weight:600; padding-right:4px; color:${isOverdue ? "#dc2626" : "#1e293b"}; display:flex; align-items:center; gap:6px;">
+                    <i class="fas ${isOverdue ? "fa-exclamation-circle" : "fa-calendar-check"}"></i> ${dueDate}
+                    ${
+                      isOverdue
+                        ? '<span style="font-size:11px; font-weight:400; color:#dc2626; background:#fee2e2; padding:0 8px; border-radius:12px;">تأخیر</span>'
+                        : ""
+                    }
+                  </div>
+                </div>`
+              : `<div style="background:#fafbfc; border-radius:14px; padding:12px 16px; border:1px solid transparent;">
+                  <div style="font-size:11px; font-weight:600; color:#64748b; display:flex; align-items:center; gap:6px; margin-bottom:2px;">
+                    <i class="fas fa-calendar-alt" style="color:#2c7a6e;"></i> تاریخ سررسید
+                  </div>
+                  <div style="font-size:15px; font-weight:600; color:#94a3b8; padding-right:4px;">بدون تاریخ</div>
+                </div>`
+          }
+        </div>
+
+        <!-- توضیحات -->
+        <div style="background:linear-gradient(135deg,#fafbfc,#f8fafc); border-radius:14px; padding:14px 18px; border:1px solid #f1f5f9; text-align:right;">
+          <div style="font-size:11px; font-weight:600; color:#64748b; display:flex; align-items:center; gap:6px; margin-bottom:4px;">
+            <i class="fas fa-align-left" style="color:#2c7a6e;"></i> توضیحات
+          </div>
+          <div style="font-size:14px; color:#1e293b; line-height:1.7; padding-right:4px; word-wrap:break-word; text-align:right;">${
+            bookmark.description || "—"
+          }</div>
+        </div>
+      </div>
     `;
 
     if (typeof Swal !== "undefined") {
       Swal.fire({
-        title: `${bookmark.type === "reminder" ? "🔔" : "📌"} ${bookmark.title}`,
+        title: "",
         html: content,
-        icon: bookmark.type === "reminder" ? "info" : "success",
-        confirmButtonText: "✅ بستن",
+        confirmButtonText: "✏️ ویرایش",
         showCancelButton: true,
         cancelButtonText: "🗑️ حذف",
         showCloseButton: true,
         confirmButtonColor: "#2c7a6e",
         cancelButtonColor: "#dc2626",
-        width: "580px",
+        width: "520px",
+        padding: "24px 28px",
         reverseButtons: true,
         customClass: {
           popup: "swal2-rtl",
         },
+        didOpen: () => {
+          document
+            .querySelector(".swal2-popup")
+            ?.style?.setProperty("border-radius", "24px");
+        },
       }).then(async (result) => {
-        if (result.isDismissed && result.dismiss === "cancel") {
+        if (result.isConfirmed) {
+          // ویرایش بوکمارک
+          if (window.showCreateBookmarkModal) {
+            window.showCreateBookmarkModal(bookmark.id);
+          } else {
+            alert("ویرایش بوکمارک - این قابلیت به زودی اضافه می‌شود");
+          }
+        } else if (result.dismiss === "cancel") {
           // ✅ استفاده از تابع deleteBookmark
           const confirmDelete = await Swal.fire({
             title: "⚠️ تأیید حذف",
@@ -260,7 +337,7 @@ class HeaderBookmarksService {
       });
     } else {
       alert(
-        `📌 ${bookmark.title}\n\n${bookmark.description || "بدون توضیح"}\n\n👤 ${customerName}\n📅 ${dueDate}`,
+        `📌 ${bookmark.title}\n\n${bookmark.description || "بدون توضیح"}\n\n👤 ${customerName}\n📅 ${dueDate || "بدون تاریخ"}`,
       );
     }
   }

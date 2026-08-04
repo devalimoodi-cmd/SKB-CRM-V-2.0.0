@@ -30,9 +30,14 @@
     <!-- ===== Feature Styles ===== -->
     <link rel="stylesheet" href="/features/dashboard/dashboard.css">
 
+    <!-- ===== Persian Datepicker ===== -->
+    <link rel="stylesheet" href="./../../node_modules/persian-datepicker/dist/css/persian-datepicker.min.css">
+
     <link rel="icon" type="image/png" href="/assets/images/favicon.ico">
 
     <!-- ===== Vendor Scripts ===== -->
+    <script src="./../../node_modules/persian-date/dist/persian-date.min.js"></script>
+    <script src="./../../node_modules/persian-datepicker/dist/js/persian-datepicker.min.js"></script>
 
 
 
@@ -65,52 +70,76 @@
         <div class="dashboard-left">
 
             <div class="chart-card">
-                <div class="chart-title" style="border-bottom-color: #4a90e2;">
-                    📊 روند وزن‌گیری
+                <div class="chart-title">
+                    <span class="title-icon"><i class="fas fa-weight"></i></span>
+                    روند وزن‌گیری
+                    <span class="title-badge live">● زنده</span>
                 </div>
-                <canvas id="weightingCanvas"></canvas>
+                <div class="chart-wrapper">
+                    <canvas id="weightingCanvas"></canvas>
+                </div>
                 <div class="chart-stats">
                     <div class="stat-item">
-                        <span>میانگین وزن</span>
-                        <span class="stat-value" id="avgWeight">-</span>
+                        <span class="stat-label"><i class="fas fa-calculator"></i> میانگین وزن</span>
+                        <span class="stat-value" id="avgWeight">
+                            <span class="unit">کیلوگرم</span>
+                        </span>
                     </div>
                     <div class="stat-item">
-                        <span>بیشترین وزن</span>
-                        <span class="stat-value" id="maxWeight">-</span>
+                        <span class="stat-label"><i class="fas fa-arrow-up"></i> بیشترین وزن</span>
+                        <span class="stat-value" id="maxWeight">
+                            <span class="unit">کیلوگرم</span>
+                        </span>
                     </div>
                 </div>
             </div>
 
             <div class="chart-card">
-                <div class="chart-title" style="border-bottom-color: #ef4444;">
-                    ⚠️ نرخ تلفات
+                <div class="chart-title">
+                    <span class="title-icon"><i class="fas fa-skull"></i></span>
+                    نرخ تلفات
+                    <span class="title-badge">هفتگی</span>
                 </div>
-                <canvas id="lossCanvas"></canvas>
+                <div class="chart-wrapper">
+                    <canvas id="lossCanvas"></canvas>
+                </div>
                 <div class="chart-stats">
                     <div class="stat-item">
-                        <span>کل تلفات</span>
-                        <span class="stat-value" id="totalLoss">-</span>
+                        <span class="stat-label"><i class="fas fa-calculator"></i> کل تلفات</span>
+                        <span class="stat-value" id="totalLoss">
+                            <span class="unit">قطعه</span>
+                        </span>
                     </div>
                     <div class="stat-item">
-                        <span>میانگین ماهانه</span>
-                        <span class="stat-value" id="avgLoss">-</span>
+                        <span class="stat-label"><i class="fas fa-chart-line"></i> میانگین ماهانه</span>
+                        <span class="stat-value" id="avgLoss">
+                            <span class="unit">%</span>
+                        </span>
                     </div>
                 </div>
             </div>
 
             <div class="chart-card">
-                <div class="chart-title" style="border-bottom-color: #10b981;">
-                    🍽️ مصرف خوراک
+                <div class="chart-title">
+                    <span class="title-icon"><i class="fas fa-utensils"></i></span>
+                    مصرف خوراک
+                    <span class="title-badge">هفتگی</span>
                 </div>
-                <canvas id="feedCanvas"></canvas>
+                <div class="chart-wrapper">
+                    <canvas id="feedCanvas"></canvas>
+                </div>
                 <div class="chart-stats">
                     <div class="stat-item">
-                        <span>کل مصرف</span>
-                        <span class="stat-value" id="totalFeed">-</span>
+                        <span class="stat-label"><i class="fas fa-calculator"></i> کل مصرف</span>
+                        <span class="stat-value" id="totalFeed">
+                            <span class="unit">کیلوگرم</span>
+                        </span>
                     </div>
                     <div class="stat-item">
-                        <span>میانگین روزانه</span>
-                        <span class="stat-value" id="avgFeed">-</span>
+                        <span class="stat-label"><i class="fas fa-chart-line"></i> میانگین روزانه</span>
+                        <span class="stat-value" id="avgFeed">
+                            <span class="unit">کیلوگرم</span>
+                        </span>
                     </div>
                 </div>
             </div>

@@ -42,6 +42,33 @@ export const hatcheryApi = {
     return apiService.get(endpoint);
   },
 
+  // ===== اطلاعات پایان دوره (Flock Completion) =====
+
+  // ثبت اطلاعات پایان دوره برای یک یا چند دوره/گله
+  async completePeriods(data) {
+    return apiService.post("/flock-completions/complete-periods", data);
+  },
+
+  // دریافت اطلاعات پایان دوره‌های یک دوره
+  async getPeriodCompletions(periodId) {
+    return apiService.get(`/flock-completions/period/${periodId}`);
+  },
+
+  // دریافت اطلاعات پایان دوره یک گله
+  async getFlockCompletion(flockId) {
+    return apiService.get(`/flock-completions/flock/${flockId}`);
+  },
+
+  // بروزرسانی (ویرایش) اطلاعات پایان دوره
+  async updateCompletion(id, data) {
+    return apiService.put(`/flock-completions/${id}`, data);
+  },
+
+  // برگرداندن (لغو) یک تکمیل دوره
+  async revertCompletion(id) {
+    return apiService.delete(`/flock-completions/${id}`);
+  },
+
   // ===== گله‌ها (جوجه‌ریزی) =====
 
   // دریافت لیست گله‌ها

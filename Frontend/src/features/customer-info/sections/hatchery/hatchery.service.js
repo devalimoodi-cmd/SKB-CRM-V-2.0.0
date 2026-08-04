@@ -1249,6 +1249,742 @@ class HatcheryService {
     this.loadFlocks();
   }
 
+  async completePeriod(periodId) {
+    try {
+      // پیدا کردن دوره
+      const period = this.periods.find((p) => p.id === periodId);
+      if (!period) {
+        notificationService.error("دوره یافت نشد");
+        return;
+      }
+
+      // گله‌های فعال این دوره
+      const periodFlocks = this.flocks.filter(
+        (f) => f.period_id === periodId && f.is_active === true,
+      );
+
+      if (periodFlocks.length === 0) {
+        notificationService.warning("این دوره گله فعالی ندارد");
+        return;
+      }
+
+      const flockOptions = periodFlocks
+        .map(
+          (f) =>
+            `<label style="display:flex; align-items:center; gap:8px; padding:6px 10px; background:#f8fafc; border-radius:8px; cursor:pointer; font-size:12.5px;">
+              <input type="checkbox" class="completion-flock-check" value="${f.id}" checked>
+              گله ${f.flock_number} - ${f.total_chicks_count?.toLocaleString() || "-"} قطعه
+            </label>`,
+        )
+        .join("");
+
+      const periodInfo = `
+        <div style="background:linear-gradient(135deg,#2c7a6e,#035552); color:#fff; border-radius:12px; padding:14px 16px; margin-bottom:16px; display:flex; align-items:center; gap:12px;">
+          <div style="width:42px; height:42px; border-radius:50%; background:rgba(255,255,255,0.2); display:flex; align-items:center; justify-content:center; font-size:20px;">
+            <i class="fas fa-flag-checkered"></i>
+          </div>
+          <div>
+            <div style="font-size:15px; font-weight:800;">اتمام دوره ${period.period_number || ""} - ${period.period_name || ""}</div>
+            <div style="font-size:11px; opacity:0.85;">${periodFlocks.length} گله فعال | تعداد کل: ${periodFlocks.reduce((s, f) => s + (f.total_chicks_count || 0), 0).toLocaleString()} قطعه</div>
+          </div>
+        </div>
+      `;
+
+      const formHtml = `
+        ${periodInfo}
+        <div style="text-align:right; font-family:'Vazir';">
+          <style>
+            .cf-field { width:100%; padding:8px 12px; border:1.5px solid #e2e8f0; border-radius:10px; font-family:'Vazir'; font-size:12.5px; margin-top:4px; box-sizing:border-box; transition:all .3s; }
+            .cf-field:focus { outline:none; border-color:#2c7a6e; box-shadow:0 0 0 3px rgba(44,122,110,.1); }
+            .cf-label { display:block; font-size:12px; font-weight:600; color:#1e293b; }
+            .cf-section { background:#f8fafc; border-radius:12px; padding:12px 14px; margin-bottom:12px; border:1px solid #eef2f6; }
+            .cf-section-title { font-size:12.5px; font-weight:700; color:#2c7a6e; margin-bottom:8px; display:flex; align-items:center; gap:6px; }
+            .cf-2col { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+            .cf-3col { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
+          </style>
+
+          <!-- انتخاب گله‌ها -->
+          <div class="cf-section">
+            <div class="cf-section-title"><i class="fas fa-egg"></i> انتخاب گله‌ها</div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; max-height:130px; overflow-y:auto;">
+              ${flockOptions}
+            </div>
+          </div>
+
+          <!-- اطلاعات کشتارگاه -->
+          <div class="cf-section">
+            <div class="cf-section-title"><i class="fas fa-industry"></i> اطلاعات کشتارگاه</div>
+            <div class="cf-2col">
+              <div>
+                <label class="cf-label">تاریخ کشتار</label>
+                <input type="text" id="cfSlaughterDate" class="cf-field" placeholder="۱۴۰۴/۰۱/۰۱">
+              </div>
+              <div>
+                <label class="cf-label">نام کشتارگاه</label>
+                <input type="text" id="cfSlaughterhouseName" class="cf-field" placeholder="نام کشتارگاه...">
+              </div>
+            </div>
+            <div class="cf-3col" style="margin-top:8px;">
+              <div>
+                <label class="cf-label">تلفات حمل</label>
+                <input type="number" id="cfTransportMortality" class="cf-field" placeholder="0" value="0" min="0">
+              </div>
+              <div>
+                <label class="cf-label">تعداد ارسالی</label>
+                <input type="number" id="cfTotalSent" class="cf-field" placeholder="تعداد...">
+              </div>
+              <div>
+                <label class="cf-label">وزن کل زنده (کیلوگرم)</label>
+                <input type="number" step="0.01" id="cfTotalLiveWeight" class="cf-field" placeholder="0">
+              </div>
+            </div>
+          </div>
+
+          <!-- اطلاعات اعلامی مرغدار -->
+          <div class="cf-section">
+            <div class="cf-section-title"><i class="fas fa-user-tie"></i> اطلاعات اعلامی مرغدار</div>
+            <div class="cf-2col">
+              <div>
+                <label class="cf-label">FCR اعلامی مرغدار</label>
+                <input type="number" step="0.01" id="cfFarmerFcr" class="cf-field" placeholder="مثال: 1.85">
+              </div>
+              <div>
+                <label class="cf-label">کل گوشت (کیلوگرم)</label>
+                <input type="number" step="0.01" id="cfFarmerTotalMeat" class="cf-field" placeholder="0">
+              </div>
+              <div>
+                <label class="cf-label">کل خوراک (کیلوگرم)</label>
+                <input type="number" step="0.01" id="cfFarmerTotalFeed" class="cf-field" placeholder="0">
+              </div>
+              <div>
+                <label class="cf-label">وزن کل (کیلوگرم)</label>
+                <input type="number" step="0.01" id="cfFarmerTotalWeight" class="cf-field" placeholder="0">
+              </div>
+            </div>
+          </div>
+
+          <!-- تنظیمات -->
+          <div class="cf-section">
+            <div class="cf-section-title"><i class="fas fa-cogs"></i> تنظیمات پایان دوره</div>
+            <div class="cf-2col">
+              <div>
+                <label class="cf-label">نوع پایان</label>
+                <select id="cfCompletionType" class="cf-field">
+                  <option value="completed">تکمیل</option>
+                  <option value="culled">حذف</option>
+                  <option value="emergency">اضطراری</option>
+                </select>
+              </div>
+              <div style="display:flex; align-items:center; gap:8px; margin-top:20px;">
+                <input type="checkbox" id="cfConfirmedByCustomer" style="width:16px;height:16px;">
+                <label for="cfConfirmedByCustomer" class="cf-label" style="margin:0;">تأیید صحت اطلاعات توسط مرغدار</label>
+              </div>
+            </div>
+            <div style="margin-top:8px;">
+              <label class="cf-label">توضیحات</label>
+              <textarea id="cfNotes" class="cf-field" rows="2" placeholder="توضیحات تکمیلی..."></textarea>
+            </div>
+          </div>
+        </div>
+      `;
+
+      const result = await Swal.fire({
+        title: "",
+        html: formHtml,
+        showCancelButton: true,
+        confirmButtonText: "🏁 ثبت و پایان دوره",
+        cancelButtonText: "انصراف",
+        confirmButtonColor: "#2c7a6e",
+        cancelButtonColor: "#64748b",
+        width: 650,
+        padding: "20px 24px",
+        didOpen: () => {
+          // تقویم شمسی برای تاریخ کشتار
+          const dateInput = document.getElementById("cfSlaughterDate");
+          if (dateInput && typeof $.fn.persianDatepicker !== "undefined") {
+            try {
+              $(dateInput).persianDatepicker({
+                format: "YYYY/MM/DD",
+                autoClose: true,
+                initialValue: false,
+                observer: true,
+                calendar: { persian: { locale: "fa" } },
+              });
+            } catch (e) {
+              console.warn("⚠️ datepicker init error:", e);
+            }
+          }
+        },
+        preConfirm: () => {
+          const selectedFlocks = Array.from(
+            document.querySelectorAll(".completion-flock-check:checked"),
+          ).map((cb) => parseInt(cb.value));
+
+          if (selectedFlocks.length === 0) {
+            Swal.showValidationMessage("حداقل یک گله را انتخاب کنید");
+            return false;
+          }
+
+          const dateVal =
+            document.getElementById("cfSlaughterDate")?.value?.trim() || "";
+          const slaughterDate = dateVal
+            ? convertPersianToGregorian(dateVal)
+            : null;
+
+          return {
+            period_ids: [periodId],
+            flock_ids: selectedFlocks,
+            shared_data: {
+              completion_date: new Date().toISOString().slice(0, 10),
+              slaughter_date: slaughterDate,
+              slaughterhouse_name:
+                document
+                  .getElementById("cfSlaughterhouseName")
+                  ?.value?.trim() || null,
+              transport_mortality:
+                parseInt(
+                  document.getElementById("cfTransportMortality")?.value,
+                ) || 0,
+              total_sent:
+                parseInt(document.getElementById("cfTotalSent")?.value) || null,
+              total_live_weight:
+                parseFloat(
+                  document.getElementById("cfTotalLiveWeight")?.value,
+                ) || null,
+              farmer_fcr:
+                parseFloat(document.getElementById("cfFarmerFcr")?.value) ||
+                null,
+              farmer_total_meat:
+                parseFloat(
+                  document.getElementById("cfFarmerTotalMeat")?.value,
+                ) || null,
+              farmer_total_feed:
+                parseFloat(
+                  document.getElementById("cfFarmerTotalFeed")?.value,
+                ) || null,
+              farmer_total_weight:
+                parseFloat(
+                  document.getElementById("cfFarmerTotalWeight")?.value,
+                ) || null,
+              completion_type:
+                document.getElementById("cfCompletionType")?.value ||
+                "completed",
+              confirmed_by_customer: !!document.getElementById(
+                "cfConfirmedByCustomer",
+              )?.checked,
+              notes: document.getElementById("cfNotes")?.value?.trim() || null,
+            },
+          };
+        },
+      });
+
+      if (result.isConfirmed && result.value) {
+        notificationService.showLoading("در حال ثبت پایان دوره...");
+        try {
+          const response = await hatcheryApi.completePeriods(result.value);
+          notificationService.hideLoading();
+          if (response.success) {
+            notificationService.success(
+              `✅ ${response.message || "دوره با موفقیت پایان یافت"}`,
+            );
+            await this.loadData();
+          } else {
+            notificationService.error(
+              response.message || "خطا در ثبت پایان دوره",
+            );
+          }
+        } catch (e) {
+          notificationService.hideLoading();
+          console.error("❌ Error completing period:", e);
+          notificationService.error("خطا در ارتباط با سرور");
+        }
+      }
+    } catch (error) {
+      console.error("❌ Error in completePeriod modal:", error);
+      notificationService.error("خطا در نمایش فرم");
+    }
+  }
+  // ===== مشاهده اطلاعات پایان دوره =====
+
+  async viewPeriodCompletion(periodId) {
+    try {
+      const response = await hatcheryApi.getPeriodCompletions(periodId);
+      if (!response.success) {
+        notificationService.error("خطا در دریافت اطلاعات پایان دوره");
+        return;
+      }
+
+      const completions = response.data || [];
+      if (completions.length === 0) {
+        notificationService.info(
+          "اطلاعات پایان دوره‌ای برای این دوره ثبت نشده است",
+        );
+        return;
+      }
+
+      const rows = completions
+        .map((c, i) => {
+          const flock = c.flock || {};
+          const hallName = flock.hall_name || `سالن ${c.hall_id || "-"}`;
+          // محاسبه پویا برای رکوردهای قدیمی
+          const initialChicks = parseInt(c.initial_chicks_count) || 0;
+          const totalMortality = parseInt(c.total_mortality) || 0;
+          const transportMortality = parseInt(c.transport_mortality) || 0;
+          const systemMortality = Math.max(
+            0,
+            totalMortality - transportMortality,
+          );
+          const finalChicks = Math.max(0, initialChicks - totalMortality);
+          const mortalityRate =
+            initialChicks > 0
+              ? ((totalMortality / initialChicks) * 100).toFixed(2)
+              : "-";
+          return `
+            <tr style="border-bottom:1px solid #eef2f6;">
+              <td style="padding:8px; text-align:center;">${i + 1}</td>
+              <td style="padding:8px; text-align:center;"><strong>گله ${flock.flock_number || "-"}</strong></td>
+              <td style="padding:8px; text-align:center;">${hallName}</td>
+              <td style="padding:8px; text-align:center;">${convertToPersianDate(c.completion_date)}</td>
+              <td style="padding:8px; text-align:center;">${initialChicks.toLocaleString() || "-"}</td>
+              <td style="padding:8px; text-align:center;"><strong>${finalChicks.toLocaleString()}</strong></td>
+              <td style="padding:8px; text-align:center;">${systemMortality}</td>
+              <td style="padding:8px; text-align:center;">${transportMortality}</td>
+              <td style="padding:8px; text-align:center;"><strong style="color:#dc2626;">${totalMortality}</strong></td>
+              <td style="padding:8px; text-align:center;">${mortalityRate}٪</td>
+              <td style="padding:8px; text-align:center;">${c.system_total_feed ?? "-"}</td>
+              <td style="padding:8px; text-align:center;">${c.system_last_weight ?? "-"}</td>
+              <td style="padding:8px; text-align:center;"><strong style="color:#d97706;">${c.system_fcr ?? c.farmer_fcr ?? "-"}</strong></td>
+              <td style="padding:8px; text-align:center;">${c.slaughter_age_days ? c.slaughter_age_days + " روز" : "-"}</td>
+              <td style="padding:8px; text-align:center;">${c.total_live_weight ?? "-"}</td>
+              <td style="padding:8px; text-align:center;">${c.avg_live_weight ?? "-"}</td>
+              <td style="padding:8px; text-align:center;">${c.slaughterhouse_name || "-"}</td>
+              <td style="padding:8px; text-align:center;">${c.slaughter_date ? convertToPersianDate(c.slaughter_date) : "-"}</td>
+            </tr>
+          `;
+        })
+        .join("");
+
+      Swal.fire({
+        title: "",
+        html: `
+          <div style="text-align:right; font-family:'Vazir'; direction:rtl;">
+            <div style="background:linear-gradient(135deg,#2c7a6e,#035552); color:#fff; border-radius:12px; padding:14px 16px; margin-bottom:16px; display:flex; align-items:center; gap:12px;">
+              <div style="width:42px; height:42px; border-radius:50%; background:rgba(255,255,255,0.2); display:flex; align-items:center; justify-content:center; font-size:20px;">
+                <i class="fas fa-file-alt"></i>
+              </div>
+              <div>
+                <div style="font-size:15px; font-weight:800;">اطلاعات پایان دوره</div>
+                <div style="font-size:11px; opacity:0.85;">${completions.length} گله تکمیل‌شده</div>
+              </div>
+            </div>
+            <div style="overflow-x:auto; max-height:400px; overflow-y:auto;">
+              <table style="width:100%; border-collapse:collapse; font-size:12px;">
+                <thead style="position:sticky; top:0; background:#f8fafc;">
+                  <tr>
+                    <th style="padding:8px;">#</th>
+                    <th style="padding:8px;">گله</th>
+                    <th style="padding:8px;">سالن</th>
+                    <th style="padding:8px;">تاریخ</th>
+                    <th style="padding:8px;">جوجه اولیه</th>
+                    <th style="padding:8px;">جوجه نهایی</th>
+                    <th style="padding:8px;">تلفات سیستم</th>
+                    <th style="padding:8px;">تلفات حمل</th>
+                    <th style="padding:8px;">تلفات کل</th>
+                    <th style="padding:8px;">٪ تلفات</th>
+                    <th style="padding:8px;">خوراک</th>
+                    <th style="padding:8px;">وزن</th>
+                    <th style="padding:8px;">FCR</th>
+                    <th style="padding:8px;">سن کشتار</th>
+                    <th style="padding:8px;">وزن کشتار</th>
+                    <th style="padding:8px;">میانگین</th>
+                    <th style="padding:8px;">کشتارگاه</th>
+                    <th style="padding:8px;">تاریخ کشتار</th>
+                  </tr>
+                </thead>
+                <tbody>${rows}</tbody>
+              </table>
+            </div>
+          </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: "✏️ ویرایش",
+        cancelButtonText: "بستن",
+        confirmButtonColor: "#2c7a6e",
+        cancelButtonColor: "#64748b",
+        width: 900,
+        padding: "20px 24px",
+      }).then((result) => {
+        if (result.isConfirmed) {
+          this.editPeriodCompletion(periodId);
+        }
+      });
+    } catch (error) {
+      console.error("❌ Error viewing period completion:", error);
+      notificationService.error("خطا در دریافت اطلاعات");
+    }
+  }
+
+  // ===== ویرایش اطلاعات پایان دوره =====
+
+  async editPeriodCompletion(periodId) {
+    try {
+      const response = await hatcheryApi.getPeriodCompletions(periodId);
+      if (!response.success || !response.data || response.data.length === 0) {
+        notificationService.error("اطلاعات پایان دوره یافت نشد");
+        return;
+      }
+
+      const completions = response.data; // ممکن است چند گله باشد — اولی را پیش‌فرض می‌گیریم
+
+      // فیلدهای اولین گله را برای نمایش پیش‌فرض پر کن
+      const c = completions[0];
+      const flock = c.flock || {};
+
+      // محاسبه پویا برای رکوردهای قدیمی (جوجه نهایی و تلفات)
+      const editInitialChicks = parseInt(c.initial_chicks_count) || 0;
+      const editTotalMortality = parseInt(c.total_mortality) || 0;
+      const editTransportMortality = parseInt(c.transport_mortality) || 0;
+      const editFinalChicks = Math.max(
+        0,
+        editInitialChicks - editTotalMortality,
+      );
+      const editMortalityRate =
+        editInitialChicks > 0
+          ? ((editTotalMortality / editInitialChicks) * 100).toFixed(2)
+          : "";
+
+      const formHtml = `
+        <div style="text-align:right; font-family:'Vazir'; direction:rtl;">
+          <style>
+            .ue-field { width:100%; padding:8px 12px; border:1.5px solid #e2e8f0; border-radius:10px; font-family:'Vazir'; font-size:12.5px; margin-top:4px; box-sizing:border-box; }
+            .ue-field:focus { outline:none; border-color:#2c7a6e; box-shadow:0 0 0 3px rgba(44,122,110,.1); }
+            .ue-label { display:block; font-size:12px; font-weight:600; color:#1e293b; }
+            .ue-section { background:#f8fafc; border-radius:12px; padding:12px 14px; margin-bottom:12px; border:1px solid #eef2f6; }
+            .ue-section-title { font-size:12.5px; font-weight:700; color:#2c7a6e; margin-bottom:8px; display:flex; align-items:center; gap:6px; }
+            .ue-2col { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+            .ue-3col { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
+          </style>
+
+          <div style="background:linear-gradient(135deg,#2c7a6e,#035552); color:#fff; border-radius:12px; padding:14px 16px; margin-bottom:16px; display:flex; align-items:center; gap:12px; position:relative;">
+            <div style="width:42px; height:42px; border-radius:50%; background:rgba(255,255,255,0.2); display:flex; align-items:center; justify-content:center; font-size:20px;">
+              <i class="fas fa-pen"></i>
+            </div>
+            <div>
+              <div style="font-size:15px; font-weight:800;">ویرایش اطلاعات پایان دوره</div>
+              <div style="font-size:11px; opacity:0.85;">گله ${flock.flock_number || "-"} | ${completions.length} گله</div>
+            </div>
+          </div>
+
+          <div style="display:flex; justify-content:flex-end; margin-bottom:12px;">
+            <button type="button" id="ueRecomputeBtn"
+              style="padding:8px 18px; background:#d97706; color:#fff; border:none; border-radius:10px; font-family:'Vazir'; font-size:12.5px; font-weight:600; cursor:pointer; transition:all .3s; display:flex; align-items:center; gap:6px;">
+              <i class="fas fa-sync-alt" id="ueRecomputeIcon"></i> محاسبه مجدد فیلدهای سیستمی
+            </button>
+          </div>
+
+          <!-- فیلدهای سیستمی -->
+          <div class="ue-section">
+            <div class="ue-section-title"><i class="fas fa-calculator"></i> فیلدهای سیستمی (قابل ویرایش)</div>
+            <div class="ue-3col">
+              <div>
+                <label class="ue-label">جوجه اولیه</label>
+                <input type="number" id="ueInitialChicks" class="ue-field" value="${editInitialChicks || ""}">
+              </div>
+              <div>
+                <label class="ue-label">جوجه نهایی</label>
+                <input type="number" id="ueFinalChicks" class="ue-field" value="${editFinalChicks || ""}">
+              </div>
+              <div>
+                <label class="ue-label">هفته آخر</label>
+                <input type="number" id="ueFinalWeek" class="ue-field" value="${c.final_week_number ?? ""}">
+              </div>
+              <div>
+                <label class="ue-label">کل خوراک</label>
+                <input type="number" step="0.01" id="ueTotalFeed" class="ue-field" value="${c.system_total_feed ?? c.total_feed_intake ?? ""}">
+              </div>
+              <div>
+                <label class="ue-label">آخرین وزن</label>
+                <input type="number" step="0.01" id="ueLastWeight" class="ue-field" value="${c.system_last_weight ?? c.final_avg_weight ?? ""}">
+              </div>
+              <div>
+                <label class="ue-label">FCR سیستمی</label>
+                <input type="number" step="0.01" id="ueSystemFcr" class="ue-field" value="${c.system_fcr ?? ""}">
+              </div>
+              <div>
+                <label class="ue-label">تلفات کل (سیستم + حمل)</label>
+                <input type="number" id="ueTotalMortality" class="ue-field" value="${editTotalMortality || ""}">
+              </div>
+              <div>
+                <label class="ue-label">درصد تلفات</label>
+                <input type="number" step="0.01" id="ueMortalityRate" class="ue-field" value="${editMortalityRate}">
+              </div>
+              <div>
+                <label class="ue-label">سن کشتار (روز)</label>
+                <input type="number" id="ueSlaughterAge" class="ue-field" value="${c.slaughter_age_days ?? ""}">
+              </div>
+            </div>
+          </div>
+
+          <!-- اطلاعات کشتارگاه -->
+          <div class="ue-section">
+            <div class="ue-section-title"><i class="fas fa-industry"></i> اطلاعات کشتارگاه</div>
+            <div class="ue-2col">
+              <div>
+                <label class="ue-label">تاریخ کشتار</label>
+                <input type="text" id="ueSlaughterDate" class="ue-field" placeholder="۱۴۰۴/۰۱/۰۱" value="${c.slaughter_date ? convertToPersianDate(c.slaughter_date) : ""}">
+              </div>
+              <div>
+                <label class="ue-label">نام کشتارگاه</label>
+                <input type="text" id="ueSlaughterhouse" class="ue-field" value="${c.slaughterhouse_name ?? ""}">
+              </div>
+              <div>
+                <label class="ue-label">تلفات حمل</label>
+                <input type="number" id="ueTransportMortality" class="ue-field" value="${c.transport_mortality ?? 0}">
+              </div>
+              <div>
+                <label class="ue-label">تعداد ارسالی</label>
+                <input type="number" id="ueTotalSent" class="ue-field" value="${c.total_sent ?? ""}">
+              </div>
+              <div>
+                <label class="ue-label">وزن کل زنده</label>
+                <input type="number" step="0.01" id="ueTotalLiveWeight" class="ue-field" value="${c.total_live_weight ?? ""}">
+              </div>
+              <div>
+                <label class="ue-label">میانگین وزن</label>
+                <input type="number" step="0.01" id="ueAvgLiveWeight" class="ue-field" value="${c.avg_live_weight ?? ""}">
+              </div>
+            </div>
+          </div>
+
+          <!-- اطلاعات اعلامی مرغدار -->
+          <div class="ue-section">
+            <div class="ue-section-title"><i class="fas fa-user-tie"></i> اطلاعات اعلامی مرغدار</div>
+            <div class="ue-2col">
+              <div>
+                <label class="ue-label">FCR مرغدار</label>
+                <input type="number" step="0.01" id="ueFarmerFcr" class="ue-field" value="${c.farmer_fcr ?? ""}">
+              </div>
+              <div>
+                <label class="ue-label">کل گوشت (کیلوگرم)</label>
+                <input type="number" step="0.01" id="ueFarmerMeat" class="ue-field" value="${c.farmer_total_meat ?? ""}">
+              </div>
+              <div>
+                <label class="ue-label">کل خوراک (کیلوگرم)</label>
+                <input type="number" step="0.01" id="ueFarmerFeed" class="ue-field" value="${c.farmer_total_feed ?? ""}">
+              </div>
+              <div>
+                <label class="ue-label">وزن کل (کیلوگرم)</label>
+                <input type="number" step="0.01" id="ueFarmerWeight" class="ue-field" value="${c.farmer_total_weight ?? ""}">
+              </div>
+            </div>
+          </div>
+
+          <!-- تنظیمات -->
+          <div class="ue-section">
+            <div class="ue-section-title"><i class="fas fa-cogs"></i> تنظیمات</div>
+            <div class="ue-2col">
+              <div>
+                <label class="ue-label">نوع پایان</label>
+                <select id="ueCompletionType" class="ue-field">
+                  <option value="completed" ${c.completion_type === "completed" ? "selected" : ""}>تکمیل</option>
+                  <option value="culled" ${c.completion_type === "culled" ? "selected" : ""}>حذف</option>
+                  <option value="emergency" ${c.completion_type === "emergency" ? "selected" : ""}>اضطراری</option>
+                </select>
+              </div>
+              <div style="display:flex; align-items:center; gap:8px; margin-top:20px;">
+                <input type="checkbox" id="ueConfirmed" style="width:16px;height:16px;" ${c.confirmed_by_customer ? "checked" : ""}>
+                <label for="ueConfirmed" class="ue-label" style="margin:0;">تأیید مرغدار</label>
+              </div>
+            </div>
+            <div style="margin-top:8px;">
+              <label class="ue-label">توضیحات</label>
+              <textarea id="ueNotes" class="ue-field" rows="2">${c.notes ?? ""}</textarea>
+            </div>
+          </div>
+
+          <input type="hidden" id="ueCompletionId" value="${c.id}">
+        </div>
+      `;
+
+      const result = await Swal.fire({
+        title: "",
+        html: formHtml,
+        showCancelButton: true,
+        confirmButtonText: "💾 ذخیره تغییرات",
+        cancelButtonText: "انصراف",
+        confirmButtonColor: "#2c7a6e",
+        cancelButtonColor: "#64748b",
+        width: 720,
+        padding: "20px 24px",
+        didOpen: () => {
+          // دکمه محاسبه مجدد
+          const recomputeBtn = document.getElementById("ueRecomputeBtn");
+          if (recomputeBtn) {
+            recomputeBtn.addEventListener("click", () => {
+              const icon = document.getElementById("ueRecomputeIcon");
+              if (icon) icon.classList.add("fa-spin");
+
+              const requestedFields = this.recomputeSystemFields(
+                c.id,
+                completions,
+              );
+              // Promise را مدیریت می‌کنیم
+              requestedFields.then(() => {
+                if (icon) icon.classList.remove("fa-spin");
+              });
+            });
+          }
+
+          // تقویم شمسی
+          const dateInput = document.getElementById("ueSlaughterDate");
+          if (dateInput && typeof $.fn.persianDatepicker !== "undefined") {
+            try {
+              $(dateInput).persianDatepicker({
+                format: "YYYY/MM/DD",
+                autoClose: true,
+                initialValue: false,
+                observer: true,
+              });
+            } catch (e) {
+              console.warn("⚠️ datepicker init error:", e);
+            }
+          }
+        },
+        preConfirm: () => {
+          const completionId = document.getElementById("ueCompletionId")?.value;
+          if (!completionId) {
+            Swal.showValidationMessage("شناسه پایان دوره یافت نشد");
+            return false;
+          }
+
+          const dateVal =
+            document.getElementById("ueSlaughterDate")?.value?.trim() || "";
+          const slaughterDate = dateVal
+            ? convertPersianToGregorian(dateVal)
+            : null;
+
+          return {
+            id: parseInt(completionId),
+            data: {
+              recompute: true,
+              initial_chicks_count:
+                document.getElementById("ueInitialChicks")?.value || null,
+              final_chicks_count:
+                document.getElementById("ueFinalChicks")?.value || null,
+              final_week_number:
+                document.getElementById("ueFinalWeek")?.value || null,
+              total_feed_intake:
+                document.getElementById("ueTotalFeed")?.value || null,
+              system_total_feed:
+                document.getElementById("ueTotalFeed")?.value || null,
+              system_last_weight:
+                document.getElementById("ueLastWeight")?.value || null,
+              final_avg_weight:
+                document.getElementById("ueLastWeight")?.value || null,
+              system_fcr: document.getElementById("ueSystemFcr")?.value || null,
+              total_mortality:
+                document.getElementById("ueTotalMortality")?.value || null,
+              mortality_rate:
+                document.getElementById("ueMortalityRate")?.value || null,
+              slaughter_age_days:
+                document.getElementById("ueSlaughterAge")?.value || null,
+              slaughter_date: slaughterDate,
+              slaughterhouse_name:
+                document.getElementById("ueSlaughterhouse")?.value?.trim() ||
+                null,
+              transport_mortality:
+                document.getElementById("ueTransportMortality")?.value || 0,
+              total_sent: document.getElementById("ueTotalSent")?.value || null,
+              total_live_weight:
+                document.getElementById("ueTotalLiveWeight")?.value || null,
+              avg_live_weight:
+                document.getElementById("ueAvgLiveWeight")?.value || null,
+              farmer_fcr: document.getElementById("ueFarmerFcr")?.value || null,
+              farmer_total_meat:
+                document.getElementById("ueFarmerMeat")?.value || null,
+              farmer_total_feed:
+                document.getElementById("ueFarmerFeed")?.value || null,
+              farmer_total_weight:
+                document.getElementById("ueFarmerWeight")?.value || null,
+              completion_type:
+                document.getElementById("ueCompletionType")?.value ||
+                "completed",
+              confirmed_by_customer:
+                !!document.getElementById("ueConfirmed")?.checked,
+              notes: document.getElementById("ueNotes")?.value?.trim() || null,
+            },
+          };
+        },
+      });
+
+      if (result.isConfirmed && result.value) {
+        notificationService.showLoading("در حال ذخیره تغییرات...");
+        try {
+          const { id, data } = result.value;
+          const updateRes = await hatcheryApi.updateCompletion(id, data);
+          notificationService.hideLoading();
+          if (updateRes.success) {
+            notificationService.success("✅ اطلاعات پایان دوره بروزرسانی شد");
+            await this.loadData();
+          } else {
+            notificationService.error(updateRes.message || "خطا در بروزرسانی");
+          }
+        } catch (e) {
+          notificationService.hideLoading();
+          console.error("❌ Error updating completion:", e);
+          notificationService.error("خطا در ارتباط با سرور");
+        }
+      }
+    } catch (error) {
+      console.error("❌ Error in editPeriodCompletion:", error);
+      notificationService.error("خطا در نمایش فرم ویرایش");
+    }
+  }
+
+  // ===== محاسبه مجدد فیلدهای سیستمی از داده‌های هفتگی =====
+
+  async recomputeSystemFields(completionId, completions) {
+    try {
+      // دریافت اطلاعات کامل رکورد (شامل chick_placement_id)
+      const comp =
+        completions.find((x) => x.id === completionId) || completions[0];
+      if (!comp || !comp.chick_placement_id) {
+        notificationService.error("شناسه گله یافت نشد");
+        return;
+      }
+
+      // درخواست محاسبه مجدد از سمت سرور با دریافت رکورد به‌روزشده
+      const response = await hatcheryApi.getFlockCompletion(
+        comp.chick_placement_id,
+      );
+      if (!response.success || !response.data) {
+        notificationService.error("خطا در دریافت اطلاعات گله");
+        return;
+      }
+
+      const data = response.data;
+      const setVal = (id, val) => {
+        const el = document.getElementById(id);
+        if (el && val !== null && val !== undefined) el.value = val;
+      };
+
+      setVal("ueInitialChicks", data.initial_chicks_count);
+      setVal("ueFinalChicks", data.final_chicks_count);
+      setVal("ueFinalWeek", data.final_week_number);
+      setVal("ueTotalFeed", data.system_total_feed ?? data.total_feed_intake);
+      setVal("ueLastWeight", data.system_last_weight ?? data.final_avg_weight);
+      setVal("ueSystemFcr", data.system_fcr);
+      setVal("ueTotalMortality", data.total_mortality);
+      setVal("ueMortalityRate", data.mortality_rate);
+      setVal("ueSlaughterAge", data.slaughter_age_days);
+
+      notificationService.success("✅ فیلدهای سیستمی محاسبه مجدد شدند");
+    } catch (error) {
+      console.error("❌ Error recomputing system fields:", error);
+      notificationService.error("خطا در محاسبه مجدد");
+    }
+  }
+
   refresh() {
     this.loadData();
     this.setupTabs();
@@ -1293,6 +2029,11 @@ if (typeof window !== "undefined") {
   window.viewPeriod = (id) => hatcheryService.viewPeriod?.(id);
   window.editPeriod = (id) => hatcheryService.editPeriod(id);
   window.deletePeriod = (id) => hatcheryService.deletePeriod(id);
+  window.completePeriod = (id) => hatcheryService.completePeriod(id);
+  window.viewPeriodCompletion = (id) =>
+    hatcheryService.viewPeriodCompletion(id);
+  window.editPeriodCompletion = (id) =>
+    hatcheryService.editPeriodCompletion(id);
   window.editFlock = (id) => hatcheryService.editFlock(id);
   window.deleteFlock = (id) => hatcheryService.deleteFlock(id);
   window.toggleFlockStatus = (id) => hatcheryService.toggleFlockStatus(id);

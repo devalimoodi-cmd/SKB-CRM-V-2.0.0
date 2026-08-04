@@ -184,6 +184,18 @@ export const hatcheryRenderer = {
                             <button class="action-btn edit" onclick="window.editPeriod(${period.id})" title="ویرایش">
                                 <i class="fas fa-edit"></i>
                             </button>
+                            ${
+                              period.status !== "completed"
+                                ? `<button class="action-btn complete" onclick="window.completePeriod(${period.id})" title="اتمام دوره">
+                                <i class="fas fa-flag-checkered"></i>
+                            </button>`
+                                : `<button class="action-btn view" onclick="window.viewPeriodCompletion(${period.id})" title="مشاهده اطلاعات پایان دوره">
+                                <i class="fas fa-file-alt"></i>
+                            </button>
+                            <button class="action-btn edit" onclick="window.editPeriodCompletion(${period.id})" title="ویرایش اطلاعات پایان دوره">
+                                <i class="fas fa-pen"></i>
+                            </button>`
+                            }
                             <button class="action-btn delete" onclick="window.deletePeriod(${period.id})" title="حذف">
                                 <i class="fas fa-trash-alt"></i>
                             </button>

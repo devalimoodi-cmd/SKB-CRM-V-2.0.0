@@ -1,36 +1,239 @@
+// ============================================================
+// models/FlockCompletion.js
+// ============================================================
+
 const { DataTypes } = require("sequelize");
 const { sequelize } = require("../config/database");
 
 const FlockCompletion = sequelize.define(
   "FlockCompletion",
   {
-    id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+    // ==========================================================
+    // 🆔 شناسه و ارتباطات (6 فیلد)
+    // ==========================================================
+    id: {
+      type: DataTypes.INTEGER,
+      primaryKey: true,
+      autoIncrement: true,
+      comment: "🆔 شناسه یکتا (Primary Key)",
+    },
     chick_placement_id: {
       type: DataTypes.INTEGER,
       allowNull: false,
       unique: true,
+      comment: "🆔 شناسه گله (ارجاع به جدول chick_placements) - UNIQUE",
     },
-    customer_id: { type: DataTypes.INTEGER, allowNull: false },
-    period_id: { type: DataTypes.INTEGER, allowNull: true },
-    hall_id: { type: DataTypes.INTEGER, allowNull: false },
-    completion_date: { type: DataTypes.DATEONLY, allowNull: false },
+    customer_id: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      comment: "🆔 شناسه مشتری (ارجاع به جدول customer_personal_information)",
+    },
+    period_id: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      comment: "🆔 شناسه دوره پرورش (ارجاع به جدول periods)",
+    },
+    hall_id: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      comment: "🆔 شناسه سالن (ارجاع به جدول halls)",
+    },
+    completed_by: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      comment: "🆔 کاربر تکمیل‌کننده (ارجاع به جدول users)",
+    },
+
+    // ==========================================================
+    // 📋 اطلاعات مدیریتی (3 فیلد)
+    // ==========================================================
+    completion_date: {
+      type: DataTypes.DATEONLY,
+      allowNull: false,
+      comment: "📋 تاریخ تکمیل اطلاعات در سیستم",
+    },
     completion_type: {
       type: DataTypes.STRING(50),
       defaultValue: "completed",
+      comment:
+        "📋 نوع پایان دوره: completed(تکمیل), culled(حذف), emergency(اضطراری)",
     },
-    final_week_number: { type: DataTypes.INTEGER, allowNull: false },
-    total_feed_intake: { type: DataTypes.DECIMAL(12, 2), allowNull: true },
-    final_avg_weight: { type: DataTypes.DECIMAL(10, 2), allowNull: true },
-    total_mortality: { type: DataTypes.INTEGER, allowNull: true },
-    mortality_rate: { type: DataTypes.DECIMAL(5, 2), allowNull: true },
-    production_index: { type: DataTypes.DECIMAL(10, 2), allowNull: true },
-    notes: { type: DataTypes.TEXT, allowNull: true },
-    completed_by: { type: DataTypes.INTEGER, allowNull: true },
+    confirmed_by_customer: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+      comment: "📋 تأیید صحت اطلاعات توسط مرغدار (TRUE/FALSE)",
+    },
+
+    // ==========================================================
+    // 🐣 اطلاعات جوجه‌ریزی و جمعیت (3 فیلد)
+    // ==========================================================
+    initial_chicks_count: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      comment: "🐣 تعداد جوجه‌ریزی اولیه (قطعه)",
+    },
+    final_chicks_count: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      comment: "🐣 تعداد جوجه مانده تا آخرین هفته (قطعه)",
+    },
+    initial_avg_weight: {
+      type: DataTypes.DECIMAL(6, 3),
+      defaultValue: 0.04,
+      comment:
+        "🐣 وزن اولیه هر جوجه در جوجه‌ریزی (کیلوگرم) - معمولاً ۰.۰۴۰ (۴۰ گرم)",
+    },
+
+    // ==========================================================
+    // 📅 اطلاعات سن و دوره (3 فیلد)
+    // ==========================================================
+    slaughter_age_days: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      comment: "📅 سن کشتار (روز)",
+    },
+    period_number: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      comment: "📅 شماره دوره پرورش",
+    },
+    period_name: {
+      type: DataTypes.STRING(100),
+      allowNull: true,
+      comment: "📅 نام دوره پرورش",
+    },
+
+    // ==========================================================
+    // 🏭 اطلاعات کشتارگاه (6 فیلد)
+    // ==========================================================
+    slaughter_date: {
+      type: DataTypes.DATEONLY,
+      allowNull: true,
+      comment: "🏭 تاریخ کشتار در کشتارگاه",
+    },
+    slaughterhouse_name: {
+      type: DataTypes.STRING(100),
+      allowNull: true,
+      comment: "🏭 نام کشتارگاه",
+    },
+    transport_mortality: {
+      type: DataTypes.INTEGER,
+      defaultValue: 0,
+      comment: "🏭 تلفات حین حمل و نقل به کشتارگاه",
+    },
+    total_sent: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      comment: "🏭 تعداد قطعه ارسالی به کشتارگاه",
+    },
+    total_live_weight: {
+      type: DataTypes.DECIMAL(12, 2),
+      allowNull: true,
+      comment: "🏭 وزن کل زنده گله در کشتارگاه (کیلوگرم)",
+    },
+    avg_live_weight: {
+      type: DataTypes.DECIMAL(8, 2),
+      allowNull: true,
+      comment: "🏭 میانگین وزن زنده هر قطعه (کیلوگرم) - از کشتارگاه",
+    },
+
+    // ==========================================================
+    // 📊 شاخص‌های فنی (5 فیلد)
+    // ==========================================================
+    final_week_number: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      comment: "📊 شماره هفته آخر پرورش",
+    },
+    total_feed_intake: {
+      type: DataTypes.DECIMAL(12, 2),
+      allowNull: true,
+      comment: "📊 کل خوراک مصرفی (از داده‌های سیستم)",
+    },
+    final_avg_weight: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: true,
+      comment: "📊 میانگین وزن نهایی هر قطعه (کیلوگرم)",
+    },
+    total_mortality: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      comment: "📊 تلفات کل (تلفات سیستم + تلفات حمل)",
+    },
+    mortality_rate: {
+      type: DataTypes.DECIMAL(5, 2),
+      allowNull: true,
+      comment: "📊 درصد تلفات: (تلفات کل / تعداد اولیه) × ۱۰۰",
+    },
+
+    // ==========================================================
+    // 👨‍🌾 اطلاعات اعلامی مرغدار (4 فیلد)
+    // ==========================================================
+    farmer_fcr: {
+      type: DataTypes.DECIMAL(5, 2),
+      allowNull: true,
+      comment: "👨‍🌾 ضریب تبدیل نهایی اعلامی مرغدار",
+    },
+    farmer_total_meat: {
+      type: DataTypes.DECIMAL(12, 2),
+      allowNull: true,
+      comment: "👨‍🌾 کل گوشت بدست آمده اعلامی مرغدار (کیلوگرم)",
+    },
+    farmer_total_feed: {
+      type: DataTypes.DECIMAL(12, 2),
+      allowNull: true,
+      comment: "👨‍🌾 کل خوراک مصرفی نهایی اعلامی مرغدار (کیلوگرم)",
+    },
+    farmer_total_weight: {
+      type: DataTypes.DECIMAL(12, 2),
+      allowNull: true,
+      comment: "👨‍🌾 وزن کل اعلامی از سمت مرغدار (کیلوگرم)",
+    },
+
+    // ==========================================================
+    // 💻 اطلاعات محاسبه‌شده توسط سیستم (3 فیلد)
+    // ==========================================================
+    system_last_weight: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: true,
+      comment:
+        "💻 آخرین وزن گله در آخرین هفته (کیلوگرم) - محاسبه‌شده از داده‌های هفتگی",
+    },
+    system_total_feed: {
+      type: DataTypes.DECIMAL(12, 2),
+      allowNull: true,
+      comment:
+        "💻 مجموع مصرفی خوراک در طول دوره (کیلوگرم) - جمع داده‌های هفتگی",
+    },
+    system_fcr: {
+      type: DataTypes.DECIMAL(5, 2),
+      allowNull: true,
+      comment:
+        "💻 ضریب تبدیل سیستمی: (کل خوراک / افزایش وزن کل) - بر اساس داده‌های ثبت شده",
+    },
+
+    // ==========================================================
+    // 📝 توضیحات و زمان (3 فیلد)
+    // ==========================================================
+    notes: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+      comment: "📝 توضیحات تکمیلی",
+    },
   },
   {
     tableName: "flock_completions",
     timestamps: true,
     underscored: true,
+    paranoid: false,
+    indexes: [
+      { fields: ["chick_placement_id"], unique: true },
+      { fields: ["customer_id"] },
+      { fields: ["hall_id"] },
+      { fields: ["period_id"] },
+      { fields: ["completion_date"] },
+      { fields: ["slaughter_date"] },
+    ],
   },
 );
 

@@ -25,6 +25,7 @@ const dashboardRoutes = require("./routes/dashboardRoutes");
 
 const bookmarkRoutes = require("./routes/bookmarkRoutes");
 const customerHeaderRoutes = require("./routes/customerHeaderRoutes");
+const flockCompletionRoutes = require("./routes/flockCompletionRoutes");
 
 // ================== ###==========
 
@@ -193,6 +194,10 @@ app.use("/api/customers", customerRegistrationRoutes);
 app.use("/api/cities", cityRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/customer-header", customerHeaderRoutes);
+// =========
+
+// =============================== روت اطلاعات پایان دوره (Flock Completion) =============
+app.use("/api/flock-completions", flockCompletionRoutes);
 // =========
 
 const PORT = process.env.PORT || 5000;

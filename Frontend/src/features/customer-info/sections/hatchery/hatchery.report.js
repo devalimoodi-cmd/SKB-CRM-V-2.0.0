@@ -18,6 +18,7 @@ class HatcheryReport {
     this.flocks = [];
     this.halls = [];
     this.dictionaries = {};
+    this.completions = [];
   }
 
   async init(customerId) {
@@ -52,6 +53,9 @@ class HatcheryReport {
 
       this.customerData = customerRes?.data || null;
 
+      // بارگذاری اطلاعات پایان دوره‌ها
+      await this.loadCompletions();
+
       // تلفیق اطلاعات
       const flocksWithDetails = this.flocks.map((flock) => {
         const hall = this.halls.find((h) => h.id === flock.hall_id);
@@ -79,6 +83,7 @@ class HatcheryReport {
           (p) => p.status !== "cancelled" && p.status !== "deleted",
         ),
         flocks: flocksWithDetails,
+        completions: this.completions,
         generatedAt: new Date().toISOString(),
       };
     } catch (error) {
@@ -120,6 +125,32 @@ class HatcheryReport {
     }
   }
 
+  async loadCompletions() {
+    try {
+      const completions = [];
+      const completedPeriods = this.periods.filter(
+        (p) => p.status === "completed",
+      );
+      for (const period of completedPeriods) {
+        try {
+          const res = await hatcheryApi.getPeriodCompletions(period.id);
+          if (res.success && Array.isArray(res.data)) {
+            completions.push(...res.data);
+          }
+        } catch (e) {
+          console.warn(
+            `⚠️ Error loading completions for period ${period.id}:`,
+            e,
+          );
+        }
+      }
+      this.completions = completions;
+    } catch (error) {
+      console.error("❌ Error loading completions:", error);
+      this.completions = [];
+    }
+  }
+
   async loadDictionaries() {
     try {
       const [sources, breeds] = await Promise.all([
@@ -137,7 +168,138 @@ class HatcheryReport {
   }
 
   generateHTML(reportData) {
-    const { customer, periods, flocks, generatedAt } = reportData;
+    const { customer, periods, flocks, completions, generatedAt } = reportData;
+    // بخش اطلاعات پایان دوره‌ها — دو جدول: سیستمی + مرغدار
+    let completionsHTML = "";
+    if (completions && completions.length > 0) {
+      // جدول اطلاعات سیستمی — محاسبه پویا برای همه رکوردها
+      const systemRows = completions
+        .map((c) => {
+          const flock = c.flock || {};
+          const hallName = flock.hall_name || `سالن ${c.hall_id || "-"}`;
+          const initialChicks = parseInt(c.initial_chicks_count) || 0;
+          const totalMortality = parseInt(c.total_mortality) || 0;
+          const transportMortality = parseInt(c.transport_mortality) || 0;
+          const systemMortality = Math.max(
+            0,
+            totalMortality - transportMortality,
+          );
+          const finalChicks = Math.max(0, initialChicks - totalMortality);
+          const mortalityRate =
+            initialChicks > 0
+              ? ((totalMortality / initialChicks) * 100).toFixed(2)
+              : "-";
+          return `
+            <tr>
+              <td>گله ${flock.flock_number || "-"}</td>
+              <td>${hallName}</td>
+              <td>${convertToPersianDate(c.completion_date)}</td>
+              <td>${initialChicks.toLocaleString() || "-"}</td>
+              <td><strong>${finalChicks.toLocaleString()}</strong></td>
+              <td>${systemMortality}</td>
+              <td>${transportMortality}</td>
+              <td><strong style="color:#dc2626;">${totalMortality}</strong></td>
+              <td>${mortalityRate}٪</td>
+              <td>${c.final_week_number ?? "-"}</td>
+              <td>${c.slaughter_age_days ? c.slaughter_age_days + " روز" : "-"}</td>
+              <td>${c.system_total_feed ?? c.total_feed_intake ?? "-"}</td>
+              <td>${c.system_last_weight ?? c.final_avg_weight ?? "-"}</td>
+              <td><strong>${c.system_fcr ?? "-"}</strong></td>
+              <td>${c.total_sent ?? "-"}</td>
+              <td>${c.total_live_weight ?? "-"}</td>
+              <td>${c.avg_live_weight ?? "-"}</td>
+              <td>${c.slaughter_date ? convertToPersianDate(c.slaughter_date) : "-"}</td>
+              <td>${c.slaughterhouse_name || "-"}</td>
+            </tr>
+          `;
+        })
+        .join("");
+
+      // جدول اطلاعات اعلامی مرغدار
+      const farmerRows = completions
+        .map((c) => {
+          const flock = c.flock || {};
+          const hallName = flock.hall_name || `سالن ${c.hall_id || "-"}`;
+          return `
+            <tr>
+              <td>گله ${flock.flock_number || "-"}</td>
+              <td>${hallName}</td>
+              <td>${convertToPersianDate(c.completion_date)}</td>
+              <td><strong>${c.farmer_fcr ?? "-"}</strong></td>
+              <td>${c.slaughter_age_days ? c.slaughter_age_days + " روز" : "-"}</td>
+              <td>${c.farmer_total_feed ?? "-"}</td>
+              <td>${c.farmer_total_meat ?? "-"}</td>
+              <td>${c.farmer_total_weight ?? "-"}</td>
+              <td>${c.confirmed_by_customer ? "✅ تأیید شده" : "❌ تأیید نشده"}</td>
+              <td>${c.completion_type === "completed" ? "تکمیل" : c.completion_type === "culled" ? "حذف" : "اضطراری"}</td>
+              <td>${c.notes || "-"}</td>
+            </tr>
+          `;
+        })
+        .join("");
+
+      completionsHTML = `
+        <div class="report-section-full" style="margin-top:20px;">
+          <h4>🏁 اطلاعات پایان دوره‌ها</h4>
+
+          <div class="report-section" style="margin-bottom:10px;">
+            <h4>💻 اطلاعات سیستمی (محاسبه‌شده از داده‌های سیستم)</h4>
+            <div style="overflow-x:auto;">
+              <table class="report-table" style="min-width:1400px;">
+                <thead>
+                  <tr>
+                    <th>گله</th>
+                    <th>سالن</th>
+                    <th>تاریخ تکمیل</th>
+                    <th>جوجه اولیه</th>
+                    <th>جوجه نهایی</th>
+                    <th>تلفات سیستم</th>
+                    <th>تلفات حمل</th>
+                    <th>تلفات کل</th>
+                    <th>٪ تلفات</th>
+                    <th>هفته آخر</th>
+                    <th>سن کشتار</th>
+                    <th>کل خوراک</th>
+                    <th>آخرین وزن</th>
+                    <th>FCR سیستمی</th>
+                    <th>تعداد ارسالی</th>
+                    <th>وزن کل کشتار</th>
+                    <th>میانگین وزن</th>
+                    <th>تاریخ کشتار</th>
+                    <th>کشتارگاه</th>
+                  </tr>
+                </thead>
+                <tbody>${systemRows}</tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="report-section" style="margin-top:10px;">
+            <h4>👨‍🌾 اطلاعات اعلامی مرغدار</h4>
+            <div style="overflow-x:auto;">
+              <table class="report-table" style="min-width:950px;">
+                <thead>
+                  <tr>
+                    <th>گله</th>
+                    <th>سالن</th>
+                    <th>تاریخ تکمیل</th>
+                    <th>FCR مرغدار</th>
+                    <th>سن کشتار</th>
+                    <th>کل خوراک</th>
+                    <th>کل گوشت</th>
+                    <th>وزن کل</th>
+                    <th>تأیید مرغدار</th>
+                    <th>نوع پایان</th>
+                    <th>توضیحات</th>
+                  </tr>
+                </thead>
+                <tbody>${farmerRows}</tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      `;
+    }
     const now = new Date(generatedAt);
     const persianDate = formatDate(now);
 
@@ -371,6 +533,8 @@ class HatcheryReport {
         <hr class="report-divider">
         <h2 style="color:#2c7a6e; font-size:17px; margin-bottom:12px;">لیست گله‌ها</h2>
         ${flocksHTML}
+
+        ${completionsHTML}
 
         <div class="report-footer">
           <p>این گزارش توسط سامانه مدیریت مشتریان (SKB-CRM) تولید شده است</p>
