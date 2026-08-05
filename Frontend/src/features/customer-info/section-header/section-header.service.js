@@ -1,4 +1,5 @@
 import { apiService } from "../../../core/services/api.service.js";
+import { API_CONSTANTS } from "../../../core/constants/api.const.js";
 import { stateService } from "../../../core/services/state.service.js";
 import { notificationService } from "../../../core/services/notification.service.js";
 
@@ -209,22 +210,24 @@ class SectionHeaderService {
     try {
       console.log(`📤 دریافت آب و هوا برای مشتری: ${this.customerId}`);
 
+      const endpoint = API_CONSTANTS.ENDPOINTS.WEATHER.GET.replace(
+        ":customerId",
+        this.customerId,
+      );
+
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 20000);
 
-      const response = await fetch(
-        `${window.CONFIG?.API_BASE_URL || "http://localhost:5000/api"}/weather/customer/${this.customerId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          signal: controller.signal,
-        },
-      );
+      const result = await Promise.race([
+        apiService.get(endpoint),
+        new Promise((_, reject) => {
+          controller.signal.addEventListener("abort", () =>
+            reject(new DOMException("Aborted", "AbortError")),
+          );
+        }),
+      ]);
 
       clearTimeout(timeoutId);
-      const result = await response.json();
 
       console.log("📥 پاسخ آب و هوا:", result);
 

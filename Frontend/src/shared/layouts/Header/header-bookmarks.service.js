@@ -1,4 +1,5 @@
 import { apiService } from "../../../core/services/api.service.js";
+import { API_CONSTANTS } from "../../../core/constants/api.const.js";
 import { convertToPersianDate } from "../../../core/utils/date.utils.js";
 
 class HeaderBookmarksService {
@@ -26,16 +27,10 @@ class HeaderBookmarksService {
         return;
       }
 
-      const response = await fetch("/api/bookmarks?limit=10", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
-
-      if (!response.ok) throw new Error("خطا در دریافت بوکمارک‌ها");
-
-      const result = await response.json();
+      const result = await apiService.get(
+        API_CONSTANTS.ENDPOINTS.BOOKMARKS.LIST,
+        { limit: 10 },
+      );
 
       if (result.success) {
         this.bookmarks = result.data?.bookmarks || [];
@@ -378,15 +373,9 @@ class HeaderBookmarksService {
         return;
       }
 
-      const response = await fetch(`/api/bookmarks/${id}`, {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
-
-      const result = await response.json();
+      const result = await apiService.delete(
+        `${API_CONSTANTS.ENDPOINTS.BOOKMARKS.LIST}/${id}`,
+      );
 
       if (result.success) {
         // حذف از لیست محلی

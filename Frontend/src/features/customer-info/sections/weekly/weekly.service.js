@@ -3,7 +3,6 @@ import { weeklyRenderer } from "./weekly.renderer.js";
 import { weeklyValidation } from "./weekly.validation.js";
 import { notificationService } from "../../../../core/services/notification.service.js";
 import { stateService } from "../../../../core/services/state.service.js";
-import { API_CONSTANTS } from "../../../../core/constants/api.const.js";
 import {
   convertPersianToGregorian,
   convertToPersianDate,
@@ -808,16 +807,8 @@ class WeeklyService {
       notificationService.info("📊 در حال آماده‌سازی گزارش...");
 
       // دریافت اطلاعات مشتری
-      const customerResponse = await fetch(
-        `${API_CONSTANTS.BASE_URL}/customers/${this.customerId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("adminToken")}`,
-          },
-        },
-      );
-      const customerData = await customerResponse.json();
-      const customer = customerData.success ? customerData.data : {};
+      const customerResponse = await weeklyApi.getCustomer(this.customerId);
+      const customer = customerResponse.success ? customerResponse.data : {};
 
       // دریافت گله‌ها با اطلاعات کامل
       const flocksWithWeeks = await Promise.all(

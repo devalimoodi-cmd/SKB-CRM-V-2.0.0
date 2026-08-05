@@ -43,8 +43,9 @@ export const dashboardApi = {
       ":id",
       customerId,
     );
-    if (flockId) endpoint += `?flock_id=${flockId}`;
-    return apiService.get(endpoint);
+    const params = {};
+    if (flockId) params.flock_id = flockId;
+    return apiService.get(endpoint, params);
   },
 
   // ===== بوکمارک‌ها =====
@@ -82,28 +83,11 @@ export const dashboardApi = {
   // دریافت تاریخچه پیامک‌های مشتری (GET /sms/log/:customerId)
   async getSmsHistory(customerId, flockId = null) {
     try {
-      const token = localStorage.getItem("adminToken");
-      const baseURL = API_CONSTANTS.BASE_URL || "http://localhost:5000/api";
-      const params = new URLSearchParams();
-      if (flockId) params.append("flock_id", flockId);
-      const queryString = params.toString();
+      const endpoint = `${API_CONSTANTS.ENDPOINTS.SMS.LOG}/${customerId}`;
+      const params = {};
+      if (flockId) params.flock_id = flockId;
 
-      const response = await fetch(
-        `${baseURL}/sms/log/${customerId}${queryString ? `?${queryString}` : ""}`,
-        {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        },
-      );
-
-      // اگر 404 باشد یعنی هیچ پیامکی وجود ندارد - خالی برگردان
-      if (!response.ok) {
-        return { success: true, data: [] };
-      }
-
-      const json = await response.json();
+      const json = await apiService.get(endpoint, params);
       // بک‌اند آرایه مستقیم برمی‌گرداند: successResponse(res, logs, ...)
       // که shape آن { success: true, data: [...], message: "..." } است
       if (json.success && Array.isArray(json.data)) {
@@ -111,6 +95,7 @@ export const dashboardApi = {
       }
       return { success: true, data: json.data || [] };
     } catch (e) {
+      // اگر 404 باشد یعنی هیچ پیامکی وجود ندارد - خالی برگردان
       return { success: false, data: [] };
     }
   },
@@ -126,7 +111,9 @@ export const dashboardApi = {
 
   // بروزرسانی وضعیت پیامک‌های ارسال‌شده یک گله (چک سرویس و ذخیره در دیتابیس)
   async updateSmsStatusForFlock(customerId, flockId) {
-    return apiService.get(`/sms/update-status/flock/${customerId}/${flockId}`);
+    return apiService.get(
+      `${API_CONSTANTS.ENDPOINTS.SMS.LOG}/update-status/flock/${customerId}/${flockId}`,
+    );
   },
 
   // ===== مشتریان =====

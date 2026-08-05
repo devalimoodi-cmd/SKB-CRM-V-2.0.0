@@ -105,6 +105,15 @@ export const weeklyApi = {
     return apiService.get(endpoint);
   },
 
+  // دریافت اطلاعات مشتری
+  async getCustomer(id) {
+    const endpoint = API_CONSTANTS.ENDPOINTS.CUSTOMERS.DETAIL.replace(
+      ":id",
+      id,
+    );
+    return apiService.get(endpoint);
+  },
+
   // دریافت دوره‌های مشتری
   async getPeriods(customerId) {
     const params = { customer_id: customerId };
