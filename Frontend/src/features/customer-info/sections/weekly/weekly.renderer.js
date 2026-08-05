@@ -321,6 +321,26 @@ export const weeklyRenderer = {
                 <meta charset="UTF-8">
                 <title>گزارش کامل مدیریت هفتگی</title>
                 <style>
+                    @font-face {
+                        font-family: "Vazir";
+                        src: url("/assets/fonts/Vazir-Regular-FD.ttf") format("truetype");
+                        font-weight: 400;
+                    }
+                    @font-face {
+                        font-family: "Vazir";
+                        src: url("/assets/fonts/Vazir-Medium-FD.ttf") format("truetype");
+                        font-weight: 500;
+                    }
+                    @font-face {
+                        font-family: "Vazir";
+                        src: url("/assets/fonts/Vazir-Bold-FD.ttf") format("truetype");
+                        font-weight: 700;
+                    }
+                    @font-face {
+                        font-family: "Vazir";
+                        src: url("/assets/fonts/Vazir-Black-FD.ttf") format("truetype");
+                        font-weight: 900;
+                    }
                     * { margin: 0; padding: 0; box-sizing: border-box; }
                     body { font-family: 'Vazir', 'Tahoma', sans-serif; padding: 20px; line-height: 1.7; color: #1e293b; background: #f8fafc; }
                     .report-header { text-align: center; margin-bottom: 30px; padding: 25px; background: linear-gradient(135deg, #2c7a6e 0%, #065f46 100%); color: white; border-radius: 12px; }

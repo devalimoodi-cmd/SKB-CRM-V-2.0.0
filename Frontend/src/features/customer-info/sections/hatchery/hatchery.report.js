@@ -412,6 +412,26 @@ class HatcheryReport {
         <meta charset="UTF-8">
         <title>گزارش کامل جوجه‌ریزی</title>
         <style>
+          @font-face {
+            font-family: "Vazir";
+            src: url("/assets/fonts/Vazir-Regular-FD.ttf") format("truetype");
+            font-weight: 400;
+          }
+          @font-face {
+            font-family: "Vazir";
+            src: url("/assets/fonts/Vazir-Medium-FD.ttf") format("truetype");
+            font-weight: 500;
+          }
+          @font-face {
+            font-family: "Vazir";
+            src: url("/assets/fonts/Vazir-Bold-FD.ttf") format("truetype");
+            font-weight: 700;
+          }
+          @font-face {
+            font-family: "Vazir";
+            src: url("/assets/fonts/Vazir-Black-FD.ttf") format("truetype");
+            font-weight: 900;
+          }
           @media print { body { margin: 0.7cm; } }
           body {
             font-family: 'Vazir', 'Tahoma', sans-serif;

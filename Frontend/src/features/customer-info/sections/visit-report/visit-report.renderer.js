@@ -484,6 +484,26 @@ export const visitReportRenderer = {
                 <meta charset="UTF-8">
                 <title>گزارش بازدید - ${convertToPersianDate(visit.visit_date)}</title>
                 <style>
+                    @font-face {
+                        font-family: "Vazir";
+                        src: url("/assets/fonts/Vazir-Regular-FD.ttf") format("truetype");
+                        font-weight: 400;
+                    }
+                    @font-face {
+                        font-family: "Vazir";
+                        src: url("/assets/fonts/Vazir-Medium-FD.ttf") format("truetype");
+                        font-weight: 500;
+                    }
+                    @font-face {
+                        font-family: "Vazir";
+                        src: url("/assets/fonts/Vazir-Bold-FD.ttf") format("truetype");
+                        font-weight: 700;
+                    }
+                    @font-face {
+                        font-family: "Vazir";
+                        src: url("/assets/fonts/Vazir-Black-FD.ttf") format("truetype");
+                        font-weight: 900;
+                    }
                     * { margin: 0; padding: 0; box-sizing: border-box; }
                     body { font-family: 'Vazir', 'Tahoma', sans-serif; padding: 20px; line-height: 1.8; color: #1e293b; background: white; }
                     .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #667eea; padding-bottom: 20px; }

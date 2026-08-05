@@ -56,6 +56,9 @@
 
 html {
   font-size: 100%;
+  /* 🔍 کوچک‌سازی کلی المان‌ها — معادل زوم‌اوت ۱۵٪ مرورگر
+     باعث می‌شود همه المان‌ها و متن‌ها در همه صفحات ۱۵٪ کوچک‌تر دیده شوند */
+  zoom: 0.85;
   -webkit-text-size-adjust: 100%;
   scroll-behavior: smooth;
 }
@@ -643,12 +646,43 @@ button {
 .container {
   max-width: 1440px;
   margin: 0 auto;
-  padding: 0 20px;
+  padding: 0 1.75rem;
 }
 
 .container-fluid {
   width: 100%;
-  padding: 0 20px;
+  padding: 0 1.75rem;
+}
+
+/* ===== کانتینر صفحه اطلاعات مشتری ===== */
+/* نکته: بدون gap چون در Bootstrap مجموع col-3 + col-9 باید دقیقاً ۱۰۰٪ باشد.
+   فاصله بین ستون‌ها با padding روی خود ستون‌ها اعمال می‌شود. */
+.main-container-UserTask-Wraper {
+  padding: 1.25rem 0;
+  align-items: flex-start;
+}
+
+.main-container-UserTask-Wraper > .col-3 {
+  padding-left: 0.875rem;
+}
+
+.main-container-UserTask-Wraper > .col-9 {
+  padding-right: 0.875rem;
+}
+
+/* ===== سکشن‌های محتوایی ===== */
+.content-wrapper {
+  padding: 1.75rem;
+  margin-bottom: 1.5rem;
+}
+
+/* در موبایل سایدبار بالای محتوا می‌شود */
+@media (max-width: 992px) {
+  .main-container-UserTask-Wraper > .col-3,
+  .main-container-UserTask-Wraper > .col-9 {
+    padding-left: 0;
+    padding-right: 0;
+  }
 }
 
 /* ===== Card ===== */
@@ -667,7 +701,7 @@ button {
 }
 
 .card-header {
-  padding: 16px 20px;
+  padding: 1.25rem 1.5rem;
   border-bottom: 1px solid var(--border-light, #eef2f6);
   display: flex;
   justify-content: space-between;
@@ -676,11 +710,11 @@ button {
 }
 
 .card-body {
-  padding: 20px;
+  padding: 1.5rem;
 }
 
 .card-footer {
-  padding: 16px 20px;
+  padding: 1.25rem 1.5rem;
   border-top: 1px solid var(--border-light, #eef2f6);
   background: var(--gray-100, #f8fafc);
 }
