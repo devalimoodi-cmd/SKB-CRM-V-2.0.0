@@ -118,82 +118,11 @@ export const API_CONSTANTS = {
   },
   TIMEOUT: 30000,
   RETRY_COUNT: 3,
-  CACHE_TTL: 300000, // 5 دقیقه
+  CACHE_TTL: 300000,
   DEFAULT_PAGE_SIZE: 10,
 };
 
-// core/constants/config.const.js
-export const CONFIG = {
-  APP_NAME: "SKB-CRM",
-  VERSION: "2.0.0",
-  ENV: localStorage.getItem("app_env") || "development",
-  THEME: "light",
-  TOKEN_KEY: "adminToken",
-  USER_KEY: "user",
-  LANGUAGE: "fa",
-  DIRECTION: "rtl",
-};
-
-// core/constants/sms.const.js
-export const SMS_TEMPLATES = {
-  weekly_reminder: {
-    id: 491456,
-    name: "یادآوری هفتگی",
-    description: "یادآوری ثبت اطلاعات هفتگی",
-    template: `#FULLNAME# گرامی!
-با توجه به اینکه گله شما در هفته #WEEKNUMBER# قرار دارد، لطفاً اطلاعات ذیل را آماده کنید تا همکاران ما طی ۴۸ ساعت آینده با شما تماس گرفته و اطلاعات مربوطه را اخذ نمایند:
-- مصرف خوراک هفتگی
-- میانگین وزن هفتگی
-- تعداد تلفات گله
-- مقدار ساعت خاموشی سالن
-- برنامه واکسیناسیون گله
-
-با تشکر
-واحد خدمات مشتریان
-کارخانه تولید خوراک طیور ستاره کیان بیرجند
-SKB-CRM.IR`,
-    variables: ["FULLNAME", "WEEKNUMBER", "FLOCKNUMBER"],
-  },
-  thanks_cooperation: {
-    id: 378874,
-    name: "تشکر از همکاری",
-    description: "تشکر از ارائه اطلاعات هفتگی",
-    template: `#FULLNAME# عزیز!
-از همکاری شما در ارائه اطلاعات هفته #WEEKNUMBER# سپاسگزاریم.اطلاعات دریافتی از شما با موفقیت در سامانه ثبت شد.همکاران ما در هفته آینده مجدداً با شما تماس خواهند گرفت.
-
-با تشکر
-واحد خدمات مشتریان
-کارخانه تولید خوراک طیور ستاره کیان بیرجند
-SKB-CRM.IR`,
-    variables: ["FULLNAME", "WEEKNUMBER"],
-  },
-  welcome: {
-    id: 926311,
-    name: "خوش آمد گویی",
-    description: "ثبت نام اولیه مشتری",
-    template: `#FULLNAME# عزیز!
-مفتخریم از همکاری با شما؛ثبت‌نام اولیه شما در سامانه مدیریت ارتباط با مشتریان ستاره کیان بیرجند با موفقیت انجام شد.در ادامه، همکاران واحد خدمات مشتریان به‌صورت هفتگی با شما ارتباط گرفته و وضعیت گله شما را مورد پایش قرار خواهند داد.
-
-با تشکر
-واحد خدمات مشتریان
-کارخانه تولید خوراک طیور ستاره کیان بیرجند
-SKB-CRM.IR`,
-    variables: ["FULLNAME"],
-  },
-};
-
-export const SMS_STATUS = {
-  PENDING: "pending",
-  SENT: "sent",
-  DELIVERED: "delivered",
-  FAILED: "failed",
-  CANCELLED: "cancelled",
-};
-
-export const SMS_STATUS_TEXT = {
-  pending: "در انتظار",
-  sent: "ارسال شده",
-  delivered: "تحویل داده شده",
-  failed: "ناموفق",
-  cancelled: "لغو شده",
-};
+// قرار دادن در window برای دسترسی سراسری
+if (typeof window !== "undefined") {
+  window.API_CONSTANTS = API_CONSTANTS;
+}
