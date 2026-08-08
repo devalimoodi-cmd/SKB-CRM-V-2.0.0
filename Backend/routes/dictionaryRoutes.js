@@ -387,27 +387,27 @@ router.get("/experts", dictionaryController.getExperts);
 
 // --------------------finish routes Experts dictionary tables-------------
 
-// --------------------start routes Period Statuses dictionary tables-------------
-router.get("/period-statuses", dictionaryController.getPeriodStatuses);
+// --------------------start routes Unit Statuses dictionary tables-------------
+router.get("/unit-statuses", dictionaryController.getUnitStatuses);
 router.post(
-  "/period-statuses",
+  "/unit-statuses",
   protect,
   authorize("admin", "super_admin"),
-  dictionaryController.createPeriodStatus,
+  dictionaryController.createUnitStatus,
 );
 router.put(
-  "/period-statuses/:id",
+  "/unit-statuses/:id",
   protect,
   authorize("admin", "super_admin"),
-  dictionaryController.updatePeriodStatus,
+  dictionaryController.updateUnitStatus,
 );
 router.delete(
-  "/period-statuses/:id",
+  "/unit-statuses/:id",
   protect,
   authorize("admin", "super_admin"),
-  dictionaryController.deletePeriodStatus,
+  dictionaryController.deleteUnitStatus,
 );
-// --------------------finish routes Period Statuses dictionary tables-------------
+// --------------------finish routes Unit Statuses dictionary tables-------------
 
 // --------------------start routes Lighting Systems dictionary tables-------------
 router.get("/lighting-systems", dictionaryController.getLightingSystems);

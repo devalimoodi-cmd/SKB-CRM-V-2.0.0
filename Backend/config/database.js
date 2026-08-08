@@ -1,11 +1,15 @@
 const { Sequelize } = require("sequelize");
-require("dotenv").config();
+const path = require("path");
+require("dotenv").config({ path: path.join(__dirname, "../.env") });
+
+// تبدیل ایمن رمز عبور به رشته و حذف کوتیشن‌های اضافی
+const dbPassword = String(process.env.DB_PASSWORD || "").replace(/"/g, "");
 
 // اتصال به PostgreSQL
 const sequelize = new Sequelize(
-  process.env.DB_NAME, // اسم دیتابیس
-  process.env.DB_USER, // اسم کاربر
-  process.env.DB_PASSWORD, // رمز عبور
+  process.env.DB_NAME || "SKB-CRM", // اسم دیتابیس
+  process.env.DB_USER || "postgres", // اسم کاربر
+  dbPassword, // رمز عبور (به صورت رشته و بدون کوتیشن)
   {
     host: process.env.DB_HOST, // آدرس سرور دیتابیس
     port: process.env.DB_PORT, // پورت دیتابیس

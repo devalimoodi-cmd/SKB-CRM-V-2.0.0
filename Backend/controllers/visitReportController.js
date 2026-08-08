@@ -3,7 +3,7 @@ const VisitReportExpert = require("../models/VisitReportExpert");
 const VisitReport = require("../models/VisitReport");
 const VisitReportAttachment = require("../models/VisitReportAttachment");
 const Hall = require("../models/Hall");
-const Period = require("../models/Period");
+const Unit = require("../models/Unit");
 const User = require("../models/User");
 const { successResponse, errorResponse } = require("../utils/response");
 const { fixUnicodeName } = require("../middleware/upload");
@@ -12,15 +12,12 @@ const fs = require("fs");
 const path = require("path");
 
 // ========== ایجاد گزارش جدید ==========
-// ========== ایجاد گزارش جدید ==========
-// ========== ایجاد گزارش جدید ==========
-// ========== ایجاد گزارش جدید ==========
 const createVisitReport = async (req, res) => {
   const transaction = await sequelize.transaction();
   try {
     const {
       customer_id,
-      period_id,
+      unit_id,
       visit_date,
       forward_to,
       report_text,
@@ -73,7 +70,7 @@ const createVisitReport = async (req, res) => {
     const report = await VisitReport.create(
       {
         customer_id: parseInt(customer_id),
-        period_id: period_id ? parseInt(period_id) : null,
+        unit_id: unit_id ? parseInt(unit_id) : null,
         visit_date,
         forward_to: forward_to || null,
         report_text,
@@ -130,14 +127,12 @@ const createVisitReport = async (req, res) => {
 };
 
 // ========== ویرایش گزارش ==========
-// ========== ویرایش گزارش ==========
-// ========== ویرایش گزارش ==========
 const updateVisitReport = async (req, res) => {
   const transaction = await sequelize.transaction();
   try {
     const { id } = req.params;
     let {
-      period_id,
+      unit_id,
       visit_date,
       forward_to,
       report_text,
@@ -159,6 +154,7 @@ const updateVisitReport = async (req, res) => {
         }
       }
     }
+    hallIdArray = hallIdArray.filter((id) => id && !isNaN(id));
 
     // پردازش expert_ids
     let expertIdArray = [];
@@ -173,66 +169,9 @@ const updateVisitReport = async (req, res) => {
         }
       }
     }
-
-    // حذف مقادیر نامعتبر
-    hallIdArray = hallIdArray.filter((id) => id && !isNaN(id));
     expertIdArray = expertIdArray.filter((id) => id && !isNaN(id));
 
-    // پیدا کردن گزارش
-    const report = await VisitReport.findByPk(id, {
-      include: [
-        {
-          model: VisitReportAttachment,
-          as: "attachments", // ✅ این خط رو اضافه کن
-        },
-      ],
-      transaction,
-    });
-
-    if (!report) {
-      await transaction.rollback();
-      return errorResponse(res, "گزارش یافت نشد", 404);
-    }
-
-    // به‌روزرسانی فیلدها
-    await report.update(
-      {
-        period_id: period_id || null,
-        visit_date: visit_date,
-        forward_to: forward_to || null,
-        report_text: report_text,
-      },
-      { transaction },
-    );
-
-    // به‌روزرسانی سالن‌ها
-    await VisitReportHall.destroy({
-      where: { visit_report_id: id },
-      transaction,
-    });
-    if (hallIdArray && hallIdArray.length > 0) {
-      const hallRecords = hallIdArray.map((hid) => ({
-        visit_report_id: id,
-        hall_id: hid,
-      }));
-      await VisitReportHall.bulkCreate(hallRecords, { transaction });
-    }
-
-    // به‌روزرسانی کارشناسان
-    await VisitReportExpert.destroy({
-      where: { visit_report_id: id },
-      transaction,
-    });
-    if (expertIdArray && expertIdArray.length > 0) {
-      const expertRecords = expertIdArray.map((eid) => ({
-        visit_report_id: id,
-        expert_id: eid,
-      }));
-      await VisitReportExpert.bulkCreate(expertRecords, { transaction });
-    }
-
-    // ✅ مدیریت فایل‌های پیوست
-    // 1. پردازش keep_attachment_ids
+    // پردازش keep_attachment_ids
     let keepIds = [];
     if (keep_attachment_ids) {
       if (Array.isArray(keep_attachment_ids)) {
@@ -247,19 +186,67 @@ const updateVisitReport = async (req, res) => {
     }
     keepIds = keepIds.filter((id) => id && !isNaN(id));
 
-    // 2. حذف فایل‌هایی که در keepIds نیستند
-    const attachmentsToDelete = report.attachments.filter(
-      (att) => !keepIds.includes(att.id),
-    );
-
-    for (const att of attachmentsToDelete) {
-      if (fs.existsSync(att.file_path)) {
-        fs.unlinkSync(att.file_path);
-      }
-      await att.destroy({ transaction });
+    // پیدا کردن گزارش
+    const report = await VisitReport.findByPk(id);
+    if (!report) {
+      await transaction.rollback();
+      return errorResponse(res, "گزارش یافت نشد", 404);
     }
 
-    // 3. اضافه کردن فایل‌های جدید
+    // به‌روزرسانی اطلاعات اصلی
+    await report.update(
+      {
+        unit_id: unit_id || null,
+        visit_date: visit_date || report.visit_date,
+        forward_to: forward_to || null,
+        report_text: report_text || report.report_text,
+      },
+      { transaction },
+    );
+
+    // به‌روزرسانی سالن‌ها (حذف قدیمی و ایجاد جدید)
+    if (hallIdArray.length > 0) {
+      await VisitReportHall.destroy({
+        where: { visit_report_id: id },
+        transaction,
+      });
+      const hallRecords = hallIdArray.map((hid) => ({
+        visit_report_id: id,
+        hall_id: hid,
+      }));
+      await VisitReportHall.bulkCreate(hallRecords, { transaction });
+    }
+
+    // به‌روزرسانی کارشناسان
+    if (expertIdArray.length > 0) {
+      await VisitReportExpert.destroy({
+        where: { visit_report_id: id },
+        transaction,
+      });
+      const expertRecords = expertIdArray.map((eid) => ({
+        visit_report_id: id,
+        expert_id: eid,
+      }));
+      await VisitReportExpert.bulkCreate(expertRecords, { transaction });
+    }
+
+    // مدیریت پیوست‌ها
+    // حذف پیوست‌هایی که در keep_attachment_ids نیستند
+    const existingAttachments = await VisitReportAttachment.findAll({
+      where: { visit_report_id: id },
+      transaction,
+    });
+
+    for (const att of existingAttachments) {
+      if (!keepIds.includes(att.id)) {
+        if (fs.existsSync(att.file_path)) {
+          fs.unlinkSync(att.file_path);
+        }
+        await att.destroy({ transaction });
+      }
+    }
+
+    // ذخیره فایل‌های جدید
     const files = req.files || [];
     if (files.length > 0) {
       const attachments = files.map((file) => ({
@@ -268,12 +255,13 @@ const updateVisitReport = async (req, res) => {
         file_path: file.path,
         file_size: file.size,
         mime_type: file.mimetype,
+        stored_name: file.filename,
       }));
       await VisitReportAttachment.bulkCreate(attachments, { transaction });
     }
 
     await transaction.commit();
-    successResponse(res, { reportId: id }, "گزارش بازدید با موفقیت ویرایش شد");
+    successResponse(res, { reportId: id }, "گزارش بازدید ویرایش شد");
   } catch (error) {
     await transaction.rollback();
     if (req.files && req.files.length > 0) {
@@ -286,9 +274,89 @@ const updateVisitReport = async (req, res) => {
   }
 };
 
-// ========== دریافت گزارش با ID ==========
-// ========== دریافت گزارش با ID ==========
-// ========== دریافت گزارش با ID ==========
+// ========== دریافت لیست گزارش‌ها ==========
+const getVisitReports = async (req, res) => {
+  try {
+    const {
+      customer_id,
+      unit_id,
+      visit_date,
+      status,
+      sort = "visit_date",
+      order = "DESC",
+      page = 1,
+      limit = 20,
+    } = req.query;
+    const where = {};
+
+    if (customer_id) where.customer_id = parseInt(customer_id);
+    if (unit_id) where.unit_id = parseInt(unit_id);
+    if (visit_date) where.visit_date = visit_date;
+    if (status) where.status = status;
+
+    const validSortFields = [
+      "id",
+      "visit_date",
+      "created_at",
+      "customer_id",
+      "unit_id",
+      "forward_to",
+      "status",
+    ];
+    const sortField = validSortFields.includes(sort) ? sort : "visit_date";
+    const sortOrder = order.toUpperCase() === "ASC" ? "ASC" : "DESC";
+
+    const offset = (page - 1) * limit;
+
+    const { count, rows } = await VisitReport.findAndCountAll({
+      where,
+      limit: parseInt(limit),
+      offset: parseInt(offset),
+      order: [[sortField, sortOrder]],
+      include: [
+        {
+          model: Hall,
+          attributes: ["id", "hall_name"],
+        },
+        {
+          model: User,
+          as: "experts",
+          attributes: ["id", "first_name", "last_name"],
+        },
+        {
+          model: User,
+          as: "CreatedBy",
+          attributes: ["id", "first_name", "last_name"],
+        },
+        {
+          model: VisitReportAttachment,
+          as: "attachments",
+          attributes: ["id", "file_name", "file_path"],
+          required: false,
+        },
+      ],
+    });
+
+    successResponse(
+      res,
+      {
+        reports: rows,
+        pagination: {
+          total: count,
+          page: parseInt(page),
+          totalPages: Math.ceil(count / limit),
+          limit: parseInt(limit),
+        },
+      },
+      "لیست گزارش‌های بازدید دریافت شد",
+    );
+  } catch (error) {
+    console.error("خطا در دریافت گزارش‌ها:", error);
+    errorResponse(res, error.message, 500);
+  }
+};
+
+// ========== دریافت یک گزارش ==========
 const getVisitReportById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -296,26 +364,17 @@ const getVisitReportById = async (req, res) => {
     const report = await VisitReport.findByPk(id, {
       include: [
         {
-          model: Period,
-          as: "Period",
-          attributes: [
-            "id",
-            "period_name",
-            "period_number",
-            "start_date",
-            "end_date",
-            "status",
-          ],
-        },
-        {
           model: Hall,
-          through: { attributes: [] },
           attributes: ["id", "hall_name"],
         },
         {
           model: User,
           as: "experts",
-          through: { attributes: [] },
+          attributes: ["id", "first_name", "last_name"],
+        },
+        {
+          model: User,
+          as: "CreatedBy",
           attributes: ["id", "first_name", "last_name"],
         },
         {
@@ -325,15 +384,11 @@ const getVisitReportById = async (req, res) => {
             "id",
             "file_name",
             "file_path",
-            "file_size",
             "mime_type",
+            "file_size",
+            "stored_name",
           ],
-        },
-        {
-          // ✅ اضافه کردن ارتباط با کاربر ثبت‌کننده
-          model: User,
-          as: "CreatedBy",
-          attributes: ["id", "first_name", "last_name", "username"],
+          required: false,
         },
       ],
     });
@@ -342,25 +397,76 @@ const getVisitReportById = async (req, res) => {
       return errorResponse(res, "گزارش یافت نشد", 404);
     }
 
-    successResponse(res, report);
+    successResponse(res, report, "گزارش بازدید دریافت شد");
   } catch (error) {
     console.error("خطا در دریافت گزارش:", error);
     errorResponse(res, error.message, 500);
   }
 };
+
+// ========== دریافت همه گزارش‌های یک مشتری ==========
+const getReportsByCustomer = async (req, res) => {
+  try {
+    const { customerId } = req.params;
+
+    if (!customerId) {
+      return errorResponse(res, "شناسه مشتری الزامی است", 400);
+    }
+
+    const reports = await VisitReport.findAll({
+      where: { customer_id: customerId },
+      include: [
+        {
+          model: Hall,
+          attributes: ["id", "hall_name"],
+        },
+        {
+          model: User,
+          as: "CreatedBy",
+          attributes: ["id", "first_name", "last_name"],
+        },
+        {
+          model: VisitReportAttachment,
+          as: "attachments",
+          attributes: ["id", "file_name", "file_path"],
+          required: false,
+        },
+      ],
+      order: [["visit_date", "DESC"]],
+    });
+
+    successResponse(res, reports, "لیست گزارش‌های مشتری دریافت شد");
+  } catch (error) {
+    console.error("خطا:", error);
+    errorResponse(res, error.message, 500);
+  }
+};
+
 // ========== تغییر وضعیت گزارش ==========
 const updateReportStatus = async (req, res) => {
   try {
+    const { id } = req.params;
     const { status } = req.body;
-    if (!["read", "unread"].includes(status)) {
-      return errorResponse(res, "وضعیت باید read یا unread باشد", 400);
+
+    if (!status) {
+      return errorResponse(res, "وضعیت جدید ارسال نشده است", 400);
     }
-    const report = await VisitReport.findByPk(req.params.id);
-    if (!report) return errorResponse(res, "گزارش یافت نشد", 404);
+
+    const validStatuses = ["unread", "read", "archived"];
+    if (!validStatuses.includes(status)) {
+      return errorResponse(res, "وضعیت نامعتبر است", 400);
+    }
+
+    const report = await VisitReport.findByPk(id);
+    if (!report) {
+      return errorResponse(res, "گزارش یافت نشد", 404);
+    }
+
     await report.update({ status });
-    successResponse(res, report, "وضعیت گزارش به‌روز شد");
+    successResponse(res, report, "وضعیت گزارش بروزرسانی شد");
   } catch (error) {
-    errorResponse(res, error.message);
+    console.error("خطا:", error);
+    errorResponse(res, error.message, 500);
   }
 };
 
@@ -368,18 +474,17 @@ const updateReportStatus = async (req, res) => {
 const downloadAttachment = async (req, res) => {
   try {
     const { id } = req.params;
-
     const attachment = await VisitReportAttachment.findByPk(id);
+
     if (!attachment) {
-      return errorResponse(res, "فایل یافت نشد", 404);
+      return errorResponse(res, "فایل پیوست یافت نشد", 404);
     }
 
-    const filePath = path.join(__dirname, "..", attachment.file_path);
-    if (!fs.existsSync(filePath)) {
-      return errorResponse(res, "فایل روی سرور یافت نشد", 404);
+    if (!fs.existsSync(attachment.file_path)) {
+      return errorResponse(res, "فایل پیوست در سرور یافت نشد", 404);
     }
 
-    res.download(filePath, attachment.file_name);
+    res.download(attachment.file_path, attachment.file_name);
   } catch (error) {
     console.error("خطا در دانلود فایل:", error);
     errorResponse(res, error.message, 500);
@@ -390,10 +495,10 @@ const downloadAttachment = async (req, res) => {
 const deleteAttachment = async (req, res) => {
   try {
     const { id } = req.params;
-
     const attachment = await VisitReportAttachment.findByPk(id);
+
     if (!attachment) {
-      return errorResponse(res, "فایل یافت نشد", 404);
+      return errorResponse(res, "فایل پیوست یافت نشد", 404);
     }
 
     if (fs.existsSync(attachment.file_path)) {
@@ -401,9 +506,9 @@ const deleteAttachment = async (req, res) => {
     }
 
     await attachment.destroy();
-    successResponse(res, null, "فایل با موفقیت حذف شد");
+    successResponse(res, null, "فایل پیوست حذف شد");
   } catch (error) {
-    console.error(error);
+    console.error("خطا:", error);
     errorResponse(res, error.message, 500);
   }
 };
@@ -414,138 +519,52 @@ const deleteVisitReport = async (req, res) => {
   try {
     const { id } = req.params;
 
-    // ✅ استفاده از alias 'attachments' در include
-    const report = await VisitReport.findByPk(id, {
-      include: [
-        {
-          model: VisitReportAttachment,
-          as: "attachments", // ✅ این خط رو اضافه کن
-        },
-      ],
-      transaction,
-    });
-
+    const report = await VisitReport.findByPk(id);
     if (!report) {
       await transaction.rollback();
       return errorResponse(res, "گزارش یافت نشد", 404);
     }
 
-    // حذف فایل‌های پیوست از دیسک
-    if (report.attachments && report.attachments.length > 0) {
-      for (const att of report.attachments) {
-        if (fs.existsSync(att.file_path)) {
-          fs.unlinkSync(att.file_path);
-        }
+    // حذف فایل‌های پیوست
+    const attachments = await VisitReportAttachment.findAll({
+      where: { visit_report_id: id },
+      transaction,
+    });
+    for (const att of attachments) {
+      if (fs.existsSync(att.file_path)) {
+        fs.unlinkSync(att.file_path);
       }
+      await att.destroy({ transaction });
     }
 
-    // حذف گزارش
+    // حذف رکوردهای مرتبط
+    await VisitReportHall.destroy({
+      where: { visit_report_id: id },
+      transaction,
+    });
+    await VisitReportExpert.destroy({
+      where: { visit_report_id: id },
+      transaction,
+    });
     await report.destroy({ transaction });
 
     await transaction.commit();
-    successResponse(res, null, "گزارش و پیوست‌ها حذف شدند");
+    successResponse(res, null, "گزارش بازدید با موفقیت حذف شد");
   } catch (error) {
     await transaction.rollback();
     console.error("خطا در حذف گزارش:", error);
     errorResponse(res, error.message, 500);
   }
 };
-// ========== دریافت همه گزارش‌های یک مشتری ==========
-// ============================================
-// دریافت همه گزارش‌های یک مشتری
-// ============================================
-// ========== دریافت همه گزارش‌های یک مشتری ==========
-// ========== دریافت همه گزارش‌های یک مشتری ==========
-const getReportsByCustomer = async (req, res) => {
-  try {
-    const { customerId } = req.params;
 
-    console.log("📥 دریافت گزارش‌های مشتری:", customerId);
-
-    if (!customerId) {
-      return errorResponse(res, "شناسه مشتری الزامی است", 400);
-    }
-
-    const reports = await VisitReport.findAll({
-      where: { customer_id: customerId },
-      attributes: [
-        "id",
-        "customer_id",
-        "period_id",
-        "visit_date",
-        "forward_to",
-        "report_text",
-        "status",
-        "created_by",
-        "created_at",
-        "updated_at", // ✅ اضافه کردن created_at و updated_at
-      ],
-      include: [
-        {
-          model: Period,
-          as: "Period",
-          attributes: [
-            "id",
-            "period_name",
-            "period_number",
-            "start_date",
-            "end_date",
-            "status",
-          ],
-          required: false,
-        },
-        {
-          model: Hall,
-          through: { attributes: [] },
-          attributes: ["id", "hall_name"],
-          required: false,
-        },
-        {
-          model: User,
-          as: "experts",
-          through: { attributes: [] },
-          attributes: ["id", "first_name", "last_name"],
-          required: false,
-        },
-        {
-          model: VisitReportAttachment,
-          as: "attachments",
-          attributes: [
-            "id",
-            "file_name",
-            "file_path",
-            "file_size",
-            "mime_type",
-          ],
-          required: false,
-        },
-        {
-          model: User,
-          as: "CreatedBy",
-          attributes: ["id", "first_name", "last_name", "username"],
-          required: false,
-        },
-      ],
-      order: [["visit_date", "DESC"]],
-    });
-
-    console.log(`✅ ${reports.length} گزارش یافت شد`);
-
-    successResponse(res, reports, "گزارش‌های بازدید دریافت شد");
-  } catch (error) {
-    console.error("❌ خطا در دریافت گزارش‌ها:", error);
-    errorResponse(res, error.message || "خطا در دریافت گزارش‌ها", 500);
-  }
-};
 module.exports = {
   createVisitReport,
   updateVisitReport,
+  getVisitReports,
   getVisitReportById,
   getReportsByCustomer,
   updateReportStatus,
-  deleteVisitReport,
   downloadAttachment,
   deleteAttachment,
-  getReportsByCustomer,
+  deleteVisitReport,
 };
-

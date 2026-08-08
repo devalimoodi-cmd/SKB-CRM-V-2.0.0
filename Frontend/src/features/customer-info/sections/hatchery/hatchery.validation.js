@@ -1,39 +1,9 @@
 export const hatcheryValidation = {
-  validatePeriod(data) {
+  validateUnit(data) {
     const errors = [];
 
-    if (!data.period_name || data.period_name.trim().length < 2) {
-      errors.push("نام دوره باید حداقل 2 کاراکتر باشد");
-    }
-
-    if (!data.start_date) {
-      errors.push("تاریخ شروع الزامی است");
-    } else {
-      // اعتبارسنجی: بین 1 هفته قبل تا 1 هفته بعد از امروز
-      try {
-        const parts = data.start_date.split("/");
-        if (parts.length === 3) {
-          const pYear = parseInt(parts[0]);
-          const pMonth = parseInt(parts[1]);
-          const pDay = parseInt(parts[2]);
-          if (!isNaN(pYear) && !isNaN(pMonth) && !isNaN(pDay)) {
-            const pd = new persianDate([pYear, pMonth, pDay]);
-            const gregDate = pd.toDate();
-            const now = new Date();
-            const oneWeekAgo = new Date(
-              now.getTime() - 7 * 24 * 60 * 60 * 1000,
-            );
-            const oneWeekLater = new Date(
-              now.getTime() + 7 * 24 * 60 * 60 * 1000,
-            );
-            if (gregDate < oneWeekAgo || gregDate > oneWeekLater) {
-              errors.push(
-                "تاریخ شروع باید بین 1 هفته قبل تا 1 هفته بعد از امروز باشد",
-              );
-            }
-          }
-        }
-      } catch (e) {}
+    if (!data.unit_name || data.unit_name.trim().length < 2) {
+      errors.push("نام واحد باید حداقل 2 کاراکتر باشد");
     }
 
     return errors;
@@ -46,9 +16,7 @@ export const hatcheryValidation = {
       errors.push("انتخاب سالن الزامی است");
     }
 
-    if (!data.period_id) {
-      errors.push("انتخاب دوره جوجه‌ریزی الزامی است");
-    }
+    // unit_id اختیاری است (گله می‌تواند بدون واحد هم ثبت شود)
 
     if (!data.placement_date) {
       errors.push("تاریخ جوجه‌ریزی الزامی است");

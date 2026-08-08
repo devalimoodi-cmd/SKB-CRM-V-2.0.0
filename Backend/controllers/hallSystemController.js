@@ -9,7 +9,7 @@ const createOrUpdateSystem = async (req, res) => {
   try {
     const {
       hall_id,
-      period_id,
+      unit_id,
       fan_count,
       fan_size,
       fan_capacity,
@@ -39,7 +39,7 @@ const createOrUpdateSystem = async (req, res) => {
     if (system) {
       // بروزرسانی
       await system.update({
-        period_id: period_id !== undefined ? period_id : system.period_id,
+        unit_id: unit_id !== undefined ? unit_id : system.unit_id,
         fan_count: fan_count !== undefined ? fan_count : system.fan_count,
         fan_size: fan_size !== undefined ? fan_size : system.fan_size,
         fan_capacity:
@@ -77,7 +77,7 @@ const createOrUpdateSystem = async (req, res) => {
       // ایجاد جدید
       system = await HallSystem.create({
         hall_id,
-        period_id: period_id || null,
+        unit_id: unit_id || null,
         fan_count: fan_count || null,
         fan_size: fan_size || null,
         fan_capacity: fan_capacity || null,

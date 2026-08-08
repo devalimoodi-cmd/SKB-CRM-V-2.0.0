@@ -1,42 +1,48 @@
 export const hallsValidation = {
-  validatePeriod(data) {
+  validateUnit(data) {
     const errors = [];
 
-    if (!data.period_name || data.period_name.trim().length < 2) {
-      errors.push("نام دوره باید حداقل 2 کاراکتر باشد");
+    if (!data.unit_name || data.unit_name.trim().length < 2) {
+      errors.push("نام واحد باید حداقل 2 کاراکتر باشد");
     }
 
-    if (!data.start_date) {
-      errors.push("تاریخ شروع الزامی است");
-    } else {
-      // اعتبارسنجی: بین 1 هفته قبل تا 1 هفته بعد از امروز
-      try {
-        const parts = data.start_date.split("/");
-        if (parts.length === 3) {
-          const pYear = parseInt(parts[0]);
-          const pMonth = parseInt(parts[1]);
-          const pDay = parseInt(parts[2]);
-          if (!isNaN(pYear) && !isNaN(pMonth) && !isNaN(pDay)) {
-            const pd = new persianDate([pYear, pMonth, pDay]);
-            const gregDate = pd.toDate();
-            const now = new Date();
-            const oneWeekAgo = new Date(
-              now.getTime() - 7 * 24 * 60 * 60 * 1000,
-            );
-            const oneWeekLater = new Date(
-              now.getTime() + 7 * 24 * 60 * 60 * 1000,
-            );
+    if (!data.address || data.address.trim().length < 5) {
+      errors.push("آدرس واحد الزامی است (حداقل ۵ کاراکتر)");
+    }
 
-            if (gregDate < oneWeekAgo || gregDate > oneWeekLater) {
-              errors.push(
-                "تاریخ شروع باید بین 1 هفته قبل تا 1 هفته بعد از امروز باشد",
-              );
-            }
-          }
-        }
-      } catch (e) {
-        // اگر validation از type پشتیبانی نکرد، نادیده بگیر
+    if (
+      data.longitude &&
+      (isNaN(parseFloat(data.longitude)) ||
+        parseFloat(data.longitude) < -180 ||
+        parseFloat(data.longitude) > 180)
+    ) {
+      errors.push("طول جغرافیایی باید عددی بین 180- تا 180 باشد");
+    }
+
+    if (
+      data.latitude &&
+      (isNaN(parseFloat(data.latitude)) ||
+        parseFloat(data.latitude) < -90 ||
+        parseFloat(data.latitude) > 90)
+    ) {
+      errors.push("عرض جغرافیایی باید عددی بین 90- تا 90 باشد");
+    }
+
+    if (data.hall_count) {
+      const count = parseInt(data.hall_count);
+      if (isNaN(count) || count < 1 || count > 99) {
+        errors.push("تعداد سالن‌ها باید عددی بین ۱ تا ۹۹ باشد");
       }
+    }
+
+    if (!data.manager_name || data.manager_name.trim().length < 2) {
+      errors.push("نام مدیر واحد الزامی است");
+    }
+
+    if (!data.manager_phone) {
+      errors.push("شماره تماس مدیر واحد الزامی است");
+    } else if (!/^[0-9]{11}$/.test(data.manager_phone.replace(/\D/g, ""))) {
+      errors.push("شماره تماس مدیر باید ۱۱ رقم باشد");
     }
 
     return errors;
@@ -45,15 +51,14 @@ export const hallsValidation = {
   validateHall(data) {
     const errors = [];
 
-    if (!data.period_id) {
-      errors.push("لطفاً یک دوره انتخاب کنید");
+    if (!data.unit_id) {
+      errors.push("لطفاً یک واحد انتخاب کنید");
     }
 
     if (!data.hall_name || data.hall_name.trim().length < 2) {
       errors.push("نام سالن باید حداقل 2 کاراکتر باشد");
     }
 
-    // ظرفیت اسمی: اجباری، بین 1000 تا 100,000
     if (!data.nominal_capacity) {
       errors.push("ظرفیت اسمی سالن الزامی است");
     } else {
@@ -65,7 +70,6 @@ export const hallsValidation = {
       }
     }
 
-    // ارتفاع از سطح دریا: اجباری، بین 1 تا 110,000
     if (!data.altitude_above_sea) {
       errors.push("ارتفاع از سطح دریا الزامی است");
     } else {
@@ -77,12 +81,10 @@ export const hallsValidation = {
       }
     }
 
-    // نوع سالن: اجباری
     if (!data.hall_type_id) {
       errors.push("نوع سالن الزامی است");
     }
 
-    // سال ساخت: بین 1300 تا 1499
     if (data.construction_year) {
       const year = parseInt(data.construction_year);
       if (isNaN(year)) {
@@ -92,7 +94,6 @@ export const hallsValidation = {
       }
     }
 
-    // کارشناس خدمات: اجباری
     if (!data.service_expert_id) {
       errors.push("انتخاب کارشناس خدمات الزامی است");
     }
@@ -107,7 +108,6 @@ export const hallsValidation = {
       errors.push("لطفاً یک سالن انتخاب کنید");
     }
 
-    // طول: اجباری، 0.1 تا 999
     if (!data.length && data.length !== 0) {
       errors.push("طول سالن الزامی است");
     } else {
@@ -117,7 +117,6 @@ export const hallsValidation = {
       }
     }
 
-    // عرض: اجباری، 0 تا 999
     if (!data.width && data.width !== 0) {
       errors.push("عرض سالن الزامی است");
     } else {
@@ -127,7 +126,6 @@ export const hallsValidation = {
       }
     }
 
-    // ارتفاع: اجباری، 0 تا 10
     if (!data.height && data.height !== 0) {
       errors.push("ارتفاع سالن الزامی است");
     } else {
@@ -137,7 +135,6 @@ export const hallsValidation = {
       }
     }
 
-    // جنس کف: اجباری
     if (!data.floor_type_id) {
       errors.push("انتخاب جنس کف سالن الزامی است");
     }
@@ -152,7 +149,6 @@ export const hallsValidation = {
       errors.push("لطفاً یک سالن انتخاب کنید");
     }
 
-    // تعداد فن‌ها: اجباری، 1 تا 100
     if (!data.fan_count && data.fan_count !== 0) {
       errors.push("تعداد فن‌ها الزامی است");
     } else {
@@ -162,7 +158,6 @@ export const hallsValidation = {
       }
     }
 
-    // اندازه فن‌ها: اجباری، 0 تا 999
     if (!data.fan_size) {
       errors.push("اندازه فن‌ها الزامی است");
     } else {
@@ -172,7 +167,6 @@ export const hallsValidation = {
       }
     }
 
-    // ظرفیت فن‌ها: اجباری، 100 تا 100,000,000
     if (!data.fan_capacity) {
       errors.push("ظرفیت فن‌ها الزامی است");
     } else {
@@ -182,7 +176,6 @@ export const hallsValidation = {
       }
     }
 
-    // تعداد هیتر: اجباری، 0 تا 100
     if (!data.heater_count && data.heater_count !== 0) {
       errors.push("تعداد هیتر الزامی است");
     } else {
@@ -192,7 +185,6 @@ export const hallsValidation = {
       }
     }
 
-    // انواع سیستم‌ها: اجباری
     if (!data.heating_system_id) {
       errors.push("نوع سیستم گرمایش الزامی است");
     }
@@ -219,17 +211,14 @@ export const hallsValidation = {
       errors.push("لطفاً یک سالن انتخاب کنید");
     }
 
-    // نوع آبخوری: اجباری
     if (!data.waterer_type_id) {
       errors.push("انتخاب نوع آبخوری الزامی است");
     }
 
-    // نوع دانخوری: اجباری
     if (!data.feeder_type_id) {
       errors.push("انتخاب نوع دانخوری الزامی است");
     }
 
-    // تعداد خطوط آبخوری: اجباری، 0 تا 100
     if (!data.water_lines_count && data.water_lines_count !== 0) {
       errors.push("تعداد خطوط آبخوری الزامی است");
     } else {
@@ -239,7 +228,6 @@ export const hallsValidation = {
       }
     }
 
-    // تعداد خطوط دانخوری: اجباری، 0 تا 100
     if (!data.feed_lines_count && data.feed_lines_count !== 0) {
       errors.push("تعداد خطوط دانخوری الزامی است");
     } else {
@@ -249,7 +237,6 @@ export const hallsValidation = {
       }
     }
 
-    // سیستم دان دهی اتوماتیک: اجباری
     if (data.auto_feed_system === undefined || data.auto_feed_system === null) {
       errors.push("انتخاب سیستم دان دهی اتوماتیک الزامی است");
     }

@@ -17,13 +17,14 @@ const HallPhysicalInfo = sequelize.define(
         key: "id",
       },
     },
-    period_id: {
+    unit_id: {
       type: DataTypes.INTEGER,
       allowNull: true,
       references: {
-        model: "periods",
+        model: "units",
         key: "id",
       },
+      comment: "شناسه واحد مرغداری",
     },
     length: {
       type: DataTypes.DECIMAL(10, 2),

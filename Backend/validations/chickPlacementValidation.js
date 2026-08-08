@@ -36,9 +36,9 @@ function validateChickPlacement(data) {
     errors.push("شماره گله باید حداقل 1 باشد");
   }
 
-  // بررسی period_id (اختیاری، ولی اگر وجود دارد باید عدد باشد)
-  if (data.period_id && isNaN(parseInt(data.period_id))) {
-    errors.push("شناسه دوره باید عدد باشد");
+  // بررسی unit_id (اختیاری، ولی اگر وجود دارد باید عدد باشد)
+  if (data.unit_id && isNaN(parseInt(data.unit_id))) {
+    errors.push("شناسه واحد باید عدد باشد");
   }
 
   // بررسی chick_age_on_arrival
@@ -56,11 +56,9 @@ function validateChickPlacement(data) {
     errors.push("تعداد جوجه‌ها باید عدد باشد");
   }
 
-  // بررسی period_id (الزامی)
-  if (!data.period_id) {
-    errors.push("شناسه دوره الزامی است");
-  } else if (isNaN(parseInt(data.period_id))) {
-    errors.push("شناسه دوره باید عدد باشد");
+  // بررسی unit_id (اختیاری - چون دیگر الزامی نیست)
+  if (data.unit_id && isNaN(parseInt(data.unit_id))) {
+    errors.push("شناسه واحد باید عدد باشد");
   }
 
   // بررسی chick_source_id (الزامی)

@@ -1,7 +1,7 @@
 const CustomerPersonalInfo = require("../models/CustomerPersonalInfo");
 const Hall = require("../models/Hall");
 const ChickPlacement = require("../models/ChickPlacement");
-const Period = require("../models/Period");
+const Unit = require("../models/Unit");
 const User = require("../models/User");
 const { successResponse, errorResponse } = require("../utils/response");
 const { Op } = require("sequelize");
@@ -188,10 +188,10 @@ const getCustomerHeaderInfo = async (req, res) => {
       where: { customer_id: id, is_active: true },
     });
 
-    const activePeriods = await Period.count({
+    const activeUnits = await Unit.count({
       where: {
         customer_personal_information_id: id,
-        status: { [Op.in]: ["active", "pending"] },
+        is_active: true,
       },
     });
 
@@ -232,7 +232,7 @@ const getCustomerHeaderInfo = async (req, res) => {
       stats: {
         totalHalls: totalHalls || 0,
         activeFlocks: activeFlocks || 0,
-        activePeriods: activePeriods || 0,
+        activeUnits: activeUnits || 0,
         totalChicks: totalChicks || 0,
       },
     };

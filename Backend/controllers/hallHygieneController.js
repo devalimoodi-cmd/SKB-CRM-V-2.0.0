@@ -10,7 +10,7 @@ const createOrUpdateHygiene = async (req, res) => {
     const {
       hall_id,
       customer_id,
-      period_id,
+      unit_id,
       last_wash_date,
       last_disinfect_date,
       disinfectant_type,
@@ -28,7 +28,7 @@ const createOrUpdateHygiene = async (req, res) => {
     if (hygiene) {
       // بروزرسانی رکورد موجود
       await hygiene.update({
-        period_id: period_id !== undefined ? period_id : hygiene.period_id,
+        unit_id: unit_id !== undefined ? unit_id : hygiene.unit_id,
         last_wash_date:
           last_wash_date !== undefined
             ? last_wash_date
@@ -55,7 +55,7 @@ const createOrUpdateHygiene = async (req, res) => {
       hygiene = await HallHygiene.create({
         hall_id,
         customer_id,
-        period_id: period_id || null,
+        unit_id: unit_id || null,
         last_wash_date: last_wash_date || null,
         last_disinfect_date: last_disinfect_date || null,
         disinfectant_type: disinfectant_type || null,

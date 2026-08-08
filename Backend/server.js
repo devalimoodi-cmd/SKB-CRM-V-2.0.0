@@ -9,7 +9,7 @@ const os = require("os");
 const customerRegistrationRoutes = require("./routes/customerRegistrationRoutes");
 const cityRoutes = require("./routes/cityRoutes");
 const userRoutes = require("./routes/userRoutes");
-const periodRoutes = require("./routes/periodRoutes");
+const unitRoutes = require("./routes/unitRoutes");
 const dictionaryRoutes = require("./routes/dictionaryRoutes");
 const hallRoutes = require("./routes/hallRoutes");
 const hallPhysicalInfoRoutes = require("./routes/hallPhysicalInfoRoutes");
@@ -91,9 +91,9 @@ app.get("/health", (req, res) => {
 app.use("/api/dictionary", dictionaryRoutes);
 // =================
 
-// ================مسیر تعریف و مدیریت دوره ها============
-app.use("/api/periods", periodRoutes);
-// ===============مسیر تعریف و مدیریت دوره ها ============
+// ================مسیر تعریف و مدیریت واحدهای مرغداری============
+app.use("/api/units", unitRoutes);
+// ===============مسیر تعریف و مدیریت واحدهای مرغداری ============
 
 // ==================== روت‌های مدیریت سالن ====================
 app.use("/api/halls", hallRoutes);

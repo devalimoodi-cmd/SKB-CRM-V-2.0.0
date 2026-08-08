@@ -28,10 +28,14 @@ const FlockCompletion = sequelize.define(
       allowNull: false,
       comment: "🆔 شناسه مشتری (ارجاع به جدول customer_personal_information)",
     },
-    period_id: {
+    unit_id: {
       type: DataTypes.INTEGER,
       allowNull: true,
-      comment: "🆔 شناسه دوره پرورش (ارجاع به جدول periods)",
+      references: {
+        model: "units",
+        key: "id",
+      },
+      comment: "🆔 شناسه واحد مرغداری (ارجاع به جدول units)",
     },
     hall_id: {
       type: DataTypes.INTEGER,
@@ -85,22 +89,12 @@ const FlockCompletion = sequelize.define(
     },
 
     // ==========================================================
-    // 📅 اطلاعات سن و دوره (3 فیلد)
+    // 📅 اطلاعات سن و دوره (1 فیلد)
     // ==========================================================
     slaughter_age_days: {
       type: DataTypes.INTEGER,
       allowNull: true,
       comment: "📅 سن کشتار (روز)",
-    },
-    period_number: {
-      type: DataTypes.INTEGER,
-      allowNull: true,
-      comment: "📅 شماره دوره پرورش",
-    },
-    period_name: {
-      type: DataTypes.STRING(100),
-      allowNull: true,
-      comment: "📅 نام دوره پرورش",
     },
 
     // ==========================================================
@@ -230,7 +224,7 @@ const FlockCompletion = sequelize.define(
       { fields: ["chick_placement_id"], unique: true },
       { fields: ["customer_id"] },
       { fields: ["hall_id"] },
-      { fields: ["period_id"] },
+      { fields: ["unit_id"] },
       { fields: ["completion_date"] },
       { fields: ["slaughter_date"] },
     ],

@@ -8,7 +8,7 @@ const CustomerPersonalInfo = require("../models/CustomerPersonalInfo");
 const ChickPlacement = require("../models/ChickPlacement");
 const WeeklyManagement = require("../models/WeeklyManagement");
 const Hall = require("../models/Hall");
-const Period = require("../models/Period");
+const Unit = require("../models/Unit");
 const User = require("../models/User");
 const ChickenBreed = require("../models/ChickenBreed");
 const ChickSource = require("../models/ChickSource");
@@ -127,8 +127,9 @@ const getActiveFlocks = async (req, res) => {
           attributes: ["id", "hall_name"],
         },
         {
-          model: Period,
-          attributes: ["id", "period_name", "period_number"],
+          model: Unit,
+          as: "unit",
+          attributes: ["id", "unit_name"],
         },
         {
           model: ChickenBreed, // ✅ اضافه کردن نژاد
@@ -300,10 +301,10 @@ const getCustomerDetails = async (req, res) => {
       ],
       order: [["placement_date", "DESC"]],
     });
-    // ۳. دریافت دوره‌های مشتری
-    const periods = await Period.findAll({
+    // ۳. دریافت واحدهای مشتری
+    const units = await Unit.findAll({
       where: { customer_personal_information_id: id },
-      order: [["period_number", "DESC"]],
+      order: [["created_at", "DESC"]],
     });
 
     // ۴. دریافت سالن‌های مشتری
@@ -433,71 +434,17 @@ const getCustomerDetails = async (req, res) => {
     });
 
     // ============================================
-    // ✅ فرمت کردن دوره‌ها (بدون تبدیل تاریخ در بک‌اند)
+    // ✅ فرمت کردن واحدها
     // ============================================
-    const formattedPeriods = periods.map((p) => {
-      // تعیین وضعیت دوره
-      let statusText = "🔄 در حال انجام";
-      let statusColor = "#3b82f6";
-      let statusBg = "#dbeafe";
-
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-
-      const endDate = p.end_date ? new Date(p.end_date) : null;
-      const startDate = p.start_date ? new Date(p.start_date) : null;
-
-      // اگر تاریخ پایان وجود دارد
-      if (endDate) {
-        endDate.setHours(0, 0, 0, 0);
-        if (endDate < today) {
-          statusText = "پایان یافته";
-          statusColor = "#16a34a";
-          statusBg = "#dcfce7";
-        } else if (endDate.getTime() === today.getTime()) {
-          statusText = "امروز پایان می‌یابد";
-          statusColor = "#f59e0b";
-          statusBg = "#fef3c7";
-        }
-      }
-
-      // اگر تاریخ شروع در آینده است
-      if (startDate) {
-        startDate.setHours(0, 0, 0, 0);
-        if (startDate > today) {
-          statusText = "شروع نشده";
-          statusColor = "#94a3b8";
-          statusBg = "#f1f5f9";
-        }
-      }
-
-      // اگر وضعیت از دیتابیس خوانده شده
-      if (p.status === "completed" || p.status === "finished") {
-        statusText = "پایان یافته";
-        statusColor = "#16a34a";
-        statusBg = "#dcfce7";
-      } else if (p.status === "cancelled" || p.status === "canceled") {
-        statusText = "لغو شده";
-        statusColor = "#dc2626";
-        statusBg = "#fee2e2";
-      } else if (p.status === "active") {
-        statusText = "در حال انجام";
-        statusColor = "#3b82f6";
-        statusBg = "#dbeafe";
-      }
-
-      return {
-        id: p.id,
-        name: p.period_name,
-        periodNumber: p.period_number,
-        startDate: p.start_date, // ✅ تاریخ میلادی اصلی
-        endDate: p.end_date, // ✅ تاریخ میلادی اصلی
-        status: p.status,
-        statusText: statusText,
-        statusColor: statusColor,
-        statusBg: statusBg,
-      };
-    });
+    const formattedUnits = units.map((u) => ({
+      id: u.id,
+      name: u.unit_name,
+      address: u.address || "-",
+      is_active: u.is_active,
+      statusText: u.is_active ? "✅ فعال" : "❌ غیرفعال",
+      statusColor: u.is_active ? "#16a34a" : "#dc2626",
+      statusBg: u.is_active ? "#dcfce7" : "#fee2e2",
+    }));
     // ============================================
     // ✅ فرمت کردن سالن‌ها
     // ============================================
@@ -575,7 +522,7 @@ const getCustomerDetails = async (req, res) => {
           address: customer.farm_address || "-",
         },
         flocks: formattedFlocks,
-        periods: formattedPeriods,
+        units: formattedUnits,
         halls: formattedHalls,
         weeklyHistory: formattedWeekly,
       },

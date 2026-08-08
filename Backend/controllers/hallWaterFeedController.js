@@ -6,7 +6,7 @@ const createOrUpdateWaterFeed = async (req, res) => {
   try {
     const {
       hall_id,
-      period_id,
+      unit_id,
       waterer_type_id,
       feeder_type_id,
       water_lines_count,
@@ -24,7 +24,7 @@ const createOrUpdateWaterFeed = async (req, res) => {
 
     if (waterFeed) {
       await waterFeed.update({
-        period_id: period_id !== undefined ? period_id : waterFeed.period_id,
+        unit_id: unit_id !== undefined ? unit_id : waterFeed.unit_id,
         waterer_type_id:
           waterer_type_id !== undefined
             ? waterer_type_id
@@ -55,7 +55,7 @@ const createOrUpdateWaterFeed = async (req, res) => {
     } else {
       waterFeed = await HallWaterFeed.create({
         hall_id,
-        period_id: period_id || null,
+        unit_id: unit_id || null,
         waterer_type_id: waterer_type_id || null,
         feeder_type_id: feeder_type_id || null,
         water_lines_count: water_lines_count || null,

@@ -25,13 +25,14 @@ const HallHygiene = sequelize.define(
         key: "id",
       },
     },
-    period_id: {
+    unit_id: {
       type: DataTypes.INTEGER,
       allowNull: true,
       references: {
-        model: "periods",
+        model: "units",
         key: "id",
       },
+      comment: "شناسه واحد مرغداری",
     },
     last_wash_date: {
       type: DataTypes.DATEONLY,

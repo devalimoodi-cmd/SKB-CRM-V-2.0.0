@@ -1678,18 +1678,18 @@ const getExperts = async (req, res) => {
   }
 };
 
-// --------------------START routes Period  Status DropDown dictionary tables-------------
-const PeriodStatus = require("../models/PeriodStatus");
+// --------------------START routes Unit Status DropDown dictionary tables-------------
+const UnitStatus = require("../models/UnitStatus");
 
-// دریافت همه وضعیت‌های دوره
-const getPeriodStatuses = async (req, res) => {
+// دریافت همه وضعیت‌های واحد
+const getUnitStatuses = async (req, res) => {
   try {
     const { active } = req.query;
     let where = { active: true };
     if (active === "false") where = { active: false };
     else if (active === "all") where = {};
 
-    const data = await PeriodStatus.findAll({
+    const data = await UnitStatus.findAll({
       where,
       order: [
         ["sort_order", "ASC"],
@@ -1704,25 +1704,25 @@ const getPeriodStatuses = async (req, res) => {
         "active",
       ],
     });
-    successResponse(res, data, "لیست وضعیت‌های دوره دریافت شد");
+    successResponse(res, data, "لیست وضعیت‌های واحد دریافت شد");
   } catch (error) {
     errorResponse(res, error.message);
   }
 };
 
-// ایجاد وضعیت جدید
-const createPeriodStatus = async (req, res) => {
+// ایجاد وضعیت واحد جدید
+const createUnitStatus = async (req, res) => {
   try {
     const { name, description, color, sort_order, active } = req.body;
     if (!name) return errorResponse(res, "نام وضعیت الزامی است", 400);
-    const status = await PeriodStatus.create({
+    const status = await UnitStatus.create({
       name,
       description: description || null,
       color: color || "#6c757d",
       sort_order: sort_order || 0,
       active: active !== undefined ? active : true,
     });
-    successResponse(res, status, "وضعیت دوره با موفقیت ایجاد شد", 201);
+    successResponse(res, status, "وضعیت واحد با موفقیت ایجاد شد", 201);
   } catch (error) {
     if (error.name === "SequelizeUniqueConstraintError")
       return errorResponse(res, "این نام قبلاً ثبت شده است", 400);
@@ -1730,11 +1730,11 @@ const createPeriodStatus = async (req, res) => {
   }
 };
 
-// بروزرسانی وضعیت
-const updatePeriodStatus = async (req, res) => {
+// بروزرسانی وضعیت واحد
+const updateUnitStatus = async (req, res) => {
   try {
-    const status = await PeriodStatus.findByPk(req.params.id);
-    if (!status) return errorResponse(res, "وضعیت دوره یافت نشد", 404);
+    const status = await UnitStatus.findByPk(req.params.id);
+    if (!status) return errorResponse(res, "وضعیت واحد یافت نشد", 404);
     const { name, description, color, sort_order, active } = req.body;
     await status.update({
       name: name || status.name,
@@ -1743,7 +1743,7 @@ const updatePeriodStatus = async (req, res) => {
       sort_order: sort_order !== undefined ? sort_order : status.sort_order,
       active: active !== undefined ? active : status.active,
     });
-    successResponse(res, status, "وضعیت دوره با موفقیت بروزرسانی شد");
+    successResponse(res, status, "وضعیت واحد با موفقیت بروزرسانی شد");
   } catch (error) {
     if (error.name === "SequelizeUniqueConstraintError")
       return errorResponse(res, "این نام قبلاً ثبت شده است", 400);
@@ -1751,18 +1751,18 @@ const updatePeriodStatus = async (req, res) => {
   }
 };
 
-// حذف وضعیت
-const deletePeriodStatus = async (req, res) => {
+// حذف وضعیت واحد
+const deleteUnitStatus = async (req, res) => {
   try {
-    const status = await PeriodStatus.findByPk(req.params.id);
-    if (!status) return errorResponse(res, "وضعیت دوره یافت نشد", 404);
+    const status = await UnitStatus.findByPk(req.params.id);
+    if (!status) return errorResponse(res, "وضعیت واحد یافت نشد", 404);
     await status.destroy();
-    successResponse(res, null, "وضعیت دوره با موفقیت حذف شد");
+    successResponse(res, null, "وضعیت واحد با موفقیت حذف شد");
   } catch (error) {
     errorResponse(res, error.message);
   }
 };
-// --------------------FINISH routes Period Status DropDown dictionary tables-------------
+// --------------------FINISH routes Unit Status DropDown dictionary tables-------------
 
 module.exports = {
   getHallTypes,
@@ -1830,8 +1830,8 @@ module.exports = {
   updateWatererType,
   deleteWatererType,
   getExperts,
-  getPeriodStatuses,
-  createPeriodStatus,
-  updatePeriodStatus,
-  deletePeriodStatus,
+  getUnitStatuses,
+  createUnitStatus,
+  updateUnitStatus,
+  deleteUnitStatus,
 };

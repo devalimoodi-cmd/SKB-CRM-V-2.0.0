@@ -1,11 +1,11 @@
 export const hatcheryFormService = {
   // ===== ریست فرم دوره =====
 
-  resetPeriodForm() {
+  resetUnitForm() {
     document.getElementById("chickPeriodName").value = "";
     document.getElementById("chickStartDate").value = "";
 
-    const saveBtn = document.querySelector("#chickPeriodInfoTab .btn-primary");
+    const saveBtn = document.querySelector("#chickUnitInfoTab .btn-primary");
     if (saveBtn) {
       saveBtn.textContent = "شروع دوره جدید";
     }
@@ -47,14 +47,13 @@ export const hatcheryFormService = {
 
   // ===== پر کردن فرم ویرایش =====
 
-  fillPeriodForm(period) {
-    document.getElementById("chickPeriodId").value =
-      period.period_number || period.id;
-    document.getElementById("chickPeriodName").value = period.period_name;
+  fillUnitForm(unit) {
+    document.getElementById("chickPeriodId").value = unit.id;
+    document.getElementById("chickUnitName").value = unit.unit_name;
     document.getElementById("chickStartDate").value = this.convertToPersianDate(
       period.start_date,
     );
-    document.getElementById("chickPeriodStatus").value = period.status;
+    // وضعیت از unit_statuses می‌آید
   },
 
   fillFlockForm(flock) {

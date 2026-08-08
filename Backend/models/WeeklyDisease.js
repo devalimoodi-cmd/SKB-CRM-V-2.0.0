@@ -8,7 +8,7 @@ const WeeklyDisease = sequelize.define(
     weekly_management_id: { type: DataTypes.INTEGER, allowNull: false },
     disease_id: { type: DataTypes.INTEGER, allowNull: false },
     customer_id: { type: DataTypes.INTEGER, allowNull: true }, // ✅ تغییر به true
-    period_id: { type: DataTypes.INTEGER, allowNull: true },
+    unit_id: { type: DataTypes.INTEGER, allowNull: true },
     hall_id: { type: DataTypes.INTEGER, allowNull: true }, // ✅ تغییر به true
     chick_placement_id: { type: DataTypes.INTEGER, allowNull: true },
   },

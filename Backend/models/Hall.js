@@ -13,9 +13,14 @@ const Hall = sequelize.define(
       type: DataTypes.INTEGER,
       allowNull: false,
     },
-    period_id: {
+    unit_id: {
       type: DataTypes.INTEGER,
       allowNull: true,
+      references: {
+        model: "units",
+        key: "id",
+      },
+      comment: "شناسه واحد مرغداری",
     },
     hall_name: {
       type: DataTypes.STRING(100),
@@ -74,7 +79,7 @@ const Hall = sequelize.define(
     indexes: [
       {
         unique: true,
-        fields: ["customer_id", "period_id", "hall_number"],
+        fields: ["customer_id", "unit_id", "hall_number"],
       },
     ],
   },

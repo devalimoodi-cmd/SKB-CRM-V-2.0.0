@@ -26,12 +26,13 @@ export const API_CONSTANTS = {
       TOGGLE: "/customers/:id/:action",
       HEADER: "/customer-header/:id/header",
     },
-    PERIODS: {
-      LIST: "/periods",
-      CREATE: "/periods",
-      UPDATE: "/periods/:id",
-      DELETE: "/periods/:id",
-      NEXT_NUMBER: "/periods/next-number/:customerId",
+    UNITS: {
+      LIST: "/units",
+      CREATE: "/units",
+      UPDATE: "/units/:id",
+      DELETE: "/units/:id",
+      EXPERTS: "/units/:unitId/experts",
+      STATUSES: "/units/statuses",
     },
     HALLS: {
       LIST: "/halls",

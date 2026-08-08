@@ -106,14 +106,14 @@ const validateWeeklyData = (data) => {
     }
   }
 
-  // 7. اعتبارسنجی دوره (اگر ارسال شده باشد)
+  // 7. اعتبارسنجی واحد (اگر ارسال شده باشد)
   if (
-    data.period_id !== undefined &&
-    data.period_id !== null &&
-    data.period_id !== ""
+    data.unit_id !== undefined &&
+    data.unit_id !== null &&
+    data.unit_id !== ""
   ) {
-    if (isNaN(parseInt(data.period_id))) {
-      errors.push("شناسه دوره باید عدد باشد");
+    if (isNaN(parseInt(data.unit_id))) {
+      errors.push("شناسه واحد باید عدد باشد");
     }
   }
 

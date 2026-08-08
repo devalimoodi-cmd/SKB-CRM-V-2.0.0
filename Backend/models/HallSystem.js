@@ -17,13 +17,14 @@ const HallSystem = sequelize.define(
         key: "id",
       },
     },
-    period_id: {
+    unit_id: {
       type: DataTypes.INTEGER,
-      allowNull: true, // ✅ به جای false
+      allowNull: true,
       references: {
-        model: "periods",
+        model: "units",
         key: "id",
       },
+      comment: "شناسه واحد مرغداری",
     },
     fan_count: {
       type: DataTypes.INTEGER,

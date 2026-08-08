@@ -44,7 +44,7 @@ class HallsService {
   async loadData() {
     try {
       await this.loadDictionaries();
-      await this.loadPeriods();
+      await this.loadUnits();
       await this.loadHalls();
       this.autoPopulateHallNumber();
     } catch (error) {
@@ -98,24 +98,12 @@ class HallsService {
     }
   }
 
-  async loadPeriods() {
+  async loadUnits() {
     try {
-      const response = await hallsApi.getPeriods(this.customerId);
+      const response = await hallsApi.getUnits(this.customerId);
       if (response.success) {
-        this.periods = response.data.periods || [];
-        const activePeriods = this.periods.filter(
-          (p) => p.status === "active" || p.status === "pending",
-        );
-        hallsRenderer.renderPeriods(activePeriods);
-
-        const nextPeriodRes = await hallsApi.getNextPeriodNumber(
-          this.customerId,
-        );
-        if (nextPeriodRes.success) {
-          const periodIdField = document.getElementById("periodId");
-          if (periodIdField)
-            periodIdField.value = nextPeriodRes.data.periodId || "";
-        }
+        this.periods = response.data.units || [];
+        hallsRenderer.renderUnitsDropdown(this.periods);
       }
     } catch (error) {
       console.error("❌ Error loading periods:", error);
@@ -285,22 +273,20 @@ class HallsService {
   }
 
   async checkActivePeriod() {
-    const hasActivePeriod = this.periods.some(
-      (p) => p.status === "active" || p.status === "pending",
-    );
+    const hasActivePeriod = this.periods.length > 0;
     const container = document.querySelector(".customer-AddHals");
     if (!container) return;
-    const periodTab = container.querySelector('[data-tab="period"]');
-    const periodTabContent = document.getElementById("periodTab");
+    const unitTab = container.querySelector('[data-tab="unit"]');
+    const unitTabContent = document.getElementById("unitTab");
     if (!hasActivePeriod) {
-      if (periodTab) periodTab.style.display = "";
-      if (periodTabContent) periodTabContent.style.display = "";
-      this.activateTab("period");
+      if (unitTab) unitTab.style.display = "";
+      if (unitTabContent) unitTabContent.style.display = "";
+      this.activateTab("unit");
     } else {
-      if (periodTab) periodTab.style.display = "none";
-      if (periodTabContent) periodTabContent.style.display = "none";
+      if (unitTab) unitTab.style.display = "none";
+      if (unitTabContent) unitTabContent.style.display = "none";
       const visibleTab = container.querySelector(
-        '.tab-btn:not([data-tab="period"])',
+        '.tab-btn:not([data-tab="unit"])',
       );
       if (visibleTab) this.activateTab(visibleTab.dataset.tab);
     }
@@ -318,7 +304,7 @@ class HallsService {
     const btn = container.querySelector(`.tab-btn[data-tab="${tabId}"]`);
     if (btn) btn.classList.add("active");
     const tabMap = {
-      period: "periodTab",
+      unit: "unitTab",
       basic: "basicTab",
       physical: "physicalTab",
       systems: "systemsTab",
@@ -471,8 +457,8 @@ class HallsService {
         }
         hallNumSelect.value = hall.hall_number.toString();
       }
-      const periodSelect = document.getElementById("PeriodNumber");
-      if (periodSelect && hall.period_id) periodSelect.value = hall.period_id;
+      const unitSelect = document.getElementById("UnitNumber");
+      if (unitSelect && hall.unit_id) unitSelect.value = hall.unit_id;
       document.getElementById("capacity").value = hall.nominal_capacity || "";
       document.getElementById("altitude").value = hall.altitude_above_sea || "";
       document.getElementById("hallType").value = hall.hall_type_id || "";
@@ -622,9 +608,9 @@ class HallsService {
       saveWaterFeedBtn.addEventListener("click", () =>
         this.saveWaterFeedInfo(),
       );
-    const savePeriodBtn = document.querySelector("#periodTab .btn-primary");
-    if (savePeriodBtn)
-      savePeriodBtn.addEventListener("click", () => this.savePeriodInfo());
+    const saveUnitBtn = document.querySelector("#unitTab .btn-primary");
+    if (saveUnitBtn)
+      saveUnitBtn.addEventListener("click", () => this.saveUnitInfo());
     document.querySelectorAll(".btn-secondary").forEach((btn) => {
       btn.addEventListener("click", (e) => {
         const tab = e.target.closest(".tab-content");
@@ -645,52 +631,42 @@ class HallsService {
   // ✅ SAVE FUNCTIONS
   // ============================================================
 
-  async savePeriodInfo() {
+  async saveUnitInfo() {
     const data = {
       customer_personal_information_id: parseInt(this.customerId),
-      period_name: document.getElementById("periodName")?.value,
-      start_date: document.getElementById("startDate")?.value,
+      unit_name: document.getElementById("unitName")?.value,
+      address: document.getElementById("unitAddress")?.value || null,
+      longitude: document.getElementById("unitLongitude")?.value || null,
+      latitude: document.getElementById("unitLatitude")?.value || null,
+      hall_count: document.getElementById("unitHallCount")?.value || null,
+      manager_name: document.getElementById("unitManagerName")?.value || null,
+      manager_phone: document.getElementById("unitManagerPhone")?.value || null,
     };
-    const saveBtn = document.querySelector("#periodTab .btn-primary");
+    const saveBtn = document.querySelector("#unitTab .btn-primary");
     if (!saveBtn || saveBtn.disabled) return;
     const originalText = saveBtn.innerHTML;
     saveBtn.disabled = true;
     saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> در حال ثبت...';
-    const errors = hallsValidation.validatePeriod(data);
+    const errors = hallsValidation.validateUnit(data);
     if (errors.length > 0) {
       notificationService.showValidationErrors(errors);
       saveBtn.disabled = false;
       saveBtn.innerHTML = originalText;
       return;
     }
-    data.start_date = convertPersianToGregorian(data.start_date);
-    if (!data.start_date) {
-      notificationService.error("تاریخ شروع معتبر نیست");
-      saveBtn.disabled = false;
-      saveBtn.innerHTML = originalText;
-      return;
-    }
     try {
-      const response = await hallsApi.createPeriod(data);
+      const response = await hallsApi.createUnit(data);
       saveBtn.disabled = false;
       saveBtn.innerHTML = originalText;
       if (response.success) {
         notificationService.success(
-          `دوره ${response.data.period_number} با موفقیت ثبت شد`,
+          `واحد ${response.data.unit_name} با موفقیت ثبت شد`,
         );
         await this.loadData();
-        this.resetTab("periodTab");
-        const nextPeriodRes = await hallsApi.getNextPeriodNumber(
-          this.customerId,
-        );
-        if (nextPeriodRes.success) {
-          const periodIdField = document.getElementById("periodId");
-          if (periodIdField)
-            periodIdField.value = nextPeriodRes.data.periodId || "";
-        }
-      } else notificationService.error(response.message || "خطا در ثبت دوره");
+        this.resetTab("unitTab");
+      } else notificationService.error(response.message || "خطا در ثبت واحد");
     } catch (error) {
-      console.error("❌ Error saving period:", error);
+      console.error("❌ Error saving unit:", error);
       saveBtn.disabled = false;
       saveBtn.innerHTML = originalText;
       notificationService.error(error.message);
@@ -710,7 +686,7 @@ class HallsService {
     // ===== جمع‌آوری داده‌های همه تب‌ها =====
     const basicData = {
       customer_id: parseInt(this.customerId),
-      period_id: parseInt(document.getElementById("PeriodNumber")?.value),
+      unit_id: parseInt(document.getElementById("UnitNumber")?.value),
       hall_name: document.getElementById("hallName")?.value,
       hall_number: document.getElementById("hallNumber")?.value || null,
       nominal_capacity: document.getElementById("capacity")?.value || null,
@@ -1217,10 +1193,18 @@ class HallsService {
 
   resetTab(tabId) {
     const tabMap = {
-      periodTab: ["periodName", "startDate", "endDate", "periodStatus"],
+      unitTab: [
+        "unitName",
+        "unitAddress",
+        "unitLongitude",
+        "unitLatitude",
+        "unitHallCount",
+        "unitManagerName",
+        "unitManagerPhone",
+      ],
       basicTab: [
         "hallNumber",
-        "PeriodNumber",
+        "UnitNumber",
         "hallName",
         "capacity",
         "altitude",
@@ -1273,7 +1257,7 @@ class HallsService {
     const saveBtn = document.querySelector(`#${tabId} .btn-primary`);
     if (saveBtn) {
       const texts = {
-        periodTab: "شروع دوره جدید",
+        unitTab: "ثبت واحد جدید",
         basicTab: "ذخیره اطلاعات پایه",
         physicalTab: "ذخیره اطلاعات فیزیکی",
         systemsTab: "ذخیره اطلاعات سیستم‌ها",
@@ -1413,8 +1397,8 @@ if (typeof window !== "undefined") {
   window.deleteHallRecord = (id) => hallsService.deleteHall(id);
   window.toggleHallCard = (h) => hallsService.toggleHallCard(h);
   window.saveBasicInfo = () => hallsService.saveBasicInfo();
-  window.savePeriodInfo = () => hallsService.savePeriodInfo();
-  window.resetPeriodTab = () => hallsService.resetTab("periodTab");
+  window.saveUnitInfo = () => hallsService.saveUnitInfo();
+  window.resetUnitTab = () => hallsService.resetTab("unitTab");
   window.resetTab = (t) => hallsService.resetTab(t + "Tab");
   window.savePhysicalInfo = () => hallsService.savePhysicalInfo();
   window.saveSystemsInfo = () => hallsService.saveSystemsInfo();

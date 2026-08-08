@@ -5,9 +5,9 @@ export const hallsApi = {
   // ===== سالن‌ها =====
 
   // دریافت لیست سالن‌ها
-  async getHalls(customerId, periodId = null) {
+  async getHalls(customerId, unitId = null) {
     const params = { customer_id: customerId };
-    if (periodId) params.period_id = periodId;
+    if (unitId) params.unit_id = unitId;
     return apiService.get(API_CONSTANTS.ENDPOINTS.HALLS.LIST, params);
   },
 
@@ -174,25 +174,16 @@ export const hallsApi = {
     );
   },
 
-  // ===== دوره‌ها =====
+  // ===== واحدها =====
 
-  // دریافت دوره‌های مشتری
-  async getPeriods(customerId) {
+  // دریافت واحدهای مشتری
+  async getUnits(customerId) {
     const params = { customer_id: customerId };
-    return apiService.get(API_CONSTANTS.ENDPOINTS.PERIODS.LIST, params);
+    return apiService.get(API_CONSTANTS.ENDPOINTS.UNITS.LIST, params);
   },
 
-  // دریافت شماره دوره بعدی
-  async getNextPeriodNumber(customerId) {
-    const endpoint = API_CONSTANTS.ENDPOINTS.PERIODS.NEXT_NUMBER.replace(
-      ":customerId",
-      customerId,
-    );
-    return apiService.get(endpoint);
-  },
-
-  // ایجاد دوره جدید
-  async createPeriod(data) {
-    return apiService.post(API_CONSTANTS.ENDPOINTS.PERIODS.CREATE, data);
+  // ایجاد واحد جدید
+  async createUnit(data) {
+    return apiService.post(API_CONSTANTS.ENDPOINTS.UNITS.CREATE, data);
   },
 };

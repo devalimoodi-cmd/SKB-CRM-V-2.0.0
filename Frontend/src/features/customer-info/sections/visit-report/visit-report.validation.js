@@ -6,8 +6,8 @@ export const visitReportValidation = {
       errors.push("تاریخ بازدید الزامی است");
     }
 
-    if (!data.period_id) {
-      errors.push("لطفاً یک دوره جوجه‌ریزی انتخاب کنید");
+    if (!data.unit_id) {
+      errors.push("لطفاً یک واحد مرغداری انتخاب کنید");
     }
 
     if (!data.report_text || data.report_text.trim().length < 5) {

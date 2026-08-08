@@ -109,7 +109,7 @@ class VisitReportService {
 
   async loadPeriods() {
     try {
-      const response = await visitReportApi.getPeriods(this.customerId);
+      const response = await visitReportApi.getUnits(this.customerId);
       if (response.success) {
         const allPeriods = response.data.periods || [];
 
@@ -611,7 +611,7 @@ class VisitReportService {
     // آماده‌سازی داده‌ها
     const formData = new FormData();
     formData.append("customer_id", this.customerId);
-    formData.append("period_id", periodId);
+    formData.append("unit_id", periodId);
     formData.append("visit_date", gregorianDate);
     formData.append("forward_to", forwardTo || "");
     formData.append("report_text", reportText);

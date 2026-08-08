@@ -1,8 +1,8 @@
 const { DataTypes } = require("sequelize");
 const { sequelize } = require("../config/database");
 
-const PeriodStatus = sequelize.define(
-  "PeriodStatus",
+const UnitStatus = sequelize.define(
+  "UnitStatus",
   {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
     name: {
@@ -16,7 +16,7 @@ const PeriodStatus = sequelize.define(
     sort_order: { type: DataTypes.INTEGER, defaultValue: 0 },
     active: { type: DataTypes.BOOLEAN, defaultValue: true },
   },
-  { tableName: "period_statuses", timestamps: true, underscored: true },
+  { tableName: "unit_statuses", timestamps: true, underscored: true },
 );
 
-module.exports = PeriodStatus;
+module.exports = UnitStatus;

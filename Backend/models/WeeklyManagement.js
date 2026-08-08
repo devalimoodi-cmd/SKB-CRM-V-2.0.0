@@ -6,7 +6,7 @@ const WeeklyManagement = sequelize.define(
   {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
     customer_id: { type: DataTypes.INTEGER, allowNull: false },
-    period_id: { type: DataTypes.INTEGER, allowNull: true },
+    unit_id: { type: DataTypes.INTEGER, allowNull: true },
     hall_id: { type: DataTypes.INTEGER, allowNull: false },
     chick_placement_id: { type: DataTypes.INTEGER, allowNull: false },
     week_start_date: { type: DataTypes.DATEONLY, allowNull: false },

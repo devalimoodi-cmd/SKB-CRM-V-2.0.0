@@ -1,7 +1,7 @@
 const Bookmark = require("../models/Bookmark");
 const CustomerPersonalInfo = require("../models/CustomerPersonalInfo");
 const ChickPlacement = require("../models/ChickPlacement");
-const Period = require("../models/Period");
+const Unit = require("../models/Unit");
 const User = require("../models/User");
 const { successResponse, errorResponse } = require("../utils/response");
 const { Op } = require("sequelize");
@@ -17,7 +17,7 @@ const getBookmarks = async (req, res) => {
       priority,
       customer_id,
       flock_id,
-      period_id,
+      unit_id,
       search,
       page = 1,
       limit = 20,
@@ -31,7 +31,7 @@ const getBookmarks = async (req, res) => {
     if (priority) where.priority = priority;
     if (customer_id) where.customer_id = customer_id;
     if (flock_id) where.flock_id = flock_id;
-    if (period_id) where.period_id = period_id;
+    if (unit_id) where.unit_id = unit_id;
 
     // جستجو در عنوان و توضیحات
     if (search) {
@@ -60,9 +60,9 @@ const getBookmarks = async (req, res) => {
           attributes: ["id", "flock_number", "placement_date", "is_active"],
         },
         {
-          model: Period,
-          as: "period",
-          attributes: ["id", "period_name", "period_number", "status"],
+          model: Unit,
+          as: "unit",
+          attributes: ["id", "unit_name", "address", "is_active"],
         },
         {
           model: User,
@@ -123,9 +123,9 @@ const getBookmarkById = async (req, res) => {
           attributes: ["id", "flock_number", "placement_date"],
         },
         {
-          model: Period,
-          as: "period",
-          attributes: ["id", "period_name", "period_number"],
+          model: Unit,
+          as: "unit",
+          attributes: ["id", "unit_name", "address"],
         },
         {
           model: User,
@@ -149,8 +149,6 @@ const getBookmarkById = async (req, res) => {
 // ============================================================
 // ایجاد بوکمارک جدید
 // ============================================================
-// ایجاد بوکمارک جدید
-// ============================================================
 const createBookmark = async (req, res) => {
   try {
     const {
@@ -159,7 +157,7 @@ const createBookmark = async (req, res) => {
       type,
       customer_id,
       flock_id,
-      period_id,
+      unit_id,
       week_number,
       flock_age_days,
       due_date,
@@ -190,11 +188,11 @@ const createBookmark = async (req, res) => {
       }
     }
 
-    // اگر دوره مشخص شده، بررسی وجود دوره
-    if (period_id) {
-      const period = await Period.findByPk(period_id);
-      if (!period) {
-        return errorResponse(res, "دوره یافت نشد", 404);
+    // اگر واحد مشخص شده، بررسی وجود واحد
+    if (unit_id) {
+      const unit = await Unit.findByPk(unit_id);
+      if (!unit) {
+        return errorResponse(res, "واحد یافت نشد", 404);
       }
     }
 
@@ -209,7 +207,7 @@ const createBookmark = async (req, res) => {
       type: type || "bookmark",
       customer_id,
       flock_id: flock_id || null,
-      period_id: period_id || null,
+      unit_id: unit_id || null,
       week_number: week_number || null,
       flock_age_days: flock_age_days || null,
       due_date: due_date || null,
@@ -254,7 +252,7 @@ const updateBookmark = async (req, res) => {
       type,
       customer_id,
       flock_id,
-      period_id,
+      unit_id,
       week_number,
       flock_age_days,
       due_date,
@@ -282,7 +280,7 @@ const updateBookmark = async (req, res) => {
     if (type) updateData.type = type;
     if (customer_id) updateData.customer_id = customer_id;
     if (flock_id !== undefined) updateData.flock_id = flock_id;
-    if (period_id !== undefined) updateData.period_id = period_id;
+    if (unit_id !== undefined) updateData.unit_id = unit_id;
     if (week_number !== undefined) updateData.week_number = week_number;
     if (flock_age_days !== undefined)
       updateData.flock_age_days = flock_age_days;
@@ -307,10 +305,7 @@ const updateBookmark = async (req, res) => {
       include: [
         {
           model: CustomerPersonalInfo,
-          as: "customer", // اگر در associations این alias تعریف شده باشد
-          // یا
-          // model: CustomerPersonalInfo,
-          // as: "CustomerPersonalInfo", // alias پیش‌فرض
+          as: "customer",
         },
       ],
     });

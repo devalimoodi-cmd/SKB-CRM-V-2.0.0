@@ -1,6 +1,6 @@
 const Hall = require("../models/Hall");
 const CustomerPersonalInfo = require("../models/CustomerPersonalInfo");
-const Period = require("../models/Period");
+const Unit = require("../models/Unit");
 const { successResponse, errorResponse } = require("../utils/response");
 const User = require("../models/User");
 const { Op } = require("sequelize");
@@ -19,7 +19,7 @@ const createHall = async (req, res) => {
   try {
     const {
       customer_id,
-      period_id,
+      unit_id,
       hall_name,
       hall_number,
       nominal_capacity,
@@ -33,7 +33,7 @@ const createHall = async (req, res) => {
 
     // اعتبارسنجی‌های الزامی
     if (!customer_id) return errorResponse(res, "شناسه مشتری الزامی است", 400);
-    if (!period_id) return errorResponse(res, "شناسه دوره الزامی است", 400);
+    if (!unit_id) return errorResponse(res, "شناسه واحد الزامی است", 400);
     if (!hall_name) return errorResponse(res, "نام سالن الزامی است", 400);
 
     // بررسی وجود مشتری
@@ -45,11 +45,17 @@ const createHall = async (req, res) => {
       return errorResponse(res, "مشتری یافت نشد یا غیرفعال است", 404);
     }
 
+    // بررسی وجود واحد
+    const unit = await Unit.findByPk(unit_id);
+    if (!unit) {
+      return errorResponse(res, "واحد یافت نشد", 404);
+    }
+
     // شماره‌گذاری اتوماتیک hall_number
     let finalHallNumber = hall_number;
     if (!finalHallNumber) {
       const lastHall = await Hall.findOne({
-        where: { customer_id, period_id },
+        where: { customer_id, unit_id },
         order: [["hall_number", "DESC"]],
       });
       finalHallNumber = lastHall ? parseInt(lastHall.hall_number || 0) + 1 : 1;
@@ -59,7 +65,7 @@ const createHall = async (req, res) => {
     let finalHallOrder = hall_order;
     if (!finalHallOrder) {
       const lastHall = await Hall.findOne({
-        where: { customer_id, period_id },
+        where: { customer_id, unit_id },
         order: [["hall_order", "DESC"]],
       });
       finalHallOrder = lastHall ? lastHall.hall_order + 1 : 1;
@@ -67,7 +73,7 @@ const createHall = async (req, res) => {
 
     const hall = await Hall.create({
       customer_id,
-      period_id,
+      unit_id,
       hall_name,
       hall_number: finalHallNumber.toString(),
       hall_order: finalHallOrder,
@@ -87,15 +93,15 @@ const createHall = async (req, res) => {
   }
 };
 // ============================================
-// دریافت لیست سالن‌های یک مشتری و دوره
+// دریافت لیست سالن‌های یک مشتری و واحد
 // ============================================
 const getHallsByCustomer = async (req, res) => {
   try {
-    const { customer_id, period_id } = req.query;
+    const { customer_id, unit_id } = req.query;
 
     const where = {};
     if (customer_id) where.customer_id = customer_id;
-    if (period_id) where.period_id = period_id;
+    if (unit_id) where.unit_id = unit_id;
 
     const halls = await Hall.findAll({
       where,
@@ -105,8 +111,9 @@ const getHallsByCustomer = async (req, res) => {
           attributes: ["id", "full_name", "farm_name"],
         },
         {
-          model: Period,
-          attributes: ["id", "period_name", "start_date"],
+          model: Unit,
+          as: "unit",
+          attributes: ["id", "unit_name", "address"],
         },
       ],
       order: [["hall_number", "ASC"]],
@@ -129,7 +136,7 @@ const getHallById = async (req, res) => {
     const hall = await Hall.findByPk(id, {
       include: [
         { model: CustomerPersonalInfo, attributes: ["full_name", "farm_name"] },
-        { model: Period, attributes: ["period_name", "start_date"] },
+        { model: Unit, as: "unit", attributes: ["unit_name", "address"] },
       ],
     });
 
@@ -268,8 +275,9 @@ const getHallFullInfo = async (req, res) => {
           attributes: ["id", "full_name", "farm_name", "mobile_number"],
         },
         {
-          model: Period,
-          attributes: ["id", "period_name", "start_date", "end_date", "status"],
+          model: Unit,
+          as: "unit",
+          attributes: ["id", "unit_name", "address", "is_active"],
         },
       ],
     });

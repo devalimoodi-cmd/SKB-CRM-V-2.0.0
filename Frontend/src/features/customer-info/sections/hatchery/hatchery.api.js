@@ -2,70 +2,56 @@ import { apiService } from "../../../../core/services/api.service.js";
 import { API_CONSTANTS } from "../../../../core/constants/api.const.js";
 
 export const hatcheryApi = {
-  // ===== دوره‌های پرورش =====
+  // ===== واحدهای مرغداری =====
 
-  // دریافت لیست دوره‌ها
-  async getPeriods(customerId) {
+  // دریافت لیست واحدها
+  async getUnits(customerId) {
     const params = { customer_id: customerId };
-    return apiService.get(API_CONSTANTS.ENDPOINTS.PERIODS.LIST, params);
+    return apiService.get(API_CONSTANTS.ENDPOINTS.UNITS.LIST, params);
   },
 
-  // دریافت یک دوره
-  async getPeriod(id) {
-    const endpoint = API_CONSTANTS.ENDPOINTS.PERIODS.UPDATE.replace(":id", id);
+  // دریافت یک واحد
+  async getUnit(id) {
+    const endpoint = API_CONSTANTS.ENDPOINTS.UNITS.UPDATE.replace(":id", id);
     return apiService.get(endpoint);
   },
 
-  // ایجاد دوره جدید
-  async createPeriod(data) {
-    return apiService.post(API_CONSTANTS.ENDPOINTS.PERIODS.CREATE, data);
+  // ایجاد واحد جدید
+  async createUnit(data) {
+    return apiService.post(API_CONSTANTS.ENDPOINTS.UNITS.CREATE, data);
   },
 
-  // بروزرسانی دوره
-  async updatePeriod(id, data) {
-    const endpoint = API_CONSTANTS.ENDPOINTS.PERIODS.UPDATE.replace(":id", id);
+  // بروزرسانی واحد
+  async updateUnit(id, data) {
+    const endpoint = API_CONSTANTS.ENDPOINTS.UNITS.UPDATE.replace(":id", id);
     return apiService.put(endpoint, data);
   },
 
-  // حذف دوره
-  async deletePeriod(id) {
-    const endpoint = API_CONSTANTS.ENDPOINTS.PERIODS.DELETE.replace(":id", id);
+  // حذف واحد
+  async deleteUnit(id) {
+    const endpoint = API_CONSTANTS.ENDPOINTS.UNITS.DELETE.replace(":id", id);
     return apiService.delete(endpoint);
-  },
-
-  // دریافت شماره دوره بعدی
-  async getNextPeriodNumber(customerId) {
-    const endpoint = API_CONSTANTS.ENDPOINTS.PERIODS.NEXT_NUMBER.replace(
-      ":customerId",
-      customerId,
-    );
-    return apiService.get(endpoint);
   },
 
   // ===== اطلاعات پایان دوره (Flock Completion) =====
 
-  // ثبت اطلاعات پایان دوره برای یک یا چند دوره/گله
+  // ثبت اطلاعات پایان دوره برای یک یا چند واحد/گله
   async completePeriods(data) {
     return apiService.post("/flock-completions/complete-periods", data);
   },
 
-  // دریافت اطلاعات پایان دوره‌های یک دوره
-  async getPeriodCompletions(periodId) {
-    return apiService.get(`/flock-completions/period/${periodId}`);
+  // دریافت اطلاعات پایان دوره‌های یک واحد
+  async getCompletionsByUnit(unitId) {
+    return apiService.get(`/flock-completions/unit/${unitId}`);
   },
 
-  // دریافت اطلاعات پایان دوره یک گله
-  async getFlockCompletion(flockId) {
-    return apiService.get(`/flock-completions/flock/${flockId}`);
+  // دریافت یک پایان دوره
+  async getFlockCompletionById(id) {
+    return apiService.get(`/flock-completions/${id}`);
   },
 
-  // بروزرسانی (ویرایش) اطلاعات پایان دوره
-  async updateCompletion(id, data) {
-    return apiService.put(`/flock-completions/${id}`, data);
-  },
-
-  // برگرداندن (لغو) یک تکمیل دوره
-  async revertCompletion(id) {
+  // حذف (بازگردانی) یک پایان دوره
+  async deleteFlockCompletion(id) {
     return apiService.delete(`/flock-completions/${id}`);
   },
 
@@ -165,10 +151,10 @@ export const hatcheryApi = {
     );
   },
 
-  // دریافت وضعیت‌های دوره
-  async getPeriodStatuses() {
+  // دریافت وضعیت‌های واحد
+  async getUnitStatuses() {
     return apiService.get(
-      `${API_CONSTANTS.ENDPOINTS.DICTIONARY.BASE}/period-statuses`,
+      `${API_CONSTANTS.ENDPOINTS.DICTIONARY.BASE}/unit-statuses`,
     );
   },
 

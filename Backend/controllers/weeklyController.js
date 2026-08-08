@@ -7,7 +7,7 @@ const WeeklySuggestion = require("../models/WeeklySuggestion");
 const ChickPlacement = require("../models/ChickPlacement");
 const Hall = require("../models/Hall");
 const CustomerPersonalInfo = require("../models/CustomerPersonalInfo");
-const Period = require("../models/Period");
+const Unit = require("../models/Unit");
 const {
   validateWeeklyData,
   validateMultipleItems,
@@ -82,7 +82,7 @@ const saveMultipleItems = async (Model, foreignKey, items, baseData) => {
         weekly_management_id: baseData.weekly_management_id,
         [foreignKey]: parseInt(itemId),
         customer_id: baseData.customer_id || null,
-        period_id: baseData.period_id || null,
+        unit_id: baseData.unit_id || null,
         hall_id: baseData.hall_id || null,
         chick_placement_id: baseData.chick_placement_id || null,
       };
@@ -107,7 +107,7 @@ const createWeeklyRecord = async (req, res) => {
 
     const {
       customer_id,
-      period_id,
+      unit_id,
       hall_id,
       chick_placement_id,
       week_start_date,
@@ -148,11 +148,11 @@ const createWeeklyRecord = async (req, res) => {
       return errorResponse(res, "سالن یافت نشد", 404);
     }
 
-    // 5. بررسی وجود دوره (اگر ارسال شده باشد)
-    if (period_id) {
-      const period = await Period.findByPk(period_id);
-      if (!period) {
-        return errorResponse(res, "دوره یافت نشد", 404);
+    // 5. بررسی وجود واحد (اگر ارسال شده باشد)
+    if (unit_id) {
+      const unit = await Unit.findByPk(unit_id);
+      if (!unit) {
+        return errorResponse(res, "واحد یافت نشد", 404);
       }
     }
 
@@ -175,7 +175,7 @@ const createWeeklyRecord = async (req, res) => {
     // 8. ایجاد رکورد اصلی
     const weeklyRecord = await WeeklyManagement.create({
       customer_id,
-      period_id: period_id || null,
+      unit_id: unit_id || null,
       hall_id,
       chick_placement_id,
       week_start_date,
@@ -195,7 +195,7 @@ const createWeeklyRecord = async (req, res) => {
     const baseData = {
       weekly_management_id: weeklyRecord.id,
       customer_id: customer_id,
-      period_id: period_id || null,
+      unit_id: unit_id || null,
       hall_id: hall_id,
       chick_placement_id: chick_placement_id,
     };
@@ -789,7 +789,7 @@ const updateWeeklyRecord = async (req, res) => {
     const baseData = {
       weekly_management_id: record.id,
       customer_id: record.customer_id,
-      period_id: record.period_id,
+      unit_id: record.unit_id,
       hall_id: record.hall_id,
       chick_placement_id: record.chick_placement_id,
     };

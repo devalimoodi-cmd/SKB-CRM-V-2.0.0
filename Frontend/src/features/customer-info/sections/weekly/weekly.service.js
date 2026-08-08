@@ -92,7 +92,7 @@ class WeeklyService {
 
   async loadPeriods() {
     try {
-      const response = await weeklyApi.getPeriods(this.customerId);
+      const response = await weeklyApi.getUnits(this.customerId);
       if (response.success) {
         this.periods = response.data.periods || [];
         weeklyRenderer.renderPeriodsFilter(this.periods);

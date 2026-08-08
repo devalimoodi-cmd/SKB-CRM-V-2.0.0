@@ -2,6 +2,13 @@ import { apiService } from "../../../../core/services/api.service.js";
 import { API_CONSTANTS } from "../../../../core/constants/api.const.js";
 
 export const visitReportApi = {
+  // ===== واحدهای مشتری =====
+
+  async getUnits(customerId) {
+    const params = { customer_id: customerId };
+    return apiService.get(API_CONSTANTS.ENDPOINTS.UNITS.LIST, params);
+  },
+
   // ===== گزارش‌های بازدید =====
 
   // دریافت لیست گزارش‌ها
@@ -79,11 +86,6 @@ export const visitReportApi = {
   },
 
   // دریافت دوره‌های مشتری
-  async getPeriods(customerId) {
-    const params = { customer_id: customerId };
-    return apiService.get(API_CONSTANTS.ENDPOINTS.PERIODS.LIST, params);
-  },
-
   // دریافت کارشناسان
   async getExperts() {
     return apiService.get(`${API_CONSTANTS.ENDPOINTS.DICTIONARY.BASE}/experts`);

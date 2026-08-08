@@ -7,7 +7,7 @@ const { protect, authorize } = require("../middleware/auth");
 // مسیرهای اطلاعات پایان دوره ها (Flock Completion)
 // ============================================
 
-// ثبت اطلاعات پایان دوره برای یک یا چند دوره/گله
+// ثبت اطلاعات پایان دوره برای یک یا چند واحد/گله
 router.post(
   "/complete-periods",
   protect,
@@ -15,34 +15,25 @@ router.post(
   flockCompletionController.completePeriods,
 );
 
-// دریافت اطلاعات پایان دوره های یک دوره
+// دریافت لیست اطلاعات پایان دوره
+router.get("/", protect, flockCompletionController.getFlockCompletions);
+
+// دریافت اطلاعات پایان دوره های یک واحد
 router.get(
-  "/period/:periodId",
+  "/unit/:unitId",
   protect,
-  flockCompletionController.getPeriodCompletions,
+  flockCompletionController.getCompletionsByUnit,
 );
 
 // دریافت اطلاعات پایان دوره یک گله
-router.get(
-  "/flock/:flockId",
-  protect,
-  flockCompletionController.getFlockCompletion,
-);
+router.get("/:id", protect, flockCompletionController.getFlockCompletionById);
 
-// بروزرسانی (ویرایش) اطلاعات پایان دوره
-router.put(
-  "/:id",
-  protect,
-  authorize("expert", "admin", "super_admin"),
-  flockCompletionController.updateCompletion,
-);
-
-// برگرداندن (لغو) یک تکمیل دوره
+// حذف (بازگردانی) یک پایان دوره
 router.delete(
   "/:id",
   protect,
   authorize("expert", "admin", "super_admin"),
-  flockCompletionController.revertCompletion,
+  flockCompletionController.deleteFlockCompletion,
 );
 
 module.exports = router;

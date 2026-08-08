@@ -73,6 +73,18 @@ export const hallsRenderer = {
     this.populateSelect("expert", dictionaries.experts, "انتخاب کارشناس...");
   },
 
+  renderUnitsDropdown(units) {
+    const select = document.getElementById("UnitNumber");
+    if (!select) return;
+    select.innerHTML = '<option value="">انتخاب واحد...</option>';
+    (units || []).forEach((u) => {
+      const opt = document.createElement("option");
+      opt.value = u.id;
+      opt.textContent = u.unit_name;
+      select.appendChild(opt);
+    });
+  },
+
   populateSelect(selectId, data, defaultText, isMultiple = false) {
     const select = document.getElementById(selectId);
     if (!select) return;

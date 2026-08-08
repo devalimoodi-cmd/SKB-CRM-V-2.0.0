@@ -1,12 +1,15 @@
 // ======================= import models data base =============
 const CustomerPersonalInfo = require("./CustomerPersonalInfo");
-const Period = require("./Period");
+const Unit = require("./Unit");
+const UnitStatus = require("./UnitStatus");
+const UnitExpert = require("./UnitExpert");
 const Hall = require("./Hall");
 const HallPhysicalInfo = require("./HallPhysicalInfo");
 const HallSystem = require("./HallSystem");
 const HallWaterFeed = require("./HallWaterFeed");
 const HallHygiene = require("./HallHygiene");
 const ChickPlacement = require("./ChickPlacement");
+const CropTest = require("./CropTest");
 const WeeklyManagement = require("./WeeklyManagement");
 const WeeklyDisease = require("./WeeklyDisease");
 const WeeklyVaccine = require("./WeeklyVaccine");
@@ -52,14 +55,16 @@ User.hasMany(CustomerPersonalInfo, {
   as: "updated_customers",
 });
 
-// ===== CustomerPersonalInfo → Period =====
-CustomerPersonalInfo.hasMany(Period, {
+// ===== CustomerPersonalInfo → Unit =====
+CustomerPersonalInfo.hasMany(Unit, {
   foreignKey: "customer_personal_information_id",
+  as: "units",
   onDelete: "CASCADE",
   hooks: true,
 });
-Period.belongsTo(CustomerPersonalInfo, {
+Unit.belongsTo(CustomerPersonalInfo, {
   foreignKey: "customer_personal_information_id",
+  as: "customer",
 });
 
 // ===== CustomerPersonalInfo → Hall =====
@@ -124,73 +129,154 @@ HallHygiene.belongsTo(CustomerPersonalInfo, {
 });
 
 // ================================================================
-// ✅ ارتباطات Period با وابستگی‌ها
+// ✅ ارتباطات Unit با وابستگی‌ها
 // ================================================================
 
-// Period → Hall
-Period.hasMany(Hall, {
-  foreignKey: "period_id",
+// Unit → UnitStatus
+Unit.belongsTo(UnitStatus, {
+  foreignKey: "unit_status_id",
+  as: "status",
+});
+UnitStatus.hasMany(Unit, {
+  foreignKey: "unit_status_id",
+  as: "units",
+});
+
+// Unit → UnitExpert
+Unit.hasMany(UnitExpert, {
+  foreignKey: "unit_id",
+  as: "experts",
   onDelete: "CASCADE",
   hooks: true,
 });
-Hall.belongsTo(Period, {
-  foreignKey: "period_id",
+UnitExpert.belongsTo(Unit, {
+  foreignKey: "unit_id",
+  as: "unit",
 });
 
-// Period → ChickPlacement
-Period.hasMany(ChickPlacement, {
-  foreignKey: "period_id",
+// Unit → Hall
+Unit.hasMany(Hall, {
+  foreignKey: "unit_id",
   onDelete: "CASCADE",
   hooks: true,
 });
-ChickPlacement.belongsTo(Period, {
-  foreignKey: "period_id",
+Hall.belongsTo(Unit, {
+  foreignKey: "unit_id",
+  as: "unit",
 });
 
-// Period → VisitReport
-Period.hasMany(VisitReport, {
-  foreignKey: "period_id",
+// Unit → ChickPlacement
+Unit.hasMany(ChickPlacement, {
+  foreignKey: "unit_id",
   onDelete: "CASCADE",
   hooks: true,
 });
-VisitReport.belongsTo(Period, {
-  foreignKey: "period_id",
+ChickPlacement.belongsTo(Unit, {
+  foreignKey: "unit_id",
+  as: "unit",
 });
 
-// ✅ Period → HallPhysicalInfo (جدید)
-Period.hasMany(HallPhysicalInfo, {
-  foreignKey: "period_id",
+// Unit → VisitReport
+Unit.hasMany(VisitReport, {
+  foreignKey: "unit_id",
+  onDelete: "CASCADE",
+  hooks: true,
+});
+VisitReport.belongsTo(Unit, {
+  foreignKey: "unit_id",
+  as: "unit",
+});
+
+// Unit → Bookmark
+Unit.hasMany(Bookmark, {
+  foreignKey: "unit_id",
+  as: "unitBookmarks",
+  onDelete: "CASCADE",
+  hooks: true,
+});
+Bookmark.belongsTo(Unit, {
+  foreignKey: "unit_id",
+  as: "unit",
+});
+
+// Unit → HallPhysicalInfo
+Unit.hasMany(HallPhysicalInfo, {
+  foreignKey: "unit_id",
   as: "hallPhysicalInfos",
   onDelete: "CASCADE",
   hooks: true,
 });
-HallPhysicalInfo.belongsTo(Period, {
-  foreignKey: "period_id",
-  as: "period",
+HallPhysicalInfo.belongsTo(Unit, {
+  foreignKey: "unit_id",
+  as: "unit",
 });
 
-// ✅ Period → HallSystem (جدید)
-Period.hasMany(HallSystem, {
-  foreignKey: "period_id",
+// Unit → HallSystem
+Unit.hasMany(HallSystem, {
+  foreignKey: "unit_id",
   as: "hallSystems",
   onDelete: "CASCADE",
   hooks: true,
 });
-HallSystem.belongsTo(Period, {
-  foreignKey: "period_id",
-  as: "period",
+HallSystem.belongsTo(Unit, {
+  foreignKey: "unit_id",
+  as: "unit",
 });
 
-// ✅ Period → HallWaterFeed (جدید)
-Period.hasMany(HallWaterFeed, {
-  foreignKey: "period_id",
+// Unit → HallWaterFeed
+Unit.hasMany(HallWaterFeed, {
+  foreignKey: "unit_id",
   as: "hallWaterFeeds",
   onDelete: "CASCADE",
   hooks: true,
 });
-HallWaterFeed.belongsTo(Period, {
-  foreignKey: "period_id",
-  as: "period",
+HallWaterFeed.belongsTo(Unit, {
+  foreignKey: "unit_id",
+  as: "unit",
+});
+
+// Unit → HallHygiene
+Unit.hasMany(HallHygiene, {
+  foreignKey: "unit_id",
+  onDelete: "CASCADE",
+  hooks: true,
+});
+HallHygiene.belongsTo(Unit, {
+  foreignKey: "unit_id",
+  as: "unit",
+});
+
+// Unit → CropTest
+Unit.hasMany(CropTest, {
+  foreignKey: "unit_id",
+  onDelete: "CASCADE",
+  hooks: true,
+});
+CropTest.belongsTo(Unit, {
+  foreignKey: "unit_id",
+  as: "unit",
+});
+
+// Hall → CropTest
+Hall.hasMany(CropTest, {
+  foreignKey: "hall_id",
+  onDelete: "CASCADE",
+  hooks: true,
+});
+CropTest.belongsTo(Hall, {
+  foreignKey: "hall_id",
+});
+
+// ChickPlacement → CropTest
+ChickPlacement.hasMany(CropTest, {
+  foreignKey: "chick_placement_id",
+  as: "cropTests",
+  onDelete: "CASCADE",
+  hooks: true,
+});
+CropTest.belongsTo(ChickPlacement, {
+  foreignKey: "chick_placement_id",
+  as: "flock",
 });
 
 // ================================================================
@@ -509,15 +595,6 @@ Bookmark.belongsTo(User, {
 User.hasMany(Bookmark, {
   foreignKey: "assigned_to",
   as: "assigned_bookmarks",
-});
-
-Bookmark.belongsTo(Period, {
-  foreignKey: "period_id",
-  as: "period",
-});
-Period.hasMany(Bookmark, {
-  foreignKey: "period_id",
-  as: "bookmarks",
 });
 
 // ================================================================

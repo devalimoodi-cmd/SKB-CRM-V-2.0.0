@@ -6,7 +6,7 @@ const createOrUpdatePhysicalInfo = async (req, res) => {
   try {
     const {
       hall_id,
-      period_id,
+      unit_id,
       length,
       width,
       height,
@@ -24,7 +24,7 @@ const createOrUpdatePhysicalInfo = async (req, res) => {
 
     if (physicalInfo) {
       await physicalInfo.update({
-        period_id: period_id !== undefined ? period_id : physicalInfo.period_id,
+        unit_id: unit_id !== undefined ? unit_id : physicalInfo.unit_id,
         length: length !== undefined ? length : physicalInfo.length,
         width: width !== undefined ? width : physicalInfo.width,
         height: height !== undefined ? height : physicalInfo.height,
@@ -39,7 +39,7 @@ const createOrUpdatePhysicalInfo = async (req, res) => {
     } else {
       physicalInfo = await HallPhysicalInfo.create({
         hall_id,
-        period_id: period_id || null,
+        unit_id: unit_id || null,
         length: length || null,
         width: width || null,
         height: height || null,

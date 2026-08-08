@@ -62,7 +62,7 @@ class HatcheryService {
       const [sources, breeds, statuses] = await Promise.all([
         hatcheryApi.getChickSources(),
         hatcheryApi.getChickenBreeds(),
-        hatcheryApi.getPeriodStatuses(),
+        hatcheryApi.getUnitStatuses(),
       ]);
 
       this.dictionaries = {
@@ -79,7 +79,7 @@ class HatcheryService {
 
   async loadPeriods() {
     try {
-      const response = await hatcheryApi.getPeriods(this.customerId);
+      const response = await hatcheryApi.getUnits(this.customerId);
       if (response.success) {
         this.periods = response.data.periods || [];
         // برای فیلد کشویی دوره - همه دوره‌های active یا pending
@@ -234,7 +234,8 @@ class HatcheryService {
     }
 
     try {
-      const response = await hatcheryApi.getNextPeriodNumber(this.customerId);
+      // شماره بعدی حذف شده - واحدها نیازی به شماره اتوماتیک ندارند
+      return;
       if (response.success) {
         const periodIdField = document.getElementById("chickPeriodId");
         const periodNameField = document.getElementById("chickPeriodName");
@@ -390,21 +391,19 @@ class HatcheryService {
 
   // ===== ذخیره دوره =====
 
-  async savePeriod() {
+  async saveUnit() {
     const data = {
       customer_personal_information_id: parseInt(this.customerId),
-      period_name: document.getElementById("chickPeriodName")?.value,
-      start_date: document.getElementById("chickStartDate")?.value,
-      // status حذف شد - کاربر نیازی به انتخاب ندارد
+      unit_name: document.getElementById("chickUnitName")?.value,
     };
 
-    const saveBtn = document.querySelector("#chickPeriodInfoTab .btn-primary");
+    const saveBtn = document.querySelector("#chickUnitInfoTab .btn-primary");
     if (!saveBtn || saveBtn.disabled) return;
     const originalText = saveBtn.innerHTML;
     saveBtn.disabled = true;
     saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> در حال ثبت...';
 
-    const errors = hatcheryValidation.validatePeriod(data);
+    const errors = hatcheryValidation.validateUnit(data);
     if (errors.length > 0) {
       notificationService.showValidationErrors(errors);
       saveBtn.disabled = false;
@@ -412,60 +411,36 @@ class HatcheryService {
       return;
     }
 
-    data.start_date = convertPersianToGregorian(data.start_date);
-    if (!data.start_date) {
-      notificationService.error("تاریخ شروع معتبر نیست");
-      saveBtn.disabled = false;
-      saveBtn.innerHTML = originalText;
-      return;
-    }
-
     try {
       let response;
-      if (this.isEditingPeriod && this.currentPeriodId) {
-        response = await hatcheryApi.updatePeriod(this.currentPeriodId, data);
+      if (this.isEditingUnit && this.currentUnitId) {
+        response = await hatcheryApi.updateUnit(this.currentUnitId, data);
       } else {
-        response = await hatcheryApi.createPeriod(data);
+        response = await hatcheryApi.createUnit(data);
       }
 
       saveBtn.disabled = false;
       saveBtn.innerHTML = originalText;
 
       if (response.success) {
-        if (typeof Swal !== "undefined") {
-          Swal.fire({
-            icon: "success",
-            title: this.isEditingPeriod
-              ? "✅ دوره بروزرسانی شد"
-              : "✅ دوره ثبت شد",
-            text: this.isEditingPeriod
-              ? `دوره ${data.period_name} با موفقیت بروزرسانی شد`
-              : `دوره شماره ${response.data.period_number} با موفقیت ثبت شد`,
-            confirmButtonText: "باشه",
-            confirmButtonColor: "#2c7a6e",
-          });
-        } else {
-          notificationService.success(
-            this.isEditingPeriod
-              ? "دوره با موفقیت بروزرسانی شد"
-              : `دوره شماره ${response.data.period_number} با موفقیت ثبت شد`,
-          );
-        }
+        notificationService.success(
+          this.isEditingUnit
+            ? "واحد با موفقیت بروزرسانی شد"
+            : `واحد ${response.data.unit_name} با موفقیت ثبت شد`,
+        );
 
-        // بستن حالت ویرایش
-        this.isEditingPeriod = false;
-        this.currentPeriodId = null;
+        this.isEditingUnit = false;
+        this.currentUnitId = null;
         this.setEditModeBanner(false);
 
         await this.loadData();
-        hatcheryFormService.resetPeriodForm();
-        // برگردوندن دکمه
-        saveBtn.innerHTML = '<i class="fas fa-save"></i> شروع دوره جدید';
+        hatcheryFormService.resetUnitForm();
+        saveBtn.innerHTML = '<i class="fas fa-save"></i> ثبت واحد جدید';
       } else {
-        notificationService.error(response.message || "خطا در ثبت دوره");
+        notificationService.error(response.message || "خطا در ثبت واحد");
       }
     } catch (error) {
-      console.error("❌ Error saving period:", error);
+      console.error("❌ Error saving unit:", error);
       saveBtn.disabled = false;
       saveBtn.innerHTML = originalText;
       notificationService.error(error.message);
@@ -950,7 +925,7 @@ class HatcheryService {
 
       // پر کردن همه فیلدها از جمله سالن
       document.getElementById("skb-hall-select").value = flock.hall_id;
-      document.getElementById("skb-period-select").value = flock.period_id;
+      document.getElementById("skb-unit-select").value = flock.unit_id || "";
       document.getElementById("skb-flock-number").value = flock.flock_number;
       document.getElementById("skb-chick-source").value =
         flock.chick_source_id || "";

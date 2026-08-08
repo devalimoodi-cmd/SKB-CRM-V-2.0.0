@@ -315,9 +315,8 @@ export const bookmarksModalService = {
         customerSelect.dispatchEvent(new Event("change"));
         // تنظیم مقادیر انتخاب شده
         setTimeout(() => {
-          if (bookmark.period_id) {
-            document.getElementById("bookmarkPeriod").value =
-              bookmark.period_id;
+          if (bookmark.unit_id) {
+            document.getElementById("bookmarkPeriod").value = bookmark.unit_id;
           }
           if (bookmark.flock_id) {
             document.getElementById("bookmarkFlock").value = bookmark.flock_id;
@@ -335,7 +334,7 @@ export const bookmarksModalService = {
       priority: document.getElementById("bookmarkPriority").value,
       status: document.getElementById("bookmarkStatus").value,
       customer_id: document.getElementById("bookmarkCustomer").value || null,
-      period_id: document.getElementById("bookmarkPeriod").value || null,
+      unit_id: document.getElementById("bookmarkPeriod").value || null,
       flock_id: document.getElementById("bookmarkFlock").value || null,
       flock_age_days: document.getElementById("bookmarkFlockAge").value || null,
       due_date: document.getElementById("bookmarkDueDate").value || null,

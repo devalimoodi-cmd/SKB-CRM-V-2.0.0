@@ -1,7 +1,7 @@
 const ChickPlacement = require("../models/ChickPlacement");
 const CustomerPersonalInfo = require("../models/CustomerPersonalInfo");
 const Hall = require("../models/Hall");
-const Period = require("../models/Period");
+const Unit = require("../models/Unit");
 const {
   validateChickPlacement,
 } = require("../validations/chickPlacementValidation");
@@ -19,7 +19,7 @@ const createChickPlacement = async (req, res) => {
 
     const {
       customer_id,
-      period_id,
+      unit_id,
       hall_id,
       placement_date,
       flock_number,
@@ -57,17 +57,17 @@ const createChickPlacement = async (req, res) => {
       );
     }
 
-    // اگر period_id ارسال شده، بررسی وجود دوره
-    if (period_id) {
-      const period = await Period.findByPk(period_id);
-      if (!period) {
-        return errorResponse(res, "دوره یافت نشد", 404);
+    // اگر unit_id ارسال شده، بررسی وجود واحد
+    if (unit_id) {
+      const unit = await Unit.findByPk(unit_id);
+      if (!unit) {
+        return errorResponse(res, "واحد یافت نشد", 404);
       }
     }
 
     const chickPlacement = await ChickPlacement.create({
       customer_id,
-      period_id: period_id || null,
+      unit_id: unit_id || null,
       hall_id,
       placement_date,
       flock_number,
@@ -93,7 +93,7 @@ const getChickPlacements = async (req, res) => {
   try {
     const {
       customer_id,
-      period_id,
+      unit_id,
       hall_id,
       is_active,
       page = 1,
@@ -102,7 +102,7 @@ const getChickPlacements = async (req, res) => {
     const where = {};
 
     if (customer_id) where.customer_id = customer_id;
-    if (period_id) where.period_id = period_id;
+    if (unit_id) where.unit_id = unit_id;
     if (hall_id) where.hall_id = hall_id;
 
     if (is_active === "true") where.is_active = true;
@@ -189,6 +189,7 @@ const updateChickPlacement = async (req, res) => {
     }
 
     const allowedFields = [
+      "unit_id",
       "placement_date",
       "flock_number",
       "chick_source_id",
@@ -349,7 +350,6 @@ module.exports = {
   updateChickPlacement,
   deleteChickPlacement,
   activateChickPlacement,
-  deactivateChickPlacement,
   deactivateChickPlacement,
   getActiveChickPlacementByHallId,
   toggleChickPlacementStatus,

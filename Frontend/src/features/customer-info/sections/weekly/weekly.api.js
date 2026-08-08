@@ -114,10 +114,10 @@ export const weeklyApi = {
     return apiService.get(endpoint);
   },
 
-  // دریافت دوره‌های مشتری
-  async getPeriods(customerId) {
+  // دریافت واحدهای مشتری
+  async getUnits(customerId) {
     const params = { customer_id: customerId };
-    return apiService.get(API_CONSTANTS.ENDPOINTS.PERIODS.LIST, params);
+    return apiService.get(API_CONSTANTS.ENDPOINTS.UNITS.LIST, params);
   },
 
   // دریافت سالن‌های مشتری

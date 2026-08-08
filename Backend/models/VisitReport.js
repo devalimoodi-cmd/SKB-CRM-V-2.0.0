@@ -13,9 +13,14 @@ const VisitReport = sequelize.define(
       type: DataTypes.INTEGER,
       allowNull: false,
     },
-    period_id: {
+    unit_id: {
       type: DataTypes.INTEGER,
       allowNull: true,
+      references: {
+        model: "units",
+        key: "id",
+      },
+      comment: "شناسه واحد مرغداری",
     },
     visit_date: {
       type: DataTypes.DATEONLY,
@@ -30,7 +35,7 @@ const VisitReport = sequelize.define(
       allowNull: true,
     },
     status: {
-      type: DataTypes.STRING(20), // ✅ ENUM رو به STRING تغییر بده
+      type: DataTypes.STRING(20),
       defaultValue: "unread",
       validate: {
         isIn: [["unread", "read", "archived"]],
