@@ -275,14 +275,9 @@ class SmsService {
     } catch (error) {
       console.error("❌ خطا در checkSmsStatus:", error.message);
 
-      // در صورت خطا، وضعیت پیش‌فرض برگردان
-      return {
-        messageId: messageId,
-        deliveryState: 0,
-        deliveryStateText: "نامشخص",
-        deliveryDateTime: null,
-        status: "pending",
-      };
+      // در صورت خطا، undefined برمی‌گردانیم تا در کنترلر به‌درستی فیلتر شود
+      // (deliveryState: 0 باعث می‌شد شرط‌ها رد شوند)
+      return null;
     }
   }
 

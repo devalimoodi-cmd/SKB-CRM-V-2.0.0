@@ -390,6 +390,10 @@ class AdminPanelService {
       case "super-admin-management":
         await this.loadSuperAdmins();
         break;
+      case "dictionary-management":
+        this.stopChatPolling();
+        await this.initDictionaryManager();
+        break;
       case "public-chat":
         // چت عمومی هنوز در سمت سرور پیاده‌سازی نشده - فقط یک پیام اطلاع‌رسانی نمایش بده
         this.stopChatPolling();
@@ -397,6 +401,26 @@ class AdminPanelService {
         break;
       default:
         console.log("📌 بخش:", menuId);
+    }
+  }
+
+  // ===== مدیریت دیکشنری‌ها =====
+
+  async initDictionaryManager() {
+    try {
+      // اگر ماژول دیکشنری هنوز لود نشده، به‌صورت داینامیک لود کن
+      if (!window.dictManager) {
+        await import("./dictionary.manager.js");
+      }
+      if (window.dictManager) {
+        window.dictManager.init("#dictionary-management");
+      } else {
+        console.warn("⚠️ DictionaryManager در دسترس نیست");
+        notificationService.error("ماژول مدیریت دیکشنری‌ها یافت نشد");
+      }
+    } catch (error) {
+      console.error("❌ Error initializing dictionary manager:", error);
+      notificationService.error("خطا در راه‌اندازی مدیریت دیکشنری‌ها");
     }
   }
 

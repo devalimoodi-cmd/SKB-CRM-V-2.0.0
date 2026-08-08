@@ -80,6 +80,12 @@ SKB-CRM.IR`,
 
     await this.loadData();
     this.setupCharts();
+
+    // اگر هیچ گله‌ای انتخاب نشده، پیام راهنما نمایش داده شود
+    if (!this.selectedFlockId) {
+      this.showNoFlockSelectedMessage();
+    }
+
     this.setupEvents();
     this.setupAccordion();
     this.startAutoRefresh();
@@ -103,8 +109,10 @@ SKB-CRM.IR`,
       // بارگذاری خلاصه آماری
       await this.loadSummary();
 
-      // بارگذاری داده‌های نمودارها
-      await this.loadChartsData();
+      // بارگذاری داده‌های نمودارها (فقط اگر گله‌ای انتخاب شده باشد)
+      if (this.selectedFlockId) {
+        await this.loadChartsData(this.selectedFlockId);
+      }
 
       // رندر تسک‌ها
       this.renderTasks();
@@ -460,6 +468,7 @@ SKB-CRM.IR`,
 
   // ===== نمودارها =====
 
+  // ساخت نمودارها با داده خالی (بدون داده فیک)
   setupCharts() {
     // اگر چارت‌هایی قبلاً ساخته شده‌اند، اول همه را destroy کن
     Object.values(this.chartInstances).forEach((chart) => {
@@ -470,6 +479,9 @@ SKB-CRM.IR`,
       }
     });
     this.chartInstances = {};
+
+    // پاکسازی آمارها
+    this.resetChartStats();
 
     // نمودار وزن‌گیری
     const weightCtx = document
@@ -483,15 +495,16 @@ SKB-CRM.IR`,
       this.chartInstances.weighting = new Chart(weightCtx, {
         type: "line",
         data: {
-          labels: ["هفته ۱", "هفته ۲", "هفته ۳", "هفته ۴", "هفته ۵", "هفته ۶"],
+          labels: [],
           datasets: [
             {
               label: "وزن (کیلوگرم)",
-              data: [0.5, 0.8, 1.2, 1.7, 2.2, 2.8],
+              data: [],
               borderColor: "#4a90e2",
               backgroundColor: "rgba(74, 144, 226, 0.1)",
               fill: true,
               tension: 0.4,
+              pointRadius: 4,
             },
           ],
         },
@@ -510,11 +523,11 @@ SKB-CRM.IR`,
       this.chartInstances.loss = new Chart(lossCtx, {
         type: "bar",
         data: {
-          labels: ["هفته ۱", "هفته ۲", "هفته ۳", "هفته ۴", "هفته ۵", "هفته ۶"],
+          labels: [],
           datasets: [
             {
               label: "تلفات",
-              data: [2, 5, 8, 6, 4, 3],
+              data: [],
               backgroundColor: "#ef4444",
               borderRadius: 4,
             },
@@ -535,15 +548,16 @@ SKB-CRM.IR`,
       this.chartInstances.feed = new Chart(feedCtx, {
         type: "line",
         data: {
-          labels: ["هفته ۱", "هفته ۲", "هفته ۳", "هفته ۴", "هفته ۵", "هفته ۶"],
+          labels: [],
           datasets: [
             {
               label: "خوراک (کیلوگرم)",
-              data: [10, 18, 30, 45, 55, 60],
+              data: [],
               borderColor: "#10b981",
               backgroundColor: "rgba(16, 185, 129, 0.1)",
               fill: true,
               tension: 0.4,
+              pointRadius: 4,
             },
           ],
         },
@@ -556,10 +570,78 @@ SKB-CRM.IR`,
       });
     }
 
-    console.log("✅ Charts initialized");
+    console.log("✅ Charts initialized (empty)");
+  }
+
+  // پاکسازی آمار نمودارها
+  resetChartStats() {
+    const ids = [
+      "avgWeight",
+      "maxWeight",
+      "totalLoss",
+      "avgLoss",
+      "totalFeed",
+      "avgFeed",
+    ];
+    ids.forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) {
+        const unitEl = el.querySelector(".unit");
+        if (unitEl) {
+          el.innerHTML = `<span class="unit">${unitEl.textContent}</span>`;
+        } else {
+          el.textContent = "-";
+        }
+      }
+    });
+  }
+
+  // نمایش پیام «گله‌ای انتخاب نشده» روی نمودارها
+  showNoFlockSelectedMessage() {
+    const chartTitles = document.querySelectorAll(".chart-title");
+    chartTitles.forEach((title) => {
+      // فقط یکبار اضافه کن
+      const existing = title.querySelector(".no-flock-badge");
+      if (!existing) {
+        title.insertAdjacentHTML(
+          "beforeend",
+          `<span class="no-flock-badge" style="margin-inline-start:8px; font-size:10px; font-weight:600; color:#f59e0b; background:#fef3c7; padding:2px 10px; border-radius:12px;">⚠️ گله‌ای انتخاب نشده</span>`,
+        );
+      }
+    });
+
+    // نشان دادن پیام روی chart-wrapper ها
+    document.querySelectorAll(".chart-wrapper").forEach((wrapper) => {
+      const existing = wrapper.querySelector(".chart-empty-overlay");
+      if (!existing) {
+        const overlay = document.createElement("div");
+        overlay.className = "chart-empty-overlay";
+        overlay.innerHTML = `
+          <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; min-height:150px; color:#94a3b8; text-align:center; padding:20px;">
+            <i class="fas fa-chart-line" style="font-size:28px; margin-bottom:10px; opacity:0.4;"></i>
+            <span style="font-size:13px; font-weight:600;">برای مشاهده نمودارها، ابتدا یک گله را انتخاب کنید</span>
+            <span style="font-size:11px; margin-top:6px; opacity:0.8;">از لیست تسک‌ها یک گله را انتخاب کنید</span>
+          </div>
+        `;
+        wrapper.appendChild(overlay);
+      }
+    });
+  }
+
+  // مخفی کردن پیام «گله‌ای انتخاب نشده»
+  hideNoFlockSelectedMessage() {
+    document.querySelectorAll(".no-flock-badge").forEach((el) => el.remove());
+    document
+      .querySelectorAll(".chart-empty-overlay")
+      .forEach((el) => el.remove());
   }
 
   updateCharts(data) {
+    // وقتی داده واقعی وجود دارد، پیام «گله‌ای انتخاب نشده» را مخفی کن
+    if (data && data.flocks && data.flocks.length > 0) {
+      this.hideNoFlockSelectedMessage();
+    }
+
     if (!data || !data.flocks || data.flocks.length === 0) return;
 
     const flock = data.flocks[0];
@@ -660,6 +742,10 @@ SKB-CRM.IR`,
     flockNumber,
     weekNumber,
   ) {
+    // ذخیره گله انتخاب‌شده
+    this.selectedFlockId = flockId;
+    this.selectedCustomerId = customerId;
+
     // حذف کلاس selected از همه کارت‌ها
     document.querySelectorAll(".task-card").forEach((card) => {
       card.classList.remove("selected");

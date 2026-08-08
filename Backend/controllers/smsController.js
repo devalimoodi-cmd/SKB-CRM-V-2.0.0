@@ -3,6 +3,7 @@ const { successResponse, errorResponse } = require("../utils/response");
 const CustomerPersonalInfo = require("../models/CustomerPersonalInfo");
 const User = require("../models/User");
 const SmsLog = require("../models/SmsLog");
+const { Op } = require("sequelize");
 
 // ============================================
 // دریافت اعتبار فعلی
@@ -81,6 +82,77 @@ const sendCustomSms = async (req, res) => {
     );
 
     if (result.success) {
+      // ✅ ذخیره لاگ برای هر شماره ارسال‌شده (اگر مشتری با این شماره وجود داشته باشد)
+      const messageIds = result.messageIds || [];
+
+      for (let i = 0; i < mobiles.length; i++) {
+        try {
+          // پیدا کردن مشتری با این شماره موبایل (اختیاری)
+          const customer = await CustomerPersonalInfo.findOne({
+            where: { mobile_number: mobiles[i] },
+            attributes: ["id", "flock_id", "week_number"],
+          });
+
+          const logData = {
+            mobile: mobiles[i],
+            message,
+            status: "sent",
+            type: "custom",
+            sent_by: req.user?.id || null,
+            sent_at: new Date(),
+            message_id: messageIds[i] || null,
+          };
+
+          // اگر مشتری پیدا شد، customer_id را هم ذخیره کن
+          if (customer) {
+            logData.customer_id = customer.id;
+            // پیدا کردن گله فعال مشتری (اختیاری)
+            const ChickPlacement = require("../models/ChickPlacement");
+            const flock = await ChickPlacement.findOne({
+              where: { customer_id: customer.id, is_active: true },
+              attributes: ["id", "week_number"],
+            });
+            if (flock) {
+              logData.flock_id = flock.id;
+              logData.week_number = flock.week_number;
+            }
+          }
+
+          // بررسی وضعیت تحویل برای هر پیامک (اگر messageId موجود است)
+          if (messageIds[i]) {
+            try {
+              const statusResult = await SmsService.checkSmsStatus(
+                messageIds[i],
+              );
+              if (statusResult && statusResult.deliveryState !== undefined) {
+                logData.delivery_state = statusResult.deliveryState;
+                logData.status =
+                  statusResult.deliveryState === 1
+                    ? "delivered"
+                    : statusResult.deliveryState === 6
+                      ? "failed"
+                      : "sent";
+                if (statusResult.deliveryState === 1) {
+                  logData.delivered_at = new Date();
+                }
+              }
+            } catch (statusError) {
+              console.error(
+                `⚠️ خطا در دریافت وضعیت تحویل پیامک ${messageIds[i]}:`,
+                statusError.message,
+              );
+            }
+          }
+
+          await SmsLog.create(logData);
+        } catch (logError) {
+          console.error(
+            `⚠️ خطا در ذخیره لاگ برای شماره ${mobiles[i]}:`,
+            logError.message,
+          );
+        }
+      }
+
       successResponse(res, result, "پیامک با موفقیت ارسال شد");
     } else {
       errorResponse(res, result.error || "خطا در ارسال پیامک", 400);
@@ -417,12 +489,69 @@ const sendBulkToCustomers = async (req, res) => {
     );
 
     if (result.success) {
+      // ✅ ذخیره لاگ برای هر پیامک ارسال‌شده
+      const logs = [];
+      const messageIds = result.messageIds || [];
+
+      for (let i = 0; i < customers.length; i++) {
+        const customer = customers[i];
+        if (!customer.mobile_number) continue;
+
+        try {
+          const logData = {
+            customer_id: customer.id,
+            mobile: customer.mobile_number,
+            message,
+            status: "sent",
+            type: "bulk",
+            sent_by: req.user?.id || null,
+            sent_at: new Date(),
+            message_id: messageIds[i] || null,
+          };
+
+          // بررسی وضعیت تحویل برای هر پیامک (اگر messageId موجود است)
+          if (messageIds[i]) {
+            try {
+              const statusResult = await SmsService.checkSmsStatus(
+                messageIds[i],
+              );
+              if (statusResult && statusResult.deliveryState !== undefined) {
+                logData.delivery_state = statusResult.deliveryState;
+                logData.status =
+                  statusResult.deliveryState === 1
+                    ? "delivered"
+                    : statusResult.deliveryState === 6
+                      ? "failed"
+                      : "sent";
+                if (statusResult.deliveryState === 1) {
+                  logData.delivered_at = new Date();
+                }
+              }
+            } catch (statusError) {
+              console.error(
+                `⚠️ خطا در دریافت وضعیت تحویل پیامک ${messageIds[i]}:`,
+                statusError.message,
+              );
+            }
+          }
+
+          const log = await SmsLog.create(logData);
+          logs.push(log);
+        } catch (logError) {
+          console.error(
+            `⚠️ خطا در ذخیره لاگ برای مشتری ${customer.id}:`,
+            logError.message,
+          );
+        }
+      }
+
       successResponse(
         res,
         {
           sentCount: mobiles.length,
           messageIds: result.messageIds,
           cost: result.cost,
+          logs,
         },
         `پیامک به ${mobiles.length} مشتری ارسال شد`,
       );
@@ -773,16 +902,20 @@ const updateAllSmsStatusForFlock = async (req, res) => {
       `🔄 بروزرسانی وضعیت پیامک‌های مشتری ${customerId}, گله ${flockId}`,
     );
 
-    // 1. پیدا کردن لاگ‌های مرتبط
+    // 1. پیدا کردن لاگ‌های مرتبط (فقط پیامک‌هایی که message_id دارند و تحویل نشده‌اند)
     const where = { customer_id: parseInt(customerId) };
     if (flockId && flockId !== "null" && flockId !== "undefined") {
       where.flock_id = parseInt(flockId);
     }
 
+    // فقط پیامک‌هایی که message_id دارند و هنوز تحویل نشده‌اند (delivery_state != 1)
+    where.message_id = { [Op.ne]: null };
+    where.delivery_state = { [Op.or]: [null, 0, 2, 3, 4, 5, 6, 7, 8] };
+
     const logs = await SmsLog.findAll({
       where,
       order: [["sent_at", "DESC"]],
-      limit: 20,
+      limit: 100,
     });
 
     if (logs.length === 0) {

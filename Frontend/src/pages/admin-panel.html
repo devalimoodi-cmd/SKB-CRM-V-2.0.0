@@ -183,6 +183,17 @@
                             <i class="fas fa-chevron-left menu-arrow"></i>
                         </div>
 
+                        <div class="sidebar-menu-item" data-menu="dictionary-management">
+                            <div class="menu-icon-wrapper">
+                                <i class="fas fa-book menu-icon"></i>
+                            </div>
+                            <div class="menu-content">
+                                <span class="menu-title">مدیریت دیکشنری‌ها</span>
+                                <span class="menu-description">مدیریت جداول دیکشنری سیستم</span>
+                            </div>
+                            <i class="fas fa-chevron-left menu-arrow"></i>
+                        </div>
+
                         <div class="sidebar-menu-item" data-menu="role-management">
                             <div class="menu-icon-wrapper">
                                 <i class="fas fa-user-tag menu-icon"></i>
@@ -389,6 +400,11 @@
                         </div>
                     </div>
 
+                    <!-- Dictionary Management -->
+                    <div id="dictionary-management" class="content-section">
+                        <div id="dictionaryManagementContainer"></div>
+                    </div>
+
                 </div>
             </div>
         </div>
@@ -568,6 +584,9 @@
     <script type="module" src="/features/admin-panel/admin-panel.api.js"></script>
     <script type="module" src="/features/admin-panel/admin-panel.renderer.js"></script>
     <script type="module" src="/features/admin-panel/admin-panel.validation.js"></script>
+    <script type="module" src="/features/admin-panel/dictionary.schemas.js"></script>
+    <script type="module" src="/features/admin-panel/dictionary.api.js"></script>
+    <script type="module" src="/features/admin-panel/dictionary.manager.js"></script>
     <script type="module" src="/features/admin-panel/admin-panel.service.js"></script>
 
     <!-- ✅ App Service (FIXED: wrong path was /pages/app.service.js) -->

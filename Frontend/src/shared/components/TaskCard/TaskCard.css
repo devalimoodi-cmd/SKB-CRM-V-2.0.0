@@ -86,13 +86,14 @@
 }
 
 /* ===== حالت انتخاب شده (برای نمودارها) ===== */
+/* فقط یک هایلایت ملایم — بدون تغییر ضخامت حاشیه، transform یا background
+   تا چیدمان المان‌های داخل کارت هنگام انتخاب جابجا نشود */
 .task-card.selected {
-  border: 2px solid #8b5cf6 !important;
+  border-right-width: 5px;
   box-shadow:
-    0 0 0 4px rgba(139, 92, 246, 0.2),
-    0 8px 20px rgba(0, 0, 0, 0.1) !important;
-  transform: scale(1.01);
-  background: #f0fdf4 !important;
+    0 0 0 3px rgba(44, 122, 110, 0.25),
+    0 10px 30px rgba(44, 122, 110, 0.12) !important;
+  border-right-color: var(--primary) !important;
 }
 
 /* ===== ذرات ===== */

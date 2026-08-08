@@ -109,11 +109,10 @@ export const dashboardApi = {
     return apiService.get(endpoint);
   },
 
-  // بروزرسانی وضعیت پیامک‌های ارسال‌شده یک گله (چک سرویس و ذخیره در دیتابیس)
+  // ❌ بروزرسانی وضعیت پیامک‌های ارسال‌شده یک گله (چک سرویس و ذخیره در دیتابیس)
+  // ✅ مسیر درست: /sms/update-status/flock/:customerId/:flockId
   async updateSmsStatusForFlock(customerId, flockId) {
-    return apiService.get(
-      `${API_CONSTANTS.ENDPOINTS.SMS.LOG}/update-status/flock/${customerId}/${flockId}`,
-    );
+    return apiService.get(`/sms/update-status/flock/${customerId}/${flockId}`);
   },
 
   // ===== مشتریان =====
