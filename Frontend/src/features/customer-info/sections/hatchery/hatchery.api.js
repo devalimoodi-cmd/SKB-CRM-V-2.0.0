@@ -110,6 +110,49 @@ export const hatcheryApi = {
     return apiService.put(endpoint, data);
   },
 
+  // ===== دوره‌ها (Period) =====
+  // در این نسخه مفهوم «دوره» به گله (جوجه‌ریزی) نگاشت می‌شود؛
+  // این متدها برای سازگاری با کدهای موجود اضافه شده‌اند.
+
+  // دریافت لیست دوره‌ها — در واقع همان واحدهای مشتری است
+  async getPeriods(customerId) {
+    const params = { customer_id: customerId };
+    return apiService.get(API_CONSTANTS.ENDPOINTS.UNITS.LIST, params);
+  },
+
+  // دریافت یک دوره — در واقع همان واحد است
+  async getPeriod(id) {
+    const endpoint = API_CONSTANTS.ENDPOINTS.UNITS.UPDATE.replace(":id", id);
+    return apiService.get(endpoint);
+  },
+
+  // بروزرسانی یک دوره — در واقع همان واحد است
+  async updatePeriod(id, data) {
+    const endpoint = API_CONSTANTS.ENDPOINTS.UNITS.UPDATE.replace(":id", id);
+    return apiService.put(endpoint, data);
+  },
+
+  // حذف یک دوره — در واقع همان واحد است
+  async deletePeriod(id) {
+    const endpoint = API_CONSTANTS.ENDPOINTS.UNITS.DELETE.replace(":id", id);
+    return apiService.delete(endpoint);
+  },
+
+  // دریافت اطلاعات پایان دوره‌های یک گله (از طریق واحد)
+  async getPeriodCompletions(periodId) {
+    return this.getCompletionsByUnit(periodId);
+  },
+
+  // بروزرسانی اطلاعات پایان دوره
+  async updateCompletion(id, data) {
+    return apiService.put(`/flock-completions/${id}`, data);
+  },
+
+  // دریافت اطلاعات پایان دوره یک گله
+  async getFlockCompletion(chickPlacementId) {
+    return apiService.get(`/flock-completions/unit/${chickPlacementId}`);
+  },
+
   // ===== بهداشت و ضدعفونی =====
 
   // دریافت اطلاعات بهداشتی سالن

@@ -1,5 +1,6 @@
 // ================================================================
-// halls.report.js - گزارش کامل سالن‌ها با جزئیات
+// halls.report.js - گزارش کامل واحدها و سالن‌ها با جزئیات
+// این نسخه بر اساس واحدهای مرغداری گروه‌بندی می‌شود
 // ================================================================
 
 import { hallsApi } from "./halls.api.js";
@@ -15,7 +16,7 @@ class HallsReport {
     this.customerId = null;
     this.customerData = null;
     this.hallsData = [];
-    this.periodsData = [];
+    this.unitsData = [];
     this.chickPlacementsData = [];
     this.expertsData = [];
     this.dictionaries = {};
@@ -43,11 +44,11 @@ class HallsReport {
       const hallsRes = await hallsApi.getHalls(this.customerId);
       if (!hallsRes.success) throw new Error("خطا در دریافت سالن‌ها");
 
+      // بارگذاری واحدها
+      await this.loadUnits();
+
       // بارگذاری دیکشنری‌ها
       await this.loadDictionaries();
-
-      // بارگذاری دوره‌ها
-      await this.loadPeriods();
 
       // بارگذاری جوجه‌ریزی‌ها
       await this.loadChickPlacements();
@@ -64,6 +65,7 @@ class HallsReport {
       return {
         customer: this.customerData,
         halls: hallsWithDetails,
+        units: this.unitsData,
         generatedAt: new Date().toISOString(),
       };
     } catch (error) {
@@ -72,14 +74,15 @@ class HallsReport {
     }
   }
 
-  async loadPeriods() {
+  async loadUnits() {
     try {
       const res = await hallsApi.getUnits(this.customerId);
       if (res.success) {
-        this.periodsData = res.data.periods || [];
+        this.unitsData = res.data.units || res.data || [];
       }
     } catch (error) {
-      console.error("❌ Error loading periods:", error);
+      console.error("❌ Error loading units:", error);
+      this.unitsData = [];
     }
   }
 
@@ -175,12 +178,11 @@ class HallsReport {
     );
   }
 
-  getPeriodName(id) {
-    if (!id) return "-";
-    const period = this.periodsData.find((p) => p.id == id);
-    return period
-      ? `دوره ${period.period_number} - ${period.period_name}`
-      : "-";
+  // نام واحد از لیست واحدها
+  getUnitName(unitId) {
+    if (!unitId) return "-";
+    const unit = this.unitsData.find((u) => u.id == unitId);
+    return unit ? unit.unit_name || `واحد ${unit.id}` : "-";
   }
 
   getBreedName(id) {
@@ -296,9 +298,11 @@ class HallsReport {
                 this.dictionaries.feederTypes,
               )
             : "-",
-          // دوره مرتبط با گله فعال (نه دوره قدیمی سالن)
-          activeFlockPeriodName: chickInfo
-            ? this.getPeriodName(chickInfo.period_id)
+          // نام واحد مرتبط با سالن
+          unitName: this.getUnitName(hall.unit_id),
+          // نام واحد مرتبط با گله فعال (اگر سالن unit_id نداشت)
+          activeFlockUnitName: chickInfo
+            ? this.getUnitName(chickInfo.unit_id)
             : "-",
           expertName: this.getExpertName(hall.service_expert_id),
           chickInfo,
@@ -309,18 +313,67 @@ class HallsReport {
     return hallsWithDetails;
   }
 
-  generateHTML(reportData) {
-    const { customer, halls, generatedAt } = reportData;
-    const now = new Date(generatedAt);
-    const persianDate = formatDate(now);
+  // ===== رندر مشخصات کامل یک واحد =====
 
-    let hallsHTML = "";
+  renderUnitDetails(unit) {
+    const statusName = unit.status?.name
+      ? unit.status.name === "active"
+        ? "فعال"
+        : unit.status.name === "inactive"
+          ? "غیرفعال"
+          : unit.status.name
+      : unit.is_active !== false
+        ? "فعال"
+        : "غیرفعال";
 
-    halls.forEach((hall, index) => {
-      hallsHTML += `
+    const statusColor = unit.status?.color || null;
+
+    const expertsHTML =
+      unit.experts && unit.experts.length > 0
+        ? unit.experts
+            .filter((e) => e.is_active !== false)
+            .map(
+              (e) =>
+                `<tr><td>کارشناس</td><td><strong>${e.expert_name || "-"}</strong>${e.expert_role ? ` (${e.expert_role})` : ""}${e.expert_phone ? ` — ${e.expert_phone}` : ""}</td></tr>`,
+            )
+            .join("")
+        : '<tr><td>کارشناس</td><td style="color:#94a3b8;">ثبت نشده</td></tr>';
+
+    return `
+      <div class="unit-details-section">
+        <div class="unit-details-title">
+          <i class="fas fa-building"></i> مشخصات کامل واحد
+        </div>
+        <div class="unit-details-grid">
+          <table class="report-table compact unit-details-table">
+            <tr><td>نام واحد</td><td><strong>${unit.unit_name || "-"}</strong></td></tr>
+            <tr><td>وضعیت</td><td>
+              ${
+                statusColor
+                  ? `<span style="display:inline-block; padding:2px 10px; border-radius:10px; font-size:11px; font-weight:500; background:${statusColor}22; color:${statusColor};">${statusName}</span>`
+                  : `<span class="badge ${unit.is_active !== false ? "bg-success" : "bg-secondary"}">${statusName}</span>`
+              }
+            </td></tr>
+            <tr><td>آدرس</td><td>${unit.address || "-"}</td></tr>
+            <tr><td>مختصات جغرافیایی</td><td>${unit.latitude ? unit.latitude : "-"} / ${unit.longitude ? unit.longitude : "-"}</td></tr>
+            <tr><td>تعداد سالن‌ها</td><td>${unit.hall_count || "-"}</td></tr>
+            <tr><td>ظرفیت کل</td><td>${unit.capacity ? parseInt(unit.capacity).toLocaleString() + " قطعه" : "-"}</td></tr>
+            <tr><td>نام مدیر</td><td>${unit.manager_name || "-"}</td></tr>
+            <tr><td>شماره مدیر</td><td dir="ltr" style="text-align:left;">${unit.manager_phone || "-"}</td></tr>
+            ${expertsHTML}
+          </table>
+        </div>
+      </div>
+    `;
+  }
+
+  // ===== رندر یک سالن =====
+
+  renderHallHTML(hall, index) {
+    return `
         <div class="report-hall">
           <div class="report-hall-header">
-            <h3>${index + 1}. ${hall.hall_name || "سالن بدون نام"} 
+            <h3>${index + 1}. ${hall.hall_name || "سالن بدون نام"}
                 <span class="badge ${hall.is_active ? "bg-success" : "bg-secondary"}">
                   ${hall.is_active ? "فعال" : "غیرفعال"}
                 </span>
@@ -332,6 +385,7 @@ class HallsReport {
               <div class="report-section">
                 <h4>اطلاعات پایه</h4>
                 <table class="report-table compact">
+                  <tr><td>نام واحد</td><td><strong>${hall.unitName || hall.activeFlockUnitName || "-"}</strong></td></tr>
                   <tr><td>شماره سالن</td><td>${hall.hall_number || "-"}</td></tr>
                   <tr><td>ظرفیت اسمی</td><td>${hall.nominal_capacity?.toLocaleString() || "-"} قطعه</td></tr>
                   <tr><td>ارتفاع از سطح دریا</td><td>${hall.altitude_above_sea || "-"} متر</td></tr>
@@ -346,7 +400,7 @@ class HallsReport {
               <div class="report-section">
                 <h4>دوره و گله</h4>
                 <table class="report-table compact">
-                  <tr><td>دوره (فعال)</td><td>${hall.activeFlockPeriodName || "-"}</td></tr>
+                  <tr><td>واحد (گله فعال)</td><td>${hall.activeFlockUnitName || "-"}</td></tr>
                   <tr><td>کارشناس خدمات</td><td><strong>${hall.expertName}</strong></td></tr>
                   ${
                     hall.chickInfo
@@ -425,7 +479,93 @@ class HallsReport {
         </div>
         <hr class="report-divider">
       `;
+  }
+
+  generateHTML(reportData) {
+    const { customer, halls, units, generatedAt } = reportData;
+    const now = new Date(generatedAt);
+    const persianDate = formatDate(now);
+
+    // ===== گروه‌بندی سالن‌ها بر اساس واحد =====
+    const hallsWithoutUnit = halls.filter((h) => !h.unit_id);
+    let unitSectionsHTML = "";
+
+    // برای هر واحد، سالن‌های مربوطه را پیدا کن
+    units.forEach((unit, unitIndex) => {
+      const unitHalls = halls.filter((h) => h.unit_id == unit.id);
+      if (unitHalls.length === 0) return; // واحد بدون سالن در گروه‌بندی اصلی نمایش داده نمی‌شود
+
+      const activeCount = unitHalls.filter((h) => h.is_active).length;
+      const totalCapacity = unitHalls.reduce(
+        (sum, h) => sum + (parseInt(h.nominal_capacity) || 0),
+        0,
+      );
+      const flockCount = unitHalls.filter((h) => h.chickInfo).length;
+      const totalChicks = unitHalls.reduce(
+        (sum, h) => sum + (parseInt(h.chickInfo?.total_chicks_count) || 0),
+        0,
+      );
+
+      const hallsHTML = unitHalls
+        .map((hall, i) => this.renderHallHTML(hall, i))
+        .join("");
+
+      unitSectionsHTML += `
+        <div class="report-unit">
+          <div class="report-unit-header">
+            <div class="report-unit-title">
+              <i class="fas fa-warehouse"></i>
+              <span>${unit.unit_name || `واحد ${unit.id}`}</span>
+              <span class="badge ${unit.is_active !== false ? "bg-success" : "bg-secondary"}">
+                ${unit.is_active !== false ? "فعال" : "غیرفعال"}
+              </span>
+            </div>
+            <div class="report-unit-stats">
+              <span>${unitHalls.length} سالن</span>
+              <span>${activeCount} فعال</span>
+              <span>ظرفیت: ${totalCapacity.toLocaleString()}</span>
+              <span>${flockCount} گله</span>
+              <span>${totalChicks.toLocaleString()} جوجه</span>
+            </div>
+          </div>
+          <div class="report-unit-body">
+            ${this.renderUnitDetails(unit)}
+            ${hallsHTML}
+          </div>
+        </div>
+      `;
     });
+
+    // سالن‌هایی که unit_id ندارند
+    if (hallsWithoutUnit.length > 0) {
+      const hallsHTML = hallsWithoutUnit
+        .map((hall, i) => this.renderHallHTML(hall, i))
+        .join("");
+
+      unitSectionsHTML += `
+        <div class="report-unit">
+          <div class="report-unit-header">
+            <div class="report-unit-title">
+              <i class="fas fa-question-circle"></i>
+              <span>سالن‌های بدون واحد</span>
+            </div>
+            <div class="report-unit-stats">
+              <span>${hallsWithoutUnit.length} سالن</span>
+            </div>
+          </div>
+          <div class="report-unit-body">
+            ${hallsHTML}
+          </div>
+        </div>
+      `;
+    }
+
+    // اگر هیچ واحدی نبود، همه سالن‌ها را مستقیم نمایش بده
+    if (unitSectionsHTML === "") {
+      unitSectionsHTML = halls
+        .map((hall, i) => this.renderHallHTML(hall, i))
+        .join("");
+    }
 
     const totalCapacity = halls.reduce(
       (sum, h) => sum + (parseInt(h.nominal_capacity) || 0),
@@ -433,6 +573,13 @@ class HallsReport {
     );
     const activeHalls = halls.filter((h) => h.is_active).length;
     const hallsWithChick = halls.filter((h) => h.chickInfo).length;
+    const unitsWithHalls = units.filter((u) =>
+      halls.some((h) => h.unit_id == u.id),
+    ).length;
+    const totalChicks = halls.reduce(
+      (sum, h) => sum + (parseInt(h.chickInfo?.total_chicks_count) || 0),
+      0,
+    );
 
     const customerHTML = customer
       ? `
@@ -456,7 +603,7 @@ class HallsReport {
       <html lang="fa" dir="rtl">
       <head>
         <meta charset="UTF-8">
-        <title>گزارش کامل سالن‌ها</title>
+        <title>گزارش کامل واحدها و سالن‌ها</title>
         <style>
           @font-face {
             font-family: "Vazir";
@@ -513,30 +660,103 @@ class HallsReport {
           .customer-info-table { width: 100%; border-collapse: collapse; }
           .customer-info-table td { padding: 3px 8px; font-size: 13px; border: none; }
           .report-customer-info p { margin: 3px 8px; font-size: 13px; }
-          .report-hall {
-            margin-bottom: 25px;
+
+          /* ===== بخش واحد ===== */
+          .report-unit {
+            margin-bottom: 30px;
+            border: 1.5px solid #dbe7e3;
+            border-radius: 12px;
+            overflow: hidden;
             page-break-inside: avoid;
           }
-          .report-hall-header h3 {
-            background: #2c7a6e;
+          .report-unit-header {
+            background: linear-gradient(135deg, #2c7a6e, #035552);
             color: white;
-            padding: 8px 14px;
-            border-radius: 8px;
-            font-size: 15px;
-            margin: 0 0 10px;
+            padding: 12px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+          }
+          .report-unit-title {
             display: flex;
             align-items: center;
             gap: 10px;
+            font-size: 16px;
+            font-weight: 700;
           }
+          .report-unit-title i { font-size: 18px; }
+          .report-unit-stats {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            font-size: 11px;
+          }
+          .report-unit-stats span {
+            background: rgba(255,255,255,0.15);
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-weight: 500;
+          }
+          .report-unit-body {
+            padding: 14px;
+            background: #fff;
+          }
+
+          /* ===== مشخصات کامل واحد ===== */
+          .unit-details-section {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 10px 12px;
+            margin-bottom: 16px;
+          }
+          .unit-details-title {
+            color: #2c7a6e;
+            font-size: 13px;
+            font-weight: 700;
+            margin-bottom: 6px;
+            padding-bottom: 4px;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+          }
+          .unit-details-table td:first-child {
+            width: 140px;
+          }
+          .unit-details-grid {
+            overflow-x: auto;
+          }
+
           .badge {
             display: inline-block;
             padding: 1px 8px;
             border-radius: 10px;
             font-size: 10px;
+            font-weight: 500;
           }
           .bg-success { background: #10b981; color: white; }
           .bg-secondary { background: #94a3b8; color: white; }
 
+          /* ===== بخش سالن ===== */
+          .report-hall {
+            margin-bottom: 20px;
+            page-break-inside: avoid;
+          }
+          .report-hall-header h3 {
+            background: #e8f5f0;
+            color: #2c7a6e;
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-size: 14px;
+            margin: 0 0 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-right: 4px solid #2c7a6e;
+          }
           .report-two-col {
             display: flex;
             gap: 16px;
@@ -546,7 +766,6 @@ class HallsReport {
             flex: 1;
             min-width: 0;
           }
-
           .report-section {
             margin: 8px 0;
             background: #fafbfc;
@@ -621,17 +840,22 @@ class HallsReport {
           @media print {
             .report-two-col { page-break-inside: avoid; }
             .report-hall { page-break-inside: avoid; }
+            .report-unit { page-break-inside: avoid; }
           }
         </style>
       </head>
       <body>
         <div class="report-header">
-          <h1>📋 گزارش کامل سالن‌ها</h1>
+          <h1>📋 گزارش کامل واحدها و سالن‌ها</h1>
           <div class="date">تاریخ گزارش: ${persianDate}</div>
         </div>
         ${customerHTML}
 
         <div class="summary-stats">
+          <div class="stat-box">
+            <div class="stat-label">تعداد واحدها</div>
+            <div class="stat-value">${unitsWithHalls || units.length}</div>
+          </div>
           <div class="stat-box">
             <div class="stat-label">تعداد سالن‌ها</div>
             <div class="stat-value">${halls.length}</div>
@@ -648,9 +872,13 @@ class HallsReport {
             <div class="stat-label">سالن دارای گله</div>
             <div class="stat-value">${hallsWithChick}</div>
           </div>
+          <div class="stat-box">
+            <div class="stat-label">مجموع جوجه‌ها</div>
+            <div class="stat-value">${totalChicks.toLocaleString()}</div>
+          </div>
         </div>
 
-        ${hallsHTML}
+        ${unitSectionsHTML}
 
         <div class="report-footer">
           <p>این گزارش توسط سامانه مدیریت مشتریان (SKB-CRM) تولید شده است</p>

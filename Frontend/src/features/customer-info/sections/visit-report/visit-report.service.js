@@ -14,7 +14,7 @@ class VisitReportService {
     this.customerId = null;
     this.reports = [];
     this.halls = [];
-    this.periods = [];
+    this.units = [];
     this.experts = [];
     this.forwardUnits = [];
     this.currentReportId = null;
@@ -53,8 +53,8 @@ class VisitReportService {
       // بارگذاری سالن‌ها
       await this.loadHalls();
 
-      // بارگذاری دوره‌ها
-      await this.loadPeriods();
+      // بارگذاری واحدها
+      await this.loadUnits();
 
       // بارگذاری کارشناسان
       await this.loadExperts();
@@ -107,52 +107,15 @@ class VisitReportService {
     }
   }
 
-  async loadPeriods() {
+  async loadUnits() {
     try {
       const response = await visitReportApi.getUnits(this.customerId);
       if (response.success) {
-        const allPeriods = response.data.periods || [];
-
-        // ✅ فقط دوره‌های فعال نمایش داده شوند
-        // فیلد status می‌تواند مقادیر مختلفی داشته باشد:
-        // active | در حال انجام | pending | در انتظار جوجه | شروع نشده
-        const activeStatuses = [
-          "active",
-          "در حال انجام",
-          "pending",
-          "در انتظار جوجه",
-          "شروع نشده",
-        ];
-
-        const isActive = (period) => {
-          const status = period.status || "";
-          const statusText = period.statusText || period.status_text || "";
-          return (
-            activeStatuses.includes(status) ||
-            activeStatuses.includes(statusText) ||
-            period.is_active === true ||
-            period.isActive === true
-          );
-        };
-
-        // فیلتر: اگر داده status دارد فقط فعال‌ها را بیاور، وگرنه همه را
-        const hasStatusField = allPeriods.some(
-          (p) =>
-            p.status !== undefined ||
-            p.statusText !== undefined ||
-            p.status_text !== undefined ||
-            p.is_active !== undefined ||
-            p.isActive !== undefined,
-        );
-
-        this.periods = hasStatusField
-          ? allPeriods.filter(isActive)
-          : allPeriods;
-
-        visitReportRenderer.renderPeriodsSelect(this.periods);
+        this.units = response.data.units || response.data || [];
+        visitReportRenderer.renderUnitsSelect(this.units);
       }
     } catch (error) {
-      console.error("❌ Error loading periods:", error);
+      console.error("❌ Error loading units:", error);
     }
   }
 
@@ -555,21 +518,9 @@ class VisitReportService {
 
     // دریافت مقادیر
     const visitDate = document.getElementById("visit-date").value;
-    const periodId = document.getElementById("visit-period").value;
+    const unitId = document.getElementById("visit-unit").value;
     const forwardTo = document.getElementById("visit-forward").value;
     const reportText = document.getElementById("visit-description").value;
-
-    // اعتبارسنجی
-    const errors = visitReportValidation.validate({
-      visit_date: visitDate,
-      period_id: periodId,
-      report_text: reportText,
-    });
-
-    if (errors.length > 0) {
-      notificationService.showValidationErrors(errors);
-      return;
-    }
 
     // دریافت سالن‌های انتخاب شده
     const hallSelect = document.getElementById("visit-halls");
@@ -577,27 +528,23 @@ class VisitReportService {
       (opt) => opt.value,
     );
 
-    if (selectedHalls.length === 0) {
-      this.showAlert(
-        "warning",
-        "سالن انتخاب کنید",
-        "لطفاً حداقل یک سالن را انتخاب کنید",
-      );
-      return;
-    }
-
     // دریافت کارشناسان انتخاب شده
     const expertSelect = document.getElementById("visit-experts");
     const selectedExperts = Array.from(expertSelect.selectedOptions).map(
       (opt) => opt.value,
     );
 
-    if (selectedExperts.length === 0) {
-      this.showAlert(
-        "warning",
-        "کارشناس انتخاب کنید",
-        "لطفاً حداقل یک کارشناس را انتخاب کنید",
-      );
+    // اعتبارسنجی — همه خطاها با هم نمایش داده شوند
+    const errors = visitReportValidation.validate({
+      visit_date: visitDate,
+      unit_id: unitId,
+      report_text: reportText,
+      hall_ids: selectedHalls,
+      expert_ids: selectedExperts,
+    });
+
+    if (errors.length > 0) {
+      notificationService.showValidationErrors(errors);
       return;
     }
 
@@ -611,7 +558,7 @@ class VisitReportService {
     // آماده‌سازی داده‌ها
     const formData = new FormData();
     formData.append("customer_id", this.customerId);
-    formData.append("unit_id", periodId);
+    formData.append("unit_id", unitId);
     formData.append("visit_date", gregorianDate);
     formData.append("forward_to", forwardTo || "");
     formData.append("report_text", reportText);
@@ -786,9 +733,9 @@ class VisitReportService {
       document.getElementById("visit-date").value =
         persianDate || visit.visit_date || "";
 
-      const periodSelect = document.getElementById("visit-period");
-      if (periodSelect && visit.period_id) {
-        periodSelect.value = visit.period_id;
+      const unitSelect = document.getElementById("visit-unit");
+      if (unitSelect && visit.unit_id) {
+        unitSelect.value = visit.unit_id;
       }
 
       // انتخاب سالن‌ها
@@ -956,13 +903,13 @@ class VisitReportService {
       const experts =
         visit.experts?.map((e) => `${e.first_name} ${e.last_name}`).join(" ") ||
         "";
-      const period = visit.Period?.period_name || "";
+      const unit = visit.unit?.unit_name || "";
 
       return (
         date.includes(searchTerm) ||
         halls.includes(searchTerm) ||
         experts.includes(searchTerm) ||
-        period.includes(searchTerm)
+        unit.includes(searchTerm)
       );
     });
 
@@ -973,7 +920,7 @@ class VisitReportService {
 
   resetForm() {
     document.getElementById("visit-date").value = "";
-    document.getElementById("visit-period").value = "";
+    document.getElementById("visit-unit").value = "";
     document.getElementById("visit-forward").value = "";
 
     const hallSelect = document.getElementById("visit-halls");
@@ -1083,7 +1030,7 @@ if (typeof window !== "undefined") {
   window.loadVisitReports = () => visitReportService.loadReports();
   window.loadHallsForVisit = () => visitReportService.loadHalls();
   window.loadExpertsForVisit = () => visitReportService.loadExperts();
-  window.loadPeriodsForVisit = () => visitReportService.loadPeriods();
+  window.loadUnitsForVisit = () => visitReportService.loadUnits();
   window.saveVisitReport = () => visitReportService.saveReport();
   window.resetVisitForm = () => visitReportService.resetForm();
   window.viewVisitReport = (id) => visitReportService.viewReport(id);

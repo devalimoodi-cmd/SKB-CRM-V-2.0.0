@@ -15,13 +15,13 @@ export const hatcheryFormService = {
 
   resetFlockForm() {
     document.getElementById("skb-hall-select").value = "";
-    document.getElementById("skb-period-select").value = "";
     document.getElementById("skb-chick-date").value = "";
     document.getElementById("skb-chick-source").value = "";
     document.getElementById("skb-chick-breed").value = "";
     document.getElementById("skb-chick-age").value = "";
     document.getElementById("skb-initial-weight").value = "";
-    document.getElementById("skb-total-load").value = "";
+    const totalLoad = document.getElementById("skb-total-load");
+    if (totalLoad) totalLoad.value = "";
     document.getElementById("skb-chick-count").value = "";
     document.getElementById("skb-current-density").value = "";
 
@@ -58,7 +58,6 @@ export const hatcheryFormService = {
 
   fillFlockForm(flock) {
     document.getElementById("skb-hall-select").value = flock.hall_id;
-    document.getElementById("skb-period-select").value = flock.period_id;
     document.getElementById("skb-flock-number").value = flock.flock_number;
     document.getElementById("skb-chick-source").value =
       flock.chick_source_id || "";

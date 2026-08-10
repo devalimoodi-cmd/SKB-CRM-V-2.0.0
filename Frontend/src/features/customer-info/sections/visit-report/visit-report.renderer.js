@@ -48,20 +48,18 @@ export const visitReportRenderer = {
     }
   },
 
-  renderPeriodsSelect(periods) {
-    const select = document.getElementById("visit-period");
+  // رندر لیست واحدهای مرغداری (جایگزین دوره‌ها)
+  renderUnitsSelect(units) {
+    const select = document.getElementById("visit-unit");
     if (!select) return;
 
     const currentValue = select.value;
-    select.innerHTML = '<option value="">انتخاب دوره...</option>';
+    select.innerHTML = '<option value="">انتخاب واحد مرغداری...</option>';
 
-    periods.forEach((period) => {
+    units.forEach((unit) => {
       const option = document.createElement("option");
-      option.value = period.id;
-      const startDate = period.start_date
-        ? convertToPersianDate(period.start_date)
-        : "نامشخص";
-      option.textContent = `${period.period_name} (دوره ${period.period_number}) - شروع: ${startDate}`;
+      option.value = unit.id;
+      option.textContent = unit.unit_name || `واحد ${unit.id}`;
       select.appendChild(option);
     });
 
@@ -115,10 +113,7 @@ export const visitReportRenderer = {
       const hallsName = visit.Halls?.map((h) => h.hall_name) || [];
       const expertsName =
         visit.experts?.map((e) => `${e.first_name} ${e.last_name}`) || [];
-      const periodName =
-        visit.Period?.period_name ||
-        `دوره ${visit.Period?.period_number}` ||
-        "-";
+      const unitName = visit.unit?.unit_name || `واحد ${visit.unit?.id}` || "-";
 
       // کاربر ثبت‌کننده
       const createdByUser = visit.CreatedBy || visit.created_by_user;
@@ -170,7 +165,7 @@ export const visitReportRenderer = {
                 <tr>
                     <td>${index + 1}</td>
                     <td>${convertToPersianDate(visit.visit_date)}</td>
-                    <td>${periodName}</td>
+                    <td>${unitName}</td>
                     <td>${hallsName.slice(0, 2).join(", ")}${hallsName.length > 2 ? "..." : ""}</td>
                     <td>${expertsName.slice(0, 2).join(", ")}${expertsName.length > 2 ? "..." : ""}</td>
                     <td>${this.getForwardName(visit.forward_to)}</td>
@@ -232,8 +227,7 @@ export const visitReportRenderer = {
     const hallsName = visit.Halls?.map((h) => h.hall_name) || [];
     const expertsName =
       visit.experts?.map((e) => `${e.first_name} ${e.last_name}`) || [];
-    const periodName =
-      visit.Period?.period_name || `دوره ${visit.Period?.period_number}` || "-";
+    const unitName = visit.unit?.unit_name || `واحد ${visit.unit?.id}` || "-";
 
     const attachments = visit.attachments || visit.VisitReportAttachments || [];
 
@@ -340,11 +334,11 @@ export const visitReportRenderer = {
           </div>
           <div class="skb-summary-item">
             <div class="skb-summary-icon" style="background:#3b82f618; color:#3b82f6;">
-              <i class="fas fa-layer-group"></i>
+              <i class="fas fa-warehouse"></i>
             </div>
             <div class="skb-summary-text">
-              <span>دوره جوجه‌ریزی</span>
-              <strong>${periodName}</strong>
+              <span>واحد مرغداری</span>
+              <strong>${unitName}</strong>
             </div>
           </div>
           <div class="skb-summary-item">
@@ -442,8 +436,7 @@ export const visitReportRenderer = {
     const hallsName = visit.Halls?.map((h) => h.hall_name) || [];
     const expertsName =
       visit.experts?.map((e) => `${e.first_name} ${e.last_name}`) || [];
-    const periodName =
-      visit.Period?.period_name || `دوره ${visit.Period?.period_number}` || "-";
+    const unitName = visit.unit?.unit_name || `واحد ${visit.unit?.id}` || "-";
 
     const now = new Date().toLocaleDateString("fa-IR");
     const nowTime = new Date().toLocaleTimeString("fa-IR");
@@ -539,7 +532,7 @@ export const visitReportRenderer = {
                     <div class="section-title">📋 اطلاعات بازدید</div>
                     <div class="info-grid">
                         <div class="info-item"><span class="info-label">تاریخ بازدید</span><span class="info-value">${convertToPersianDate(visit.visit_date)}</span></div>
-                        <div class="info-item"><span class="info-label">دوره جوجه‌ریزی</span><span class="info-value">${periodName}</span></div>
+                        <div class="info-item"><span class="info-label">واحد مرغداری</span><span class="info-value">${unitName}</span></div>
                         <div class="info-item"><span class="info-label">سالن‌های بازدید شده</span><span class="info-value">${hallsName.join("، ")}</span></div>
                         <div class="info-item"><span class="info-label">کارشناسان بازدید کننده</span><span class="info-value">${expertsName.join("، ")}</span></div>
                         <div class="info-item"><span class="info-label">ارجاع به</span><span class="info-value">${this.getForwardName(visit.forward_to)}</span></div>

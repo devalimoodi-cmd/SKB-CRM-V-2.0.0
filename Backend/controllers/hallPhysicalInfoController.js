@@ -58,8 +58,13 @@ const getPhysicalInfoByHallId = async (req, res) => {
   try {
     const { hall_id } = req.params;
     const physicalInfo = await HallPhysicalInfo.findOne({ where: { hall_id } });
+    // نبود اطلاعات فیزیکی برای یک سالن حالت عادی است، نه خطا
     if (!physicalInfo)
-      return errorResponse(res, "اطلاعات فیزیکی یافت نشد", 404);
+      return successResponse(
+        res,
+        null,
+        "اطلاعات فیزیکی برای این سالن ثبت نشده است",
+      );
     successResponse(res, physicalInfo, "اطلاعات فیزیکی دریافت شد");
   } catch (error) {
     errorResponse(res, error.message, 500);

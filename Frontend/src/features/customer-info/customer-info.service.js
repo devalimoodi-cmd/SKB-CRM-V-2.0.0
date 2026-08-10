@@ -464,8 +464,8 @@ class CustomerInfoService {
             if (typeof window.loadExpertsForVisit === "function") {
               await window.loadExpertsForVisit();
             }
-            if (typeof window.loadPeriodsForVisit === "function") {
-              await window.loadPeriodsForVisit();
+            if (typeof window.loadUnitsForVisit === "function") {
+              await window.loadUnitsForVisit();
             }
           }
           break;

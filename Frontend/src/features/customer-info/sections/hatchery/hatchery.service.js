@@ -301,33 +301,10 @@ class HatcheryService {
   }
 
   checkActivePeriodForRegister() {
-    // اگر در حالت ویرایش هستیم، نیازی به چک نیست
-    if (this.isEditingFlock) return;
-
-    const hasActivePeriod = this.periods.some(
-      (p) => p.status === "active" || p.status === "pending",
-    );
-    if (!hasActivePeriod) {
-      if (typeof Swal !== "undefined") {
-        Swal.fire({
-          icon: "warning",
-          title: "❗ دوره فعالی وجود ندارد",
-          text: "لطفاً ابتدا یک دوره پرورش تعریف کنید، سپس اقدام به ثبت گله نمایید.",
-          confirmButtonText: "ثبت دوره جدید",
-          cancelButtonText: "بعداً",
-          showCancelButton: true,
-          confirmButtonColor: "#2c7a6e",
-          cancelButtonColor: "#94a3b8",
-        }).then((result) => {
-          if (result.isConfirmed) {
-            hatcheryTabsService.activateTab("chick-period-info");
-          }
-        });
-      } else {
-        notificationService.info("لطفاً ابتدا یک دوره پرورش تعریف کنید");
-        hatcheryTabsService.activateTab("chick-period-info");
-      }
-    }
+    // در این نسخه هر گله ثبت‌شده خودش «دوره فعال» محسوب می‌شود،
+    // بنابراین نیازی به تعریف دوره جداگانه نیست و این گیت حذف شده است
+    // تا کاربر بتواند مستقیماً جوجه‌ریزی (گله) را ثبت کند.
+    return;
   }
 
   // ===== رویدادها =====
@@ -451,7 +428,6 @@ class HatcheryService {
 
   async saveFlock() {
     const hallId = document.getElementById("skb-hall-select")?.value;
-    const periodId = document.getElementById("skb-period-select")?.value;
     const placementDate = document.getElementById("skb-chick-date")?.value;
     const chickSource = document.getElementById("skb-chick-source")?.value;
     const breedId = document.getElementById("skb-chick-breed")?.value;
@@ -462,7 +438,6 @@ class HatcheryService {
 
     const flockData = {
       hall_id: hallId,
-      period_id: periodId,
       placement_date: placementDate,
       chick_source_id: chickSource,
       breed_id: breedId,
@@ -500,9 +475,13 @@ class HatcheryService {
       density = (parseFloat(chickCount) / parseFloat(area)).toFixed(2);
     }
 
+    // استخراج unit_id از سالن انتخاب‌شده — هر سالن به یک واحد تعلق دارد
+    const selectedHall = this.halls.find((h) => h.id == hallId);
+    const unitId = selectedHall?.unit_id || null;
+
     const payload = {
       customer_id: parseInt(this.customerId),
-      period_id: parseInt(periodId),
+      unit_id: unitId ? parseInt(unitId) : null,
       hall_id: parseInt(hallId),
       placement_date: gregorianDate,
       flock_number:
@@ -557,11 +536,6 @@ class HatcheryService {
               ? "گله با موفقیت بروزرسانی شد"
               : "جوجه‌ریزی با موفقیت ثبت شد",
           );
-        }
-
-        // بروزرسانی وضعیت دوره
-        if (!this.isEditingFlock) {
-          await hatcheryApi.updatePeriod(periodId, { status: "active" });
         }
 
         // بستن حالت ویرایش - قبل از loadData
@@ -925,7 +899,6 @@ class HatcheryService {
 
       // پر کردن همه فیلدها از جمله سالن
       document.getElementById("skb-hall-select").value = flock.hall_id;
-      document.getElementById("skb-unit-select").value = flock.unit_id || "";
       document.getElementById("skb-flock-number").value = flock.flock_number;
       document.getElementById("skb-chick-source").value =
         flock.chick_source_id || "";

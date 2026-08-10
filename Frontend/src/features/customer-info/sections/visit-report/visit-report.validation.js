@@ -2,16 +2,25 @@ export const visitReportValidation = {
   validate(data) {
     const errors = [];
 
+    // تاریخ بازدید — الزامی
     if (!data.visit_date) {
       errors.push("تاریخ بازدید الزامی است");
     }
 
-    if (!data.unit_id) {
-      errors.push("لطفاً یک واحد مرغداری انتخاب کنید");
-    }
-
+    // شرح گزارش — حداقل 5 کاراکتر
     if (!data.report_text || data.report_text.trim().length < 5) {
       errors.push("شرح گزارش باید حداقل 5 کاراکتر باشد");
+    }
+
+    // سالن‌ها — اجباری
+    errors.push(...this.validateHalls(data.hall_ids));
+
+    // کارشناسان — اجباری
+    errors.push(...this.validateExperts(data.expert_ids));
+
+    // واحد مرغداری — اختیاری (فقط اگر مقدار داشت باید عدد باشد)
+    if (data.unit_id && isNaN(parseInt(data.unit_id))) {
+      errors.push("شناسه واحد مرغداری نامعتبر است");
     }
 
     return errors;

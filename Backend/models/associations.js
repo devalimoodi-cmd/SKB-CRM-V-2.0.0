@@ -157,6 +157,7 @@ UnitExpert.belongsTo(Unit, {
 // Unit → Hall
 Unit.hasMany(Hall, {
   foreignKey: "unit_id",
+  as: "halls",
   onDelete: "CASCADE",
   hooks: true,
 });

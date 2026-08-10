@@ -79,8 +79,13 @@ const getWaterFeedByHallId = async (req, res) => {
   try {
     const { hall_id } = req.params;
     const waterFeed = await HallWaterFeed.findOne({ where: { hall_id } });
+    // نبود اطلاعات آبخوری و دانخوری برای یک سالن حالت عادی است، نه خطا
     if (!waterFeed)
-      return errorResponse(res, "اطلاعات آبخوری و دانخوری یافت نشد", 404);
+      return successResponse(
+        res,
+        null,
+        "اطلاعات آبخوری و دانخوری برای این سالن ثبت نشده است",
+      );
     successResponse(res, waterFeed, "اطلاعات آبخوری و دانخوری دریافت شد");
   } catch (error) {
     errorResponse(res, error.message, 500);

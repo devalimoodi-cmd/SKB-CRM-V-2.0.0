@@ -5,6 +5,7 @@ const VisitReportAttachment = require("../models/VisitReportAttachment");
 const Hall = require("../models/Hall");
 const Unit = require("../models/Unit");
 const User = require("../models/User");
+const { Op } = require("sequelize");
 const { successResponse, errorResponse } = require("../utils/response");
 const { fixUnicodeName } = require("../middleware/upload");
 const { sequelize } = require("../config/database");
@@ -319,6 +320,11 @@ const getVisitReports = async (req, res) => {
           attributes: ["id", "hall_name"],
         },
         {
+          model: Unit,
+          as: "unit",
+          attributes: ["id", "unit_name", "address"],
+        },
+        {
           model: User,
           as: "experts",
           attributes: ["id", "first_name", "last_name"],
@@ -368,6 +374,11 @@ const getVisitReportById = async (req, res) => {
           attributes: ["id", "hall_name"],
         },
         {
+          model: Unit,
+          as: "unit",
+          attributes: ["id", "unit_name", "address"],
+        },
+        {
           model: User,
           as: "experts",
           attributes: ["id", "first_name", "last_name"],
@@ -386,7 +397,6 @@ const getVisitReportById = async (req, res) => {
             "file_path",
             "mime_type",
             "file_size",
-            "stored_name",
           ],
           required: false,
         },
@@ -419,6 +429,17 @@ const getReportsByCustomer = async (req, res) => {
         {
           model: Hall,
           attributes: ["id", "hall_name"],
+        },
+        {
+          model: Unit,
+          as: "unit",
+          attributes: ["id", "unit_name", "address"],
+        },
+        {
+          model: User,
+          as: "experts",
+          attributes: ["id", "first_name", "last_name"],
+          required: false,
         },
         {
           model: User,

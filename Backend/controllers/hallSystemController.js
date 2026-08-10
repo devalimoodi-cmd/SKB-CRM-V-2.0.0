@@ -117,8 +117,13 @@ const getSystemByHallId = async (req, res) => {
       where: { hall_id },
     });
 
+    // نبود اطلاعات سیستم‌ها برای یک سالن حالت عادی است، نه خطا
     if (!system) {
-      return errorResponse(res, "اطلاعات سیستم‌ها برای این سالن یافت نشد", 404);
+      return successResponse(
+        res,
+        null,
+        "اطلاعات سیستم‌ها برای این سالن ثبت نشده است",
+      );
     }
 
     successResponse(res, system, "اطلاعات سیستم‌های سالن دریافت شد");
