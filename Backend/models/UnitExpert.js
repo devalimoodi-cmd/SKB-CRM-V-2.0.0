@@ -18,28 +18,33 @@ const UnitExpert = sequelize.define(
       },
     },
     expert_name: {
-      type: DataTypes.STRING(100),
+      type: DataTypes.STRING(50),
       allowNull: false,
       validate: {
         notEmpty: { msg: "نام کارشناس الزامی است" },
         len: {
-          args: [3, 100],
-          msg: "نام کارشناس باید بین 3 تا 100 کاراکتر باشد",
+          args: [3, 50],
+          msg: "نام کارشناس باید بین 3 تا 50 کاراکتر باشد",
         },
       },
     },
     expert_phone: {
       type: DataTypes.STRING(20),
-      allowNull: true,
+      allowNull: false,
       validate: {
-        is: { args: /^[0-9]+$/, msg: "شماره تماس کارشناس باید عدد باشد" },
-        len: { args: [10, 15], msg: "شماره تماس باید بین 10 تا 15 رقم باشد" },
+        is: { args: /^[0-9]{11}$/, msg: "شماره تماس کارشناس باید 11 رقم باشد" },
       },
     },
     expert_role: {
-      type: DataTypes.STRING(100),
-      allowNull: true,
-      comment: "نقش یا تخصص کارشناس",
+      type: DataTypes.STRING(50),
+      allowNull: false,
+      validate: {
+        notEmpty: { msg: "نقش کارشناس الزامی است" },
+        len: {
+          args: [1, 50],
+          msg: "نقش کارشناس حداکثر 50 کاراکتر باشد",
+        },
+      },
     },
     is_active: {
       type: DataTypes.BOOLEAN,

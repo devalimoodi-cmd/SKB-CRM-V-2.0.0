@@ -186,4 +186,49 @@ export const hallsApi = {
   async createUnit(data) {
     return apiService.post(API_CONSTANTS.ENDPOINTS.UNITS.CREATE, data);
   },
+
+  // بروزرسانی واحد (برای فعال/غیرفعال و ویرایش)
+  async updateUnit(id, data) {
+    const endpoint = API_CONSTANTS.ENDPOINTS.UNITS.UPDATE.replace(":id", id);
+    return apiService.put(endpoint, data);
+  },
+
+  // حذف واحد (همه سالن‌ها و گله‌های مرتبط نیز حذف می‌شوند)
+  async deleteUnit(id) {
+    const endpoint = API_CONSTANTS.ENDPOINTS.UNITS.DELETE.replace(":id", id);
+    return apiService.delete(endpoint);
+  },
+
+  // دریافت اطلاعات کامل یک واحد (شامل وضعیت، کارشناسان، سالن‌ها)
+  async getUnit(id) {
+    const endpoint = API_CONSTANTS.ENDPOINTS.UNITS.UPDATE.replace(":id", id);
+    return apiService.get(endpoint);
+  },
+
+  // افزودن کارشناس به واحد
+  async addUnitExpert(unitId, data) {
+    const endpoint = API_CONSTANTS.ENDPOINTS.UNITS.EXPERTS.replace(
+      ":unitId",
+      unitId,
+    );
+    return apiService.post(endpoint, data);
+  },
+
+  // بروزرسانی کارشناس واحد
+  async updateUnitExpert(unitId, expertId, data) {
+    const endpoint = API_CONSTANTS.ENDPOINTS.UNITS.EXPERTS.replace(
+      ":unitId",
+      unitId,
+    ).concat("/", expertId);
+    return apiService.put(endpoint, data);
+  },
+
+  // حذف کارشناس واحد
+  async deleteUnitExpert(unitId, expertId) {
+    const endpoint = API_CONSTANTS.ENDPOINTS.UNITS.EXPERTS.replace(
+      ":unitId",
+      unitId,
+    ).concat("/", expertId);
+    return apiService.delete(endpoint);
+  },
 };

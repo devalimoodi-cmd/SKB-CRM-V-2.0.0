@@ -1,9 +1,28 @@
 const { sequelize } = require("../config/database");
+const { Op } = require("sequelize");
 const Unit = require("../models/Unit");
 const UnitStatus = require("../models/UnitStatus");
 const UnitExpert = require("../models/UnitExpert");
 const CustomerPersonalInfo = require("../models/CustomerPersonalInfo");
 const Hall = require("../models/Hall");
+const HallPhysicalInfo = require("../models/HallPhysicalInfo");
+const HallSystem = require("../models/HallSystem");
+const HallWaterFeed = require("../models/HallWaterFeed");
+const HallHygiene = require("../models/HallHygiene");
+const ChickPlacement = require("../models/ChickPlacement");
+const CropTest = require("../models/CropTest");
+const FlockCompletion = require("../models/FlockCompletion");
+const WeeklyManagement = require("../models/WeeklyManagement");
+const WeeklyDisease = require("../models/WeeklyDisease");
+const WeeklyVaccine = require("../models/WeeklyVaccine");
+const WeeklyMedicine = require("../models/WeeklyMedicine");
+const WeeklyFeed = require("../models/WeeklyFeed");
+const WeeklySuggestion = require("../models/WeeklySuggestion");
+const VisitReport = require("../models/VisitReport");
+const VisitReportHall = require("../models/VisitReportHall");
+const VisitReportExpert = require("../models/VisitReportExpert");
+const VisitReportAttachment = require("../models/VisitReportAttachment");
+const Bookmark = require("../models/Bookmark");
 const { validateUnitData } = require("../validations/unitValidation");
 const { successResponse, errorResponse } = require("../utils/response");
 
@@ -25,6 +44,7 @@ const createUnit = async (req, res) => {
       latitude,
       address,
       hall_count,
+      capacity,
       manager_name,
       manager_phone,
       is_active,
@@ -57,6 +77,7 @@ const createUnit = async (req, res) => {
         latitude: latitude || null,
         address: address || null,
         hall_count: hall_count || null,
+        capacity: capacity !== undefined ? capacity : 0,
         manager_name: manager_name || null,
         manager_phone: manager_phone || null,
         is_active: is_active !== undefined ? is_active : true,
@@ -239,6 +260,7 @@ const updateUnit = async (req, res) => {
       "latitude",
       "address",
       "hall_count",
+      "capacity",
       "manager_name",
       "manager_phone",
       "is_active",
@@ -268,9 +290,11 @@ const updateUnit = async (req, res) => {
 };
 
 // ============================================
-// حذف منطقی واحد
+// حذف واحد با حذف آبشاری کامل
+// (همه سالن‌ها، گله‌ها، اطلاعات مرتبط و وابستگی‌ها حذف می‌شوند)
 // ============================================
 const deleteUnit = async (req, res) => {
+  const transaction = await sequelize.transaction();
   try {
     const { id } = req.params;
     const unit = await Unit.findByPk(id);
@@ -278,10 +302,183 @@ const deleteUnit = async (req, res) => {
       return errorResponse(res, "واحد یافت نشد", 404);
     }
 
-    await unit.destroy(); // حذف منطقی (deleted_at پر می‌شود)
+    // 1️⃣ یافتن تمام سالن‌های واحد
+    const halls = await Hall.findAll({
+      where: { unit_id: id },
+      attributes: ["id"],
+      paranoid: false,
+      transaction,
+    });
+    const hallIds = halls.map((h) => h.id);
 
-    successResponse(res, null, "واحد با موفقیت حذف شد (حذف منطقی)");
+    // 2️⃣ یافتن تمام گله‌های واحد (از طریق سالن‌ها یا unit_id)
+    const flocks = await ChickPlacement.findAll({
+      where: {
+        [Op.or]: [
+          { unit_id: id },
+          ...(hallIds.length > 0 ? [{ hall_id: { [Op.in]: hallIds } }] : []),
+        ],
+      },
+      attributes: ["id"],
+      transaction,
+    });
+    const flockIds = flocks.map((f) => f.id);
+
+    // 3️⃣ حذف گزارش‌های بازدید مرتبط با واحد (همراه وابستگی‌هایشان)
+    if (hallIds.length > 0 || id) {
+      const visitIds = await VisitReport.findAll({
+        where: { unit_id: id },
+        attributes: ["id"],
+        transaction,
+      });
+      const visitIdList = visitIds.map((v) => v.id);
+
+      // حذف وابسته‌های گزارش بازدید (از طریق FK بازدید)
+      if (visitIdList.length > 0) {
+        await VisitReportAttachment.destroy({
+          where: { visit_report_id: { [Op.in]: visitIdList } },
+          transaction,
+        });
+        await VisitReportHall.destroy({
+          where: { visit_report_id: { [Op.in]: visitIdList } },
+          transaction,
+        });
+        await VisitReportExpert.destroy({
+          where: { visit_report_id: { [Op.in]: visitIdList } },
+          transaction,
+        });
+        await VisitReport.destroy({
+          where: { id: { [Op.in]: visitIdList } },
+          transaction,
+        });
+      }
+    }
+
+    // 4️⃣ حذف نشان‌ها (Bookmark) — هم به واحد و هم به گله‌ها
+    if (flockIds.length > 0) {
+      await Bookmark.destroy({
+        where: {
+          [Op.or]: [{ unit_id: id }, { flock_id: { [Op.in]: flockIds } }],
+        },
+        transaction,
+      });
+    } else {
+      await Bookmark.destroy({ where: { unit_id: id }, transaction });
+    }
+
+    // 5️⃣ حذف اطلاعات هفتگی هر گله (مدیریت + زیرمجموعه‌ها)
+    if (flockIds.length > 0) {
+      const weeklyIds = await WeeklyManagement.findAll({
+        where: { chick_placement_id: { [Op.in]: flockIds } },
+        attributes: ["id"],
+        transaction,
+      });
+      const weeklyIdList = weeklyIds.map((w) => w.id);
+
+      if (weeklyIdList.length > 0) {
+        await WeeklyDisease.destroy({
+          where: { weekly_management_id: { [Op.in]: weeklyIdList } },
+          transaction,
+        });
+        await WeeklyVaccine.destroy({
+          where: { weekly_management_id: { [Op.in]: weeklyIdList } },
+          transaction,
+        });
+        await WeeklyMedicine.destroy({
+          where: { weekly_management_id: { [Op.in]: weeklyIdList } },
+          transaction,
+        });
+        await WeeklyFeed.destroy({
+          where: { weekly_management_id: { [Op.in]: weeklyIdList } },
+          transaction,
+        });
+        await WeeklySuggestion.destroy({
+          where: { weekly_management_id: { [Op.in]: weeklyIdList } },
+          transaction,
+        });
+        await WeeklyManagement.destroy({
+          where: { id: { [Op.in]: weeklyIdList } },
+          transaction,
+        });
+      }
+    }
+
+    // 6️⃣ حذف تکمیل گله (FlockCompletion) و تست چین‌دان (CropTest) هر گله
+    if (flockIds.length > 0) {
+      await FlockCompletion.destroy({
+        where: { chick_placement_id: { [Op.in]: flockIds } },
+        transaction,
+      });
+      await CropTest.destroy({
+        where: { chick_placement_id: { [Op.in]: flockIds } },
+        transaction,
+      });
+    }
+    // تست چین‌دانی که به گله متصل نیستند ولی به سالن/واحد مرتبط‌اند
+    if (hallIds.length > 0) {
+      await CropTest.destroy({
+        where: { hall_id: { [Op.in]: hallIds } },
+        transaction,
+      });
+    }
+    await CropTest.destroy({ where: { unit_id: id }, transaction });
+
+    // 7️⃣ حذف گله‌ها
+    if (flockIds.length > 0) {
+      await ChickPlacement.destroy({
+        where: { id: { [Op.in]: flockIds } },
+        transaction,
+      });
+    }
+
+    // 8️⃣ حذف اطلاعات فیزیکی/سیستم/آبخوری/بهداشت سالن‌ها
+    if (hallIds.length > 0) {
+      await HallPhysicalInfo.destroy({
+        where: { hall_id: { [Op.in]: hallIds } },
+        transaction,
+      });
+      await HallSystem.destroy({
+        where: { hall_id: { [Op.in]: hallIds } },
+        transaction,
+      });
+      await HallWaterFeed.destroy({
+        where: { hall_id: { [Op.in]: hallIds } },
+        transaction,
+      });
+      await HallHygiene.destroy({
+        where: { hall_id: { [Op.in]: hallIds } },
+        transaction,
+      });
+    }
+
+    // 9️⃣ حذف سالن‌ها (فیزیکی و کامل)
+    if (hallIds.length > 0) {
+      await Hall.destroy({
+        where: { id: { [Op.in]: hallIds } },
+        force: true,
+        transaction,
+      });
+    }
+
+    // 🔟 حذف کارشناسان واحد
+    await UnitExpert.destroy({
+      where: { unit_id: id },
+      force: true,
+      transaction,
+    });
+
+    // 1️⃣1️⃣ حذف واحد (فیزیکی و کامل)
+    await unit.destroy({ force: true, transaction });
+
+    await transaction.commit();
+
+    successResponse(
+      res,
+      null,
+      "واحد و تمام سالن‌ها و گله‌های مرتبط با موفقیت حذف شدند",
+    );
   } catch (error) {
+    await transaction.rollback();
     console.error("خطا در حذف واحد:", error);
     errorResponse(res, error.message, 500);
   }
@@ -335,8 +532,24 @@ const addUnitExpert = async (req, res) => {
     const { unitId } = req.params;
     const { expert_name, expert_phone, expert_role, is_active } = req.body;
 
-    if (!expert_name) {
+    // اعتبارسنجی کارشناس
+    if (!expert_name || !expert_name.toString().trim()) {
       return errorResponse(res, "نام کارشناس الزامی است", 400);
+    }
+    if (expert_name.toString().length > 50) {
+      return errorResponse(res, "نام کارشناس حداکثر 50 کاراکتر باشد", 400);
+    }
+    if (!expert_phone) {
+      return errorResponse(res, "شماره تماس کارشناس الزامی است", 400);
+    }
+    if (!/^[0-9]{11}$/.test(String(expert_phone).replace(/\D/g, ""))) {
+      return errorResponse(res, "شماره تماس کارشناس باید 11 رقم باشد", 400);
+    }
+    if (!expert_role || !expert_role.toString().trim()) {
+      return errorResponse(res, "نقش کارشناس الزامی است", 400);
+    }
+    if (expert_role.toString().length > 50) {
+      return errorResponse(res, "نقش کارشناس حداکثر 50 کاراکتر باشد", 400);
     }
 
     const unit = await Unit.findByPk(unitId);
@@ -344,9 +557,9 @@ const addUnitExpert = async (req, res) => {
 
     const expert = await UnitExpert.create({
       unit_id: unitId,
-      expert_name,
-      expert_phone: expert_phone || null,
-      expert_role: expert_role || null,
+      expert_name: expert_name.toString().trim(),
+      expert_phone: expert_phone.toString().trim(),
+      expert_role: expert_role.toString().trim(),
       is_active: is_active !== undefined ? is_active : true,
     });
 

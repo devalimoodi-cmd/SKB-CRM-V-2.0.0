@@ -74,7 +74,7 @@ class HallsReport {
 
   async loadPeriods() {
     try {
-      const res = await hallsApi.getPeriods(this.customerId);
+      const res = await hallsApi.getUnits(this.customerId);
       if (res.success) {
         this.periodsData = res.data.periods || [];
       }

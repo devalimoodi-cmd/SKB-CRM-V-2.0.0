@@ -575,13 +575,42 @@
                                                 id="unitLongitude" placeholder="مثال: 51.3890"></div>
                                         <div class="form-group"><label>عرض جغرافیایی</label><input type="text"
                                                 id="unitLatitude" placeholder="مثال: 35.6892"></div>
-                                        <div class="form-group"><label>تعداد سالن‌ها</label><input type="number"
+                                        <div class="form-group"><label>تعداد سالن‌ها <span
+                                                    class="required">*</span></label><input type="number"
                                                 id="unitHallCount" placeholder="مثال: ۵"></div>
-                                        <div class="form-group"><label>نام مدیر واحد</label><input type="text"
+                                        <div class="form-group"><label>ظرفیت واحد (قطعه) <span
+                                                    class="required">*</span></label><input type="number"
+                                                id="unitCapacity" min="0" max="1000000" placeholder="مثال: ۱۰۰۰۰۰">
+                                        </div>
+                                        <div class="form-group"><label>نام مدیر واحد <span
+                                                    class="required">*</span></label><input type="text"
                                                 id="unitManagerName" placeholder="نام و نام خانوادگی"></div>
-                                        <div class="form-group"><label>شماره تماس مدیر</label><input type="text"
-                                                id="unitManagerPhone" placeholder="مثال: ۰۹۱۲۳۴۵۶۷۸۹"></div>
+                                        <div class="form-group"><label>شماره تماس مدیر <span
+                                                    class="required">*</span></label><input type="text"
+                                                id="unitManagerPhone" placeholder="مثال: ۰۹۱۲۳۴۵۶۷۸۹" maxlength="11"
+                                                inputmode="numeric"
+                                                oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,11)"></div>
                                     </div>
+                                </div>
+                                <div class="form-section">
+                                    <h3 class="form-section-title"><i class="fas fa-user-tie"></i> کارشناسان واحد</h3>
+                                    <div id="unitExpertsContainer" class="unit-experts-container">
+                                        <div class="unit-expert-row">
+                                            <div class="form-group"><label>نام کارشناس</label><input type="text"
+                                                    maxlength="50" class="unit-expert-name" placeholder="نام کارشناس">
+                                            </div>
+                                            <div class="form-group"><label>شماره تماس</label><input type="text"
+                                                    maxlength="11" inputmode="numeric" class="unit-expert-phone"
+                                                    placeholder="مثال: ۰۹۱۲۳۴۵۶۷۸۹"
+                                                    oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,11)">
+                                            </div>
+                                            <div class="form-group"><label>نقش / تخصص</label><input type="text"
+                                                    maxlength="50" class="unit-expert-role"
+                                                    placeholder="مثال: کارشناس تغذیه"></div>
+                                        </div>
+                                    </div>
+                                    <button type="button" class="btn btn-add-expert" onclick="addUnitExpertRow()"><i
+                                            class="fas fa-plus"></i> افزودن کارشناس</button>
                                 </div>
                                 <div class="form-actions">
                                     <button class="btn btn-secondary" onclick="resetUnitTab()">ریست فرم</button>

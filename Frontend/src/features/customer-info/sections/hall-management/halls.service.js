@@ -47,6 +47,7 @@ class HallsService {
       await this.loadUnits();
       await this.loadHalls();
       this.autoPopulateHallNumber();
+      this.autoGenerateHallName();
     } catch (error) {
       console.error("❌ Error loading hall data:", error);
       notificationService.error("خطا در دریافت اطلاعات سالن‌ها");
@@ -125,6 +126,19 @@ class HallsService {
     }
   }
 
+  autoGenerateHallName() {
+    if (this.editingHallId) return;
+    const unitId = document.getElementById("UnitNumber")?.value;
+    if (!unitId) return;
+    const unitHalls = this.halls.filter((h) => h.unit_id == unitId);
+    const nextLetter = String.fromCharCode(65 + unitHalls.length); // A, B, C...
+    const hallNameInput = document.getElementById("hallName");
+    if (hallNameInput) {
+      const unit = this.periods.find((u) => u.id == unitId);
+      hallNameInput.value = `سالن ${nextLetter}${unit ? ` - ${unit.unit_name}` : ""}`;
+    }
+  }
+
   autoPopulateHallNumber() {
     if (this.editingHallId) return;
     const hallNumberSelect = document.getElementById("hallNumber");
@@ -169,7 +183,25 @@ class HallsService {
         };
       }),
     );
-    hallsRenderer.renderHallsList(hallsWithDetails, this.dictionaries);
+
+    // بارگذاری جزئیات کامل واحدها (شامل کارشناسان) برای پنل جزئیات
+    const unitsWithDetails = await Promise.all(
+      this.periods.map(async (unit) => {
+        try {
+          const res = await hallsApi.getUnit(unit.id);
+          if (res.success) return res.data;
+        } catch (e) {
+          console.error("❌ Error loading unit details:", e);
+        }
+        return unit;
+      }),
+    );
+
+    hallsRenderer.renderUnitsAccordion(
+      unitsWithDetails,
+      hallsWithDetails,
+      this.dictionaries,
+    );
   }
 
   async getPeriodInfo(periodId) {
@@ -273,23 +305,16 @@ class HallsService {
   }
 
   async checkActivePeriod() {
-    const hasActivePeriod = this.periods.length > 0;
+    // تب "تعریف واحد" همیشه نمایش داده شود — مخفی نمی‌شود
     const container = document.querySelector(".customer-AddHals");
     if (!container) return;
     const unitTab = container.querySelector('[data-tab="unit"]');
     const unitTabContent = document.getElementById("unitTab");
-    if (!hasActivePeriod) {
-      if (unitTab) unitTab.style.display = "";
-      if (unitTabContent) unitTabContent.style.display = "";
-      this.activateTab("unit");
-    } else {
-      if (unitTab) unitTab.style.display = "none";
-      if (unitTabContent) unitTabContent.style.display = "none";
-      const visibleTab = container.querySelector(
-        '.tab-btn:not([data-tab="unit"])',
-      );
-      if (visibleTab) this.activateTab(visibleTab.dataset.tab);
-    }
+    if (unitTab) unitTab.style.display = "";
+    if (unitTabContent) unitTabContent.style.display = "";
+    // پیش‌فرض تب basic فعال باشد (اگر قبلاً انتخاب نشده)
+    const activeBtn = container.querySelector(".tab-btn.active");
+    if (!activeBtn) this.activateTab("basic");
   }
 
   activateTab(tabId) {
@@ -349,6 +374,12 @@ class HallsService {
       provinceSelect.addEventListener("change", (e) => {
         if (e.target.value) this.loadCities(e.target.value);
       });
+    }
+    const unitNumSelect = document.getElementById("UnitNumber");
+    if (unitNumSelect) {
+      unitNumSelect.addEventListener("change", () =>
+        this.autoGenerateHallName(),
+      );
     }
     this.setupSaveButtons();
   }
@@ -631,6 +662,82 @@ class HallsService {
   // ✅ SAVE FUNCTIONS
   // ============================================================
 
+  // ===== جمع‌آوری کارشناسان از فرم =====
+  collectUnitExperts() {
+    const rows = document.querySelectorAll(
+      "#unitExpertsContainer .unit-expert-row",
+    );
+    const experts = [];
+    rows.forEach((row) => {
+      const name = row.querySelector(".unit-expert-name")?.value?.trim();
+      const phone = row.querySelector(".unit-expert-phone")?.value?.trim();
+      const role = row.querySelector(".unit-expert-role")?.value?.trim();
+      // ردیف کاملاً خالی → نادیده گرفته می‌شود (افزودن کارشناس اختیاری است)
+      if (!name && !phone && !role) return;
+      // اگر ردیف ناقص باشد، با مقادیر فعلی ارسال می‌شود تا اعتبارسنجی خطای مناسب بدهد
+      experts.push({
+        expert_name: name,
+        expert_phone: phone || null,
+        expert_role: role || null,
+      });
+    });
+    return experts;
+  }
+
+  // ===== افزودن ردیف کارشناس =====
+  addUnitExpertRow() {
+    const container = document.getElementById("unitExpertsContainer");
+    if (!container) return;
+    const row = document.createElement("div");
+    row.className = "unit-expert-row";
+    row.innerHTML = `
+      <div class="form-group"><label>نام کارشناس</label><input type="text" maxlength="50"
+          class="unit-expert-name" placeholder="نام کارشناس"></div>
+      <div class="form-group"><label>شماره تماس</label><input type="text" maxlength="11" inputmode="numeric"
+          class="unit-expert-phone" placeholder="مثال: ۰۹۱۲۳۴۵۶۷۸۹"
+          oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,11)"></div>
+      <div class="form-group"><label>نقش / تخصص</label><input type="text" maxlength="50"
+          class="unit-expert-role" placeholder="مثال: کارشناس تغذیه"></div>
+      <button type="button" class="btn-remove-expert" onclick="window.removeUnitExpertRow(this)" title="حذف کارشناس">
+        <i class="fas fa-times"></i>
+      </button>
+    `;
+    container.appendChild(row);
+  }
+
+  // ===== حذف ردیف کارشناس =====
+  removeUnitExpertRow(btn) {
+    const row = btn?.closest(".unit-expert-row");
+    if (!row) return;
+    const container = document.getElementById("unitExpertsContainer");
+    if (container.querySelectorAll(".unit-expert-row").length <= 1) {
+      row.querySelector(".unit-expert-name").value = "";
+      row.querySelector(".unit-expert-phone").value = "";
+      row.querySelector(".unit-expert-role").value = "";
+      return;
+    }
+    row.remove();
+  }
+
+  // ===== ریست ردیف‌های کارشناس واحد (بازگشت به یک ردیف خالی) =====
+  resetUnitExpertRows() {
+    const container = document.getElementById("unitExpertsContainer");
+    if (!container) return;
+    container.innerHTML = "";
+    const row = document.createElement("div");
+    row.className = "unit-expert-row";
+    row.innerHTML = `
+      <div class="form-group"><label>نام کارشناس</label><input type="text" maxlength="50"
+          class="unit-expert-name" placeholder="نام کارشناس"></div>
+      <div class="form-group"><label>شماره تماس</label><input type="text" maxlength="11" inputmode="numeric"
+          class="unit-expert-phone" placeholder="مثال: ۰۹۱۲۳۴۵۶۷۸۹"
+          oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,11)"></div>
+      <div class="form-group"><label>نقش / تخصص</label><input type="text" maxlength="50"
+          class="unit-expert-role" placeholder="مثال: کارشناس تغذیه"></div>
+    `;
+    container.appendChild(row);
+  }
+
   async saveUnitInfo() {
     const data = {
       customer_personal_information_id: parseInt(this.customerId),
@@ -639,8 +746,10 @@ class HallsService {
       longitude: document.getElementById("unitLongitude")?.value || null,
       latitude: document.getElementById("unitLatitude")?.value || null,
       hall_count: document.getElementById("unitHallCount")?.value || null,
+      capacity: document.getElementById("unitCapacity")?.value || null,
       manager_name: document.getElementById("unitManagerName")?.value || null,
       manager_phone: document.getElementById("unitManagerPhone")?.value || null,
+      experts: this.collectUnitExperts(),
     };
     const saveBtn = document.querySelector("#unitTab .btn-primary");
     if (!saveBtn || saveBtn.disabled) return;
@@ -864,9 +973,10 @@ class HallsService {
     saveBtn.innerHTML =
       '<i class="fas fa-spinner fa-spin"></i> در حال ذخیره...';
     const finalHallId = hallId || this.editingHallId;
+    const selectedPhysHall = this.halls.find((h) => h.id == finalHallId);
     const data = {
       hall_id: parseInt(finalHallId),
-      period_id: this.physicalPeriodId || null,
+      unit_id: selectedPhysHall?.unit_id || null,
       length: document.getElementById("length")?.value || null,
       width: document.getElementById("width")?.value || null,
       height: document.getElementById("height")?.value || null,
@@ -949,16 +1059,10 @@ class HallsService {
       '<i class="fas fa-spinner fa-spin"></i> در حال ذخیره...';
     const finalHallId = hallId || this.editingHallId;
     const selectedHall = this.halls.find((h) => h.id == finalHallId);
-    const periodId = selectedHall?.period_id || this.systemsPeriodId;
-    if (!periodId) {
-      notificationService.warning("لطفاً ابتدا یک سالن با دوره انتخاب کنید");
-      saveBtn.disabled = false;
-      saveBtn.innerHTML = originalText;
-      return;
-    }
+    const unitId = selectedHall?.unit_id || null;
     const data = {
       hall_id: parseInt(finalHallId),
-      period_id: periodId,
+      unit_id: unitId,
       fan_count: document.getElementById("fanCount")?.value || null,
       fan_size: document.getElementById("fanSize")?.value || null,
       fan_capacity: document.getElementById("fanCapacity")?.value || null,
@@ -1044,10 +1148,11 @@ class HallsService {
     saveBtn.innerHTML =
       '<i class="fas fa-spinner fa-spin"></i> در حال ذخیره...';
     const finalHallId = hallId || this.editingHallId;
+    const selectedWFHall = this.halls.find((h) => h.id == finalHallId);
     const autoFood = document.querySelector('input[name="autoFood"]:checked');
     const data = {
       hall_id: parseInt(finalHallId),
-      period_id: this.waterFeedPeriodId || null,
+      unit_id: selectedWFHall?.unit_id || null,
       waterer_type_id: document.getElementById("waterType")?.value || null,
       feeder_type_id: document.getElementById("foodType")?.value || null,
       water_lines_count: document.getElementById("waterLines")?.value || null,
@@ -1199,6 +1304,7 @@ class HallsService {
         "unitLongitude",
         "unitLatitude",
         "unitHallCount",
+        "unitCapacity",
         "unitManagerName",
         "unitManagerPhone",
       ],
@@ -1254,6 +1360,8 @@ class HallsService {
       document
         .querySelectorAll('input[name="autoFood"]')
         .forEach((r) => (r.checked = false));
+    // ریست ردیف‌های کارشناس واحد
+    if (tabId === "unitTab") this.resetUnitExpertRows();
     const saveBtn = document.querySelector(`#${tabId} .btn-primary`);
     if (saveBtn) {
       const texts = {
@@ -1266,6 +1374,20 @@ class HallsService {
       saveBtn.innerHTML = `<i class="fas fa-save"></i> ${texts[tabId] || "ذخیره"}`;
       saveBtn.style.background = "";
       saveBtn.disabled = false;
+    }
+  }
+
+  toggleUnitCard(header) {
+    const card = header.closest(".unit-card");
+    if (!card) return;
+    const body = card.querySelector(".unit-card-body");
+    const isExpanded = body.style.display === "block";
+    if (isExpanded) {
+      body.style.display = "none";
+      header.classList.add("collapsed");
+    } else {
+      body.style.display = "block";
+      header.classList.remove("collapsed");
     }
   }
 
@@ -1282,6 +1404,30 @@ class HallsService {
       body.classList.add("expanded");
       body.style.display = "block";
       header.classList.remove("collapsed");
+    }
+  }
+
+  async toggleUnitStatus(unitId, newStatus) {
+    const actionText = newStatus ? "فعال" : "غیرفعال";
+    const confirmed = await notificationService.confirm({
+      title: `${actionText} سازی واحد`,
+      text: `آیا از ${actionText} سازی این واحد اطمینان دارید؟`,
+      confirmText: `بله، ${actionText} شود`,
+      cancelText: "انصراف",
+    });
+    if (!confirmed) return;
+    try {
+      const response = await hallsApi.updateUnit(unitId, {
+        is_active: newStatus,
+      });
+      if (response.success) {
+        notificationService.success("✅ وضعیت واحد با موفقیت تغییر کرد");
+        await this.loadData();
+      } else
+        notificationService.error(response.message || "خطا در تغییر وضعیت");
+    } catch (error) {
+      console.error("❌ Error toggling unit status:", error);
+      notificationService.error("خطا در ارتباط با سرور");
     }
   }
 
@@ -1327,6 +1473,375 @@ class HallsService {
       console.error("❌ Error deleting hall:", error);
       notificationService.error("خطا در ارتباط با سرور");
     }
+  }
+
+  async deleteUnit(unitId) {
+    const unit = this.periods.find((u) => u.id == unitId);
+    const unitName = unit?.unit_name || "این واحد";
+    const confirmed = await notificationService.confirm({
+      title: "🗑️ حذف واحد",
+      text: `آیا از حذف "${unitName}" اطمینان دارید؟\n⚠️ همه سالن‌ها و گله‌های مرتبط با این واحد نیز حذف خواهند شد!`,
+      confirmText: "بله، حذف شود",
+      cancelText: "انصراف",
+    });
+    if (!confirmed) return;
+    try {
+      const response = await hallsApi.deleteUnit(unitId);
+      if (response.success) {
+        notificationService.success(
+          "واحد و تمام سالن‌ها و گله‌های مرتبط با موفقیت حذف شد",
+        );
+        await this.loadData();
+      } else notificationService.error(response.message || "خطا در حذف واحد");
+    } catch (error) {
+      console.error("❌ Error deleting unit:", error);
+      notificationService.error("خطا در ارتباط با سرور");
+    }
+  }
+
+  // ============================================================
+  // ✅ UNIT DETAILS PANEL (پنل جزئیات واحد در اکوردیون)
+  // ============================================================
+
+  // بارگذاری اطلاعات کامل واحد و ساخت پنل جزئیات
+  async loadUnitDetails(unitId) {
+    try {
+      const response = await hallsApi.getUnit(unitId);
+      if (!response.success) {
+        notificationService.error("خطا در دریافت اطلاعات واحد");
+        return null;
+      }
+      return response.data;
+    } catch (error) {
+      console.error("❌ Error loading unit details:", error);
+      notificationService.error("خطا در ارتباط با سرور");
+      return null;
+    }
+  }
+
+  // فعال‌سازی حالت ویرایش واحد
+  openUnitEdit(unitId) {
+    const card = document.querySelector(`.unit-card[data-unit-id="${unitId}"]`);
+    if (!card) return;
+    const panel = card.querySelector(".unit-details-panel");
+    if (!panel) return;
+    // نمایش فرم ویرایش
+    const viewEl = panel.querySelector(".unit-details-view");
+    const editEl = panel.querySelector(".unit-details-edit");
+    if (viewEl) viewEl.style.display = "none";
+    if (editEl) editEl.style.display = "block";
+  }
+
+  // ذخیره اطلاعات ویرایش‌شده واحد
+  async updateUnitInfo(unitId) {
+    const card = document.querySelector(`.unit-card[data-unit-id="${unitId}"]`);
+    if (!card) return;
+    const panel = card.querySelector(".unit-details-panel");
+    if (!panel) return;
+
+    const data = {
+      unit_name: panel.querySelector("#editUnitName")?.value,
+      address: panel.querySelector("#editUnitAddress")?.value || null,
+      longitude: panel.querySelector("#editUnitLongitude")?.value || null,
+      latitude: panel.querySelector("#editUnitLatitude")?.value || null,
+      hall_count: panel.querySelector("#editUnitHallCount")?.value || null,
+      capacity: panel.querySelector("#editUnitCapacity")?.value || null,
+      manager_name: panel.querySelector("#editUnitManagerName")?.value || null,
+      manager_phone:
+        panel.querySelector("#editUnitManagerPhone")?.value || null,
+    };
+
+    // اعتبارسنجی
+    const errors = hallsValidation.validateUnit(data);
+    if (errors.length > 0) {
+      notificationService.showValidationErrors(errors);
+      return;
+    }
+
+    const saveBtn = panel.querySelector(".btn-save-unit-edit");
+    if (saveBtn) {
+      saveBtn.disabled = true;
+      saveBtn.innerHTML =
+        '<i class="fas fa-spinner fa-spin"></i> در حال ذخیره...';
+    }
+    try {
+      const response = await hallsApi.updateUnit(unitId, data);
+      if (response.success) {
+        // ===== ذخیره کارشناسان: ویرایش موجودها + افزودن جدیدها =====
+        const existingExperts = [];
+        const newExperts = [];
+        panel.querySelectorAll(".unit-edit-expert-row").forEach((row) => {
+          const expertId = row.getAttribute("data-expert-id");
+          const name = row
+            .querySelector(".unit-edit-expert-name")
+            ?.value?.trim();
+          const phone = row
+            .querySelector(".unit-edit-expert-phone")
+            ?.value?.trim();
+          const role = row
+            .querySelector(".unit-edit-expert-role")
+            ?.value?.trim();
+          // ردیف کاملاً خالی → نادیده (افزودن کارشناس اختیاری است)
+          if (!name && !phone && !role) return;
+          const expertData = {
+            expert_name: name,
+            expert_phone: phone || null,
+            expert_role: role || null,
+          };
+          if (expertId) existingExperts.push({ expertId, ...expertData });
+          else newExperts.push(expertData);
+        });
+
+        // بروزرسانی کارشناسان موجود
+        for (const expert of existingExperts) {
+          const res = await hallsApi
+            .updateUnitExpert(unitId, expert.expertId, expert)
+            .catch(() => ({
+              success: false,
+              message: "خطا در بروزرسانی کارشناس",
+            }));
+          if (!res.success) {
+            notificationService.error(res.message);
+            return;
+          }
+        }
+        // افزودن کارشناسان جدید
+        for (const expert of newExperts) {
+          const res = await hallsApi
+            .addUnitExpert(unitId, expert)
+            .catch(() => ({
+              success: false,
+              message: "خطا در افزودن کارشناس",
+            }));
+          if (!res.success) {
+            notificationService.error(res.message);
+            return;
+          }
+        }
+
+        notificationService.success("✅ اطلاعات واحد با موفقیت بروزرسانی شد");
+        await this.loadData();
+      } else {
+        notificationService.error(response.message || "خطا در بروزرسانی واحد");
+      }
+    } catch (error) {
+      console.error("❌ Error updating unit:", error);
+      notificationService.error("خطا در ارتباط با سرور");
+    } finally {
+      if (saveBtn) {
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = '<i class="fas fa-save"></i> ذخیره تغییرات';
+      }
+    }
+  }
+
+  // افزودن ردیف کارشناس در پنل ویرایش واحد
+  addUnitEditExpertRow(unitId) {
+    const card = document.querySelector(`.unit-card[data-unit-id="${unitId}"]`);
+    if (!card) return;
+    const container = card.querySelector(".unit-edit-experts-container");
+    if (!container) return;
+    const row = document.createElement("div");
+    row.className = "unit-edit-expert-row";
+    row.innerHTML = `
+      <input type="text" maxlength="50" class="unit-edit-expert-name" placeholder="نام کارشناس">
+      <input type="text" maxlength="11" inputmode="numeric" class="unit-edit-expert-phone" placeholder="شماره تماس"
+        oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,11)">
+      <input type="text" maxlength="50" class="unit-edit-expert-role" placeholder="نقش / تخصص">
+      <button type="button" class="btn-remove-expert" onclick="window.removeUnitEditExpertRow(this)" title="حذف">
+        <i class="fas fa-times"></i>
+      </button>
+    `;
+    container.appendChild(row);
+  }
+
+  // حذف ردیف کارشناس از پنل ویرایش
+  async removeUnitEditExpertRow(btn) {
+    const row = btn?.closest(".unit-edit-expert-row");
+    if (!row) return;
+    const expertId = row.getAttribute("data-expert-id");
+    // اگر کارشناس موجود است، حذف از دیتابیس با تأیید کاربر
+    if (expertId) {
+      const confirmed = await notificationService.confirm({
+        title: "🗑️ حذف کارشناس",
+        text: "آیا از حذف این کارشناس اطمینان دارید؟",
+        confirmText: "بله، حذف شود",
+        cancelText: "انصراف",
+      });
+      if (!confirmed) return;
+      try {
+        const unitCard = row.closest(".unit-card");
+        const unitId = unitCard?.getAttribute("data-unit-id");
+        if (!unitId) return;
+        const res = await hallsApi
+          .deleteUnitExpert(unitId, expertId)
+          .catch(() => ({
+            success: false,
+            message: "خطا در ارتباط با سرور",
+          }));
+        if (!res.success) {
+          notificationService.error(res.message);
+          return;
+        }
+        notificationService.success("کارشناس با موفقیت حذف شد");
+      } catch (error) {
+        console.error("❌ Error deleting unit expert:", error);
+        notificationService.error("خطا در حذف کارشناس");
+        return;
+      }
+    }
+    row.remove();
+  }
+
+  // رندر پنل جزئیات واحد (برای renderer)
+  renderUnitDetailsPanel(unit) {
+    if (!unit) return "";
+    const experts = unit.experts || [];
+    const expertListHtml = experts.length
+      ? experts
+          .map(
+            (e) => `
+            <div class="unit-expert-chip">
+              <i class="fas fa-user-tie"></i>
+              <strong>${e.expert_name || "-"}</strong>
+              ${e.expert_phone ? `<span class="chip-phone">${e.expert_phone}</span>` : ""}
+              ${e.expert_role ? `<span class="chip-role">${e.expert_role}</span>` : ""}
+            </div>`,
+          )
+          .join("")
+      : '<span class="unit-no-experts">کارشناسی ثبت نشده است</span>';
+
+    return `
+      <div class="unit-details-panel">
+        <div class="unit-details-view">
+          <div class="unit-details-grid">
+            <div class="unit-detail-item">
+              <div class="detail-icon"><i class="fas fa-map-marker-alt"></i></div>
+              <div class="detail-content">
+                <span class="label">آدرس</span>
+                <span class="value">${unit.address || "—"}</span>
+              </div>
+            </div>
+            <div class="unit-detail-item">
+              <div class="detail-icon"><i class="fas fa-hashtag"></i></div>
+              <div class="detail-content">
+                <span class="label">تعداد سالن‌ها</span>
+                <span class="value">${unit.hall_count || "-"}</span>
+              </div>
+            </div>
+            <div class="unit-detail-item">
+              <div class="detail-icon"><i class="fas fa-globe-asia"></i></div>
+              <div class="detail-content">
+                <span class="label">طول جغرافیایی</span>
+                <span class="value">${unit.longitude || "—"}</span>
+              </div>
+            </div>
+            <div class="unit-detail-item">
+              <div class="detail-icon"><i class="fas fa-globe"></i></div>
+              <div class="detail-content">
+                <span class="label">عرض جغرافیایی</span>
+                <span class="value">${unit.latitude || "—"}</span>
+              </div>
+            </div>
+            <div class="unit-detail-item">
+              <div class="detail-icon"><i class="fas fa-weight-hanging"></i></div>
+              <div class="detail-content">
+                <span class="label">ظرفیت واحد</span>
+                <span class="value">${(unit.capacity ?? 0).toLocaleString()} قطعه</span>
+              </div>
+            </div>
+            <div class="unit-detail-item">
+              <div class="detail-icon"><i class="fas fa-user"></i></div>
+              <div class="detail-content">
+                <span class="label">مدیر واحد</span>
+                <span class="value">${unit.manager_name || "—"}</span>
+              </div>
+            </div>
+            <div class="unit-detail-item">
+              <div class="detail-icon"><i class="fas fa-phone"></i></div>
+              <div class="detail-content">
+                <span class="label">تماس مدیر</span>
+                <span class="value" dir="ltr">${unit.manager_phone || "—"}</span>
+              </div>
+            </div>
+          </div>
+          <div class="unit-experts-section">
+            <div class="unit-experts-title"><i class="fas fa-user-tie"></i> کارشناسان واحد</div>
+            <div class="unit-experts-list">${expertListHtml}</div>
+          </div>
+          <div class="unit-details-actions">
+            <button class="btn-edit-unit" onclick="event.stopPropagation(); window.openUnitEdit(${unit.id})">
+              <i class="fas fa-edit"></i> بروزرسانی اطلاعات واحد
+            </button>
+          </div>
+        </div>
+        <div class="unit-details-edit" style="display:none;">
+          <div class="unit-edit-form">
+            <div class="form-grid">
+              <div class="form-group"><label>نام واحد <span class="required">*</span></label><input type="text" id="editUnitName" value="${unit.unit_name || ""}"></div>
+              <div class="form-group"><label>آدرس واحد</label><input type="text" id="editUnitAddress" value="${unit.address || ""}"></div>
+              <div class="form-group"><label>طول جغرافیایی</label><input type="text" id="editUnitLongitude" value="${unit.longitude || ""}"></div>
+              <div class="form-group"><label>عرض جغرافیایی</label><input type="text" id="editUnitLatitude" value="${unit.latitude || ""}"></div>
+              <div class="form-group"><label>تعداد سالن‌ها <span class="required">*</span></label><input type="number" id="editUnitHallCount" value="${unit.hall_count || ""}"></div>
+              <div class="form-group"><label>ظرفیت واحد (قطعه) <span class="required">*</span></label><input type="number" id="editUnitCapacity" min="0" max="1000000" value="${unit.capacity ?? ""}"></div>
+              <div class="form-group"><label>نام مدیر واحد <span class="required">*</span></label><input type="text" id="editUnitManagerName" value="${unit.manager_name || ""}"></div>
+              <div class="form-group"><label>شماره تماس مدیر <span class="required">*</span></label><input type="text" id="editUnitManagerPhone" value="${unit.manager_phone || ""}"></div>
+            </div>
+            <div class="unit-edit-experts-section">
+              <div class="unit-experts-title"><i class="fas fa-user-tie"></i> ویرایش کارشناسان</div>
+              <div class="unit-edit-experts-container">
+                ${(unit.experts || [])
+                  .map(
+                    (e) => `
+                <div class="unit-edit-expert-row" data-expert-id="${e.id}">
+                  <input type="text" maxlength="50" class="unit-edit-expert-name" value="${e.expert_name || ""}" placeholder="نام کارشناس">
+                  <input type="text" maxlength="11" inputmode="numeric" class="unit-edit-expert-phone" value="${e.expert_phone || ""}" placeholder="شماره تماس"
+                    oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,11)">
+                  <input type="text" maxlength="50" class="unit-edit-expert-role" value="${e.expert_role || ""}" placeholder="نقش / تخصص">
+                  <button type="button" class="btn-remove-expert" data-expert-id="${e.id}" onclick="event.stopPropagation(); window.removeUnitEditExpertRow(this)" title="حذف کارشناس">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </div>`,
+                  )
+                  .join("")}
+                <div class="unit-edit-expert-row" data-is-new="true">
+                  <input type="text" maxlength="50" class="unit-edit-expert-name" placeholder="نام کارشناس">
+                  <input type="text" maxlength="11" inputmode="numeric" class="unit-edit-expert-phone" placeholder="شماره تماس"
+                    oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,11)">
+                  <input type="text" maxlength="50" class="unit-edit-expert-role" placeholder="نقش / تخصص">
+                  <button type="button" class="btn-remove-expert" onclick="window.removeUnitEditExpertRow(this)" title="حذف">
+                    <i class="fas fa-times"></i>
+                  </button>
+                </div>
+              </div>
+              <button type="button" class="btn-add-expert" onclick="event.stopPropagation(); window.addUnitEditExpertRow(${unit.id})">
+                <i class="fas fa-plus"></i> افزودن کارشناس
+              </button>
+            </div>
+            <div class="unit-edit-actions">
+              <button class="btn-save-unit-edit" onclick="window.updateUnitInfo(${unit.id})">
+                <i class="fas fa-save"></i> ذخیره تغییرات
+              </button>
+              <button class="btn-cancel-unit-edit" onclick="event.stopPropagation(); window.closeUnitEdit(${unit.id})">
+                <i class="fas fa-times"></i> انصراف
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  // بستن حالت ویرایش واحد
+  closeUnitEdit(unitId) {
+    const card = document.querySelector(`.unit-card[data-unit-id="${unitId}"]`);
+    if (!card) return;
+    const panel = card.querySelector(".unit-details-panel");
+    if (!panel) return;
+    const viewEl = panel.querySelector(".unit-details-view");
+    const editEl = panel.querySelector(".unit-details-edit");
+    if (viewEl) viewEl.style.display = "block";
+    if (editEl) editEl.style.display = "none";
   }
 
   refresh() {
@@ -1395,9 +1910,21 @@ if (typeof window !== "undefined") {
   window.editHall = (id) => hallsService.editHall(id);
   window.toggleHallStatus = (id, s) => hallsService.toggleHallStatus(id, s);
   window.deleteHallRecord = (id) => hallsService.deleteHall(id);
+  window.deleteUnitRecord = (id) => hallsService.deleteUnit(id);
   window.toggleHallCard = (h) => hallsService.toggleHallCard(h);
+  window.toggleUnitCard = (h) => hallsService.toggleUnitCard(h);
+  window.toggleUnitStatus = (id, s) => hallsService.toggleUnitStatus(id, s);
   window.saveBasicInfo = () => hallsService.saveBasicInfo();
   window.saveUnitInfo = () => hallsService.saveUnitInfo();
+  window.addUnitExpertRow = () => hallsService.addUnitExpertRow();
+  window.removeUnitExpertRow = (btn) => hallsService.removeUnitExpertRow(btn);
+  window.loadUnitDetails = (id) => hallsService.loadUnitDetails(id);
+  window.openUnitEdit = (id) => hallsService.openUnitEdit(id);
+  window.updateUnitInfo = (id) => hallsService.updateUnitInfo(id);
+  window.closeUnitEdit = (id) => hallsService.closeUnitEdit(id);
+  window.addUnitEditExpertRow = (id) => hallsService.addUnitEditExpertRow(id);
+  window.removeUnitEditExpertRow = (btn) =>
+    hallsService.removeUnitEditExpertRow(btn);
   window.resetUnitTab = () => hallsService.resetTab("unitTab");
   window.resetTab = (t) => hallsService.resetTab(t + "Tab");
   window.savePhysicalInfo = () => hallsService.savePhysicalInfo();

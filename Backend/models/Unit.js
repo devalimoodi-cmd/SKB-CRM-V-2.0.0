@@ -45,8 +45,22 @@ const Unit = sequelize.define(
       allowNull: true,
       validate: {
         min: { args: [1], msg: "تعداد سالن‌ها باید حداقل 1 باشد" },
+        max: { args: [99], msg: "تعداد سالن‌ها باید حداکثر 99 باشد" },
       },
       comment: "تعداد سالن‌های واحد",
+    },
+    capacity: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      defaultValue: 0,
+      validate: {
+        min: { args: [0], msg: "ظرفیت واحد باید حداقل 0 باشد" },
+        max: {
+          args: [1000000],
+          msg: "ظرفیت واحد باید حداکثر 1,000,000 قطعه باشد",
+        },
+      },
+      comment: "ظرفیت کل واحد (قطعه)",
     },
     manager_name: {
       type: DataTypes.STRING(100),

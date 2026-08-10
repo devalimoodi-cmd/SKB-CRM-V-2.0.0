@@ -167,6 +167,73 @@ export const hallsRenderer = {
 
   // ===== رندر لیست سالن‌ها =====
 
+  renderUnitsAccordion(units, halls, dictionaries) {
+    const container = document.getElementById("hallsListContainer");
+    if (!container) return;
+    if (!units || units.length === 0) {
+      container.innerHTML =
+        '<div class="empty-state"><i class="fas fa-building"></i><p>هیچ واحدی تعریف نشده است. ابتدا یک واحد تعریف کنید.</p></div>';
+      return;
+    }
+    let html = "";
+    units.forEach((unit) => {
+      const unitHalls = halls.filter((h) => h.unit_id == unit.id);
+      const hallCount = unitHalls.length;
+      const unitIsActive = unit.is_active !== false;
+      html += `
+        <div class="unit-card" data-unit-id="${unit.id}">
+          <div class="unit-card-header" onclick="window.toggleUnitCard(this)">
+            <i class="fas fa-building"></i>
+            <h4>${unit.unit_name || "واحد بدون نام"}</h4>
+            <span class="unit-halls-count">${hallCount} سالن</span>
+            <span class="unit-status-badge ${unitIsActive ? "active" : "inactive"}"
+                  onclick="event.stopPropagation(); window.toggleUnitStatus(${unit.id}, ${!unitIsActive})"
+                  title="${unitIsActive ? "کلیک برای غیرفعال کردن" : "کلیک برای فعال کردن"}">
+              <i class="fas ${unitIsActive ? "fa-toggle-on" : "fa-toggle-off"}"></i>
+              ${unitIsActive ? "فعال" : "غیرفعال"}
+            </span>
+            <span class="unit-delete-btn" 
+                  onclick="event.stopPropagation(); window.deleteUnitRecord(${unit.id})"
+                  title="حذف واحد و همه سالن‌ها و گله‌های مرتبط">
+              <i class="fas fa-trash-alt"></i>
+            </span>
+            <i class="fas fa-chevron-down toggle-icon"></i>
+          </div>
+          <div class="unit-card-body" style="display:none;">
+            ${
+              window.hallsService?.renderUnitDetailsPanel
+                ? window.hallsService.renderUnitDetailsPanel(unit)
+                : ""
+            }
+            ${
+              hallCount === 0
+                ? '<div class="empty-state"><p>سالنی برای این واحد ثبت نشده است</p></div>'
+                : unitHalls
+                    .map(
+                      (hall) => `
+                <div class="hall-card" data-hall-id="${hall.id}">
+                  <div class="hall-card-header" onclick="window.toggleHallCard(this)">
+                    <h4>
+                      <i class="fas fa-warehouse"></i> ${hall.hall_name || "سالن بدون نام"}
+                      <span class="hall-status-badge ${hall.is_active === false ? "inactive" : "active"}"
+                            onclick="event.stopPropagation(); window.toggleHallStatus(${hall.id}, ${hall.is_active === false})"
+                            title="${hall.is_active === false ? "کلیک برای فعال کردن" : "کلیک برای غیرفعال کردن"}">
+                        <i class="fas ${hall.is_active === false ? "fa-toggle-off" : "fa-toggle-on"}"></i> ${hall.is_active === false ? "غیرفعال" : "فعال"}
+                      </span>
+                    </h4>
+                    <i class="fas fa-chevron-down toggle-icon"></i>
+                  </div>
+                  <div class="hall-card-body">${this.renderHallInfo(hall, dictionaries)} ${this.renderHallActions(hall.id)}</div>
+                </div>`,
+                    )
+                    .join("")
+            }
+          </div>
+        </div>`;
+    });
+    container.innerHTML = html;
+  },
+
   renderHallsList(halls, dictionaries) {
     const container = document.getElementById("hallsListContainer");
     if (!container) return;
