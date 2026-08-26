@@ -116,7 +116,7 @@ export const weeklyApi = {
 
   // دریافت واحدهای مشتری
   async getUnits(customerId) {
-    const params = { customer_id: customerId };
+    const params = { customer_id: customerId, limit: 100 };
     return apiService.get(API_CONSTANTS.ENDPOINTS.UNITS.LIST, params);
   },
 

@@ -6,6 +6,30 @@ class ApiService {
     this.timeout = API_CONSTANTS.TIMEOUT;
     this.retryCount = API_CONSTANTS.RETRY_COUNT;
     this.cache = new CacheService();
+    this.isRedirectingToLogin = false;
+  }
+
+  // ===== پاک‌سازی نشست منقضی/نامعتبر =====
+  // وقتی توکن 401 می‌گیرد، اطلاعات لاگین پاک و کاربر به صفحه ورود هدایت می‌شود
+  handleUnauthorized() {
+    // پاک‌سازی تمام کلیدهای لاگین از localStorage
+    localStorage.removeItem("adminToken");
+    localStorage.removeItem("user");
+    localStorage.removeItem("token");
+    sessionStorage.clear();
+
+    // جلوگیری از هدایت مکرر (چند درخواست هم‌زمان ممکن است 401 بدهند)
+    if (!this.isRedirectingToLogin) {
+      this.isRedirectingToLogin = true;
+      const currentPath = window.location.pathname;
+      if (!currentPath.includes("/login") && !currentPath.includes("/index")) {
+        window.location.href = "/login";
+      }
+      // بعد از ۲ ثانیه دوباره اجازه هدایت داده می‌شود
+      setTimeout(() => {
+        this.isRedirectingToLogin = false;
+      }, 2000);
+    }
   }
 
   // ✅ baseURL بهصورت پویا مقدار میگیرد (در هر درخواست، از CONFIG لحظهای
@@ -53,6 +77,9 @@ class ApiService {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+        if (response.status === 401) {
+          this.handleUnauthorized();
+        }
         throw new Error(
           errorData.message || `HTTP error! status: ${response.status}`,
         );
@@ -180,6 +207,9 @@ class ApiService {
       const response = await fetch(url, config);
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+        if (response.status === 401) {
+          this.handleUnauthorized();
+        }
         throw new Error(
           errorData.message || `HTTP error! status: ${response.status}`,
         );
@@ -254,6 +284,9 @@ class ApiService {
       const response = await fetch(url, config);
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+        if (response.status === 401) {
+          this.handleUnauthorized();
+        }
         throw new Error(
           errorData.message || `HTTP error! status: ${response.status}`,
         );

@@ -129,27 +129,25 @@ export const weeklyRenderer = {
 
   // ===== فیلترها =====
 
-  renderPeriodsFilter(periods) {
-    const select = document.getElementById("filter-period");
+  renderUnitsFilter(units) {
+    const select = document.getElementById("filter-unit");
     if (!select) return;
 
     const currentValue = select.value;
-    select.innerHTML = '<option value="">همه دوره‌ها</option>';
+    select.innerHTML = '<option value="">همه واحدها</option>';
 
-    // فقط دوره‌های فعال و در انتظار
-    const activePeriods = periods.filter(
-      (p) => p.status === "active" || p.status === "pending",
-    );
+    // فقط واحدهای فعال
+    const activeUnits = units.filter((u) => u.is_active);
 
-    if (activePeriods.length === 0) {
-      select.innerHTML = '<option value="">هیچ دوره فعالی وجود ندارد</option>';
+    if (activeUnits.length === 0) {
+      select.innerHTML = '<option value="">هیچ واحد فعالی وجود ندارد</option>';
       return;
     }
 
-    activePeriods.forEach((period) => {
+    activeUnits.forEach((unit) => {
       const option = document.createElement("option");
-      option.value = period.id;
-      option.textContent = `${period.period_name} (دوره ${period.period_number})`;
+      option.value = unit.id;
+      option.textContent = unit.unit_name;
       select.appendChild(option);
     });
 
@@ -193,7 +191,6 @@ export const weeklyRenderer = {
     const userName = user.fullName || user.username || "کاربر ناشناس";
 
     const totalFlocks = flocks.length;
-    const totalWeeks = flocks.reduce((sum, f) => sum + f.weeks.length, 0);
     const totalChicks = flocks.reduce(
       (sum, f) => sum + (f.total_chicks_count || 0),
       0,
@@ -389,7 +386,6 @@ export const weeklyRenderer = {
                     ? `
                     <div class="summary-stats">
                         <div class="summary-stat"><div class="stat-number">${totalFlocks}</div><div class="stat-label">تعداد گله‌ها</div></div>
-                        <div class="summary-stat"><div class="stat-number">${totalWeeks}</div><div class="stat-label">تعداد هفته‌ها</div></div>
                         <div class="summary-stat"><div class="stat-number">${totalChicks.toLocaleString()}</div><div class="stat-label">تعداد کل جوجه‌ها</div></div>
                         <div class="summary-stat"><div class="stat-number">${totalMortality.toLocaleString()}</div><div class="stat-label">تلفات کل</div></div>
                         <div class="summary-stat"><div class="stat-number">${totalFlocks > 0 ? Math.round(totalMortality / totalFlocks) : 0}</div><div class="stat-label">میانگین تلفات هر گله</div></div>

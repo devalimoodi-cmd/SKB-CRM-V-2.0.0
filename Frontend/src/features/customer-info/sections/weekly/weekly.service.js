@@ -13,7 +13,7 @@ class WeeklyService {
   constructor() {
     this.customerId = null;
     this.flocks = [];
-    this.periods = [];
+    this.units = [];
     this.halls = [];
     this.dictionaries = {};
     this.weeklyRecords = {};
@@ -48,8 +48,8 @@ class WeeklyService {
       // بارگذاری دیکشنری‌ها
       await this.loadDictionaries();
 
-      // بارگذاری دوره‌ها
-      await this.loadPeriods();
+      // بارگذاری واحدها
+      await this.loadUnits();
 
       // بارگذاری سالن‌ها
       await this.loadHalls();
@@ -90,15 +90,15 @@ class WeeklyService {
     }
   }
 
-  async loadPeriods() {
+  async loadUnits() {
     try {
       const response = await weeklyApi.getUnits(this.customerId);
       if (response.success) {
-        this.periods = response.data.periods || [];
-        weeklyRenderer.renderPeriodsFilter(this.periods);
+        this.units = response.data.units || [];
+        weeklyRenderer.renderUnitsFilter(this.units);
       }
     } catch (error) {
-      console.error("❌ Error loading periods:", error);
+      console.error("❌ Error loading units:", error);
     }
   }
 
@@ -117,12 +117,12 @@ class WeeklyService {
   async loadFlocks() {
     try {
       // دریافت گله‌های فعال با فیلترهای انتخاب شده
-      const periodId = document.getElementById("filter-period")?.value;
+      const unitId = document.getElementById("filter-unit")?.value;
       const hallId = document.getElementById("filter-hall")?.value;
       const flockId = document.getElementById("filter-flock")?.value;
 
       const params = {};
-      if (periodId) params.period_id = periodId;
+      if (unitId) params.unit_id = unitId;
       if (hallId) params.hall_id = hallId;
       if (flockId) params.id = flockId;
 
@@ -484,12 +484,12 @@ class WeeklyService {
   // ===== فیلترها =====
 
   setupFilters() {
-    const periodFilter = document.getElementById("filter-period");
+    const unitFilter = document.getElementById("filter-unit");
     const hallFilter = document.getElementById("filter-hall");
     const flockFilter = document.getElementById("filter-flock");
 
-    if (periodFilter) {
-      periodFilter.addEventListener("change", () => this.loadFlocks());
+    if (unitFilter) {
+      unitFilter.addEventListener("change", () => this.loadFlocks());
     }
 
     if (hallFilter) {
@@ -601,7 +601,7 @@ class WeeklyService {
       return;
     }
 
-    // دریافت اطلاعات گله برای period_id و hall_id
+    // دریافت اطلاعات گله برای unit_id و hall_id
     const flock = this.flocks.find((f) => f.id == flockId);
     if (!flock) {
       notificationService.error("اطلاعات گله یافت نشد");
@@ -619,7 +619,7 @@ class WeeklyService {
 
     const data = {
       customer_id: parseInt(this.customerId),
-      period_id: parseInt(flock.period_id),
+      unit_id: parseInt(flock.unit_id),
       hall_id: parseInt(flock.hall_id),
       chick_placement_id: parseInt(flockId),
       week_start_date: form.querySelector('input[name="week_start_date"]')
@@ -862,7 +862,7 @@ class WeeklyService {
       const reportHtml = weeklyRenderer.renderFullReport(
         customer,
         flocksWithWeeks,
-        this.periods,
+        this.units,
       );
 
       // باز کردن در پنجره جدید
