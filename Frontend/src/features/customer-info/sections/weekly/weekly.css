@@ -297,7 +297,6 @@
   background: #ffffff;
   border-radius: 12px;
   margin-bottom: 16px;
-  overflow: hidden;
   border: 1px solid #eef2f6;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
@@ -317,8 +316,12 @@
   color: white;
   cursor: pointer;
   transition: all 0.3s ease;
-  border-radius: 12px 12px 0 0;
+  border-radius: 12px;
   user-select: none;
+}
+
+.flock-card:has(.flock-card-body[style*="display: block"]) .flock-card-header {
+  border-radius: 12px 12px 0 0;
 }
 
 .flock-card-header:hover {
@@ -368,6 +371,7 @@
   padding: 0;
   background: #f8fafc;
   border-top: 1px solid #eef2f6;
+  border-radius: 0 0 12px 12px;
 }
 
 .flock-card-body[style*="display: block"] {
@@ -386,7 +390,6 @@
   background: #ffffff;
   border-radius: 10px;
   margin-bottom: 10px;
-  overflow: hidden;
   border: 1px solid #eef2f6;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
@@ -412,6 +415,7 @@
   padding: 12px 16px;
   cursor: pointer;
   background: #ffffff;
+  border-radius: 10px;
   transition: all 0.3s ease;
   user-select: none;
   gap: 10px;
@@ -424,6 +428,7 @@
 .week-accordion-item.open .week-accordion-header {
   background: #f0fdf4;
   border-bottom: 1px solid #bbf7d0;
+  border-radius: 10px 10px 0 0;
 }
 
 .week-info {
@@ -699,3 +704,209 @@
     padding: 5px 10px;
   }
 }
+
+/* ============================================================
+   کارت‌های محاسباتی زنده مدیریت هفتگی
+   ============================================================ */
+
+.wc-required {
+  color: #dc2626;
+  margin-inline-start: 2px;
+}
+
+/* آیکون راهنمای فیلدها */
+.field-help {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  background: #e2e8f0;
+  color: #475569;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: help;
+  position: relative;
+  margin-inline-start: 5px;
+  vertical-align: middle;
+  transition: background 0.2s, color 0.2s;
+}
+
+.field-help:hover,
+.field-help:focus {
+  background: #2c7a6e;
+  color: #fff;
+  outline: none;
+}
+
+.field-help::after {
+  content: attr(data-help);
+  position: absolute;
+  top: 50%;
+  right: calc(100% + 8px);
+  background: #1e293b;
+  color: #f8fafc;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.7;
+  padding: 10px 12px;
+  border-radius: 10px;
+  width: 240px;
+  max-width: 70vw;
+  text-align: right;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-50%) translateX(4px);
+  transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
+  z-index: 9999;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.25);
+  pointer-events: none;
+  white-space: normal;
+}
+
+.field-help::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: calc(100% + 2px);
+  border: 6px solid transparent;
+  border-left-color: #1e293b;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-50%);
+  transition: opacity 0.2s, visibility 0.2s;
+  z-index: 9999;
+}
+
+.field-help:hover::after,
+.field-help:focus::after {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(-50%) translateX(0);
+}
+
+.field-help:hover::before,
+.field-help:focus::before {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* عنوان گروه کارت‌ها */
+.wc-group-title {
+  grid-column: 1 / -1;
+  font-size: 12px;
+  font-weight: 800;
+  color: #475569;
+  background: #f1f5f9;
+  border-radius: 8px;
+  padding: 6px 10px;
+  margin-top: 4px;
+}
+
+.weekly-input-section {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 12px;
+  margin-bottom: 14px;
+}
+
+/* فیلد محاسبه‌شده خودکار دان */
+.weekly-feed-daily.feed-auto-calc,
+.weekly-feed-weekly.feed-auto-calc {
+  background: #ecfdf5;
+  border-color: #6ee7b7 !important;
+  color: #065f46;
+  cursor: not-allowed;
+}
+
+.week-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.wc-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.wc-card.wc-primary {
+  border-color: #2c7a6e;
+  background: linear-gradient(135deg, #f0fdf9, #ffffff);
+}
+
+.wc-card.wc-ok {
+  border-color: #22c55e;
+  background: #f0fdf4;
+}
+
+.wc-card.wc-warn {
+  border-color: #f59e0b;
+  background: #fffbeb;
+}
+
+.wc-card.wc-bad {
+  border-color: #ef4444;
+  background: #fef2f2;
+}
+
+.wc-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748b;
+  line-height: 1.5;
+}
+
+.wc-value {
+  font-size: 19px;
+  font-weight: 800;
+  color: #1e293b;
+  line-height: 1.2;
+  direction: ltr;
+  text-align: center;
+}
+
+.wc-card.wc-primary .wc-value {
+  color: #0f766e;
+  font-size: 22px;
+}
+
+.wc-sub {
+  font-size: 10.5px;
+  color: #94a3b8;
+  line-height: 1.4;
+  text-align: center;
+  min-height: 14px;
+}
+
+.flock-breed {
+  background: rgba(44, 122, 110, 0.1);
+  color: #2c7a6e;
+  border: 1px solid rgba(44, 122, 110, 0.25);
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+@media (max-width: 480px) {
+  .week-cards-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .wc-value {
+    font-size: 16px;
+  }
+}
+

@@ -55,8 +55,14 @@ const validateWeeklyData = (data) => {
     }
   }
 
-  // 3. اعتبارسنجی تلفات (نباید منفی باشد)
-  if (data.weekly_mortality !== undefined && data.weekly_mortality !== null) {
+  // 3. اعتبارسنجی تلفات (اجباری و غیرمنفی)
+  if (
+    data.weekly_mortality === undefined ||
+    data.weekly_mortality === null ||
+    data.weekly_mortality === ""
+  ) {
+    errors.push("تلفات هفته الزامی است");
+  } else {
     const mortality = parseInt(data.weekly_mortality);
     if (isNaN(mortality)) {
       errors.push("تلفات هفتگی باید عدد باشد");
@@ -65,35 +71,54 @@ const validateWeeklyData = (data) => {
     }
   }
 
-  // 4. اعتبارسنجی مصرف خوراک (نباید منفی باشد)
-  if (data.daily_feed_intake !== undefined && data.daily_feed_intake !== null) {
-    const intake = parseFloat(data.daily_feed_intake);
-    if (isNaN(intake)) {
-      errors.push("مصرف خوراک روزانه باید عدد باشد");
-    } else if (intake < 0) {
-      errors.push("مصرف خوراک روزانه نمی‌تواند منفی باشد");
-    }
-  }
+  // 4. اعتبارسنجی مصرف خوراک (کل گله - بدون سقف بالا)
+  const dailyFeed = parseFloat(data.daily_feed_intake);
+  const weeklyFeed = parseFloat(data.weekly_feed_intake);
 
-  if (
+  const hasDailyFeed =
+    data.daily_feed_intake !== undefined &&
+    data.daily_feed_intake !== null &&
+    data.daily_feed_intake !== "" &&
+    !isNaN(dailyFeed);
+
+  const hasWeeklyFeed =
     data.weekly_feed_intake !== undefined &&
-    data.weekly_feed_intake !== null
-  ) {
-    const intake = parseFloat(data.weekly_feed_intake);
-    if (isNaN(intake)) {
-      errors.push("مصرف خوراک هفتگی باید عدد باشد");
-    } else if (intake < 0) {
-      errors.push("مصرف خوراک هفتگی نمی‌تواند منفی باشد");
+    data.weekly_feed_intake !== null &&
+    data.weekly_feed_intake !== "" &&
+    !isNaN(weeklyFeed);
+
+  if (hasDailyFeed && dailyFeed < 0) {
+    errors.push("مصرف خوراک روزانه نمی‌تواند منفی باشد");
+  }
+  if (hasWeeklyFeed && weeklyFeed < 0) {
+    errors.push("مصرف خوراک هفتگی نمی‌تواند منفی باشد");
+  }
+
+  // بررسی سازگاری: دان هفتگی باید حدوداً ۷ برابر دان روزانه باشد
+  if (hasDailyFeed && hasWeeklyFeed && dailyFeed > 0 && weeklyFeed > 0) {
+    const expected = dailyFeed * 7;
+    if (Math.abs(expected - weeklyFeed) > 1) {
+      errors.push(
+        "مقادیر دان روزانه و هفتگی با یکدیگر سازگار نیستند (هفتگی باید ۷ برابر روزانه باشد)",
+      );
     }
   }
 
-  // 5. اعتبارسنجی وزن (نباید منفی باشد)
-  if (data.weekly_weight !== undefined && data.weekly_weight !== null) {
+  // 5. اعتبارسنجی وزن (اجباری، کیلوگرم)
+  if (
+    data.weekly_weight === undefined ||
+    data.weekly_weight === null ||
+    data.weekly_weight === ""
+  ) {
+    errors.push("وزن هفتگی الزامی است");
+  } else {
     const weight = parseFloat(data.weekly_weight);
     if (isNaN(weight)) {
       errors.push("وزن هفتگی باید عدد باشد");
-    } else if (weight < 0) {
-      errors.push("وزن هفتگی نمی‌تواند منفی باشد");
+    } else if (weight < 0.05) {
+      errors.push("وزن هفتگی باید حداقل ۰.۰۵ کیلوگرم باشد");
+    } else if (weight > 10) {
+      errors.push("وزن هفتگی نمی‌تواند بیشتر از ۱۰ کیلوگرم باشد");
     }
   }
 

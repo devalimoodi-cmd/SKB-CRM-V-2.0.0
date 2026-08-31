@@ -2,6 +2,7 @@ const ChickPlacement = require("../models/ChickPlacement");
 const CustomerPersonalInfo = require("../models/CustomerPersonalInfo");
 const Hall = require("../models/Hall");
 const Unit = require("../models/Unit");
+const ChickenBreed = require("../models/ChickenBreed");
 const {
   validateChickPlacement,
 } = require("../validations/chickPlacementValidation");
@@ -95,12 +96,14 @@ const getChickPlacements = async (req, res) => {
       customer_id,
       unit_id,
       hall_id,
+      id,
       is_active,
       page = 1,
       limit = 20,
     } = req.query;
     const where = {};
 
+    if (id) where.id = id;
     if (customer_id) where.customer_id = customer_id;
     if (unit_id) where.unit_id = unit_id;
     if (hall_id) where.hall_id = hall_id;
@@ -112,6 +115,14 @@ const getChickPlacements = async (req, res) => {
 
     const { count, rows } = await ChickPlacement.findAndCountAll({
       where,
+      include: [
+        {
+          model: ChickenBreed,
+          as: "breed",
+          attributes: ["id", "name", "code"],
+          required: false,
+        },
+      ],
       limit: parseInt(limit),
       offset: parseInt(offset),
       order: [["placement_date", "DESC"]],

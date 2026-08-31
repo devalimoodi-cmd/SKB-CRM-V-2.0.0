@@ -31,6 +31,7 @@ const Bookmark = require("./Bookmark");
 const ChickenBreed = require("./ChickenBreed");
 const ChickSource = require("./ChickSource");
 const SmsLog = require("./SmsLog");
+const BreedWeightStandard = require("./BreedWeightStandard");
 
 // ================================================================
 // ✅ ارتباطات با CASCADE برای حذف آبشاری
@@ -512,6 +513,30 @@ ChickPlacement.belongsTo(ChickSource, {
 ChickSource.hasMany(ChickPlacement, {
   foreignKey: "chick_source_id",
   as: "chickPlacements",
+});
+
+// ================================================================
+// ✅ ارتباطات BreedWeightStandard (استاندارد وزنی نژاد)
+// ================================================================
+
+ChickenBreed.hasMany(BreedWeightStandard, {
+  foreignKey: "breed_id",
+  as: "weightStandards",
+  onDelete: "CASCADE",
+  hooks: true,
+});
+BreedWeightStandard.belongsTo(ChickenBreed, {
+  foreignKey: "breed_id",
+  as: "breed",
+});
+
+BreedWeightStandard.belongsTo(User, {
+  foreignKey: "created_by",
+  as: "creator",
+});
+BreedWeightStandard.belongsTo(User, {
+  foreignKey: "updated_by",
+  as: "updater",
 });
 
 // ================================================================

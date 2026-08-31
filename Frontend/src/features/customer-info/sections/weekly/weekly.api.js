@@ -6,7 +6,7 @@ export const weeklyApi = {
 
   // دریافت رکوردهای هفتگی یک گله
   async getWeeklyRecords(chickPlacementId) {
-    const params = { chick_placement_id: chickPlacementId };
+    const params = { chick_placement_id: chickPlacementId, limit: 500 };
     return apiService.get(API_CONSTANTS.ENDPOINTS.WEEKLY.LIST, params);
   },
 
@@ -73,6 +73,12 @@ export const weeklyApi = {
   // دریافت کارشناسان
   async getExperts() {
     return apiService.get(`${API_CONSTANTS.ENDPOINTS.DICTIONARY.BASE}/experts`);
+  },
+
+  // دریافت استانداردهای وزنی نژاد
+  async getBreedStandards(breedId) {
+    const params = { breed_id: breedId, active: "true" };
+    return apiService.get("/breed-standards", params);
   },
 
   // ===== داده‌های مرتبط =====

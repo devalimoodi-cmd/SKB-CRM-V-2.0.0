@@ -783,6 +783,13 @@ const updateWeeklyRecord = async (req, res) => {
       }
     }
 
+    // ✅ اعتبارسنجی داده‌های ترکیبی (رکورد فعلی + تغییرات جدید)
+    const mergedData = { ...record.toJSON(), ...updateData };
+    const validation = validateWeeklyData(mergedData);
+    if (!validation.isValid) {
+      return errorResponse(res, validation.errors[0], 400, validation.errors);
+    }
+
     await record.update(updateData);
 
     // بروزرسانی آیتم‌های چندگانه (در صورت ارسال)

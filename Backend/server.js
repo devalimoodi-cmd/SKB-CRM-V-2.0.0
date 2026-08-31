@@ -18,6 +18,7 @@ const hallWaterFeedRoutes = require("./routes/hallWaterFeedRoutes");
 const hallHygieneRoutes = require("./routes/hallHygieneRoutes");
 const chickPlacementRoutes = require("./routes/chickPlacementRoutes");
 const weeklyRoutes = require("./routes/weeklyRoutes");
+const breedStandardRoutes = require("./routes/breedStandardRoutes");
 
 const weatherRoutes = require("./routes/weatherRoutes");
 const smsRoutes = require("./routes/smsRoutes");
@@ -111,6 +112,10 @@ app.use("/api/chick-placements", chickPlacementRoutes);
 // =========================== مدیریت هفتگی ======================
 app.use("/api/weekly", weeklyRoutes);
 // ===============
+
+// ==================== استانداردهای وزنی نژادها ====================
+app.use("/api/breed-standards", breedStandardRoutes);
+// ===================================================================
 
 //================  گزارش بازدید ===================
 const visitReportRoutes = require("./routes/visitReportRoutes");

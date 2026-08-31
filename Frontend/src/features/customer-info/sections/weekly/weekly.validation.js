@@ -7,39 +7,59 @@ export const weeklyValidation = {
       errors.push("انتخاب کارشناس خدمات الزامی است");
     }
 
-    // ===== خوراک روزانه (کیلوگرم) - اجباری =====
+    // ===== تلفات هفته (قطعه) - اجباری =====
     if (
-      data.daily_feed_intake === undefined ||
-      data.daily_feed_intake === null ||
-      data.daily_feed_intake === ""
+      data.weekly_mortality === undefined ||
+      data.weekly_mortality === null ||
+      data.weekly_mortality === ""
     ) {
-      errors.push("مقدار خوراک روزانه الزامی است");
+      errors.push("مقدار تلفات هفته الزامی است");
     } else {
-      const val = parseFloat(data.daily_feed_intake);
+      const val = parseInt(data.weekly_mortality);
       if (isNaN(val)) {
-        errors.push("مقدار خوراک روزانه باید عدد باشد");
-      } else if (val < 0.01) {
-        errors.push("مقدار خوراک روزانه نمی‌تواند کمتر از ۰.۰۱ کیلوگرم باشد");
-      } else if (val > 1.0) {
-        errors.push("مقدار خوراک روزانه نمی‌تواند بیشتر از ۱ کیلوگرم باشد");
+        errors.push("تعداد تلفات باید عدد صحیح باشد");
+      } else if (val < 0) {
+        errors.push("تعداد تلفات نمی‌تواند منفی باشد");
+      } else if (data.remainingBirds !== undefined && val > data.remainingBirds) {
+        errors.push("تعداد تلفات نمی‌تواند از جمعیت مانده گله بیشتر باشد");
       }
     }
 
-    // ===== خوراک هفتگی (کیلوگرم) - اجباری =====
-    if (
-      data.weekly_feed_intake === undefined ||
-      data.weekly_feed_intake === null ||
-      data.weekly_feed_intake === ""
-    ) {
-      errors.push("مقدار خوراک هفتگی الزامی است");
-    } else {
-      const val = parseFloat(data.weekly_feed_intake);
+    // ===== دان مصرفی (کل گله) - اختیاری =====
+    const dailyRaw = data.daily_feed_intake;
+    const weeklyRaw = data.weekly_feed_intake;
+    const hasDaily = dailyRaw !== undefined && dailyRaw !== null && dailyRaw !== "";
+    const hasWeekly =
+      weeklyRaw !== undefined && weeklyRaw !== null && weeklyRaw !== "";
+
+    if (hasDaily) {
+      const val = parseFloat(dailyRaw);
       if (isNaN(val)) {
-        errors.push("مقدار خوراک هفتگی باید عدد باشد");
-      } else if (val < 0.1) {
-        errors.push("مقدار خوراک هفتگی نمی‌تواند کمتر از ۰.۱ کیلوگرم باشد");
-      } else if (val > 30) {
-        errors.push("مقدار خوراک هفتگی نمی‌تواند بیشتر از ۳۰ کیلوگرم باشد");
+        errors.push("مقدار دان مصرفی روزانه باید عدد باشد");
+      } else if (val < 0) {
+        errors.push("مقدار دان مصرفی روزانه نمی‌تواند منفی باشد");
+      }
+    }
+
+    if (hasWeekly) {
+      const val = parseFloat(weeklyRaw);
+      if (isNaN(val)) {
+        errors.push("مقدار دان مصرفی هفتگی باید عدد باشد");
+      } else if (val < 0) {
+        errors.push("مقدار دان مصرفی هفتگی نمی‌تواند منفی باشد");
+      }
+    }
+
+    // سازگاری: دان هفتگی = روزانه × ۷
+    if (hasDaily && hasWeekly) {
+      const daily = parseFloat(dailyRaw);
+      const weekly = parseFloat(weeklyRaw);
+      if (daily > 0 && weekly > 0) {
+        if (Math.abs(daily * 7 - weekly) > 1) {
+          errors.push(
+            "مقادیر دان روزانه و هفتگی سازگار نیستند (هفتگی باید ۷ برابر روزانه باشد)",
+          );
+        }
       }
     }
 
@@ -56,37 +76,17 @@ export const weeklyValidation = {
         errors.push("مقدار وزن هفتگی باید عدد باشد");
       } else if (val < 0.05) {
         errors.push("وزن نمی‌تواند کمتر از ۰.۰۵ کیلوگرم باشد");
-      } else if (val > 5.0) {
-        errors.push("وزن جوجه نمی‌تواند بیشتر از ۵ کیلوگرم باشد");
+      } else if (val > 10) {
+        errors.push("وزن نمی‌تواند بیشتر از ۱۰ کیلوگرم باشد");
       }
     }
 
-    // ===== تلفات هفته (قطعه) - اجباری =====
+    // ===== خاموشی سالن (ساعت) - اختیاری =====
     if (
-      data.weekly_mortality === undefined ||
-      data.weekly_mortality === null ||
-      data.weekly_mortality === ""
+      data.blackout_hours !== undefined &&
+      data.blackout_hours !== null &&
+      data.blackout_hours !== ""
     ) {
-      errors.push("مقدار تلفات هفته الزامی است");
-    } else {
-      const val = parseInt(data.weekly_mortality);
-      if (isNaN(val)) {
-        errors.push("تعداد تلفات باید عدد صحیح باشد");
-      } else if (val < 0) {
-        errors.push("تعداد تلفات نمی‌تواند منفی باشد");
-      } else if (val > 500) {
-        errors.push("تعداد تلفات نمی‌تواند بیشتر از ۵۰۰ قطعه باشد");
-      }
-    }
-
-    // ===== خاموشی سالن (ساعت) - اجباری =====
-    if (
-      data.blackout_hours === undefined ||
-      data.blackout_hours === null ||
-      data.blackout_hours === ""
-    ) {
-      errors.push("مقدار ساعت خاموشی الزامی است");
-    } else {
       const val = parseFloat(data.blackout_hours);
       if (isNaN(val)) {
         errors.push("ساعت خاموشی باید عدد باشد");
@@ -165,3 +165,4 @@ export const weeklyValidation = {
     return errors;
   },
 };
+
