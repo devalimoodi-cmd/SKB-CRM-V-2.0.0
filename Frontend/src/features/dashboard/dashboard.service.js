@@ -274,6 +274,9 @@ SKB-CRM.IR`,
       className: statusClassName,
       flockId: flock.id,
       flockNumber: flock.flockNumber,
+      unitName: flock.unitName,
+      hallName: flock.hallName,
+      breedName: flock.breedName,
       totalWeeks: totalWeeks,
       completedWeeks: completedWeeks,
       currentWeek: flock.weekNumber || 1,
@@ -581,7 +584,6 @@ SKB-CRM.IR`,
       "totalLoss",
       "avgLoss",
       "totalFeed",
-      "avgFeed",
     ];
     ids.forEach((id) => {
       const el = document.getElementById(id);
@@ -720,16 +722,14 @@ SKB-CRM.IR`,
       const totalLoss = document.getElementById("totalLoss");
       const avgLoss = document.getElementById("avgLoss");
       const totalFeed = document.getElementById("totalFeed");
-      const avgFeed = document.getElementById("avgFeed");
 
       if (avgWeight) avgWeight.textContent = summary.avgWeight + " کیلوگرم";
       if (maxWeight) maxWeight.textContent = summary.maxWeight + " کیلوگرم";
       if (totalLoss) totalLoss.textContent = summary.totalLoss || "0";
-      if (avgLoss) avgLoss.textContent = summary.avgLoss + "%";
+      if (avgLoss) avgLoss.textContent = summary.avgLoss + " قطعه";
       if (totalFeed)
         totalFeed.textContent =
           (summary.totalFeed || 0).toLocaleString() + " کیلوگرم";
-      if (avgFeed) avgFeed.textContent = summary.avgFeed + " کیلوگرم";
     }
 
     console.log("✅ Charts updated with data:", data);

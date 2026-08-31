@@ -213,6 +213,8 @@ const getActiveFlocks = async (req, res) => {
           id: flockData.id,
           flockNumber: flockData.flock_number,
           hallName: flockData.Hall?.hall_name || "سالن نامشخص",
+          unitName: flockData.unit?.unit_name || "-",
+          breedName: flockData.breed?.name || "-",
           placementDate: flockData.placement_date,
           weekNumber: currentWeek,
           weekStartDate: weekRange.weekStartDate,

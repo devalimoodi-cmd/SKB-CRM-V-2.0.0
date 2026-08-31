@@ -12,17 +12,32 @@
   flex-direction: row;
   gap: 1.5rem;
   padding: 1.75rem 2rem;
-  max-width: 1600px;
+  max-width: 1800px;
   margin: 0 auto;
   min-height: calc(100vh - 250px);
 }
 
-/* ===== ستون نمودارها (چپ) ===== */
-.dashboard-left {
-  flex: 0 0 300px;
+/* ===== ستون اصلی (نمودارها + تسک‌ها) ===== */
+.dashboard-main {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 1.125rem;
+  gap: 1.375rem;
+  min-width: 0;
+}
+
+/* ===== نمودارها (افقی کنار هم) ===== */
+.dashboard-left {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 1rem;
+  width: 100%;
+}
+
+.dashboard-left .chart-card {
+  flex: 1;
+  min-width: 250px;
 }
 
 .dashboard-center {
@@ -34,7 +49,7 @@
 }
 
 .dashboard-right {
-  flex: 0 0 320px;
+  flex: 0 0 300px;
   display: flex;
   flex-direction: column;
   gap: 1.375rem;
@@ -177,11 +192,11 @@
 
 .chart-card canvas {
   width: 100% !important;
-  height: 90px !important;
+  height: 110px !important;
   display: block;
   border-radius: 10px;
   background: #fafbfc;
-  max-height: 90px;
+  max-height: 110px;
 }
 
 /* ===== آمار ===== */
@@ -375,22 +390,6 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-  max-height: 520px;
-  overflow-y: auto;
-}
-
-.task-list::-webkit-scrollbar {
-  width: 4px;
-}
-
-.task-list::-webkit-scrollbar-track {
-  background: #f1f5f9;
-  border-radius: 10px;
-}
-
-.task-list::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 10px;
 }
 
 /* ===== Bookmark Section ===== */
@@ -806,9 +805,13 @@
     gap: 16px;
   }
 
+  .dashboard-main {
+    width: 100%;
+  }
+
   /* نمودارها بهصورت افقی در بالای صفحه */
   .dashboard-left {
-    flex: 1;
+    flex: 0 0 auto;
     flex-direction: row;
     flex-wrap: wrap;
     gap: 14px;
@@ -870,7 +873,6 @@
 
   .task-list {
     padding: 12px 14px;
-    max-height: 400px;
   }
 
   .bookmark-item {

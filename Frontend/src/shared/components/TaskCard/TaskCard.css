@@ -96,90 +96,7 @@
   border-right-color: var(--primary) !important;
 }
 
-/* ===== ذرات ===== */
-.particles {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  pointer-events: none;
-  overflow: hidden;
-  border-radius: 16px;
-  z-index: 0;
-}
-
-.particle {
-  position: absolute;
-  border-radius: 50%;
-  opacity: 0;
-  animation: particle-float 8s ease-in-out infinite;
-}
-.particle:nth-child(1) {
-  width: 6px;
-  height: 6px;
-  background: var(--primary);
-  top: 10%;
-  left: 5%;
-}
-.particle:nth-child(2) {
-  width: 4px;
-  height: 4px;
-  background: var(--warning);
-  top: 20%;
-  right: 8%;
-  animation-delay: 2s;
-}
-.particle:nth-child(3) {
-  width: 8px;
-  height: 8px;
-  background: var(--primary-light);
-  bottom: 15%;
-  left: 12%;
-  animation-delay: 4s;
-}
-.particle:nth-child(4) {
-  width: 5px;
-  height: 5px;
-  background: var(--primary-dark);
-  top: 60%;
-  right: 5%;
-  animation-delay: 1s;
-}
-.particle:nth-child(5) {
-  width: 7px;
-  height: 7px;
-  background: var(--info);
-  bottom: 30%;
-  left: 20%;
-  animation-delay: 3s;
-}
-.particle:nth-child(6) {
-  width: 3px;
-  height: 3px;
-  background: var(--primary-alpha);
-  top: 40%;
-  left: 3%;
-  animation-delay: 5s;
-}
-
-@keyframes particle-float {
-  0%,
-  100% {
-    opacity: 0;
-    transform: translateY(15px) scale(0.5);
-  }
-  20%,
-  80% {
-    opacity: 0.6;
-  }
-  100% {
-    opacity: 0;
-    transform: translateY(-25px) scale(1.2);
-  }
-}
-
-/* ===== محتوا بالای ذرات ===== */
+/* ===== محتوا بالای پس‌زمینه ===== */
 .task-card > * {
   position: relative;
   z-index: 1;
@@ -434,6 +351,40 @@
   border-color: var(--warning);
   box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.15);
   transform: scale(1.1);
+  animation: step-active-pulse 2s ease-in-out infinite;
+}
+
+/* هاله‌ی ضربان‌دار دور دایره‌ی هفته جاری */
+.step-circle.active::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 2px solid rgba(245, 158, 11, 0.6);
+  animation: step-active-halo 2s ease-out infinite;
+  pointer-events: none;
+}
+
+@keyframes step-active-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.15);
+  }
+  50% {
+    box-shadow: 0 0 0 9px rgba(245, 158, 11, 0.3);
+  }
+}
+
+@keyframes step-active-halo {
+  0% {
+    transform: scale(0.95);
+    opacity: 0.7;
+  }
+  70%,
+  100% {
+    transform: scale(1.7);
+    opacity: 0;
+  }
 }
 .step-circle.pending {
   background: var(--gray-200);

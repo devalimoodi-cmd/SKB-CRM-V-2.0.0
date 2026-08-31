@@ -48,6 +48,51 @@
 
 <body>
 
+    <!-- ===== FULL PAGE LOADING OVERLAY ===== -->
+    <div id="pageLoadingOverlay" style="
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: #f5f7fb;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 999999;
+        transition: opacity 0.5s ease;
+    ">
+        <div style="
+            width: 60px;
+            height: 60px;
+            border: 4px solid #e2e8f0;
+            border-top-color: #2c7a6e;
+            border-radius: 50%;
+            animation: pageLoaderSpin 0.8s linear infinite;
+            margin-bottom: 20px;
+        "></div>
+        <div style="
+            font-family: 'Vazir', sans-serif;
+            color: #2c7a6e;
+            font-size: 16px;
+            font-weight: 600;
+        ">در حال بارگذاری...</div>
+        <div style="
+            font-family: 'Vazir', sans-serif;
+            color: #94a3b8;
+            font-size: 12px;
+            margin-top: 8px;
+        ">سامانه مدیریت مشتریان</div>
+        <style>
+            @keyframes pageLoaderSpin {
+                to {
+                    transform: rotate(360deg);
+                }
+            }
+        </style>
+    </div>
+
     <!-- ===== HEADER ===== -->
     <header id="main-header"></header>
 
@@ -67,6 +112,8 @@
 
     <!-- ===== DASHBOARD CONTENT ===== -->
     <div class="dashboard-container">
+
+        <div class="dashboard-main">
 
         <!-- ===== LEFT: Charts ===== -->
         <div class="dashboard-left">
@@ -113,9 +160,9 @@
                         </span>
                     </div>
                     <div class="stat-item">
-                        <span class="stat-label"><i class="fas fa-chart-line"></i> میانگین ماهانه</span>
+                        <span class="stat-label"><i class="fas fa-chart-line"></i> میانگین تلفات در هر هفته</span>
                         <span class="stat-value" id="avgLoss">
-                            <span class="unit">%</span>
+                            <span class="unit">قطعه</span>
                         </span>
                     </div>
                 </div>
@@ -134,12 +181,6 @@
                     <div class="stat-item">
                         <span class="stat-label"><i class="fas fa-calculator"></i> کل مصرف</span>
                         <span class="stat-value" id="totalFeed">
-                            <span class="unit">کیلوگرم</span>
-                        </span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label"><i class="fas fa-chart-line"></i> میانگین روزانه</span>
-                        <span class="stat-value" id="avgFeed">
                             <span class="unit">کیلوگرم</span>
                         </span>
                     </div>
@@ -196,6 +237,8 @@
                     </div>
                 </div>
             </div>
+
+        </div>
 
         </div>
 
@@ -325,6 +368,15 @@
                 }
             } catch (error) {
                 console.error('❌ Error initializing app:', error);
+            } finally {
+                // مخفی کردن لودینگ
+                const overlay = document.getElementById('pageLoadingOverlay');
+                if (overlay) {
+                    overlay.style.opacity = '0';
+                    setTimeout(() => {
+                        overlay.style.display = 'none';
+                    }, 500);
+                }
             }
         });
     </script>

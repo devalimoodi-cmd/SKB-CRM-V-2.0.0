@@ -2,6 +2,7 @@ const CustomerPersonalInfo = require("../models/CustomerPersonalInfo");
 const Hall = require("../models/Hall");
 const ChickPlacement = require("../models/ChickPlacement");
 const Unit = require("../models/Unit");
+const WeeklyManagement = require("../models/WeeklyManagement");
 const User = require("../models/User");
 const { successResponse, errorResponse } = require("../utils/response");
 const { Op } = require("sequelize");
@@ -197,13 +198,37 @@ const getCustomerHeaderInfo = async (req, res) => {
 
     const chickPlacements = await ChickPlacement.findAll({
       where: { customer_id: id, is_active: true },
-      attributes: ["total_chicks_count"],
+      attributes: ["id", "total_chicks_count"],
     });
 
     let totalChicks = 0;
     chickPlacements.forEach((item) => {
       totalChicks += parseInt(item.total_chicks_count) || 0;
     });
+
+    // ✅ محاسبه جوجه‌های مانده (تعداد اولیه منهای تلفات تجمعی هفتگی)
+    let totalRemainingChicks = totalChicks;
+    const flockIds = chickPlacements.map((f) => f.id);
+    if (flockIds.length > 0) {
+      const mortalityRows = await WeeklyManagement.findAll({
+        where: { chick_placement_id: { [Op.in]: flockIds } },
+        attributes: ["chick_placement_id", "weekly_mortality"],
+        raw: true,
+      });
+
+      const mortalityMap = {};
+      mortalityRows.forEach((r) => {
+        mortalityMap[r.chick_placement_id] =
+          (mortalityMap[r.chick_placement_id] || 0) +
+          (parseInt(r.weekly_mortality) || 0);
+      });
+
+      totalRemainingChicks = chickPlacements.reduce((sum, f) => {
+        const initial = parseInt(f.total_chicks_count) || 0;
+        const dead = mortalityMap[f.id] || 0;
+        return sum + Math.max(0, initial - dead);
+      }, 0);
+    }
 
     // ✅ پاسخ نهایی
     const responseData = {
@@ -234,6 +259,7 @@ const getCustomerHeaderInfo = async (req, res) => {
         activeFlocks: activeFlocks || 0,
         activeUnits: activeUnits || 0,
         totalChicks: totalChicks || 0,
+        remainingChicks: totalRemainingChicks || 0,
       },
     };
 

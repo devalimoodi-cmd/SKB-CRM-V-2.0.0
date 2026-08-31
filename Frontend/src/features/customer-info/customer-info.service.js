@@ -190,15 +190,17 @@ class CustomerInfoService {
         : "customer-status inactive";
     }
 
+    const activeUnitsEl = document.getElementById("activeUnits");
     const totalHallsEl = document.getElementById("totalHalls");
     const activeFlocksEl = document.getElementById("activeFlocks");
-    const activePeriodsEl = document.getElementById("activePeriods");
     const totalChicksEl = document.getElementById("totalChicks");
+    const remainingChicksEl = document.getElementById("remainingChicks");
 
+    if (activeUnitsEl) activeUnitsEl.textContent = stats.activeUnits || 0;
     if (totalHallsEl) totalHallsEl.textContent = stats.totalHalls || 0;
     if (activeFlocksEl) activeFlocksEl.textContent = stats.activeFlocks || 0;
-    if (activePeriodsEl) activePeriodsEl.textContent = stats.activePeriods || 0;
     if (totalChicksEl) totalChicksEl.textContent = stats.totalChicks || 0;
+    if (remainingChicksEl) remainingChicksEl.textContent = stats.remainingChicks || 0;
 
     this.renderMetaInfo(customer);
   }

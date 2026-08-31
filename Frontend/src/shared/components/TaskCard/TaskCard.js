@@ -37,6 +37,9 @@ function TaskCard(props = {}) {
 
     flockId = 0,
     flockNumber = 1,
+    unitName = "",
+    hallName = "",
+    breedName = "",
     totalWeeks = 8,
     completedWeeks = [],
     currentWeek = 1,
@@ -172,16 +175,6 @@ function TaskCard(props = {}) {
          data-flock-number="${flockNumber}"
          data-week-number="${currentWeek}" 
          ${onClick ? `onclick="event.stopPropagation(); ${onClick}"` : ""}>
-      
-      <!-- ذرات تزئینی -->
-      <div class="particles">
-        <div class="particle"></div>
-        <div class="particle"></div>
-        <div class="particle"></div>
-        <div class="particle"></div>
-        <div class="particle"></div>
-        <div class="particle"></div>
-      </div>
 
       <!-- ===== بوکمارک (مطلق گوشه) ===== -->
       ${
@@ -213,7 +206,19 @@ function TaskCard(props = {}) {
               <span class="sep">|</span>
               <span><i class="fas fa-map-pin"></i> ${location}</span>
               <span class="sep">|</span>
-              <span><i class="fas fa-egg"></i> گله #${flockNumber}</span>
+              ${
+                unitName
+                  ? `<span><i class="fas fa-building"></i> ${unitName}</span>
+              <span class="sep">|</span>`
+                  : ""
+              }
+              ${
+                hallName
+                  ? `<span><i class="fas fa-warehouse"></i> ${hallName}</span>
+              <span class="sep">|</span>`
+                  : ""
+              }
+              <span><i class="fas fa-egg"></i> گله #${flockNumber}${breedName ? ` - ${breedName}` : ""}</span>
               <span class="sep">|</span>
               <span style="color:var(--gray-500, #94a3b8);font-size:11px;"><i class="fas fa-id-card"></i> ID: ${flockId}</span>
             </div>

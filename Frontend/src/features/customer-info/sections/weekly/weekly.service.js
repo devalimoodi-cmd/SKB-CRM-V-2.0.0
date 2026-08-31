@@ -190,7 +190,14 @@ class WeeklyService {
                             <span class="flock-age">سن: ${ageInDays} روز</span>
                             <span class="flock-breed">${flock.breed?.name || ""}</span>
                         </div>
-                        <i class="fas fa-chevron-down flock-accordion-icon"></i>
+                        <div class="flock-header-actions">
+                            <button type="button" class="btn-flock-report"
+                                title="دریافت گزارش اختصاصی این گله"
+                                onclick="event.stopPropagation(); window.generateFlockReport(${flock.id})">
+                                <i class="fas fa-file-alt"></i> گزارش گله
+                            </button>
+                            <i class="fas fa-chevron-down flock-accordion-icon"></i>
+                        </div>
                     </div>
                     <div class="flock-card-body" style="display:none">
                         <div class="weeks-list-container">
@@ -1270,52 +1277,9 @@ class WeeklyService {
       const customerResponse = await weeklyApi.getCustomer(this.customerId);
       const customer = customerResponse.success ? customerResponse.data : {};
 
-      // دریافت گله‌ها با اطلاعات کامل
+      // دریافت گله‌ها با اطلاعات کامل + متریک هر هفته
       const flocksWithWeeks = await Promise.all(
-        this.flocks.map(async (flock) => {
-          const weeks = await this.getWeeksForFlock(flock);
-          const hall = this.halls.find((h) => h.id === flock.hall_id);
-
-          // محاسبه آمار
-          const totalMortality = weeks.reduce(
-            (sum, w) => sum + (parseFloat(w.weekly_mortality) || 0),
-            0,
-          );
-          const totalWeight = weeks.reduce(
-            (sum, w) => sum + (parseFloat(w.weekly_weight) || 0),
-            0,
-          );
-          const totalFeed = weeks.reduce(
-            (sum, w) => sum + (parseFloat(w.weekly_feed_intake) || 0),
-            0,
-          );
-          const avgWeight = weeks.length > 0 ? totalWeight / weeks.length : 0;
-
-          // آخرین وزن ثبت‌شده گله (آخرین وزن غیرصفر)
-          const lastWeight = weeks.reduce((last, w) => {
-            const weightVal = parseFloat(w.weekly_weight) || 0;
-            return weightVal > 0 ? weightVal : last;
-          }, 0);
-
-          // ضریب تبدیل (FCR) = مجموع خوراک ÷ آخرین وزن
-          const fcr =
-            lastWeight > 0 ? (totalFeed / lastWeight).toFixed(2) : "-";
-
-          return {
-            ...flock,
-            hall_name: hall?.hall_name || `سالن ${flock.hall_id}`,
-            weeks: weeks,
-            statistics: {
-              totalMortality,
-              avgWeight: avgWeight.toFixed(2),
-              totalFeed: totalFeed.toFixed(2),
-              weekCount: weeks.length,
-              hasDataWeeks: weeks.filter((w) => w.existsInDb).length,
-              lastWeight,
-              fcr,
-            },
-          };
-        }),
+        this.flocks.map(async (flock) => this.buildFlockReportData(flock)),
       );
 
       // تولید HTML گزارش
@@ -1325,30 +1289,128 @@ class WeeklyService {
         this.units,
       );
 
-      // باز کردن در پنجره جدید
-      const printWindow = window.open(
-        "",
-        "_blank",
-        "width=1200,height=900,scrollbars=yes",
-      );
-      if (!printWindow) {
-        notificationService.error("لطفاً باز شدن پنجره popup را مجاز کنید");
-        return;
-      }
-
-      printWindow.document.write(reportHtml);
-      printWindow.document.close();
-
-      printWindow.onload = function () {
-        setTimeout(() => {
-          printWindow.print();
-        }, 500);
-      };
-
+      this.openReportWindow(reportHtml);
       notificationService.success("✅ گزارش با موفقیت آماده شد");
     } catch (error) {
       console.error("❌ Error generating report:", error);
       notificationService.error("❌ خطا در تولید گزارش");
+    }
+  }
+
+  // ===== ساخت داده گزارش یک گله (هفته‌ها + متریک هر هفته + آمار) =====
+
+  async buildFlockReportData(flock) {
+    const weeks = await this.getWeeksForFlock(flock);
+    const hall = this.halls.find((h) => h.id === flock.hall_id);
+
+    // اطمینان از وجود استاندارد نژاد
+    if (!Array.isArray(flock.standards)) {
+      flock.standards = (await this.loadStandardsForFlock(flock)) || [];
+    }
+
+    // محاسبه متریک برای هر هفته ثبت‌شده
+    weeks.forEach((week) => {
+      if (week.existsInDb) {
+        week.metrics = calculateWeekMetrics({
+          flock,
+          weeks,
+          weekNumber: week.week_number,
+          formValues: {},
+        });
+      } else {
+        week.metrics = null;
+      }
+    });
+
+    const savedWeeks = weeks.filter((w) => w.existsInDb);
+
+    // محاسبه آمار
+    const totalMortality = savedWeeks.reduce(
+      (sum, w) => sum + (parseFloat(w.weekly_mortality) || 0),
+      0,
+    );
+    const totalFeed = savedWeeks.reduce(
+      (sum, w) => sum + (parseFloat(w.weekly_feed_intake) || 0),
+      0,
+    );
+
+    // آخرین هفته با داده
+    const lastSaved = savedWeeks[savedWeeks.length - 1];
+    const finalMetrics = lastSaved?.metrics || null;
+
+    // آخرین وزن ثبت‌شده گله (آخرین وزن غیرصفر)
+    const lastWeight = savedWeeks.reduce((last, w) => {
+      const weightVal = parseFloat(w.weekly_weight) || 0;
+      return weightVal > 0 ? weightVal : last;
+    }, 0);
+
+    return {
+      ...flock,
+      hall_name: hall?.hall_name || `سالن ${flock.hall_id}`,
+      breed_name: flock.breed?.name || "—",
+      weeks: weeks,
+      savedWeeks: savedWeeks,
+      statistics: {
+        totalMortality,
+        totalFeed: totalFeed.toFixed(1),
+        weekCount: savedWeeks.length,
+        lastWeight,
+        fcr: finalMetrics?.fcr ?? null,
+        finalMetrics,
+      },
+    };
+  }
+
+  // ===== باز کردن پنجره گزارش =====
+
+  openReportWindow(html) {
+    const printWindow = window.open(
+      "",
+      "_blank",
+      "width=1200,height=900,scrollbars=yes",
+    );
+    if (!printWindow) {
+      notificationService.error("لطفاً باز شدن پنجره popup را مجاز کنید");
+      return false;
+    }
+    printWindow.document.write(html);
+    printWindow.document.close();
+    printWindow.onload = function () {
+      setTimeout(() => {
+        printWindow.print();
+      }, 500);
+    };
+    return true;
+  }
+
+  // ===== گزارش اختصاصی یک گله =====
+
+  async generateFlockReport(flockId) {
+    try {
+      const flock = this.flocks.find((f) => String(f.id) === String(flockId));
+      if (!flock) {
+        notificationService.error("گله یافت نشد");
+        return;
+      }
+
+      notificationService.info("📄 در حال آماده‌سازی گزارش گله...");
+
+      const customerResponse = await weeklyApi.getCustomer(this.customerId);
+      const customer = customerResponse.success ? customerResponse.data : {};
+
+      const flockData = await this.buildFlockReportData(flock);
+
+      const reportHtml = weeklyRenderer.renderFlockReport(
+        customer,
+        flockData,
+        this.units,
+      );
+
+      this.openReportWindow(reportHtml);
+      notificationService.success("✅ گزارش گله با موفقیت آماده شد");
+    } catch (error) {
+      console.error("❌ Error generating flock report:", error);
+      notificationService.error("❌ خطا در تولید گزارش گله");
     }
   }
 
@@ -1403,6 +1465,7 @@ if (typeof window !== "undefined") {
   window.openAllWeeks = () => weeklyService.openAllWeeks();
   window.closeAllWeeks = () => weeklyService.closeAllWeeks();
   window.generateFullWeeklyReport = () => weeklyService.generateFullReport();
+  window.generateFlockReport = (flockId) => weeklyService.generateFlockReport(flockId);
   window.saveWeekFromForm = (btn) => weeklyService.saveWeek(btn);
   window.resetWeekForm = (btn) => weeklyService.resetWeekForm?.(btn);
   window.deleteWeekFromForm = (id) => weeklyService.deleteWeek(id);
