@@ -11,7 +11,7 @@ router.use(protect);
 // دریافت اطلاعات کامل هدر مشتری
 router.get(
   "/:id/header",
-  authorize("expert", "admin", "super_admin"),
+  authorize("expert", "admin", "sub_admin", "super_admin"),
   customerHeaderController.getCustomerHeaderInfo,
 );
 

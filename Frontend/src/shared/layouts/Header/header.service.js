@@ -194,6 +194,14 @@ class HeaderService {
     const nav = this.elements.nav;
     if (!nav) return;
 
+    // ===== مخفی کردن لینک «مدیریت» برای نقش‌های غیر از super_admin و admin =====
+    if (!authService.hasRole(["super_admin", "admin"])) {
+      const adminItem = nav.querySelector('.header-nav-item[data-page="admin"]');
+      if (adminItem) {
+        adminItem.style.display = "none";
+      }
+    }
+
     const currentPath = window.location.pathname;
     const items = nav.querySelectorAll(".header-nav-item");
 

@@ -229,10 +229,11 @@ class AuthService {
       return false;
     }
 
-    if (!this.isAdmin()) {
+    // فقط super_admin و admin به ادمین‌پنل دسترسی دارند (sub_admin خیر)
+    if (!this.hasRole(["super_admin", "admin"])) {
       const user = this.getUser();
-      if (user?.role === "expert") {
-        window.location.href = "/dashboard";
+      if (user?.role === "sub_admin" || user?.role === "expert") {
+        window.location.href = "/";
       } else if (user?.role === "customer") {
         window.location.href = "/customer-info";
       } else {

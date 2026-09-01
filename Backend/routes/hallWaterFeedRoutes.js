@@ -11,9 +11,9 @@ router.use(protect);
 router.get("/:hall_id", getWaterFeedByHallId);
 router.post(
   "/",
-  authorize("expert", "admin", "super_admin"),
+  authorize("expert", "admin", "sub_admin", "super_admin"),
   createOrUpdateWaterFeed,
 );
-router.delete("/:id", authorize("admin", "super_admin"), deleteWaterFeed);
+router.delete("/:id", authorize("admin", "super_admin", "sub_admin"), deleteWaterFeed);
 
 module.exports = router;

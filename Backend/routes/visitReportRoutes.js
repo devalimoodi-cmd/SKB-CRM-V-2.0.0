@@ -13,7 +13,7 @@ const { protect, authorize } = require("../middleware/auth");
 router.post(
   "/",
   protect,
-  authorize("admin", "expert", "super_admin"),
+  authorize("admin", "expert", "sub_admin", "super_admin"),
   upload.any(),
   visitReportController.createVisitReport,
 );
@@ -22,7 +22,7 @@ router.post(
 router.put(
   "/:id",
   protect,
-  authorize("admin", "expert", "super_admin"),
+  authorize("admin", "expert", "sub_admin", "super_admin"),
   upload.any(),
   visitReportController.updateVisitReport,
 );
@@ -31,7 +31,7 @@ router.put(
 router.get(
   "/:id",
   protect,
-  authorize("admin", "expert", "super_admin"),
+  authorize("admin", "expert", "sub_admin", "super_admin"),
   visitReportController.getVisitReportById,
 );
 
@@ -39,7 +39,7 @@ router.get(
 router.get(
   "/customer/:customerId",
   protect,
-  authorize("admin", "expert", "super_admin"),
+  authorize("admin", "expert", "sub_admin", "super_admin"),
   visitReportController.getReportsByCustomer,
 );
 
@@ -47,7 +47,7 @@ router.get(
 router.put(
   "/:id/status",
   protect,
-  authorize("admin", "expert", "super_admin"),
+  authorize("admin", "expert", "sub_admin", "super_admin"),
   visitReportController.updateReportStatus,
 );
 
@@ -55,7 +55,7 @@ router.put(
 router.get(
   "/download/:id",
   protect,
-  authorize("admin", "expert", "super_admin"),
+  authorize("admin", "expert", "sub_admin", "super_admin"),
   visitReportController.downloadAttachment,
 );
 
@@ -63,7 +63,7 @@ router.get(
 router.delete(
   "/attachment/:id",
   protect,
-  authorize("admin", "super_admin"),
+  authorize("admin", "super_admin", "sub_admin"),
   visitReportController.deleteAttachment,
 );
 
@@ -71,7 +71,7 @@ router.delete(
 router.delete(
   "/:id",
   protect,
-  authorize("admin", "super_admin"),
+  authorize("admin", "super_admin", "sub_admin"),
   visitReportController.deleteVisitReport,
 );
 

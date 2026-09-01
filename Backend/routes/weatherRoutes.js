@@ -7,7 +7,7 @@ const { protect, authorize } = require("../middleware/auth");
 router.get(
   "/customer/:customerId",
   protect,
-  authorize("admin", "super_admin", "expert"),
+  authorize("admin", "super_admin", "sub_admin", "expert"),
   weatherController.getWeatherAndAirQuality,
 );
 

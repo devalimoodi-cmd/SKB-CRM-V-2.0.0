@@ -24,12 +24,12 @@ router.get("/active/by-hall/:hall_id", getActiveChickPlacementByHallId);
 // =========== روت‌های PUT خاص ===========
 router.put(
   "/activate/:id",
-  authorize("expert", "admin", "super_admin"),
+  authorize("expert", "admin", "sub_admin", "super_admin"),
   activateChickPlacement,
 );
 router.put(
   "/deactivate/:id",
-  authorize("expert", "admin", "super_admin"),
+  authorize("expert", "admin", "sub_admin", "super_admin"),
   deactivateChickPlacement,
 );
 
@@ -37,13 +37,13 @@ router.put(
 router.get("/:id", getChickPlacementById);
 router.put(
   "/:id",
-  authorize("expert", "admin", "super_admin"),
+  authorize("expert", "admin", "sub_admin", "super_admin"),
   updateChickPlacement,
 );
-router.delete("/:id", authorize("admin", "super_admin"), deleteChickPlacement);
+router.delete("/:id", authorize("admin", "super_admin", "sub_admin"), deleteChickPlacement);
 router.post(
   "/",
-  authorize("expert", "admin", "super_admin"),
+  authorize("expert", "admin", "sub_admin", "super_admin"),
   createChickPlacement,
 );
 
@@ -51,7 +51,7 @@ router.post(
 router.put(
   "/:id/toggle-status",
   protect,
-  authorize("admin", "super_admin", "expert"),
+  authorize("admin", "super_admin", "sub_admin", "expert"),
   toggleChickPlacementStatus,
 );
 

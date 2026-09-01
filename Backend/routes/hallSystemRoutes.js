@@ -12,14 +12,14 @@ router.get("/:hall_id", hallSystemController.getSystemByHallId);
 // ایجاد یا بروزرسانی اطلاعات سیستم‌ها (فقط کارشناسان و مدیران)
 router.post(
   "/",
-  authorize("expert", "admin", "super_admin"),
+  authorize("expert", "admin", "sub_admin", "super_admin"),
   hallSystemController.createOrUpdateSystem,
 );
 
 // حذف اطلاعات سیستم‌ها (فقط مدیران)
 router.delete(
   "/:id",
-  authorize("admin", "super_admin"),
+  authorize("admin", "super_admin", "sub_admin"),
   hallSystemController.deleteSystem,
 );
 

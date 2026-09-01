@@ -15,9 +15,8 @@ const DEFAULT_BIRTHDATE = "2000-01-01";
 // مقدار پیش‌فرض برای ایمیل
 // ============================================
 function getDefaultEmail(fullName, mobileNumber) {
-  const cleanName = fullName?.replace(/\s/g, "").substring(0, 10) || "user";
-  const lastFourDigits = mobileNumber?.slice(-4) || "0000";
-  return `${cleanName}${lastFourDigits}@temp.skb-crm.ir`;
+  const lastFourDigits = mobileNumber?.replace(/\D/g, "").slice(-4) || "0000";
+  return `temp${lastFourDigits}@temp.skb-crm.ir`;
 }
 
 // ============================================

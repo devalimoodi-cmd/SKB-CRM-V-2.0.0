@@ -7,7 +7,7 @@ const { protect, authorize } = require("../middleware/auth");
 router.post(
   "/register",
   protect,
-  authorize("expert", "admin", "super_admin"),
+  authorize("expert", "admin", "sub_admin", "super_admin"),
   customerController.registerCustomer,
 );
 // ------------------------finsh new customer   Data Table-----------------

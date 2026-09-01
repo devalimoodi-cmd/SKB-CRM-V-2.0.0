@@ -8,7 +8,7 @@ export const dashboardRenderer = {
     const borderColor = statusInfo.color;
     const bgColor = statusInfo.bg;
 
-    const smsStatus = item.smsStatus || "pending";
+    const smsStatus = item.smsLog ? item.smsLog.status || "sent" : null;
     const smsInfo = this.getSmsStatusInfo(smsStatus);
 
     let daysInfo = "";
@@ -52,11 +52,15 @@ export const dashboardRenderer = {
                         ${daysInfo ? `<span class="days-info" style="color: ${borderColor}; font-weight: 500; background: ${statusInfo.type === "danger" ? "#fee2e2" : "#dcfce7"}; padding: 2px 10px; border-radius: 12px;">${daysInfo}</span>` : ""}
                     </div>
                     
-                    <div style="display: flex; gap: 8px; margin-top: 4px; flex-wrap: wrap; align-items: center;">
+                    ${
+                      smsInfo
+                        ? `<div style="display: flex; gap: 8px; margin-top: 4px; flex-wrap: wrap; align-items: center;">
                         <span class="sms-status" style="background: ${smsInfo.bg}; color: ${smsInfo.color}; padding: 2px 10px; border-radius: 12px; font-size: 10px; font-weight: 500;">
                             ${smsInfo.text}
                         </span>
-                    </div>
+                    </div>`
+                        : ""
+                    }
                 </div>
                 
                 <div class="task-card-actions" style="display: flex; gap: 4px; align-items: center; flex-shrink: 0;">
@@ -221,7 +225,7 @@ export const dashboardRenderer = {
     const map = {
       pending: { text: "⏳ در انتظار", color: "#f59e0b", bg: "#fef3c7" },
       sent: { text: "📱 ارسال شده", color: "#3b82f6", bg: "#dbeafe" },
-      delivered: { text: "✅ تحویل داده شده", color: "#16a34a", bg: "#dcfce7" },
+      delivered: { text: "✅ تحویل داده شده", color: "#3b82f6", bg: "#dbeafe" },
       failed: { text: "❌ ناموفق", color: "#dc2626", bg: "#fee2e2" },
     };
     return map[status] || map.pending;

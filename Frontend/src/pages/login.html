@@ -493,9 +493,9 @@
 
                         setTimeout(() => {
                             const userRole = authService.getUserRole();
-                            if (['super_admin', 'admin', 'sub_admin'].includes(userRole)) {
+                            if (['super_admin', 'admin'].includes(userRole)) {
                                 window.location.href = '/admin';
-                            } else if (userRole === 'expert') {
+                            } else if (userRole === 'sub_admin' || userRole === 'expert') {
                                 window.location.href = '/';
                             } else {
                                 window.location.href = '/customer-info';

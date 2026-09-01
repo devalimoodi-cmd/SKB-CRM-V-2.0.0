@@ -11,9 +11,9 @@ router.use(protect);
 router.get("/:hall_id", getPhysicalInfoByHallId);
 router.post(
   "/",
-  authorize("expert", "admin", "super_admin"),
+  authorize("expert", "admin", "sub_admin", "super_admin"),
   createOrUpdatePhysicalInfo,
 );
-router.delete("/:id", authorize("admin", "super_admin"), deletePhysicalInfo);
+router.delete("/:id", authorize("admin", "super_admin", "sub_admin"), deletePhysicalInfo);
 
 module.exports = router;

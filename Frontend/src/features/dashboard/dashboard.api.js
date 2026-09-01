@@ -67,14 +67,6 @@ export const dashboardApi = {
     });
   },
 
-  // ارسال پیامک گروهی
-  async sendBulkSms(customerIds, message) {
-    return apiService.post(API_CONSTANTS.ENDPOINTS.SMS.BULK, {
-      customerIds,
-      message,
-    });
-  },
-
   // دریافت اعتبار پیامک
   async getSmsCredit() {
     return apiService.get(API_CONSTANTS.ENDPOINTS.SMS.CREDIT);

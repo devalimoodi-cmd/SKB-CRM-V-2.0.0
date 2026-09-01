@@ -11,7 +11,7 @@ const { protect, authorize } = require("../middleware/auth");
 router.post(
   "/complete-periods",
   protect,
-  authorize("expert", "admin", "super_admin"),
+  authorize("expert", "admin", "sub_admin", "super_admin"),
   flockCompletionController.completePeriods,
 );
 
@@ -32,7 +32,7 @@ router.get("/:id", protect, flockCompletionController.getFlockCompletionById);
 router.delete(
   "/:id",
   protect,
-  authorize("expert", "admin", "super_admin"),
+  authorize("expert", "admin", "sub_admin", "super_admin"),
   flockCompletionController.deleteFlockCompletion,
 );
 

@@ -27,6 +27,7 @@ const Medicine = require("../models/Medicine");
 const FeedType = require("../models/FeedType");
 const SuggestionType = require("../models/SuggestionType");
 const Bookmark = require("../models/Bookmark");
+const SmsLog = require("../models/SmsLog");
 
 const { successResponse, errorResponse } = require("../utils/response");
 
@@ -200,6 +201,41 @@ const getActiveFlocks = async (req, res) => {
         console.error("⚠️ خطا در دریافت بوکمارک‌ها:", bookmarkError.message);
       }
 
+      // ✅ دریافت آخرین پیامک ارسالی امروز برای این گله (نشانگر انجام تسک)
+      let smsLog = null;
+      try {
+        const startOfDay = new Date();
+        startOfDay.setHours(0, 0, 0, 0);
+        const endOfDay = new Date();
+        endOfDay.setHours(23, 59, 59, 999);
+        const foundSms = await SmsLog.findOne({
+          where: {
+            flock_id: flockData.id,
+            sent_at: { [Op.between]: [startOfDay, endOfDay] },
+          },
+          order: [["sent_at", "DESC"]],
+          include: [
+            {
+              model: User,
+              as: "sender",
+              attributes: ["id", "first_name", "last_name", "username"],
+            },
+          ],
+        });
+        if (foundSms) {
+          const smsData = foundSms.toJSON();
+          smsLog = {
+            status: smsData.status,
+            message_id: smsData.message_id,
+            sent_at: smsData.sent_at,
+            delivered_at: smsData.delivered_at,
+            sender: smsData.sender || null,
+          };
+        }
+      } catch (smsError) {
+        console.error("⚠️ خطا در دریافت لاگ پیامک گله:", smsError.message);
+      }
+
       result.push({
         customer: {
           id: flockData.CustomerPersonalInfo?.id,
@@ -234,6 +270,7 @@ const getActiveFlocks = async (req, res) => {
           completedWeeks: completedWeeks,
           bookmarkCount: bookmarkCount,
         },
+        smsLog,
       });
     }
 

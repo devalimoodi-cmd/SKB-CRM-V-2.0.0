@@ -227,14 +227,8 @@ SKB-CRM.IR`,
     const { customer, flock } = item;
     const statusInfo = this.getStatusInfo(flock);
 
-    // وضعیت پیامک — اگر ندارد، خالی بگذار
-    const smsStatus = item.smsStatus || null;
-    const smsInfo = smsStatus ? this.getSmsStatusInfo(smsStatus) : null;
-    const smsInfoHTML = smsInfo
-      ? `<span class="sms-status" style="background: ${smsInfo.bg}; color: ${smsInfo.color}; padding: 4px 12px; border-radius: 12px; font-size: 10px; font-weight: 500;">
-            ${smsInfo.text}
-        </span>`
-      : "";
+    // وضعیت پیامک — از لاگ ارسالی امروز گله (در صورت وجود در بک‌اند)
+    const smsInfoHTML = this.buildSmsStatusHTML(item.smsLog || null);
 
     // ساخت تاریخ شمسی هفته جاری
     const weekStartDate = flock.weekStartDate
@@ -368,7 +362,7 @@ SKB-CRM.IR`,
     const map = {
       pending: { text: "⏳ در انتظار", color: "#f59e0b", bg: "#fef3c7" },
       sent: { text: "📱 ارسال شده", color: "#3b82f6", bg: "#dbeafe" },
-      delivered: { text: "✅ تحویل داده شده", color: "#16a34a", bg: "#dcfce7" },
+      delivered: { text: "✅ تحویل داده شده", color: "#3b82f6", bg: "#dbeafe" },
       failed: { text: "❌ ناموفق", color: "#dc2626", bg: "#fee2e2" },
     };
     return map[status] || map.pending;
@@ -853,12 +847,6 @@ SKB-CRM.IR`,
       removeAllBtn.addEventListener("click", () => this.removeAllDangerCards());
     }
 
-    // دکمه ارسال پیامک گروهی
-    const sendSmsBtn = document.getElementById("sendBulkSms");
-    if (sendSmsBtn) {
-      sendSmsBtn.addEventListener("click", () => this.sendBulkSms());
-    }
-
     // دکمه رفرش بوکمارک
     const refreshBookmarksBtn = document.getElementById("refreshBookmarks");
     if (refreshBookmarksBtn) {
@@ -1042,97 +1030,12 @@ SKB-CRM.IR`,
       }
     } catch (error) {
       console.error("❌ Error sending SMS:", error);
-      notificationService.error("خطا در ارتباط با سرور");
+      notificationService.error(
+        error?.message && !error.message.includes("Failed to fetch")
+          ? error.message
+          : "خطا در ارتباط با سرور",
+      );
     }
-  }
-
-  async sendBulkSms() {
-    const cards = document.querySelectorAll("#successTaskList .task-card");
-    if (cards.length === 0) {
-      notificationService.info("هیچ مشتری برای ارسال پیامک وجود ندارد");
-      return;
-    }
-
-    // گروه‌بندی بر اساس مشتری
-    const customerGroups = {};
-    cards.forEach((card) => {
-      const customerId = parseInt(card.dataset.customerId);
-      const customerName =
-        card.querySelector(".customer-name")?.textContent || "";
-
-      if (!customerGroups[customerId]) {
-        customerGroups[customerId] = {
-          name: customerName,
-          flocks: [],
-        };
-      }
-      customerGroups[customerId].flocks.push({
-        flockId: parseInt(card.dataset.flockId),
-        flockNumber: card.dataset.flockNumber,
-        weekNumber: card.dataset.weekNumber,
-        card: card,
-      });
-    });
-
-    const customerNames = Object.values(customerGroups)
-      .map((g) => g.name)
-      .join("، ");
-    const totalFlocks = cards.length;
-    const totalCustomers = Object.keys(customerGroups).length;
-
-    const confirmed = await notificationService.confirm({
-      title: "📱 ارسال پیامک گروهی",
-      text: `آیا از ارسال پیامک به ${totalFlocks} گله (${totalCustomers} مشتری) اطمینان دارید؟\n\nمشتریان: ${customerNames}`,
-      confirmText: "بله، ارسال شود",
-      cancelText: "انصراف",
-    });
-
-    if (!confirmed) return;
-
-    // نمایش مودال انتخاب قالب
-    const message = await this.showSmsModal("گروهی");
-    if (!message) return;
-
-    notificationService.showLoading(
-      `در حال ارسال پیامک به ${totalCustomers} مشتری...`,
-    );
-
-    let successCount = 0;
-    let failCount = 0;
-
-    for (const [customerId, group] of Object.entries(customerGroups)) {
-      try {
-        const customer = await dashboardApi.getCustomer(parseInt(customerId));
-        if (!customer.success || !customer.data.mobile_number) {
-          failCount++;
-          continue;
-        }
-
-        const finalMessage = message
-          .replace(/#FULLNAME#/g, customer.data.full_name || group.name)
-          .replace(/#WEEKNUMBER#/g, "جاری")
-          .replace(/#FLOCKNUMBER#/g, "");
-
-        const response = await dashboardApi.sendSms(
-          parseInt(customerId),
-          finalMessage,
-        );
-        if (response.success) {
-          successCount++;
-        } else {
-          failCount++;
-        }
-      } catch (error) {
-        console.error("❌ Error sending SMS:", error);
-        failCount++;
-      }
-    }
-
-    notificationService.hideLoading();
-    notificationService.success(
-      `✅ پیامک به ${successCount} مشتری ارسال شد${failCount > 0 ? ` (${failCount} ناموفق)` : ""}`,
-      failCount > 0 ? "warning" : "success",
-    );
   }
 
   showSmsModal(customerName, flockNumber = null, weekNumber = null) {
@@ -1272,6 +1175,73 @@ SKB-CRM.IR`,
     });
   }
 
+  // ===== ساخت چیپ وضعیت پیامک (برای رندر اولیه و آپدیت) =====
+
+  buildSmsStatusContent(smsLog) {
+    if (!smsLog) return "";
+
+    const status = smsLog.status || "sent";
+    const smsInfo = this.getSmsStatusInfo(status);
+
+    const sender =
+      smsLog.sender?.first_name && smsLog.sender?.last_name
+        ? `${smsLog.sender.first_name} ${smsLog.sender.last_name}`
+        : smsLog.sender?.username || "کاربر سیستم";
+
+    // فرمت تاریخ و ساعت ارسال
+    let sentTimeText = "-";
+    try {
+      sentTimeText = new Intl.DateTimeFormat("fa-IR", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+      }).format(new Date(smsLog.sent_at || new Date()));
+    } catch (e) {}
+
+    // فرمت تاریخ تحویل
+    let deliveredText = "-";
+    if (smsLog.delivered_at) {
+      try {
+        deliveredText = new Intl.DateTimeFormat("fa-IR", {
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+        }).format(new Date(smsLog.delivered_at));
+      } catch (e) {}
+    }
+
+    const msgIdText = smsLog.message_id ? ` | ID: ${smsLog.message_id}` : "";
+
+    return `
+      <span>${smsInfo.text}</span>
+      ${sentTimeText !== "-" ? `<span style="font-size:9px; opacity:0.8;">📅 ${sentTimeText}${msgIdText}</span>` : ""}
+      ${deliveredText !== "-" ? `<span style="font-size:9px; opacity:0.8;">📬 تحویل: ${deliveredText}</span>` : ""}
+      <span style="font-size:9px; opacity:0.8;">👤 ${sender}</span>
+    `;
+  }
+
+  buildSmsStatusHTML(smsLog) {
+    if (!smsLog) return "";
+
+    const status = smsLog.status || "sent";
+    const smsInfo = this.getSmsStatusInfo(status);
+    const sender =
+      smsLog.sender?.first_name && smsLog.sender?.last_name
+        ? `${smsLog.sender.first_name} ${smsLog.sender.last_name}`
+        : smsLog.sender?.username || "کاربر سیستم";
+
+    return `
+      <span class="sms-status" data-message-id="${smsLog.message_id || ""}" data-sender-name="${sender}"
+            style="display:inline-flex; flex-direction:column; gap:2px; background:${smsInfo.bg}; color:${smsInfo.color}; padding:2px 10px; border-radius:12px; font-size:10px; font-weight:500; line-height:1.5;">
+        ${this.buildSmsStatusContent(smsLog)}
+      </span>
+    `;
+  }
+
   // ===== آپدیت وضعیت پیامک در تسک =====
 
   updateTaskSmsStatus(card, smsLog, messageId) {
@@ -1296,33 +1266,6 @@ SKB-CRM.IR`,
         ? `${log.sender.first_name} ${log.sender.last_name}`
         : log.sender?.username || "کاربر سیستم";
 
-    // فرمت تاریخ و ساعت ارسال
-    const sentAt = log.sent_at || new Date().toISOString();
-    let sentTimeText = "-";
-    try {
-      sentTimeText = new Intl.DateTimeFormat("fa-IR", {
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-      }).format(new Date(sentAt));
-    } catch (e) {}
-
-    // فرمت تاریخ تحویل
-    let deliveredText = "-";
-    if (log.delivered_at) {
-      try {
-        deliveredText = new Intl.DateTimeFormat("fa-IR", {
-          year: "numeric",
-          month: "2-digit",
-          day: "2-digit",
-          hour: "2-digit",
-          minute: "2-digit",
-        }).format(new Date(log.delivered_at));
-      } catch (e) {}
-    }
-
     // آپدیت HTML وضعیت پیامک روی تسک
     smsStatusEl.style.background = smsInfo.bg;
     smsStatusEl.style.color = smsInfo.color;
@@ -1334,20 +1277,13 @@ SKB-CRM.IR`,
     smsStatusEl.style.flexDirection = "column";
     smsStatusEl.style.gap = "2px";
 
-    // ذخیره messageId برای رفرش خودکار
+    // ذخیره messageId و نام فرستنده برای رفرش خودکار
     if (messageId) {
       smsStatusEl.dataset.messageId = String(messageId);
     }
+    smsStatusEl.dataset.senderName = sender;
 
-    // نشان دادن messageId اگر موجود باشد
-    const msgIdText = messageId ? ` | ID: ${messageId}` : "";
-
-    smsStatusEl.innerHTML = `
-      <span>${smsInfo.text}</span>
-      <span style="font-size:9px; opacity:0.8;">📅 ${sentTimeText}${msgIdText}</span>
-      ${deliveredText !== "-" ? `<span style="font-size:9px; opacity:0.8;">📬 تحویل: ${deliveredText}</span>` : ""}
-      <span style="font-size:9px; opacity:0.8;">👤 ${sender}</span>
-    `;
+    smsStatusEl.innerHTML = this.buildSmsStatusContent(log);
   }
 
   // ===== بروزرسانی خودکار وضعیت پیامک‌ها روی تسک‌ها =====
@@ -1411,16 +1347,19 @@ SKB-CRM.IR`,
               } catch (e) {}
             }
 
-            // ساخت نام فرستنده از لاگ (اگر موجود باشد — فعلاً از localStorage)
-            const currentUser = JSON.parse(
-              localStorage.getItem("user") || "{}",
-            );
-            const senderName =
-              currentUser.fullName ||
-              currentUser.full_name ||
-              `${currentUser.first_name || ""} ${currentUser.last_name || ""}`.trim() ||
-              currentUser.username ||
-              "کاربر سیستم";
+            // ساخت نام فرستنده — اولویت با نام ذخیره‌شده روی چیپ (از لاگ سرور)
+            let senderName = statusEl.dataset.senderName || "";
+            if (!senderName) {
+              const currentUser = JSON.parse(
+                localStorage.getItem("user") || "{}",
+              );
+              senderName =
+                currentUser.fullName ||
+                currentUser.full_name ||
+                `${currentUser.first_name || ""} ${currentUser.last_name || ""}`.trim() ||
+                currentUser.username ||
+                "کاربر سیستم";
+            }
 
             statusEl.innerHTML = `
               <span>${smsInfo.text}</span>

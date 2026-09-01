@@ -291,7 +291,11 @@ class SmsService {
       }
     } catch (error) {
       console.error("❌ Error sending SMS:", error);
-      notificationService.error("خطا در ارتباط با سرور");
+      notificationService.error(
+        error?.message && !error.message.includes("Failed to fetch")
+          ? error.message
+          : "خطا در ارتباط با سرور",
+      );
     } finally {
       this.isSending = false;
     }

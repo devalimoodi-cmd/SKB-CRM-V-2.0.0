@@ -20,7 +20,7 @@ const { protect, authorize } = require("../middleware/auth");
 router.post(
   "/",
   protect,
-  authorize("admin", "super_admin", "expert"),
+  authorize("admin", "super_admin", "sub_admin", "expert"),
   createHall,
 );
 
@@ -28,7 +28,7 @@ router.post(
 router.get(
   "/",
   protect,
-  authorize("admin", "super_admin", "expert"),
+  authorize("admin", "super_admin", "sub_admin", "expert"),
   getHallsByCustomer,
 );
 
@@ -36,7 +36,7 @@ router.get(
 router.get(
   "/:id",
   protect,
-  authorize("admin", "super_admin", "expert"),
+  authorize("admin", "super_admin", "sub_admin", "expert"),
   getHallById,
 );
 
@@ -44,18 +44,18 @@ router.get(
 router.put(
   "/:id",
   protect,
-  authorize("admin", "super_admin", "expert"),
+  authorize("admin", "super_admin", "sub_admin", "expert"),
   updateHall,
 );
 
 // حذف منطقی سالن
-router.delete("/:id", protect, authorize("admin", "super_admin"), deleteHall);
+router.delete("/:id", protect, authorize("admin", "super_admin", "sub_admin"), deleteHall);
 
 // فعال/غیرفعال کردن سالن
 router.put(
   "/toggle-status/:id",
   protect,
-  authorize("admin", "super_admin"),
+  authorize("admin", "super_admin", "sub_admin"),
   toggleHallStatus,
 );
 
@@ -63,7 +63,7 @@ router.put(
 router.get(
   "/full-info/:id",
   protect,
-  authorize("admin", "super_admin", "expert"),
+  authorize("admin", "super_admin", "sub_admin", "expert"),
   getHallFullInfo,
 );
 

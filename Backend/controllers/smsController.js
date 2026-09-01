@@ -52,7 +52,7 @@ const sendTestSms = async (req, res) => {
     if (result.success) {
       successResponse(res, result, "پیامک با موفقیت ارسال شد");
     } else {
-      errorResponse(res, result.error || "خطا در ارسال پیامک", 400);
+      errorResponse(res, result.error || "خطا در ارسال پیامک", 502);
     }
   } catch (error) {
     errorResponse(res, error.message);
@@ -155,7 +155,7 @@ const sendCustomSms = async (req, res) => {
 
       successResponse(res, result, "پیامک با موفقیت ارسال شد");
     } else {
-      errorResponse(res, result.error || "خطا در ارسال پیامک", 400);
+      errorResponse(res, result.error || "خطا در ارسال پیامک", 502);
     }
   } catch (error) {
     errorResponse(res, error.message);
@@ -221,7 +221,7 @@ const sendWeekRegister = async (req, res) => {
     if (result.success) {
       successResponse(res, result, "پیامک ثبت هفته با موفقیت ارسال شد");
     } else {
-      errorResponse(res, result.error || "خطا در ارسال پیامک", 400);
+      errorResponse(res, result.error || "خطا در ارسال پیامک", 502);
     }
   } catch (error) {
     errorResponse(res, error.message);
@@ -248,7 +248,7 @@ const sendWeekReminder = async (req, res) => {
     if (result.success) {
       successResponse(res, result, "پیامک یادآوری با موفقیت ارسال شد");
     } else {
-      errorResponse(res, result.error || "خطا در ارسال پیامک", 400);
+      errorResponse(res, result.error || "خطا در ارسال پیامک", 502);
     }
   } catch (error) {
     errorResponse(res, error.message);
@@ -436,7 +436,7 @@ const sendToCustomer = async (req, res) => {
         console.error("⚠️ خطا در ذخیره لاگ ناموفق:", logError.message);
       }
 
-      errorResponse(res, result.error || "خطا در ارسال پیامک", 400);
+      errorResponse(res, result.error || "خطا در ارسال پیامک", 502);
     }
   } catch (error) {
     console.error("خطا:", error);
@@ -556,7 +556,7 @@ const sendBulkToCustomers = async (req, res) => {
         `پیامک به ${mobiles.length} مشتری ارسال شد`,
       );
     } else {
-      errorResponse(res, result.error || "خطا در ارسال پیامک", 400);
+      errorResponse(res, result.error || "خطا در ارسال پیامک", 502);
     }
   } catch (error) {
     console.error("خطا:", error);

@@ -11,9 +11,9 @@ router.use(protect);
 router.get("/:hall_id", getHygieneByHallId);
 router.post(
   "/",
-  authorize("expert", "admin", "super_admin"),
+  authorize("expert", "admin", "sub_admin", "super_admin"),
   createOrUpdateHygiene,
 );
-router.delete("/:id", authorize("admin", "super_admin"), deleteHygiene);
+router.delete("/:id", authorize("admin", "super_admin", "sub_admin"), deleteHygiene);
 
 module.exports = router;

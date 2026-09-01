@@ -22,12 +22,12 @@ router.get("/received", smsController.getReceivedMessages);
 // ============================================
 router.post(
   "/test",
-  authorize("admin", "super_admin"),
+  authorize("admin", "super_admin", "sub_admin"),
   smsController.sendTestSms,
 );
 router.post(
   "/send",
-  authorize("admin", "super_admin"),
+  authorize("admin", "super_admin", "sub_admin"),
   smsController.sendCustomSms,
 );
 
@@ -36,13 +36,13 @@ router.post(
 // ============================================
 router.post(
   "/week-register",
-  authorize("admin", "super_admin", "expert"),
+  authorize("admin", "super_admin", "sub_admin", "expert"),
   smsController.sendWeekRegister,
 );
 
 router.post(
   "/week-reminder",
-  authorize("admin", "super_admin", "expert"),
+  authorize("admin", "super_admin", "sub_admin", "expert"),
   smsController.sendWeekReminder,
 );
 
@@ -51,13 +51,13 @@ router.post(
 // ============================================
 router.post(
   "/send-to-customer",
-  authorize("expert", "admin", "super_admin"),
+  authorize("expert", "admin", "sub_admin", "super_admin"),
   smsController.sendToCustomer,
 );
 
 router.post(
   "/send-bulk-to-customers",
-  authorize("expert", "admin", "super_admin"),
+  authorize("expert", "admin", "sub_admin", "super_admin"),
   smsController.sendBulkToCustomers,
 );
 
@@ -66,26 +66,26 @@ router.post(
 // ============================================
 router.post(
   "/log",
-  authorize("expert", "admin", "super_admin"),
+  authorize("expert", "admin", "sub_admin", "super_admin"),
   smsController.saveSmsLog,
 );
 
 router.get(
   "/recent",
-  authorize("expert", "admin", "super_admin"),
+  authorize("expert", "admin", "sub_admin", "super_admin"),
   smsController.getRecentSmsLogs,
 );
 
 router.get(
   "/log/:customerId",
-  authorize("expert", "admin", "super_admin"),
+  authorize("expert", "admin", "sub_admin", "super_admin"),
   smsController.getCustomerSmsLogs,
 );
 
 // ✅ مسیر جدید برای بررسی وضعیت پیامک از سرویس
 router.get(
   "/check-status/:messageId",
-  authorize("expert", "admin", "super_admin"),
+  authorize("expert", "admin", "sub_admin", "super_admin"),
   smsController.checkAndUpdateSmsStatus,
 );
 

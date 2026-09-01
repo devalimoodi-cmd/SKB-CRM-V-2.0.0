@@ -17,19 +17,19 @@ router.get("/:unitId/experts", protect, unitController.getUnitExperts);
 router.post(
   "/:unitId/experts",
   protect,
-  authorize("expert", "admin", "super_admin"),
+  authorize("expert", "admin", "sub_admin", "super_admin"),
   unitController.addUnitExpert,
 );
 router.put(
   "/:unitId/experts/:expertId",
   protect,
-  authorize("expert", "admin", "super_admin"),
+  authorize("expert", "admin", "sub_admin", "super_admin"),
   unitController.updateUnitExpert,
 );
 router.delete(
   "/:unitId/experts/:expertId",
   protect,
-  authorize("expert", "admin", "super_admin"),
+  authorize("expert", "admin", "sub_admin", "super_admin"),
   unitController.deleteUnitExpert,
 );
 
@@ -37,25 +37,25 @@ router.delete(
 router.post(
   "/",
   protect,
-  authorize("expert", "admin", "super_admin"),
+  authorize("expert", "admin", "sub_admin", "super_admin"),
   unitController.createUnit,
 );
 router.put(
   "/:id",
   protect,
-  authorize("expert", "admin", "super_admin"),
+  authorize("expert", "admin", "sub_admin", "super_admin"),
   unitController.updateUnit,
 );
 router.delete(
   "/:id",
   protect,
-  authorize("expert", "admin", "super_admin"),
+  authorize("expert", "admin", "sub_admin", "super_admin"),
   unitController.deleteUnit,
 );
 router.put(
   "/toggle-status/:id",
   protect,
-  authorize("expert", "admin", "super_admin"),
+  authorize("expert", "admin", "sub_admin", "super_admin"),
   unitController.toggleUnitStatus,
 );
 

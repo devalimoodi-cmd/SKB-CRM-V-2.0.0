@@ -11,7 +11,7 @@ const dashboardController = require("../controllers/dashboardController");
 // همه روت‌ها نیاز به احراز هویت و نقش کارشناس دارند
 // ================================================================
 router.use(protect);
-router.use(authorize("expert", "admin", "super_admin"));
+router.use(authorize("expert", "admin", "sub_admin", "super_admin"));
 
 // ================================================================
 // روت‌های اصلی داشبورد (✅ همه در کنترلر وجود دارند)

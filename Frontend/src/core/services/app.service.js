@@ -280,8 +280,8 @@ class AppService {
       return;
     }
 
-    // بررسی دسترسی ادمین
-    if (config.requiresAdmin && !authService.isAdmin()) {
+    // بررسی دسترسی ادمین (فقط super_admin و admin)
+    if (config.requiresAdmin && !authService.hasRole(["super_admin", "admin"])) {
       notificationService.error("⛔ شما دسترسی به این صفحه ندارید");
       window.location.href = "/index.html";
       return;
@@ -290,13 +290,9 @@ class AppService {
     // اگر صفحه لاگین است و کاربر لاگین کرده، هدایت به داشبورد
     if (this.currentPage === "login" && authService.isLoggedIn()) {
       const user = authService.getUser();
-      if (
-        user.role === "super_admin" ||
-        user.role === "admin" ||
-        user.role === "sub_admin"
-      ) {
+      if (user.role === "super_admin" || user.role === "admin") {
         window.location.href = "/admin-panel.html";
-      } else if (user.role === "expert") {
+      } else if (user.role === "sub_admin" || user.role === "expert") {
         window.location.href = "/index.html";
       } else {
         window.location.href = "/customer-info.html";

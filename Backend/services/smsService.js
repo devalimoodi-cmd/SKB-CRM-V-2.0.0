@@ -1,6 +1,34 @@
 require("dotenv").config();
 const axios = require("axios");
 
+// ================================================
+// تنظیمات تایماوت و پیام‌های خطای فارسی
+// ================================================
+const AXIOS_TIMEOUT = 15000;
+
+// تبدیل خطاهای شبکه به پیام فارسی قابل فهم
+function getFriendlyError(error) {
+  if (!error) return "خطا در ارتباط با سرویس پیامک";
+  const code = error.code || "";
+  const networkCodes = [
+    "ETIMEDOUT",
+    "ECONNABORTED",
+    "ECONNREFUSED",
+    "ENOTFOUND",
+    "ENETUNREACH",
+    "EHOSTUNREACH",
+    "EADDRNOTAVAIL",
+    "EAI_AGAIN",
+    "ECONNRESET",
+  ];
+  if (networkCodes.includes(code)) {
+    return "خطا در اتصال به سرویس پیامک؛ اتصال اینترنت سرور را بررسی کنید";
+  }
+  if (error.response?.data?.message) return error.response.data.message;
+  if (error.message) return error.message;
+  return "خطا در ارتباط با سرویس پیامک";
+}
+
 class SmsService {
   constructor() {
     // دریافت تنظیمات از محیط
@@ -39,7 +67,7 @@ class SmsService {
   async getLines() {
     try {
       const response = await axios.get(`${this.baseURL}/line`, {
-        headers: this.getHeaders(),
+        headers: this.getHeaders(), timeout: AXIOS_TIMEOUT,
       });
 
       if (response.data.status === 1) {
@@ -61,7 +89,7 @@ class SmsService {
   async getCredit() {
     try {
       const response = await axios.get(`${this.baseURL}/credit`, {
-        headers: this.getHeaders(),
+        headers: this.getHeaders(), timeout: AXIOS_TIMEOUT,
       });
 
       if (response.data.status === 1) {
@@ -90,7 +118,7 @@ class SmsService {
           mobiles: this.normalizeMobiles(mobiles),
           sendDateTime,
         },
-        { headers: this.getHeaders() },
+        { headers: this.getHeaders(), timeout: AXIOS_TIMEOUT },
       );
 
       if (response.data.status === 1) {
@@ -103,12 +131,11 @@ class SmsService {
       }
       throw new Error(response.data.message);
     } catch (error) {
-      const errorMsg = error.response?.data || error.message;
-      console.error("❌ خطا در ارسال گروهی:", errorMsg);
+      console.error("❌ خطا در ارسال گروهی:", error.response?.data || error.message);
       return {
         success: false,
-        error: errorMsg.message || errorMsg,
-        code: errorMsg.status || null,
+        error: getFriendlyError(error),
+        code: error.response?.status || null,
       };
     }
   }
@@ -145,7 +172,7 @@ class SmsService {
           templateId,
           parameters,
         },
-        { headers: this.getHeaders() },
+        { headers: this.getHeaders(), timeout: AXIOS_TIMEOUT },
       );
 
       if (response.data.status === 1) {
@@ -157,12 +184,11 @@ class SmsService {
       }
       throw new Error(response.data.message);
     } catch (error) {
-      const errorMsg = error.response?.data || error.message;
-      console.error("❌ خطا در ارسال Verify:", errorMsg);
+      console.error("❌ خطا در ارسال Verify:", error.response?.data || error.message);
       return {
         success: false,
-        error: errorMsg.message || errorMsg,
-        code: errorMsg.status || null,
+        error: getFriendlyError(error),
+        code: error.response?.status || null,
       };
     }
   }
@@ -208,7 +234,7 @@ class SmsService {
   async getMessageStatus(messageId) {
     try {
       const response = await axios.get(`${this.baseURL}/send/${messageId}`, {
-        headers: this.getHeaders(),
+        headers: this.getHeaders(), timeout: AXIOS_TIMEOUT,
       });
 
       if (response.data.status === 1) {
@@ -231,7 +257,7 @@ class SmsService {
     try {
       const response = await axios.get(`${this.baseURL}/receive/latest`, {
         params: { count: Math.min(count, 100) },
-        headers: this.getHeaders(),
+        headers: this.getHeaders(), timeout: AXIOS_TIMEOUT,
       });
 
       if (response.data.status === 1) {

@@ -28,16 +28,16 @@ router.get("/:id", getWeeklyRecordById);
 // ✅ روت‌های POST و PUT
 router.post(
   "/",
-  authorize("expert", "admin", "super_admin"),
+  authorize("expert", "admin", "sub_admin", "super_admin"),
   createWeeklyRecord,
 );
 
 router.put(
   "/:id",
-  authorize("expert", "admin", "super_admin"),
+  authorize("expert", "admin", "sub_admin", "super_admin"),
   updateWeeklyRecord,
 );
 
-router.delete("/:id", authorize("admin", "super_admin"), deleteWeeklyRecord);
+router.delete("/:id", authorize("admin", "super_admin", "sub_admin"), deleteWeeklyRecord);
 
 module.exports = router;
