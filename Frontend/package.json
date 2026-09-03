@@ -4,6 +4,8 @@
     "@mdi/font": "^7.4.47",
     "bootstrap": "^5.3.8",
     "chart.js": "^4.5.1",
+    "chartjs-plugin-datalabels": "^2.2.0",
+    "chartjs-plugin-zoom": "^2.2.0",
     "express": "^5.2.1",
     "jquery": "^4.0.0",
     "persian-date": "^1.1.0",

@@ -1,18 +1,13 @@
-import { convertToPersianDate } from "../../../../core/utils/date.utils.js";
-import { toNumber } from "../../../../core/utils/number.utils.js";
+// ================================================================
+// chart-dashboard.renderer.js
+// رندر ماژول نمودارهای تحلیلی داینامیک (تب داشبورد اطلاعات مشتری)
+// ================================================================
 
 export const chartDashboardRenderer = {
-  // ===== رندر آیتم‌های آکاردئون =====
-
-  renderAccordionItems(flocks) {
+  // ساخت HTML کامل بخش نمودارها داخل .skb-charts-container
+  renderContainer(flocks, selectedFlockIds, weekCount, options = {}) {
     const container = document.querySelector(".skb-charts-container");
     if (!container) return;
-
-    // اگر قبلاً رندر شده، پاک کن
-    const existingItems = container.querySelectorAll(
-      ".skb-charts-accordion-item",
-    );
-    existingItems.forEach((item) => item.remove());
 
     if (!flocks || flocks.length === 0) {
       container.innerHTML = `
@@ -25,352 +20,227 @@ export const chartDashboardRenderer = {
       return;
     }
 
-    // دکمه‌های کنترل
-    const controlsHTML = `
-            <div class="accordion-controls">
-                <button class="accordion-control-btn btn-expand" onclick="chartDashboardService.openAllAccordion()">
-                    <i class="fas fa-chevron-down"></i> باز کردن همه
-                </button>
-                <button class="accordion-control-btn btn-collapse" onclick="chartDashboardService.closeAllAccordion()">
-                    <i class="fas fa-chevron-up"></i> بستن همه
-                </button>
+    const flockChecks = flocks
+      .map(
+        (f) => `
+            <label class="analysis-flock-check">
+              <input type="checkbox" value="${f.flock.id}" ${
+                selectedFlockIds.includes(f.flock.id) ? "checked" : ""
+              }
+                     onchange="chartDashboardService.toggleFlock(${f.flock.id}, this.checked)">
+              <span class="flock-check-color" style="background: ${f.color}"></span>
+              گله ${f.flock.flockNumber} - ${f.flock.customerName}
+              <small>(${f.flock.hallName})</small>
+            </label>
+          `,
+      )
+      .join("");
+
+    container.innerHTML = `
+            <div class="analysis-module">
+
+                <!-- ===== کنترل‌های بالا ===== -->
+                <div class="analysis-controls">
+                    <div class="analysis-control-group analysis-flock-group">
+                        <label class="analysis-control-label"><i class="fas fa-warehouse"></i> گله‌ها:</label>
+                        <div class="analysis-flock-list">${flockChecks}</div>
+                        <button class="analysis-btn-mini" onclick="chartDashboardService.selectAllFlocks(true)">همه</button>
+                        <button class="analysis-btn-mini" onclick="chartDashboardService.selectAllFlocks(false)">هیچ</button>
+                    </div>
+                    <div class="analysis-control-group">
+                        <label class="analysis-control-label"><i class="fas fa-calendar-week"></i> هفته:</label>
+                        <button class="analysis-btn-toggle" onclick="chartDashboardService.changeWeekRange(-1)">−</button>
+                        <input type="number" id="analysisWeekRange" class="analysis-week-input" value="${weekCount}" min="2" max="16"
+                               onchange="chartDashboardService.setWeekRange(this.value)">
+                        <button class="analysis-btn-toggle" onclick="chartDashboardService.changeWeekRange(1)">+</button>
+                        <span class="analysis-hint">هفته</span>
+                    </div>
+                </div>
+
+                <!-- ===== نمودار داینامیک اصلی ===== -->
+                <div class="analysis-chart-card analysis-main-card">
+                    <div class="analysis-chart-header">
+                        <h3 class="analysis-chart-title"><i class="fas fa-chart-line"></i> <span id="mainChartTitle">وزنگیری (روند وزن هفتگی)</span></h3>
+                        <div class="analysis-chart-actions">
+                            <button class="analysis-action-btn" onclick="chartDashboardService.downloadChart('mainChart','png')" title="دانلود PNG"><i class="fas fa-download"></i> PNG</button>
+                            <button class="analysis-action-btn" onclick="chartDashboardService.downloadChart('mainChart','jpg')" title="دانلود JPG"><i class="fas fa-file-image"></i> JPG</button>
+                            <button class="analysis-action-btn" onclick="chartDashboardService.resetZoom('mainChart')" title="ریست زوم"><i class="fas fa-search-minus"></i></button>
+                            <button class="analysis-action-btn" onclick="window.print()" title="چاپ"><i class="fas fa-print"></i></button>
+                        </div>
+                    </div>
+
+                    <div class="analysis-indicator-tabs" id="mainIndicatorTabs">
+                        <button class="analysis-tab ${options.mainIndicator === "weight" ? "active" : ""}" data-ind="weight"
+                                onclick="chartDashboardService.setMainIndicator('weight')"><i class="fas fa-weight"></i> وزنگیری</button>
+                        <button class="analysis-tab ${options.mainIndicator === "gain" ? "active" : ""}" data-ind="gain"
+                                onclick="chartDashboardService.setMainIndicator('gain')"><i class="fas fa-arrow-trend-up"></i> افزایش وزن هفتگی</button>
+                        <button class="analysis-tab ${options.mainIndicator === "dailyGain" ? "active" : ""}" data-ind="dailyGain"
+                                onclick="chartDashboardService.setMainIndicator('dailyGain')"><i class="fas fa-gauge-high"></i> نرخ رشد روزانه</button>
+                    </div>
+
+                    <div class="analysis-settings-row">
+                        <label>نوع نمودار
+                            <select id="mainChartType" onchange="chartDashboardService.updateMainSettings()">
+                                <option value="line" selected>خطی</option>
+                                <option value="bar">میله‌ای</option>
+                                <option value="radar">راداری</option>
+                            </select>
+                        </label>
+                        <label>ضخامت خط
+                            <select id="mainLineWidth" onchange="chartDashboardService.updateMainSettings()">
+                                <option value="1">نازک</option>
+                                <option value="2" selected>متوسط</option>
+                                <option value="3">ضخیم</option>
+                            </select>
+                        </label>
+                        <label>سایز نقاط
+                            <select id="mainPointSize" onchange="chartDashboardService.updateMainSettings()">
+                                <option value="2">کوچک</option>
+                                <option value="4" selected>متوسط</option>
+                                <option value="6">بزرگ</option>
+                            </select>
+                        </label>
+                        <label class="analysis-switch"><input type="checkbox" id="showStandards" checked onchange="chartDashboardService.updateMainSettings()"> نمایش استاندارد نژاد</label>
+                        <label class="analysis-switch"><input type="checkbox" id="showDataLabels" onchange="chartDashboardService.updateMainSettings()"> نمایش مقادیر</label>
+                        <label class="analysis-switch"><input type="checkbox" id="showTooltip" checked onchange="chartDashboardService.updateMainSettings()"> نمایش تولتیپ</label>
+                    </div>
+
+                    <!-- ===== پنل نمایش و تنظیم سری‌ها (بالای نمودار اصلی) ===== -->
+                    <div class="analysis-series-controls" id="mainSeriesControls"></div>
+
+                    <div class="analysis-chart-body">
+                        <div class="analysis-legend-side" id="mainChartLegend"></div>
+                        <div class="analysis-chart-wrapper">
+                            <canvas id="mainChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ===== نمودارهای جداگانه ===== -->
+                <div class="analysis-chart-grid">
+                    ${this.renderSimpleCard(
+                      "totalWeightGainChart",
+                      "fa-arrow-trend-up",
+                      "افزایش وزن کل گله (هفتگی)",
+                    )}
+                    ${this.renderSimpleCard(
+                      "totalLiveWeightChart",
+                      "fa-weight-hanging",
+                      "وزن زنده کل گله (هفتگی)",
+                    )}
+                    ${this.renderSimpleCard("fcrChart", "fa-utensils", "ضریب تبدیل هفتگی (FCR)")}
+                    ${this.renderMiniTabsCard(
+                      "mortalityPctChart",
+                      "fa-skull",
+                      "درصد تلفات",
+                      [
+                        { mode: "weekly", label: "هفتگی", active: true },
+                        { mode: "total", label: "کل" },
+                      ],
+                      "chartDashboardService.setMortalityMode",
+                    )}
+                    ${this.renderSimpleCard(
+                      "mortalityCountChart",
+                      "fa-calculator",
+                      "تلفات (قطعه) هفته به هفته",
+                    )}
+                    ${this.renderMiniTabsCard(
+                      "survivalPctChart",
+                      "fa-heart-pulse",
+                      "درصد زنده مانی",
+                      [
+                        { mode: "weekly", label: "هفتگی" },
+                        { mode: "cumulative", label: "تجمعی", active: true },
+                      ],
+                      "chartDashboardService.setSurvivalMode",
+                    )}
+                    ${this.renderSimpleCard("blackoutChart", "fa-moon", "میزان خاموشی (ساعت)")}
+                </div>
+
             </div>
         `;
-
-    let html = controlsHTML;
-
-    flocks.forEach((flock, index) => {
-      const flockNumber = flock.flock_number || index + 1;
-      const customerName = flock.customer?.full_name || "مشتری";
-      const hallName = flock.hall?.hall_name || `سالن ${flock.hall_id}`;
-      const placementDate = flock.placement_date
-        ? convertToPersianDate(flock.placement_date)
-        : "-";
-
-      html += `
-                <div class="skb-charts-accordion-item" data-flock-id="${flock.id}">
-                    <div class="skb-charts-accordion-header">
-                        <div class="accordion-title">
-                            <i class="fas fa-egg"></i>
-                            <span>گله ${flockNumber} - ${customerName} (${hallName})</span>
-                            <span class="accordion-badge">${this.getChartCount()} نمودار</span>
-                        </div>
-                        <i class="fas fa-chevron-down accordion-icon"></i>
-                    </div>
-                    <div class="skb-charts-accordion-body">
-                        ${this.renderChartsForFlock(flock)}
-                    </div>
-                </div>
-            `;
-    });
-
-    container.innerHTML = html;
   },
 
-  renderChartsForFlock(flock) {
-    // بررسی نوع گله و نمایش نمودارهای مناسب
-    const charts = [
-      // گروه ۱: نمودارهای وزن و خوراک
-      {
-        id: "weightTrendChart",
-        title: "روند وزن گیری سالن‌ها",
-        icon: "fa-chart-line",
-        color: "#4a90e2",
-        type: "line",
-        stats: [
-          { label: "میانگین وزن", key: "avgWeight", suffix: " کیلوگرم" },
-          { label: "بیشترین وزن", key: "maxWeight", suffix: " کیلوگرم" },
-        ],
-      },
-      {
-        id: "totalFeedTrendChart",
-        title: "روند مصرف خوراک کل گله",
-        icon: "fa-utensils",
-        color: "#10b981",
-        type: "line",
-        stats: [
-          { label: "کل مصرف", key: "totalFeed", suffix: " کیلوگرم" },
-          { label: "میانگین هفتگی", key: "avgFeed", suffix: " کیلوگرم" },
-        ],
-      },
-      // گروه ۲: نمودارهای تلفات و مصرف خوراک
-      {
-        id: "mortalityRateChart",
-        title: "نرخ تلفات سالن‌ها",
-        icon: "fa-skull-crossbones",
-        color: "#ef4444",
-        type: "bar",
-        stats: [
-          { label: "میانگین تلفات", key: "avgMortality", suffix: " %" },
-          { label: "کل تلفات", key: "totalMortality", suffix: " قطعه" },
-        ],
-      },
-      {
-        id: "feedTypeChart",
-        title: "مصرف خوراک براساس نوع دان",
-        icon: "fa-chart-pie",
-        color: "#f59e0b",
-        type: "doughnut",
-        stats: [
-          { label: "کل مصرف", key: "totalFeed", suffix: " کیلوگرم" },
-          { label: "دان غالب", key: "dominantFeed" },
-        ],
-      },
-    ];
+  renderSeriesControls(items) {
+    const container = document.getElementById("mainSeriesControls");
+    if (!container) return;
 
-    let html = '<div class="skb-charts-row">';
-
-    charts.forEach((chart, index) => {
-      if (index % 2 === 0 && index > 0) {
-        html += '</div><div class="skb-charts-row">';
-      }
-
-      html += `
-                <div class="skb-chart-card">
-                    <div class="skb-chart-title" style="border-bottom-color: ${chart.color};">
-                        <i class="fas ${chart.icon}"></i> ${chart.title}
-                    </div>
-                    <canvas id="${chart.id}"></canvas>
-                    <div class="skb-chart-stats">
-                        ${chart.stats
-                          .map(
-                            (stat) => `
-                            <div class="skb-stat-item">
-                                ${stat.label}: <span id="${stat.key}">-</span>${stat.suffix || ""}
-                            </div>
-                        `,
-                          )
-                          .join("")}
-                    </div>
-                </div>
-            `;
-    });
-
-    html += "</div>";
-    return html;
-  },
-
-  getChartCount() {
-    return 4; // تعداد نمودارها
-  },
-
-  // ===== دریافت تنظیمات نمودار =====
-
-  getChartConfig(chartId, flock) {
-    const data = flock.data || {};
-    const summary = flock.summary || {};
-    const labels = data.weekLabels || [
-      "هفته 1",
-      "هفته 2",
-      "هفته 3",
-      "هفته 4",
-      "هفته 5",
-      "هفته 6",
-    ];
-
-    const configs = {
-      weightTrendChart: {
-        type: "line",
-        data: {
-          labels: labels,
-          datasets: [
-            {
-              label: "وزن (کیلوگرم)",
-              data: data.weighting || [0.5, 0.8, 1.2, 1.7, 2.2, 2.8],
-              borderColor: "#4a90e2",
-              backgroundColor: "rgba(74, 144, 226, 0.1)",
-              fill: true,
-              tension: 0.4,
-            },
-          ],
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: true,
-          plugins: {
-            legend: { display: false },
-            tooltip: {
-              callbacks: {
-                label: (ctx) => `${ctx.raw} کیلوگرم`,
-              },
-            },
-          },
-          scales: {
-            y: { beginAtZero: true },
-          },
-        },
-      },
-
-      totalFeedTrendChart: {
-        type: "line",
-        data: {
-          labels: labels,
-          datasets: [
-            {
-              label: "مصرف خوراک (کیلوگرم)",
-              data: data.feed || [10, 18, 30, 45, 55, 60],
-              borderColor: "#10b981",
-              backgroundColor: "rgba(16, 185, 129, 0.1)",
-              fill: true,
-              tension: 0.4,
-            },
-          ],
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: true,
-          plugins: {
-            legend: { display: false },
-            tooltip: {
-              callbacks: {
-                label: (ctx) => `${ctx.raw} کیلوگرم`,
-              },
-            },
-          },
-          scales: {
-            y: { beginAtZero: true },
-          },
-        },
-      },
-
-      mortalityRateChart: {
-        type: "bar",
-        data: {
-          labels: labels,
-          datasets: [
-            {
-              label: "تلفات",
-              data: data.loss || [2, 5, 8, 6, 4, 3],
-              backgroundColor: "#ef4444",
-              borderRadius: 4,
-            },
-          ],
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: true,
-          plugins: {
-            legend: { display: false },
-            tooltip: {
-              callbacks: {
-                label: (ctx) => `${ctx.raw} قطعه`,
-              },
-            },
-          },
-          scales: {
-            y: { beginAtZero: true },
-          },
-        },
-      },
-
-      feedTypeChart: {
-        type: "doughnut",
-        data: {
-          labels: ["آغازین", "پیش دان", "میان دان", "پس دان ۱", "پس دان ۲"],
-          datasets: [
-            {
-              data: data.feedTypes || [42, 28, 18, 8, 4],
-              backgroundColor: [
-                "#10b981",
-                "#3b82f6",
-                "#f59e0b",
-                "#8b5cf6",
-                "#ef4444",
-              ],
-              borderWidth: 0,
-            },
-          ],
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: true,
-          plugins: {
-            legend: {
-              position: "bottom",
-              labels: {
-                font: { family: "Vazir", size: 10 },
-              },
-            },
-            tooltip: {
-              callbacks: {
-                label: (ctx) => `${ctx.label}: ${ctx.raw}%`,
-              },
-            },
-          },
-        },
-      },
-    };
-
-    return configs[chartId] || null;
-  },
-
-  // ===== رندر خلاصه آماری =====
-
-  renderSummary(data) {
-    if (!data) return;
-
-    const elements = {
-      avgWeight: data.avgWeight,
-      maxWeight: data.maxWeight,
-      totalMortality: data.totalMortality,
-      avgMortality: data.avgMortality,
-      totalFeed: data.totalFeed,
-      avgFeed: data.avgFeed,
-      avgConversion: data.avgConversion,
-      bestConversion: data.bestConversion,
-    };
-
-    Object.entries(elements).forEach(([id, value]) => {
-      const el = document.getElementById(id);
-      if (el && value !== undefined && value !== null) {
-        if (typeof value === "number") {
-          el.textContent = value.toFixed(1);
-        } else {
-          el.textContent = value;
-        }
-      }
-    });
-
-    // به‌روزرسانی آمار ویژه
-    const avgMortality = document.getElementById("avgMortality");
-    if (avgMortality && data.avgMortality !== undefined) {
-      avgMortality.textContent = data.avgMortality.toFixed(1);
+    if (!items || items.length === 0) {
+      container.innerHTML = "";
+      return;
     }
 
-    const dominantFeed = document.getElementById("dominantFeed");
-    if (dominantFeed && data.dominantFeed) {
-      dominantFeed.textContent = data.dominantFeed;
-    }
+    container.innerHTML = `
+            <div class="series-controls-title"><i class="fas fa-sliders"></i> نمایش و تنظیم سری‌ها</div>
+            <div class="series-controls-list">
+                ${items
+                  .map(
+                    (it) => `
+                    <div class="series-control-row">
+                        <input type="checkbox" class="series-visible" ${it.visible ? "checked" : ""}
+                               onchange="chartDashboardService.toggleSeries('${it.key}', this.checked)">
+                        <span class="series-color-dot" style="background:${it.color}"></span>
+                        <input type="color" class="series-color" value="${it.color}"
+                               onchange="chartDashboardService.setSeriesColor('${it.key}', this.value)">
+                        <select class="series-linetype" onchange="chartDashboardService.setSeriesLineType('${it.key}', this.value)">
+                            <option value="solid" ${it.lineType === "solid" ? "selected" : ""}>توپر</option>
+                            <option value="dashed" ${it.lineType === "dashed" ? "selected" : ""}>خط‌چین</option>
+                            <option value="dotted" ${it.lineType === "dotted" ? "selected" : ""}>نقطه‌چین</option>
+                        </select>
+                        <span class="series-label">${it.label}</span>
+                    </div>
+                `,
+                  )
+                  .join("")}
+            </div>
+        `;
   },
 
-  // ===== داده‌های نمونه برای Fallback =====
+  renderSimpleCard(canvasId, icon, title) {
+    return `
+            <div class="analysis-chart-card">
+                <div class="analysis-chart-header">
+                    <h3 class="analysis-chart-title"><i class="fas ${icon}"></i> ${title}</h3>
+                    <div class="analysis-chart-actions">
+                        <button class="analysis-action-btn" onclick="chartDashboardService.downloadChart('${canvasId}','png')" title="دانلود PNG"><i class="fas fa-download"></i></button>
+                        <button class="analysis-action-btn" onclick="chartDashboardService.resetZoom('${canvasId}')" title="ریست زوم"><i class="fas fa-search-minus"></i></button>
+                    </div>
+                </div>
+                <div class="analysis-chart-body">
+                    <div class="analysis-legend-side" id="${canvasId}Legend"></div>
+                    <div class="analysis-chart-wrapper small">
+                        <canvas id="${canvasId}"></canvas>
+                    </div>
+                </div>
+            </div>
+        `;
+  },
 
-  getMockData() {
-    return {
-      weighting: [0.5, 0.8, 1.2, 1.7, 2.2, 2.8, 3.2],
-      loss: [2, 5, 8, 6, 4, 3, 2],
-      feed: [10, 18, 30, 45, 55, 60, 65],
-      feedTypes: [42, 28, 18, 8, 4],
-      weekLabels: [
-        "هفته 1",
-        "هفته 2",
-        "هفته 3",
-        "هفته 4",
-        "هفته 5",
-        "هفته 6",
-        "هفته 7",
-      ],
-      summary: {
-        avgWeight: 2.85,
-        maxWeight: 3.25,
-        totalMortality: 30,
-        avgMortality: 4.2,
-        totalFeed: 15800,
-        avgFeed: 41.6,
-        avgConversion: 1.85,
-        bestConversion: 1.72,
-        dominantFeed: "آغازین",
-      },
-    };
+  renderMiniTabsCard(canvasId, icon, title, modes, setterFn) {
+    return `
+            <div class="analysis-chart-card">
+                <div class="analysis-chart-header">
+                    <h3 class="analysis-chart-title"><i class="fas ${icon}"></i> ${title}</h3>
+                    <div class="analysis-chart-actions">
+                        <button class="analysis-action-btn" onclick="chartDashboardService.downloadChart('${canvasId}','png')" title="دانلود PNG"><i class="fas fa-download"></i></button>
+                        <button class="analysis-action-btn" onclick="chartDashboardService.resetZoom('${canvasId}')" title="ریست زوم"><i class="fas fa-search-minus"></i></button>
+                    </div>
+                </div>
+                <div class="analysis-indicator-tabs mini" id="${canvasId}Tabs">
+                    ${modes
+                      .map(
+                        (m) =>
+                          `<button class="analysis-tab ${m.active ? "active" : ""}" data-mode="${m.mode}" onclick="${setterFn}('${m.mode}')">${m.label}</button>`,
+                      )
+                      .join("")}
+                </div>
+                <div class="analysis-chart-body">
+                    <div class="analysis-legend-side" id="${canvasId}Legend"></div>
+                    <div class="analysis-chart-wrapper small">
+                        <canvas id="${canvasId}"></canvas>
+                    </div>
+                </div>
+            </div>
+        `;
   },
 };

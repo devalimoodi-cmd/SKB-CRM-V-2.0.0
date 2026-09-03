@@ -28,6 +28,7 @@ const FeedType = require("../models/FeedType");
 const SuggestionType = require("../models/SuggestionType");
 const Bookmark = require("../models/Bookmark");
 const SmsLog = require("../models/SmsLog");
+const BreedWeightStandard = require("../models/BreedWeightStandard");
 
 const { successResponse, errorResponse } = require("../utils/response");
 
@@ -749,6 +750,122 @@ const getChartsData = async (req, res) => {
   }
 };
 // ================================================================
+// ۵. دریافت داده‌های تحلیلی نمودارهای داشبورد مشتری (نمودارهای داینامیک)
+// ================================================================
+const getAnalysisData = async (req, res) => {
+  try {
+    const { customerId } = req.query;
+
+    const whereCondition = { is_active: true };
+    if (customerId) whereCondition.customer_id = parseInt(customerId);
+
+    const flocks = await ChickPlacement.findAll({
+      where: whereCondition,
+      include: [
+        {
+          model: WeeklyManagement,
+          as: "weeklyManagements",
+        },
+        {
+          model: CustomerPersonalInfo,
+          attributes: ["id", "full_name", "farm_name"],
+        },
+        {
+          model: Hall,
+          attributes: ["id", "hall_name"],
+        },
+        {
+          model: ChickenBreed,
+          as: "breed",
+          attributes: ["id", "name"],
+        },
+      ],
+      order: [["placement_date", "DESC"]],
+    });
+
+    if (flocks.length === 0) {
+      return successResponse(
+        res,
+        { flocks: [] },
+        "داده‌ای برای نمایش وجود ندارد",
+      );
+    }
+
+    // دریافت استانداردهای نژادها
+    const breedIds = [...new Set(flocks.map((f) => f.breed_id))];
+    const standards = await BreedWeightStandard.findAll({
+      where: { breed_id: { [Op.in]: breedIds }, is_active: true },
+      attributes: [
+        "breed_id",
+        "week_number",
+        "age_days",
+        "target_weight",
+        "min_weight",
+        "max_weight",
+        "standard_fcr",
+      ],
+      order: [
+        ["breed_id", "ASC"],
+        ["week_number", "ASC"],
+      ],
+    });
+
+    const flocksData = flocks.map((flock) => {
+      const weeks = (flock.weeklyManagements || [])
+        .sort((a, b) => (a.week_number || 0) - (b.week_number || 0))
+        .map((w) => ({
+          week_number: w.week_number,
+          week_start_date: w.week_start_date,
+          week_end_date: w.week_end_date,
+          flock_age_days: w.flock_age_days,
+          weekly_weight: parseFloat(w.weekly_weight) || null,
+          weekly_mortality: parseInt(w.weekly_mortality) || 0,
+          weekly_feed_intake: parseFloat(w.weekly_feed_intake) || null,
+          daily_feed_intake: parseFloat(w.daily_feed_intake) || null,
+          blackout_hours: parseFloat(w.blackout_hours) || 0,
+        }));
+
+      const flockStandards = standards
+        .filter((s) => s.breed_id === flock.breed_id)
+        .map((s) => ({
+          week_number: s.week_number,
+          age_days: s.age_days,
+          target_weight: parseFloat(s.target_weight),
+          min_weight: parseFloat(s.min_weight),
+          max_weight: parseFloat(s.max_weight),
+          standard_fcr: parseFloat(s.standard_fcr),
+        }));
+
+      return {
+        flock: {
+          id: flock.id,
+          flockNumber: flock.flock_number,
+          customerName: flock.CustomerPersonalInfo?.full_name || "نامشخص",
+          farmName: flock.CustomerPersonalInfo?.farm_name || "نامشخص",
+          hallName: flock.Hall?.hall_name || "نامشخص",
+          breedId: flock.breed_id,
+          breedName: flock.breed?.name || "نامشخص",
+          placementDate: flock.placement_date,
+          totalChicks: flock.total_chicks_count,
+          avgInitialWeightGrams: flock.avg_initial_weight,
+        },
+        weeks: weeks,
+        standards: flockStandards,
+      };
+    });
+
+    successResponse(
+      res,
+      { flocks: flocksData },
+      "داده‌های تحلیلی گله‌ها دریافت شد",
+    );
+  } catch (error) {
+    console.error("❌ خطا در دریافت داده‌های تحلیلی:", error);
+    errorResponse(res, error.message, 500);
+  }
+};
+
+// ================================================================
 // صادر کردن توابع
 // ================================================================
 module.exports = {
@@ -756,4 +873,5 @@ module.exports = {
   getCustomerDetails,
   getSummary,
   getChartsData,
+  getAnalysisData,
 };

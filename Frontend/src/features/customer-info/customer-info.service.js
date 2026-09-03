@@ -399,8 +399,9 @@ class CustomerInfoService {
           break;
 
         case "Chart-Dashboard":
-          if (typeof window.loadAccordionState === "function") {
-            window.loadAccordionState();
+          // ✅ مقداردهی نمودارهای تحلیلی داینامیک
+          if (window.chartDashboardService && typeof window.chartDashboardService.init === "function") {
+            await window.chartDashboardService.init(this.customerId);
           }
           break;
 

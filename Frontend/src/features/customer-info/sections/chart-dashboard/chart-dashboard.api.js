@@ -11,6 +11,13 @@ export const chartDashboardApi = {
     return apiService.get(API_CONSTANTS.ENDPOINTS.DASHBOARD.CHARTS, params);
   },
 
+  // دریافت داده‌های تحلیلی نمودارهای داینامیک
+  async getAnalysis(customerId) {
+    const params = {};
+    if (customerId) params.customerId = customerId;
+    return apiService.get(API_CONSTANTS.ENDPOINTS.DASHBOARD.ANALYSIS, params);
+  },
+
   // دریافت اطلاعات گله‌ها
   async getFlocks(customerId) {
     const params = { customer_id: customerId, is_active: true };

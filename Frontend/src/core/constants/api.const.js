@@ -103,6 +103,7 @@ export const API_CONSTANTS = {
       SUMMARY: "/dashboard/summary",
       CUSTOMER_DETAILS: "/dashboard/customer/:id/details",
       CHARTS: "/dashboard/charts",
+      ANALYSIS: "/dashboard/analysis",
     },
     WEATHER: {
       GET: "/weather/customer/:customerId",

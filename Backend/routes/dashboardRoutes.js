@@ -29,6 +29,9 @@ router.get("/summary", dashboardController.getSummary);
 // دریافت داده‌های نمودارها
 router.get("/charts", dashboardController.getChartsData);
 
+// دریافت داده‌های تحلیلی نمودارهای داینامیک
+router.get("/analysis", dashboardController.getAnalysisData);
+
 // ================================================================
 // ✅ روت‌های اضافی (با بررسی وجود توابع)
 // ================================================================
