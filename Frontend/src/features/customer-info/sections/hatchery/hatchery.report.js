@@ -1,5 +1,7 @@
 // ================================================================
-// hatchery.report.js - گزارش کامل جوجه‌ریزی
+// hatchery.report.js - گزارش مدیریت جوجه‌ریزی (ساختار جدید گله)
+// دو حالت: «فعال» (گله‌های در جریان) و «تاریخچه» (گله‌های تمام‌شده)
+// هر گله = سرگروه + سالن‌های عضو؛ هدر مشتری در چاپ همه صفحات تکرار می‌شود
 // ================================================================
 
 import { hatcheryApi } from "./hatchery.api.js";
@@ -14,11 +16,7 @@ class HatcheryReport {
   constructor() {
     this.customerId = null;
     this.customerData = null;
-    this.periods = [];
-    this.flocks = [];
-    this.halls = [];
     this.dictionaries = {};
-    this.completions = [];
   }
 
   async init(customerId) {
@@ -26,128 +24,8 @@ class HatcheryReport {
       customerId ||
       stateService.getCustomerId() ||
       new URLSearchParams(window.location.search).get("id");
-
     if (!this.customerId) {
       throw new Error("شناسه مشتری یافت نشد");
-    }
-  }
-
-  async generateFullReport() {
-    try {
-      // بارگذاری اطلاعات مشتری
-      const customerRes = await apiService
-        .get(`/customers/${this.customerId}`)
-        .catch(() => null);
-
-      // بارگذاری دیکشنری‌ها
-      await this.loadDictionaries();
-
-      // بارگذاری دوره‌ها
-      await this.loadPeriods();
-
-      // بارگذاری گله‌ها
-      await this.loadFlocks();
-
-      // بارگذاری سالن‌ها
-      await this.loadHalls();
-
-      this.customerData = customerRes?.data || null;
-
-      // بارگذاری اطلاعات پایان دوره‌ها
-      await this.loadCompletions();
-
-      // تلفیق اطلاعات
-      const flocksWithDetails = this.flocks.map((flock) => {
-        const hall = this.halls.find((h) => h.id === flock.hall_id);
-        const period = this.periods.find((p) => p.id === flock.period_id);
-        const breed = this.dictionaries.breeds?.find(
-          (b) => b.id === flock.breed_id,
-        );
-        const source = this.dictionaries.sources?.find(
-          (s) => s.id === flock.chick_source_id,
-        );
-        return {
-          ...flock,
-          hall_name: hall?.hall_name || "-",
-          hall_number: hall?.hall_number || "-",
-          period_name: period?.period_name || "-",
-          period_number: period?.period_number || "-",
-          breed_name: breed?.name || "-",
-          source_name: source?.name || "-",
-        };
-      });
-
-      return {
-        customer: this.customerData,
-        periods: this.periods.filter(
-          (p) => p.status !== "cancelled" && p.status !== "deleted",
-        ),
-        flocks: flocksWithDetails,
-        completions: this.completions,
-        generatedAt: new Date().toISOString(),
-      };
-    } catch (error) {
-      console.error("❌ Error generating hatchery report:", error);
-      throw error;
-    }
-  }
-
-  async loadPeriods() {
-    try {
-      const res = await hatcheryApi.getPeriods(this.customerId);
-      if (res.success) {
-        this.periods = res.data.periods || [];
-      }
-    } catch (error) {
-      console.error("❌ Error loading periods:", error);
-    }
-  }
-
-  async loadFlocks() {
-    try {
-      const res = await hatcheryApi.getFlocks(this.customerId);
-      if (res.success) {
-        this.flocks = res.data.placements || [];
-      }
-    } catch (error) {
-      console.error("❌ Error loading flocks:", error);
-    }
-  }
-
-  async loadHalls() {
-    try {
-      const res = await hatcheryApi.getHalls(this.customerId);
-      if (res.success) {
-        this.halls = res.data || [];
-      }
-    } catch (error) {
-      console.error("❌ Error loading halls:", error);
-    }
-  }
-
-  async loadCompletions() {
-    try {
-      const completions = [];
-      const completedPeriods = this.periods.filter(
-        (p) => p.status === "completed",
-      );
-      for (const period of completedPeriods) {
-        try {
-          const res = await hatcheryApi.getPeriodCompletions(period.id);
-          if (res.success && Array.isArray(res.data)) {
-            completions.push(...res.data);
-          }
-        } catch (e) {
-          console.warn(
-            `⚠️ Error loading completions for period ${period.id}:`,
-            e,
-          );
-        }
-      }
-      this.completions = completions;
-    } catch (error) {
-      console.error("❌ Error loading completions:", error);
-      this.completions = [];
     }
   }
 
@@ -157,7 +35,6 @@ class HatcheryReport {
         hatcheryApi.getChickSources(),
         hatcheryApi.getChickenBreeds(),
       ]);
-
       this.dictionaries = {
         sources: sources.success ? sources.data : [],
         breeds: breeds.success ? breeds.data : [],
@@ -167,242 +44,209 @@ class HatcheryReport {
     }
   }
 
-  generateHTML(reportData) {
-    const { customer, periods, flocks, completions, generatedAt } = reportData;
-    // بخش اطلاعات پایان دوره‌ها — دو جدول: سیستمی + مرغدار
-    let completionsHTML = "";
-    if (completions && completions.length > 0) {
-      // جدول اطلاعات سیستمی — محاسبه پویا برای همه رکوردها
-      const systemRows = completions
-        .map((c) => {
-          const flock = c.flock || {};
-          const hallName = flock.hall_name || `سالن ${c.hall_id || "-"}`;
-          const initialChicks = parseInt(c.initial_chicks_count) || 0;
-          const totalMortality = parseInt(c.total_mortality) || 0;
-          const transportMortality = parseInt(c.transport_mortality) || 0;
-          const systemMortality = Math.max(
-            0,
-            totalMortality - transportMortality,
-          );
-          const finalChicks = Math.max(0, initialChicks - totalMortality);
-          const mortalityRate =
-            initialChicks > 0
-              ? ((totalMortality / initialChicks) * 100).toFixed(2)
-              : "-";
-          return `
-            <tr>
-              <td>گله ${flock.flock_number || "-"}</td>
-              <td>${hallName}</td>
-              <td>${convertToPersianDate(c.completion_date)}</td>
-              <td>${initialChicks.toLocaleString() || "-"}</td>
-              <td><strong>${finalChicks.toLocaleString()}</strong></td>
-              <td>${systemMortality}</td>
-              <td>${transportMortality}</td>
-              <td><strong style="color:#dc2626;">${totalMortality}</strong></td>
-              <td>${mortalityRate}٪</td>
-              <td>${c.final_week_number ?? "-"}</td>
-              <td>${c.slaughter_age_days ? c.slaughter_age_days + " روز" : "-"}</td>
-              <td>${c.system_total_feed ?? c.total_feed_intake ?? "-"}</td>
-              <td>${c.system_last_weight ?? c.final_avg_weight ?? "-"}</td>
-              <td><strong>${c.system_fcr ?? "-"}</strong></td>
-              <td>${c.total_sent ?? "-"}</td>
-              <td>${c.total_live_weight ?? "-"}</td>
-              <td>${c.avg_live_weight ?? "-"}</td>
-              <td>${c.slaughter_date ? convertToPersianDate(c.slaughter_date) : "-"}</td>
-              <td>${c.slaughterhouse_name || "-"}</td>
-            </tr>
-          `;
-        })
-        .join("");
+  // بارگذاری گله‌ها (active یا completed) + پایان دوره per گله برای تاریخچه
+  async loadFlocksByStatus(status) {
+    const res = await apiService.get("/flocks", {
+      customer_id: this.customerId,
+      status,
+      limit: 500,
+    });
+    const flocks =
+      res?.success && Array.isArray(res.data?.flocks) ? res.data.flocks : [];
 
-      // جدول اطلاعات اعلامی مرغدار
-      const farmerRows = completions
-        .map((c) => {
-          const flock = c.flock || {};
-          const hallName = flock.hall_name || `سالن ${c.hall_id || "-"}`;
-          return `
-            <tr>
-              <td>گله ${flock.flock_number || "-"}</td>
-              <td>${hallName}</td>
-              <td>${convertToPersianDate(c.completion_date)}</td>
-              <td><strong>${c.farmer_fcr ?? "-"}</strong></td>
-              <td>${c.slaughter_age_days ? c.slaughter_age_days + " روز" : "-"}</td>
-              <td>${c.farmer_total_feed ?? "-"}</td>
-              <td>${c.farmer_total_meat ?? "-"}</td>
-              <td>${c.farmer_total_weight ?? "-"}</td>
-              <td>${c.confirmed_by_customer ? "✅ تأیید شده" : "❌ تأیید نشده"}</td>
-              <td>${c.completion_type === "completed" ? "تکمیل" : c.completion_type === "culled" ? "حذف" : "اضطراری"}</td>
-              <td>${c.notes || "-"}</td>
-            </tr>
-          `;
-        })
-        .join("");
+    const completionsMap = {};
+    if (status === "completed") {
+      for (const flock of flocks) {
+        try {
+          const c = await hatcheryApi.getFlockCompletionByFlock(flock.id);
+          if (c.success && c.data) {
+            completionsMap[flock.id] = c.data;
+          }
+        } catch (e) {
+          console.warn(`⚠️ بدون پایان دوره برای گله ${flock.id}`);
+        }
+      }
+    }
+    return { flocks, completionsMap };
+  }
 
-      completionsHTML = `
-        <div class="report-section-full" style="margin-top:20px;">
-          <h4>🏁 اطلاعات پایان دوره‌ها</h4>
+  async generateFullReport(mode = "active") {
+    try {
+      const status = mode === "history" ? "completed" : "active";
+      const customerRes = await apiService
+        .get(`/customers/${this.customerId}`)
+        .catch(() => null);
+      this.customerData = customerRes?.data || null;
 
-          <div class="report-section" style="margin-bottom:10px;">
-            <h4>💻 اطلاعات سیستمی (محاسبه‌شده از داده‌های سیستم)</h4>
-            <div style="overflow-x:auto;">
-              <table class="report-table" style="min-width:1400px;">
-                <thead>
-                  <tr>
-                    <th>گله</th>
-                    <th>سالن</th>
-                    <th>تاریخ تکمیل</th>
-                    <th>جوجه اولیه</th>
-                    <th>جوجه نهایی</th>
-                    <th>تلفات سیستم</th>
-                    <th>تلفات حمل</th>
-                    <th>تلفات کل</th>
-                    <th>٪ تلفات</th>
-                    <th>هفته آخر</th>
-                    <th>سن کشتار</th>
-                    <th>کل خوراک</th>
-                    <th>آخرین وزن</th>
-                    <th>FCR سیستمی</th>
-                    <th>تعداد ارسالی</th>
-                    <th>وزن کل کشتار</th>
-                    <th>میانگین وزن</th>
-                    <th>تاریخ کشتار</th>
-                    <th>کشتارگاه</th>
-                  </tr>
-                </thead>
-                <tbody>${systemRows}</tbody>
+      const { flocks, completionsMap } = await this.loadFlocksByStatus(status);
+
+      // نام نژاد/مبدا از دیکشنری برای نمایش (اختیاری)
+      await this.loadDictionaries();
+
+      return {
+        mode,
+        customer: this.customerData,
+        flocks,
+        completionsMap,
+        generatedAt: new Date().toISOString(),
+      };
+    } catch (error) {
+      console.error("❌ Error generating hatchery report:", error);
+      throw error;
+    }
+  }
+
+  getPlacementBreedName(p) {
+    return p.breed?.name || p.breedName || "-";
+  }
+
+  getPlacementHallName(p) {
+    return (
+      p.hall?.hall_name ||
+      p.Hall?.hall_name ||
+      p.hall_name ||
+      `سالن ${p.hall_id || "-"}`
+    );
+  }
+
+  buildStats(flocks, mode) {
+    const flockCount = flocks.length;
+    const hallCount = flocks.reduce(
+      (s, f) => s + ((f.placements || []).length || 0),
+      0,
+    );
+    const totalChicks = flocks.reduce(
+      (s, f) =>
+        s +
+        (f.placements || []).reduce(
+          (ss, p) => ss + (parseInt(p.total_chicks_count) || 0),
+          0,
+        ),
+      0,
+    );
+    return { flockCount, hallCount, totalChicks };
+  }
+
+  buildFlockHTML(f, mode, completion) {
+    const placements = f.placements || [];
+    const unitName = f.unit?.unit_name || "-";
+    const statusText =
+      mode === "history"
+        ? `تکمیل‌شده — ${f.ended_at ? convertToPersianDate(f.ended_at) : "-"}`
+        : "در جریان";
+
+    // هدر گله
+    let html = `
+      <div class="report-flock">
+        <div class="report-flock-header">
+          <h3>🐣 گله ${f.flock_number || "-"} — واحد ${unitName}
+            <span class="status-tag ${mode === "history" ? "completed" : "active"}">${statusText}</span>
+          </h3>
+        </div>
+        <div class="report-two-col">
+          <div class="report-col">
+            <div class="report-section">
+              <h4>اطلاعات گله (کل)</h4>
+              <table class="report-table compact">
+                <tr><td>تاریخ تعریف گله</td><td>${f.placement_date ? convertToPersianDate(f.placement_date) : "-"}</td></tr>
+                <tr><td>تعداد سالن‌های عضو</td><td><strong>${placements.length}</strong></td></tr>
+                <tr><td>واحد</td><td>${unitName}</td></tr>
               </table>
             </div>
           </div>
+          ${
+            mode === "history" && completion
+              ? `
+            <div class="report-col">
+              <div class="report-section">
+                <h4>🏁 جمع‌بندی پایان دوره گله</h4>
+                <table class="report-table compact">
+                  <tr><td>جوجه اولیه</td><td>${(parseInt(completion.initial_chicks_count) || 0).toLocaleString()}</td></tr>
+                  <tr><td>جوجه نهایی</td><td>${(parseInt(completion.final_chicks_count) || 0).toLocaleString()}</td></tr>
+                  <tr><td>تلفات کل</td><td>${parseInt(completion.total_mortality) || 0}</td></tr>
+                  <tr><td>FCR</td><td><strong>${completion.system_fcr ?? completion.farmer_fcr ?? "-"}</strong></td></tr>
+                  <tr><td>سن کشتار</td><td>${completion.slaughter_age_days ? completion.slaughter_age_days + " روز" : "-"}</td></tr>
+                  <tr><td>هفته آخر</td><td>${completion.final_week_number ?? "-"}</td></tr>
+                </table>
+              </div>
+            </div>`
+              : ""
+          }
+        </div>
+        <div class="report-section-full">
+          <h4>🧩 سالن‌های گله (جزئیات تفکیکی)</h4>
+          <div style="overflow-x:auto;">
+            <table class="report-table" style="min-width:900px;">
+              <thead>
+                <tr>
+                  <th>ردیف</th><th>سالن</th><th>نژاد</th><th>مبدا</th>
+                  <th>تعداد جوجه</th><th>سن بدو ورود</th><th>وزن اولیه (گرم)</th>
+                  <th>تاریخ جوجه‌ریزی</th><th>وضعیت سالن</th>
+                </tr>
+              </thead>
+              <tbody>
+    `;
 
-          <div class="report-section" style="margin-top:10px;">
-            <h4>👨‍🌾 اطلاعات اعلامی مرغدار</h4>
-            <div style="overflow-x:auto;">
-              <table class="report-table" style="min-width:950px;">
-                <thead>
-                  <tr>
-                    <th>گله</th>
-                    <th>سالن</th>
-                    <th>تاریخ تکمیل</th>
-                    <th>FCR مرغدار</th>
-                    <th>سن کشتار</th>
-                    <th>کل خوراک</th>
-                    <th>کل گوشت</th>
-                    <th>وزن کل</th>
-                    <th>تأیید مرغدار</th>
-                    <th>نوع پایان</th>
-                    <th>توضیحات</th>
-                  </tr>
-                </thead>
-                <tbody>${farmerRows}</tbody>
-              </table>
-            </div>
+    placements.forEach((p, i) => {
+      const source =
+        this.dictionaries.sources?.find((s) => s.id === p.chick_source_id)
+          ?.name || "-";
+      const completed = mode === "history";
+      html += `
+        <tr>
+          <td>${i + 1}</td>
+          <td><strong>${this.getPlacementHallName(p)}</strong></td>
+          <td>${this.getPlacementBreedName(p)}</td>
+          <td>${source}</td>
+          <td>${(parseInt(p.total_chicks_count) || 0).toLocaleString()}</td>
+          <td>${p.chick_age_on_arrival ? p.chick_age_on_arrival + " روز" : "-"}</td>
+          <td>${p.avg_initial_weight ?? "-"}</td>
+          <td>${p.placement_date ? convertToPersianDate(p.placement_date) : "-"}</td>
+          <td><span class="status-tag ${p.is_active ? "active" : "inactive"}">${p.is_active ? "در جریان" : "پایان‌یافته"}</span></td>
+        </tr>
+      `;
+    });
+
+    html += `
+              </tbody>
+            </table>
           </div>
         </div>
-      `;
-    }
+      </div>
+    `;
+    return html;
+  }
+
+  generateHTML(reportData) {
+    const { customer, flocks, completionsMap, generatedAt, mode } = reportData;
     const now = new Date(generatedAt);
     const persianDate = formatDate(now);
+    const title =
+      mode === "history"
+        ? "🕓 گزارش تاریخچه جوجه‌ریزی (گله‌های تکمیل‌شده)"
+        : "🐣 گزارش کامل جوجه‌ریزی (گله‌های فعال)";
+    const stats = this.buildStats(flocks, mode);
 
-    // دوره‌ها
-    let periodsHTML = "";
-    if (periods && periods.length > 0) {
-      periodsHTML = `
-        <div class="report-section-full">
-          <h4>دوره‌های پرورش</h4>
-          <table class="report-table">
-            <thead>
-              <tr>
-                <th>شماره</th>
-                <th>نام دوره</th>
-                <th>تاریخ شروع</th>
-                <th>تاریخ پایان</th>
-                <th>وضعیت</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${periods
-                .map(
-                  (p, i) => `
-                <tr>
-                  <td>${p.period_number || i + 1}</td>
-                  <td>${p.period_name}</td>
-                  <td>${convertToPersianDate(p.start_date)}</td>
-                  <td>${p.end_date ? convertToPersianDate(p.end_date) : "در حال انجام"}</td>
-                  <td><span class="status-tag ${this.getStatusClass(p.status)}">${this.getStatusText(p.status)}</span></td>
-                </tr>`,
-                )
-                .join("")}
-            </tbody>
-          </table>
-        </div>`;
-    }
-
-    // گله‌ها
-    let flocksHTML = "";
-    if (flocks && flocks.length > 0) {
-      flocksHTML = flocks
-        .map(
-          (flock, i) => `
-        <div class="report-flock">
-          <div class="report-flock-header">
-            <h3>${i + 1}. گله شماره ${flock.flock_number || i + 1}</h3>
-          </div>
-          <div class="report-two-col">
-            <div class="report-col">
-              <div class="report-section">
-                <h4>اطلاعات پایه</h4>
-                <table class="report-table compact">
-                  <tr><td>سالن</td><td>${flock.hall_name} (شماره ${flock.hall_number || flock.hall_id})</td></tr>
-                  <tr><td>دوره</td><td>${flock.period_name} (شماره ${flock.period_number || "-"})</td></tr>
-                  <tr><td>تاریخ جوجه‌ریزی</td><td>${convertToPersianDate(flock.placement_date)}</td></tr>
-                  <tr><td>نژاد جوجه</td><td>${flock.breed_name}</td></tr>
-                  <tr><td>مبدا جوجه</td><td>${flock.source_name}</td></tr>
-                </table>
-              </div>
-            </div>
-            <div class="report-col">
-              <div class="report-section">
-                <h4>آمار</h4>
-                <table class="report-table compact">
-                  <tr><td>تعداد جوجه</td><td><strong>${(flock.total_chicks_count || 0).toLocaleString()}</strong> قطعه</td></tr>
-                  <tr><td>سن در بدو ورود</td><td>${flock.chick_age_on_arrival || "-"} روز</td></tr>
-                  <tr><td>وزن اولیه</td><td>${flock.avg_initial_weight || "-"} گرم</td></tr>
-                  <tr><td>وضعیت</td><td><span class="status-tag ${flock.is_active ? "active" : "inactive"}">${flock.is_active ? "فعال" : "غیرفعال"}</span></td></tr>
-                </table>
-              </div>
-            </div>
-          </div>
-        </div>`,
-        )
-        .join("");
-    } else {
-      flocksHTML =
-        '<p style="text-align:center;color:#94a3b8;">هیچ گله‌ای ثبت نشده است</p>';
-    }
-
-    // آمار
-    const totalPeriods = periods?.length || 0;
-    const totalFlocks = flocks?.length || 0;
-    const activeFlocks = flocks?.filter((f) => f.is_active).length || 0;
-    const totalChicks =
-      flocks?.reduce((s, f) => s + (parseInt(f.total_chicks_count) || 0), 0) ||
-      0;
+    const flocksHTML =
+      flocks.length > 0
+        ? flocks
+            .map((f) => this.buildFlockHTML(f, mode, completionsMap[f.id]))
+            .join('<hr class="report-divider">')
+        : '<p style="text-align:center;color:#94a3b8;">گله‌ای برای نمایش وجود ندارد</p>';
 
     const customerHTML = customer
       ? `
-      <div class="report-customer-info">
-        <table class="customer-info-table">
-          <tr>
-            <td><strong>نام مشتری:</strong> ${customer.full_name || "-"}</td>
-            <td><strong>نام فارم:</strong> ${customer.farm_name || "-"}</td>
-          </tr>
-          <tr>
-            <td><strong>موبایل:</strong> ${customer.mobile_number || "-"}</td>
-            <td><strong>استان:</strong> ${customer.province || "-"} | <strong>شهرستان:</strong> ${customer.county || "-"}</td>
-          </tr>
-        </table>
-        <p><strong>آدرس:</strong> ${customer.farm_address || "-"}</p>
-      </div>`
+      <table class="customer-info-table">
+        <tr>
+          <td><strong>نام مشتری:</strong> ${customer.full_name || "-"}</td>
+          <td><strong>نام فارم:</strong> ${customer.farm_name || "-"}</td>
+        </tr>
+        <tr>
+          <td><strong>موبایل:</strong> ${customer.mobile_number || "-"}</td>
+          <td><strong>استان:</strong> ${customer.province || "-"} | <strong>شهرستان:</strong> ${customer.county || "-"}</td>
+        </tr>
+      </table>
+      <p><strong>آدرس:</strong> ${customer.farm_address || "-"}</p>`
       : "";
 
     return `
@@ -410,113 +254,66 @@ class HatcheryReport {
       <html lang="fa" dir="rtl">
       <head>
         <meta charset="UTF-8">
-        <title>گزارش کامل جوجه‌ریزی</title>
+        <title>${title}</title>
         <style>
-          @font-face {
-            font-family: "Vazir";
-            src: url("/assets/fonts/Vazir-Regular-FD.ttf") format("truetype");
-            font-weight: 400;
-          }
-          @font-face {
-            font-family: "Vazir";
-            src: url("/assets/fonts/Vazir-Medium-FD.ttf") format("truetype");
-            font-weight: 500;
-          }
-          @font-face {
-            font-family: "Vazir";
-            src: url("/assets/fonts/Vazir-Bold-FD.ttf") format("truetype");
-            font-weight: 700;
-          }
-          @font-face {
-            font-family: "Vazir";
-            src: url("/assets/fonts/Vazir-Black-FD.ttf") format("truetype");
-            font-weight: 900;
-          }
-          @media print { body { margin: 0.7cm; } }
+          @font-face { font-family: "Vazir"; src: url("/assets/fonts/Vazir-Regular-FD.ttf") format("truetype"); font-weight: 400; }
+          @font-face { font-family: "Vazir"; src: url("/assets/fonts/Vazir-Medium-FD.ttf") format("truetype"); font-weight: 500; }
+          @font-face { font-family: "Vazir"; src: url("/assets/fonts/Vazir-Bold-FD.ttf") format("truetype"); font-weight: 700; }
+          @media print { body { margin: 0.5cm; } }
           body {
             font-family: 'Vazir', 'Tahoma', sans-serif;
-            direction: rtl;
-            background: #fff;
-            color: #1e293b;
-            padding: 15px 20px;
-            line-height: 1.6;
-            font-size: 13px;
+            direction: rtl; background: #fff; color: #1e293b;
+            font-size: 13px; line-height: 1.7; margin: 0;
           }
-          .report-header {
-            text-align: center;
-            padding-bottom: 15px;
-            border-bottom: 3px solid #2c7a6e;
-            margin-bottom: 25px;
+          .report-main { width: 100%; border-collapse: collapse; }
+          .report-main thead { display: table-header-group; }
+          .report-main tbody { display: table-row-group; }
+          .report-main td { border: none; padding: 0; vertical-align: top; }
+          .report-page-header {
+            text-align: center; padding: 10px 0 12px;
+            border-bottom: 3px solid #2c7a6e; margin-bottom: 18px;
           }
-          .report-header h1 { color: #2c7a6e; font-size: 22px; margin: 0 0 5px; }
-          .report-header .date { color: #94a3b8; font-size: 12px; }
+          .report-page-header h1 { color: #2c7a6e; font-size: 21px; margin: 0 0 5px; }
+          .report-page-header .date { color: #94a3b8; font-size: 12px; }
           .report-customer-info {
-            background: #f8fafc; padding: 12px 16px; border-radius: 8px;
-            margin-bottom: 25px; border: 1px solid #eef2f6;
+            background: #f8fafc; padding: 10px 14px; border-radius: 8px;
+            border: 1px solid #eef2f6; margin-bottom: 18px;
           }
           .customer-info-table { width: 100%; border-collapse: collapse; }
-          .customer-info-table td { padding: 3px 8px; font-size: 13px; border: none; }
-
+          .customer-info-table td { padding: 2px 8px; font-size: 12.5px; border: none; }
+          .report-content { padding: 0 4px; }
           .summary-stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-            gap: 12px;
-            margin-bottom: 25px;
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 10px; margin-bottom: 18px;
           }
           .stat-box {
             background: linear-gradient(135deg, #f8fafc, #f1f5f9);
-            border: 1px solid #eef2f6; padding: 12px; text-align: center; border-radius: 8px;
+            border: 1px solid #eef2f6; padding: 10px; text-align: center; border-radius: 8px;
           }
           .stat-box .stat-label { font-size: 11px; color: #64748b; }
-          .stat-box .stat-value { font-size: 18px; font-weight: 700; color: #2c7a6e; margin-top: 4px; }
-
-          .report-flock {
-            margin-bottom: 20px; page-break-inside: avoid;
-          }
+          .stat-box .stat-value { font-size: 17px; font-weight: 700; color: #2c7a6e; margin-top: 2px; }
+          .report-flock { page-break-inside: avoid; margin-bottom: 10px; }
           .report-flock-header h3 {
-            background: #2c7a6e; color: white; padding: 7px 14px; border-radius: 8px;
-            font-size: 14px; margin: 0 0 8px;
+            background: #2c7a6e; color: #fff; padding: 6px 14px; border-radius: 8px;
+            font-size: 14px; margin: 0 0 8px; display: flex; justify-content: space-between; align-items: center;
           }
-          .report-two-col { display: flex; gap: 16px; margin-bottom: 6px; }
-          .report-col { flex: 1; min-width: 0; }
-          .report-section {
-            margin: 6px 0; background: #fafbfc; border-radius: 6px;
-            padding: 8px 10px; border: 1px solid #eef2f6;
-          }
-          .report-section-full {
-            margin: 10px 0; background: #fafbfc; border-radius: 6px;
-            padding: 10px 12px; border: 1px solid #eef2f6;
-          }
-          .report-section h4, .report-section-full h4 {
-            color: #2c7a6e; font-size: 12px; margin: 0 0 6px;
-            padding-bottom: 4px; border-bottom: 1px solid #eef2f6;
-          }
-          .report-table {
-            width: 100%; border-collapse: collapse; font-size: 12px;
-          }
-          .report-table th {
-            background: #2c7a6e; color: white; padding: 6px 10px;
-            font-weight: 500; text-align: center;
-          }
-          .report-table td { padding: 5px 8px; border: 1px solid #eef2f6; }
-          .report-table.compact td { border: none; border-bottom: 1px solid #f1f5f9; padding: 3px 6px; }
-          .report-table.compact tr:last-child td { border-bottom: none; }
-          .report-table.compact td:first-child { width: 110px; color: #64748b; font-weight: 500; }
-
-          .status-tag {
-            display: inline-block; padding: 2px 10px; border-radius: 10px;
-            font-size: 11px; font-weight: 500;
-          }
-          .status-tag.active, .status-tag.pending { background: #dcfce7; color: #16a34a; }
+          .status-tag { display: inline-block; padding: 1px 10px; border-radius: 10px; font-size: 10.5px; font-weight: 500; }
+          .status-tag.active { background: #dcfce7; color: #16a34a; }
           .status-tag.inactive { background: #fee2e2; color: #dc2626; }
           .status-tag.completed { background: #dbeafe; color: #2563eb; }
-
-          .report-divider { border: none; border-top: 1px dashed #e2e8f0; margin: 16px 0; }
-          .report-footer {
-            text-align: center; color: #94a3b8; font-size: 11px;
-            margin-top: 35px; padding-top: 15px; border-top: 1px solid #eef2f6;
-          }
-
+          .report-two-col { display: flex; gap: 14px; margin-bottom: 4px; }
+          .report-col { flex: 1; min-width: 0; }
+          .report-section { margin: 4px 0; background: #fafbfc; border-radius: 6px; padding: 8px 10px; border: 1px solid #eef2f6; }
+          .report-section-full { margin: 8px 0; background: #fafbfc; border-radius: 6px; padding: 10px 12px; border: 1px solid #eef2f6; }
+          .report-section h4, .report-section-full h4 { color: #2c7a6e; font-size: 12px; margin: 0 0 6px; padding-bottom: 4px; border-bottom: 1px solid #eef2f6; }
+          .report-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+          .report-table th { background: #2c7a6e; color: #fff; padding: 5px 10px; font-weight: 500; text-align: center; }
+          .report-table td { padding: 5px 8px; border: 1px solid #eef2f6; text-align: center; }
+          .report-table.compact td { border: none; border-bottom: 1px solid #f1f5f9; padding: 2px 6px; text-align: right; }
+          .report-table.compact tr:last-child td { border-bottom: none; }
+          .report-table.compact td:first-child { width: 120px; color: #64748b; font-weight: 500; }
+          .report-divider { border: none; border-top: 1px dashed #e2e8f0; margin: 14px 0; }
+          .report-footer { text-align: center; color: #94a3b8; font-size: 11px; margin-top: 30px; padding-top: 12px; border-top: 1px solid #eef2f6; }
           @media print {
             .report-flock { page-break-inside: avoid; }
             .report-two-col { page-break-inside: avoid; }
@@ -524,74 +321,44 @@ class HatcheryReport {
         </style>
       </head>
       <body>
-        <div class="report-header">
-          <h1>🐣 گزارش کامل جوجه‌ریزی</h1>
-          <div class="date">تاریخ گزارش: ${persianDate}</div>
-        </div>
-        ${customerHTML}
-
-        <div class="summary-stats">
-          <div class="stat-box">
-            <div class="stat-label">تعداد دوره‌ها</div>
-            <div class="stat-value">${totalPeriods}</div>
-          </div>
-          <div class="stat-box">
-            <div class="stat-label">تعداد گله‌ها</div>
-            <div class="stat-value">${totalFlocks}</div>
-          </div>
-          <div class="stat-box">
-            <div class="stat-label">گله‌های فعال</div>
-            <div class="stat-value">${activeFlocks}</div>
-          </div>
-          <div class="stat-box">
-            <div class="stat-label">مجموع جوجه‌ها</div>
-            <div class="stat-value">${totalChicks.toLocaleString()}</div>
-          </div>
-        </div>
-
-        ${periodsHTML}
-        <hr class="report-divider">
-        <h2 style="color:#2c7a6e; font-size:17px; margin-bottom:12px;">لیست گله‌ها</h2>
-        ${flocksHTML}
-
-        ${completionsHTML}
-
-        <div class="report-footer">
-          <p>این گزارش توسط سامانه مدیریت مشتریان (SKB-CRM) تولید شده است</p>
-        </div>
+        <table class="report-main">
+          <thead>
+            <tr><td>
+              <div class="report-page-header">
+                <h1>${title}</h1>
+                <div class="date">تاریخ گزارش: ${persianDate}</div>
+              </div>
+              <div class="report-customer-info">${customerHTML}</div>
+              <div class="summary-stats">
+                <div class="stat-box"><div class="stat-label">تعداد گله‌ها</div><div class="stat-value">${stats.flockCount}</div></div>
+                <div class="stat-box"><div class="stat-label">${mode === "history" ? "گله‌های تکمیل‌شده" : "گله‌های فعال"}</div><div class="stat-value">${stats.flockCount}</div></div>
+                <div class="stat-box"><div class="stat-label">تعداد سالن‌ها</div><div class="stat-value">${stats.hallCount}</div></div>
+                <div class="stat-box"><div class="stat-label">مجموع جوجه‌ها</div><div class="stat-value">${stats.totalChicks.toLocaleString()}</div></div>
+              </div>
+            </td></tr>
+          </thead>
+          <tbody>
+            <tr><td>
+              <div class="report-content">
+                ${flocksHTML}
+                <div class="report-footer"><p>این گزارش توسط سامانه مدیریت مشتریان (SKB-CRM) تولید شده است</p></div>
+              </div>
+            </td></tr>
+          </tbody>
+        </table>
         <script>
           window.onload = function() { window.print(); }
-        <\/script>
+        <\\/script>
       </body>
       </html>
     `;
   }
 
-  getStatusText(status) {
-    const map = {
-      pending: "در انتظار جوجه",
-      active: "فعال",
-      completed: "تکمیل شده",
-      cancelled: "لغو شده",
-    };
-    return map[status] || status;
-  }
-
-  getStatusClass(status) {
-    const map = {
-      pending: "pending",
-      active: "active",
-      completed: "completed",
-    };
-    return map[status] || "";
-  }
-
-  async generateAndPrint() {
+  async generateAndPrint(mode = "active") {
     try {
       await this.init();
-      const reportData = await this.generateFullReport();
+      const reportData = await this.generateFullReport(mode);
       const html = this.generateHTML(reportData);
-
       const printWindow = window.open("", "_blank", "width=1100,height=800");
       if (!printWindow) {
         alert("لطفاً باز شدن پنجره popup را مجاز کنید");
@@ -603,6 +370,10 @@ class HatcheryReport {
       console.error("❌ Error generating chick report:", error);
       alert("خطا در تولید گزارش: " + error.message);
     }
+  }
+
+  async generateHistoryAndPrint() {
+    await this.generateAndPrint("history");
   }
 }
 

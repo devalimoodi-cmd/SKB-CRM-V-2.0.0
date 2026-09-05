@@ -15,6 +15,14 @@ router.post(
   flockCompletionController.completePeriods,
 );
 
+// ثبت پایان دوره مستقیم با شناسه گله (سرگروه + ریز تفکیکی per سالن)
+router.post(
+  "/complete-flock",
+  protect,
+  authorize("expert", "admin", "sub_admin", "super_admin"),
+  flockCompletionController.completeFlockPeriods,
+);
+
 // دریافت لیست اطلاعات پایان دوره
 router.get("/", protect, flockCompletionController.getFlockCompletions);
 
@@ -23,6 +31,13 @@ router.get(
   "/unit/:unitId",
   protect,
   flockCompletionController.getCompletionsByUnit,
+);
+
+// دریافت پایان دوره یک گله (سرگروه + ریز سالن‌ها)
+router.get(
+  "/flock/:flockId",
+  protect,
+  flockCompletionController.getFlockCompletionByFlockId,
 );
 
 // دریافت اطلاعات پایان دوره یک گله

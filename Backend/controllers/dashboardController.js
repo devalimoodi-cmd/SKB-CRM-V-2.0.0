@@ -6,6 +6,7 @@ const { sequelize } = require("../config/database");
 const { Op } = require("sequelize");
 const CustomerPersonalInfo = require("../models/CustomerPersonalInfo");
 const ChickPlacement = require("../models/ChickPlacement");
+const Flock = require("../models/Flock");
 const WeeklyManagement = require("../models/WeeklyManagement");
 const Hall = require("../models/Hall");
 const Unit = require("../models/Unit");
@@ -299,6 +300,188 @@ const getActiveFlocks = async (req, res) => {
     );
   } catch (error) {
     console.error("خطا در دریافت گله‌های فعال:", error);
+    errorResponse(res, error.message, 500);
+  }
+};
+
+// ================================================================
+// ۱.۵. دریافت کارت‌های گله (دوره پرورش) — سطح گله با سالن‌های عضو
+// ================================================================
+const getActiveFlockCards = async (req, res) => {
+  try {
+    const { status } = req.query;
+
+    const flocks = await Flock.findAll({
+      where: { status: "active" },
+      include: [
+        {
+          model: CustomerPersonalInfo,
+          as: "customer",
+          attributes: ["id", "full_name", "farm_name", "mobile_number", "province", "county"],
+        },
+        {
+          model: Unit,
+          as: "unit",
+          attributes: ["id", "unit_name"],
+        },
+        {
+          model: ChickPlacement,
+          as: "placements",
+          include: [
+            { model: Hall, attributes: ["id", "hall_name"] },
+            { model: ChickenBreed, as: "breed", attributes: ["id", "name"] },
+          ],
+        },
+      ],
+      order: [["placement_date", "ASC"]],
+    });
+
+    let dangerCount = 0;
+    let successCount = 0;
+    let normalCount = 0;
+    const result = [];
+
+    for (const fl of flocks) {
+      const fd = fl.toJSON();
+      const placements = fd.placements || [];
+      const activePlacements = placements.filter((p) => p.is_active);
+      if (activePlacements.length === 0) continue; // گله‌های در آستانه بسته‌شدن خودکار
+
+      const cust = fd.customer || {};
+
+      // ── وضعیت هر سالن (بر اساس تاریخ جوجه‌ریزی همان سالن) ──
+      const placementIds = placements.map((p) => p.id);
+      const weekRows = placementIds.length
+        ? await WeeklyManagement.findAll({
+            where: { chick_placement_id: { [Op.in]: placementIds } },
+            attributes: ["chick_placement_id", "week_number"],
+          })
+        : [];
+      const weeksByPlacement = {};
+      weekRows.forEach((w) => {
+        if (!weeksByPlacement[w.chick_placement_id]) {
+          weeksByPlacement[w.chick_placement_id] = [];
+        }
+        weeksByPlacement[w.chick_placement_id].push(w.week_number);
+      });
+
+      // ── آخرین پیامک امروز برای هر سالن (نشانگر وضعیت تسک روی کارت) ──
+      const todaySmsByPlacement = {};
+      if (placementIds.length) {
+        try {
+          const startOfDay = new Date();
+          startOfDay.setHours(0, 0, 0, 0);
+          const endOfDay = new Date();
+          endOfDay.setHours(23, 59, 59, 999);
+          const smsRows = await SmsLog.findAll({
+            where: {
+              flock_id: { [Op.in]: placementIds },
+              sent_at: { [Op.between]: [startOfDay, endOfDay] },
+            },
+            order: [["sent_at", "DESC"]],
+            include: [
+              {
+                model: User,
+                as: "sender",
+                attributes: ["id", "first_name", "last_name", "username"],
+              },
+            ],
+          });
+          smsRows.forEach((r) => {
+            if (todaySmsByPlacement[r.flock_id]) return;
+            const d = r.toJSON();
+            todaySmsByPlacement[r.flock_id] = {
+              status: d.status,
+              message_id: d.message_id,
+              sent_at: d.sent_at,
+              delivered_at: d.delivered_at,
+              sender: d.sender || null,
+            };
+          });
+        } catch (smsError) {
+          console.error("⚠️ خطا در دریافت لاگ پیامک سالن‌های گله:", smsError.message);
+        }
+      }
+
+      const halls = placements.map((p) => {
+        const age = calculateFlockAge(p.placement_date);
+        const week = calculateCurrentWeek(p.placement_date);
+        const range = calculateWeekRange(p.placement_date, week);
+        const hallStatus = p.is_active ? calculateStatus(range.weekEndDate) : null;
+        return {
+          id: p.id,
+          hallId: p.hall_id,
+          hallName: p.Hall?.hall_name || `سالن ${p.hall_id}`,
+          breedName: p.breed?.name || "-",
+          isActive: p.is_active,
+          placementDate: p.placement_date,
+          ageDays: age,
+          weekNumber: week,
+          weekStartDate: range.weekStartDate,
+          weekEndDate: range.weekEndDate,
+          status: hallStatus,
+          completedWeeks: weeksByPlacement[p.id] || [],
+          smsLog: todaySmsByPlacement[p.id] || null,
+        };
+      });
+
+      // ── وضعیت گله: بدترین/نزدیک‌ترین سالن فعال ──
+      const activeHalls = halls.filter((h) => h.isActive);
+      const worstStatus = activeHalls.some((h) => h.status === "danger")
+        ? "danger"
+        : activeHalls.some((h) => h.status === "success")
+          ? "success"
+          : "normal";
+
+      if (status && status !== "all" && status !== worstStatus) continue;
+      if (worstStatus === "danger") dangerCount++;
+      else if (worstStatus === "success") successCount++;
+      else normalCount++;
+
+      // سن گله از تاریخ تعریف گله
+      const flockAge = calculateFlockAge(fd.placement_date);
+      const flockWeek = calculateCurrentWeek(fd.placement_date);
+      const flockRange = calculateWeekRange(fd.placement_date, flockWeek);
+
+      result.push({
+        customer: {
+          id: cust.id,
+          name: cust.full_name || "نامشخص",
+          farmName: cust.farm_name || "نامشخص",
+          city: cust.county || cust.province || "-",
+          phone: cust.mobile_number || "-",
+        },
+        flock: {
+          id: fd.id,
+          flockNumber: fd.flock_number,
+          unitId: fd.unit_id,
+          unitName: fd.unit?.unit_name || "-",
+          placementDate: fd.placement_date,
+          flockAge: flockAge,
+          weekNumber: flockWeek,
+          weekStartDate: flockRange.weekStartDate,
+          weekEndDate: flockRange.weekEndDate,
+          status: worstStatus,
+          halls: halls,
+        },
+      });
+    }
+
+    successResponse(
+      res,
+      {
+        flocks: result,
+        summary: {
+          dangerCount,
+          successCount,
+          normalCount,
+          total: result.length,
+        },
+      },
+      "کارت‌های گله دریافت شد",
+    );
+  } catch (error) {
+    console.error("خطا در دریافت کارت‌های گله:", error);
     errorResponse(res, error.message, 500);
   }
 };
@@ -629,7 +812,136 @@ const getSummary = async (req, res) => {
 // ================================================================
 const getChartsData = async (req, res) => {
   try {
-    const { customerId, flockId } = req.query;
+    const { customerId, flockId, flockGroupId } = req.query;
+
+    // ================================================================
+    // حالت «کل گله» (چند سالن): تجمیع داده‌های هفتگی سالن‌های فعال گله
+    // ================================================================
+    if (flockGroupId) {
+      const groupId = parseInt(flockGroupId);
+      const flockRow = await Flock.findByPk(groupId, {
+        include: [
+          {
+            model: CustomerPersonalInfo,
+            as: "customer",
+            attributes: ["id", "full_name", "farm_name"],
+          },
+        ],
+      });
+
+      if (!flockRow) {
+        return successResponse(
+          res,
+          { flocks: [], flockGroupId: groupId },
+          "گله مورد نظر یافت نشد",
+        );
+      }
+
+      const placements = await ChickPlacement.findAll({
+        where: { flock_id: groupId, is_active: true },
+        include: [
+          {
+            model: WeeklyManagement,
+            as: "weeklyManagements",
+            order: [["week_number", "ASC"]],
+          },
+          { model: Hall, attributes: ["id", "hall_name"] },
+        ],
+        order: [["placement_date", "ASC"]],
+      });
+
+      if (placements.length === 0) {
+        return successResponse(
+          res,
+          { flocks: [], flockGroupId: groupId },
+          "سالن فعالی برای این گله وجود ندارد",
+        );
+      }
+
+      // ── تجمیع به ازای شماره هفته ──
+      const byWeek = {};
+      placements.forEach((p) => {
+        (p.weeklyManagements || []).forEach((w) => {
+          const wk = parseInt(w.week_number) || 0;
+          if (!wk) return;
+          if (!byWeek[wk]) {
+            byWeek[wk] = { weights: [], loss: 0, feed: 0 };
+          }
+          const weight = w.weekly_weight;
+          if (
+            weight !== null &&
+            weight !== undefined &&
+            weight !== "" &&
+            !isNaN(parseFloat(weight))
+          ) {
+            byWeek[wk].weights.push(parseFloat(weight));
+          }
+          byWeek[wk].loss += parseInt(w.weekly_mortality) || 0;
+          byWeek[wk].feed += parseFloat(w.weekly_feed_intake) || 0;
+        });
+      });
+
+      const weekNums = Object.keys(byWeek)
+        .map(Number)
+        .sort((a, b) => a - b);
+      const weighting = weekNums.map((wk) => {
+        const ws = byWeek[wk].weights;
+        return ws.length ? ws.reduce((a, b) => a + b, 0) / ws.length : 0;
+      });
+      const loss = weekNums.map((wk) => byWeek[wk].loss);
+      const feed = weekNums.map((wk) => parseFloat(byWeek[wk].feed.toFixed(1)));
+      const weekLabels = weekNums.map((wk) => `هفته ${wk}`);
+      const activeHalls = placements.length;
+
+      const totalLoss = loss.reduce((a, b) => a + b, 0);
+      const totalFeed = feed.reduce((a, b) => a + b, 0);
+      const totalWeeks = weekNums.length;
+      const avgWeight =
+        totalWeeks > 0
+          ? weighting.reduce((a, b) => a + b, 0) / totalWeeks
+          : 0;
+      const maxWeight = totalWeeks > 0 ? Math.max(...weighting) : 0;
+      const avgLoss = totalWeeks > 0 ? totalLoss / totalWeeks : 0;
+
+      return successResponse(
+        res,
+        {
+          customerId: flockRow.customer_id || null,
+          flockGroupId: groupId,
+          totalFlocks: activeHalls,
+          scope: "flock",
+          flocks: [
+            {
+              flockInfo: {
+                id: groupId,
+                flockNumber: flockRow.flock_number,
+                hallName: `کل گله (${activeHalls} سالن فعال)`,
+                customerName: flockRow.customer?.full_name || "نامشخص",
+                farmName: flockRow.customer?.farm_name || "نامشخص",
+                placementDate: flockRow.placement_date,
+                isActive: flockRow.status === "active",
+              },
+              data: {
+                weighting,
+                loss,
+                feed,
+                weekLabels,
+                weekNumbers: weekNums,
+              },
+              summary: {
+                totalWeeks,
+                avgWeight: avgWeight.toFixed(2),
+                maxWeight: maxWeight.toFixed(2),
+                totalLoss,
+                avgLoss: avgLoss.toFixed(1),
+                totalFeed: parseFloat(totalFeed.toFixed(1)),
+              },
+            },
+          ],
+        },
+        "داده‌های تجمیعی گله دریافت شد",
+      );
+    }
 
     let whereCondition = { is_active: true };
 
@@ -870,6 +1182,7 @@ const getAnalysisData = async (req, res) => {
 // ================================================================
 module.exports = {
   getActiveFlocks,
+  getActiveFlockCards,
   getCustomerDetails,
   getSummary,
   getChartsData,

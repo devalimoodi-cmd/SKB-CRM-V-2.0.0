@@ -16,6 +16,30 @@ async function syncDatabase() {
     );
     console.log("✅ رکوردهای ناسازگار اصلاح شدند");
 
+    // حذف ایندکس یکتای قدیمی شماره گله از chick_placements
+    // (شماره گله به سطح گله/دوره منتقل شده است)
+    try {
+      await sq.query(`DROP INDEX IF EXISTS "unique_flock_number_per_customer"`);
+      console.log("✅ ایندکس یکتای قدیمی شماره گله حذف شد");
+    } catch (indexError) {
+      console.log("ℹ️ ایندکس یکتای قدیمی موجود نبود:", indexError.message);
+    }
+
+    // حذف constraint/ایندکس یکتای قدیمی پایان دوره per سالن از flock_completions
+    // (پایان دوره اکنون در سطح گله است و یکتا per flock_id)
+    const legacyCompletionIndexes = [
+      "flock_completions_chick_placement_id_key",
+      "flock_completions_chick_placement_id_unique",
+    ];
+    for (const idx of legacyCompletionIndexes) {
+      try {
+        await sq.query(`DROP INDEX IF EXISTS "${idx}"`);
+        console.log(`✅ ایندکس یکتای قدیمی ${idx} حذف شد`);
+      } catch (indexError) {
+        console.log(`ℹ️ ایندکس ${idx} موجود نبود`);
+      }
+    }
+
     // ✅ استفاده از alter: true برای حفظ داده‌ها
     await sequelize.sync({ alter: true });
 

@@ -17,6 +17,7 @@ const WeeklyMedicine = require("./WeeklyMedicine");
 const WeeklyFeed = require("./WeeklyFeed");
 const WeeklySuggestion = require("./WeeklySuggestion");
 const FlockCompletion = require("./FlockCompletion");
+const FlockCompletionHall = require("./FlockCompletionHall");
 const Disease = require("./Disease");
 const Vaccine = require("./Vaccine");
 const Medicine = require("./Medicine");
@@ -32,6 +33,7 @@ const ChickenBreed = require("./ChickenBreed");
 const ChickSource = require("./ChickSource");
 const SmsLog = require("./SmsLog");
 const BreedWeightStandard = require("./BreedWeightStandard");
+const Flock = require("./Flock");
 
 // ================================================================
 // ✅ ارتباطات با CASCADE برای حذف آبشاری
@@ -660,3 +662,97 @@ User.hasMany(VisitReport, {
 console.log(
   "✅ همه ارتباطات (Associations) با CASCADE با موفقیت بارگذاری شدند",
 );
+
+// ================================================================
+// ✅ ارتباطات «گله» (Flock / دوره پرورش) — سطح واحد مرغداری
+// ================================================================
+
+// ===== مشتری → گله =====
+CustomerPersonalInfo.hasMany(Flock, {
+  foreignKey: "customer_id",
+  as: "flocks",
+  onDelete: "CASCADE",
+  hooks: true,
+});
+Flock.belongsTo(CustomerPersonalInfo, {
+  foreignKey: "customer_id",
+  as: "customer",
+});
+
+// ===== واحد → گله =====
+Unit.hasMany(Flock, {
+  foreignKey: "unit_id",
+  as: "flocks",
+  onDelete: "CASCADE",
+  hooks: true,
+});
+Flock.belongsTo(Unit, {
+  foreignKey: "unit_id",
+  as: "unit",
+});
+
+// ===== گله → جوجه‌ریزی سالن‌ها (ChickPlacement) =====
+Flock.hasMany(ChickPlacement, {
+  foreignKey: "flock_id",
+  as: "placements",
+  onDelete: "CASCADE",
+  hooks: true,
+});
+ChickPlacement.belongsTo(Flock, {
+  foreignKey: "flock_id",
+  as: "flock",
+});
+
+// ===== گله → پایان دوره =====
+Flock.hasMany(FlockCompletion, {
+  foreignKey: "flock_id",
+  as: "completions",
+});
+// بدون alias (پیش‌فرض) — alias «flock» قبلاً برای ChickPlacement ثبت شده
+FlockCompletion.belongsTo(Flock, {
+  foreignKey: "flock_id",
+});
+
+// ================================================================
+// ✅ ارتباطات «ریز پایان دوره per سالن» (FlockCompletionHall)
+// ================================================================
+
+FlockCompletion.hasMany(FlockCompletionHall, {
+  foreignKey: "flock_completion_id",
+  as: "hallDetails",
+  onDelete: "CASCADE",
+  hooks: true,
+});
+FlockCompletionHall.belongsTo(FlockCompletion, {
+  foreignKey: "flock_completion_id",
+  as: "completion",
+});
+
+FlockCompletionHall.belongsTo(ChickPlacement, {
+  foreignKey: "chick_placement_id",
+  as: "placement",
+});
+FlockCompletionHall.belongsTo(Hall, {
+  foreignKey: "hall_id",
+  as: "hall",
+});
+
+FlockCompletionHall.belongsTo(Flock, {
+  foreignKey: "flock_id",
+});
+Flock.hasMany(FlockCompletionHall, {
+  foreignKey: "flock_id",
+  as: "completionHallDetails",
+});
+
+// ================================================================
+// ✅ بوکمارک روی گله/دوره + سالن اختیاری
+// ================================================================
+Bookmark.belongsTo(Flock, {
+  foreignKey: "flock_period_id",
+  as: "flockPeriod",
+});
+Bookmark.belongsTo(ChickPlacement, {
+  foreignKey: "hall_id",
+  as: "hallPlacement",
+});

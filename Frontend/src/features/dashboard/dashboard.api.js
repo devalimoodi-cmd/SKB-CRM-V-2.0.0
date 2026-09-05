@@ -9,6 +9,14 @@ export const dashboardApi = {
     return apiService.get(API_CONSTANTS.ENDPOINTS.DASHBOARD.FLOCKS, params);
   },
 
+  // دریافت کارت‌های گله (دوره پرورش) با سالن‌های عضو
+  async getFlockCards(params = {}) {
+    return apiService.get(
+      API_CONSTANTS.ENDPOINTS.DASHBOARD.FLOCK_CARDS,
+      params,
+    );
+  },
+
   // دریافت اطلاعات یک گله
   async getFlock(id) {
     const endpoint = API_CONSTANTS.ENDPOINTS.CHICK_PLACEMENTS.UPDATE.replace(
@@ -28,10 +36,11 @@ export const dashboardApi = {
   // ===== داده‌های نمودارها =====
 
   // دریافت داده‌های نمودارها
-  async getChartsData(customerId = null, flockId = null) {
+  async getChartsData(customerId = null, flockId = null, flockGroupId = null) {
     const params = {};
     if (customerId) params.customerId = customerId;
     if (flockId) params.flockId = flockId;
+    if (flockGroupId) params.flockGroupId = flockGroupId;
     return apiService.get(API_CONSTANTS.ENDPOINTS.DASHBOARD.CHARTS, params);
   },
 

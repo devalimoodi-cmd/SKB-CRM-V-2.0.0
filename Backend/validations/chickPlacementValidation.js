@@ -27,13 +27,16 @@ function validateChickPlacement(data) {
     }
   }
 
-  // بررسی flock_number
-  if (data.flock_number === undefined || data.flock_number === null) {
-    errors.push("شماره گله الزامی است");
-  } else if (isNaN(parseInt(data.flock_number))) {
-    errors.push("شماره گله باید عدد باشد");
-  } else if (parseInt(data.flock_number) < 1) {
-    errors.push("شماره گله باید حداقل 1 باشد");
+  // بررسی flock_number (اختیاری — شماره گله اکنون در سطح گله/دوره است)
+  // اگر ارسال شد باید عدد معتبر باشد؛ مقدار خالی/صفر = خودکار و خطا ندارد
+  if (
+    data.flock_number !== undefined &&
+    data.flock_number !== null &&
+    String(data.flock_number).trim() !== ""
+  ) {
+    if (isNaN(parseInt(data.flock_number))) {
+      errors.push("شماره گله باید عدد باشد");
+    }
   }
 
   // بررسی unit_id (اختیاری، ولی اگر وجود دارد باید عدد باشد)

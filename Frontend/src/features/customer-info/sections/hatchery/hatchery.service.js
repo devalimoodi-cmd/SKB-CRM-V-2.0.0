@@ -20,6 +20,9 @@ class HatcheryService {
     this.currentPeriodId = null;
     this.currentFlockId = null;
     this.currentHygieneId = null;
+    this.currentUnitId = null;
+    this.activeFlock = null;
+    this.activeFlocks = null;
     this.initialized = false;
     this.isEditingPeriod = false;
     this.isEditingFlock = false;
@@ -51,6 +54,9 @@ class HatcheryService {
       await this.loadFlocks();
       await this.loadNextPeriodNumber();
       await this.loadNextFlockNumber();
+      // بروزرسانی پنل وضعیت گله و سالن‌های قابل افزودن
+      this.refreshFlockPanel();
+      this.refreshExtraHalls();
     } catch (error) {
       console.error("❌ Error loading hatchery data:", error);
       notificationService.error("خطا در دریافت اطلاعات");
@@ -479,13 +485,32 @@ class HatcheryService {
     const selectedHall = this.halls.find((h) => h.id == hallId);
     const unitId = selectedHall?.unit_id || null;
 
+    // شماره گله: اگر فیلد خالی بود، ارسال نمی‌شود تا سرور خودش (بر اساس گله/واحد) درج کند
+    const flockNumberValue =
+      document.getElementById("skb-flock-number")?.value;
+    const parsedFlockNumber = flockNumberValue
+      ? parseInt(flockNumberValue)
+      : 0;
+
+    // انتخاب گله: پیوستن به گله مشخص / شروع گله جدید / خودکار
+    const flockJoinValue =
+      document.getElementById("skb-flock-join")?.value || "";
+    const attachFlockId =
+      flockJoinValue && flockJoinValue !== "new"
+        ? parseInt(flockJoinValue)
+        : null;
+    const startNewFlock = flockJoinValue === "new";
+
     const payload = {
       customer_id: parseInt(this.customerId),
       unit_id: unitId ? parseInt(unitId) : null,
       hall_id: parseInt(hallId),
       placement_date: gregorianDate,
+      flock_id: attachFlockId || undefined,
+      start_new_flock: startNewFlock || undefined,
+      // undefined → هنگام JSON.stringify حذف می‌شود؛ سرور خودکار شماره می‌دهد
       flock_number:
-        parseInt(document.getElementById("skb-flock-number")?.value) || 0,
+        parsedFlockNumber > 0 ? parsedFlockNumber : undefined,
       chick_source_id: chickSource ? parseInt(chickSource) : null,
       breed_id: breedId ? parseInt(breedId) : null,
       chick_age_on_arrival: parseInt(chickAge) || 1,
@@ -493,6 +518,12 @@ class HatcheryService {
       total_chicks_count: parseInt(chickCount) || 0,
       placement_density: density,
     };
+
+    // جمع‌آوری سالن‌های اضافه همان گله (فقط در حالت ثبت جدید)
+    const extraJobs =
+      this.isEditingFlock && this.currentFlockId
+        ? []
+        : this.collectExtraHalls(parseInt(payload.total_chicks_count) || 0);
 
     try {
       let response;
@@ -506,10 +537,54 @@ class HatcheryService {
       saveBtn.innerHTML = originalText;
 
       if (response.success) {
+        // ثبت سالن‌های اضافه زیر همان گله (پس از موفقیت سالن اصلی)
+        let extraCreated = 0;
+        if (!this.isEditingFlock && extraJobs.length > 0) {
+          for (const job of extraJobs) {
+            if (!job.total_chicks_count || job.total_chicks_count < 1) {
+              throw new Error(
+                `برای سالن «${job.hall_name}» تعداد جوجه وارد نشده است`,
+              );
+            }
+            // ثبت سالن‌های اضافه زیر همان گله‌ای که سالن اصلی به آن پیوست
+            // (هم‌نوبت اصلی یا گله جدید ساخته‌شده)
+            const extraDate = job.date_raw
+              ? convertPersianToGregorian(job.date_raw) ||
+                payload.placement_date
+              : payload.placement_date;
+            const extraRes = await hatcheryApi.createFlock({
+              customer_id: payload.customer_id,
+              unit_id: payload.unit_id,
+              hall_id: job.hall_id,
+              placement_date: extraDate,
+              flock_id: response.data?.flock_id || undefined,
+              chick_source_id: payload.chick_source_id,
+              breed_id: payload.breed_id,
+              chick_age_on_arrival: payload.chick_age_on_arrival,
+              avg_initial_weight: payload.avg_initial_weight,
+              total_chicks_count: job.total_chicks_count,
+              placement_density: null,
+            });
+            if (!extraRes.success) {
+              throw new Error(
+                `ثبت جوجه‌ریزی سالن «${job.hall_name}» ناموفق بود: ${extraRes.message || ""}`,
+              );
+            }
+            extraCreated++;
+          }
+        }
+
         const summaryItems = [
-          payload.flock_number ? `شماره گله: ${payload.flock_number}` : null,
+          response.data?.flock_number
+            ? `شماره گله: ${response.data.flock_number}`
+            : payload.flock_number
+              ? `شماره گله: ${payload.flock_number}`
+              : null,
           payload.total_chicks_count
-            ? `تعداد جوجه: ${payload.total_chicks_count.toLocaleString()} قطعه`
+            ? `تعداد جوجه سالن اصلی: ${payload.total_chicks_count.toLocaleString()} قطعه`
+            : null,
+          extraCreated > 0
+            ? `افزودن به ${extraCreated} سالن دیگر زیر همین گله`
             : null,
           payload.chick_age_on_arrival
             ? `سن جوجه: ${payload.chick_age_on_arrival} روز`
@@ -548,6 +623,8 @@ class HatcheryService {
 
         await this.loadData();
         hatcheryFormService.resetFlockForm();
+        this.refreshFlockPanel();
+        this.refreshExtraHalls();
 
         if (typeof window.refreshWeeksDisplay === "function") {
           await window.refreshWeeksDisplay();
@@ -560,6 +637,9 @@ class HatcheryService {
       saveBtn.disabled = false;
       saveBtn.innerHTML = originalText;
       notificationService.error(error.message);
+      // همگام‌سازی مجدد برای نمایش وضعیت واقعی
+      this.refreshFlockPanel();
+      this.refreshExtraHalls();
     }
   }
 
@@ -678,6 +758,9 @@ class HatcheryService {
       document.getElementById("skb-current-density").value =
         "خطا در دریافت اطلاعات";
     }
+    // بروزرسانی پنل گله و سالن‌های قابل افزودن بر اساس سالن انتخاب‌شده
+    this.refreshFlockPanel();
+    this.refreshExtraHalls();
   }
 
   calculateDensity() {
@@ -691,6 +774,455 @@ class HatcheryService {
       densityField.value = `${density} قطعه/مترمربع`;
     } else if (area > 0) {
       densityField.value = "تعداد جوجه را وارد کنید";
+    }
+  }
+
+  // ===== پنل وضعیت گله (دوره پرورش واحد) =====
+
+  async refreshFlockPanel() {
+    const panel = document.getElementById("flockStatusPanel");
+    if (!panel) return;
+    const flockNumberField = document.getElementById("skb-flock-number");
+    try {
+      const hallSelect = document.getElementById("skb-hall-select");
+      let hallId = hallSelect ? parseInt(hallSelect.value) : null;
+      let hall = hallId
+        ? this.halls.find((h) => parseInt(h.id) === hallId)
+        : null;
+      if (!hall && this.halls.length > 0) hall = this.halls[0];
+
+      if (!hall) {
+        this.activeFlock = null;
+        panel.innerHTML =
+          '<div class="flock-panel flock-empty"><div class="flock-empty-text"><i class="fas fa-info-circle"></i> ابتدا سالنی برای این مشتری تعریف کنید تا وضعیت گله نمایش داده شود.</div></div>';
+        return;
+      }
+
+      const unitId = hall.unit_id;
+      if (!unitId) {
+        this.activeFlock = null;
+        panel.innerHTML =
+          '<div class="flock-panel flock-empty"><div class="flock-empty-text"><i class="fas fa-info-circle"></i> سالن انتخاب‌شده به واحدی متصل نیست.</div></div>';
+        return;
+      }
+      this.currentUnitId = unitId;
+
+      const unit = this.periods.find(
+        (p) => parseInt(p.id) === parseInt(unitId),
+      );
+      const unitName = unit?.unit_name || hall.unit_name || `واحد ${unitId}`;
+
+      const response = await hatcheryApi.getFlocksByUnit(unitId, {
+        status: "active",
+      });
+      const flocks =
+        response.success && Array.isArray(response.data?.flocks)
+          ? response.data.flocks
+          : [];
+      this.activeFlocks = flocks;
+
+      // پیش‌فرض عملیات بدون id = اولین گله دارای سالن فعال
+      const defaultFlock =
+        flocks.find((f) => (f.placements || []).some((p) => p.is_active)) ||
+        flocks[0] ||
+        null;
+      this.activeFlock = defaultFlock;
+
+      // نمایش چند گله فعال (هر گله یک کارت با عملیات مستقل)
+      panel.innerHTML = flocks.length
+        ? flocks
+            .map((f) =>
+              hatcheryRenderer.renderFlockPanel(unitName, f, f.placements || []),
+            )
+            .join('<div class="flock-panel-gap"></div>')
+        : hatcheryRenderer.renderFlockPanel(unitName, null, []);
+
+      // نمایش شماره گله در فرم ثبت (پیش‌نمایش پیوستن)
+      if (flockNumberField) {
+        flockNumberField.value = defaultFlock ? defaultFlock.flock_number : "";
+        flockNumberField.placeholder = defaultFlock
+          ? ""
+          : "خودکار (پس از ثبت)";
+      }
+
+      this.refreshFlockJoinSelect(flocks);
+    } catch (error) {
+      console.error("❌ Error loading flock panel:", error);
+      panel.innerHTML =
+        '<div class="flock-panel flock-empty"><div class="flock-empty-text">خطا در دریافت وضعیت گله</div></div>';
+    }
+  }
+
+  // ابزار یافتن گله در لیست گله‌های فعال واحد
+  findActiveFlockById(flockId) {
+    return (
+      (this.activeFlocks || []).find(
+        (f) => parseInt(f.id) === parseInt(flockId),
+      ) || null
+    );
+  }
+
+  findActiveFlockByHall(hallId) {
+    return (
+      (this.activeFlocks || []).find((f) =>
+        (f.placements || []).some(
+          (p) => parseInt(p.id) === parseInt(hallId),
+        ),
+      ) || null
+    );
+  }
+
+  // سلکت «گله / دوره پرورش» در فرم ثبت
+  refreshFlockJoinSelect(flocks) {
+    const group = document.getElementById("flockJoinGroup");
+    const select = document.getElementById("skb-flock-join");
+    if (!group || !select) return;
+    const list = flocks || this.activeFlocks || [];
+    const attachable = list.filter((f) =>
+      (f.placements || []).some((p) => p.is_active),
+    );
+    if (attachable.length === 0) {
+      group.style.display = "none";
+      select.innerHTML = "";
+      return;
+    }
+    group.style.display = "block";
+    const options = attachable.map(
+      (f) =>
+        `<option value="${f.id}">پیوستن به گله ${f.flock_number} — ${f.placement_date ? convertToPersianDate(f.placement_date) : ""}</option>`,
+    );
+    options.push(
+      '<option value="new">➕ شروع گله جدید (نوبت جدید در همین واحد)</option>',
+    );
+    select.innerHTML = options.join("");
+  }
+
+  // ===== سالن‌های قابل افزودن به همین گله (یک نوبت) =====
+
+  refreshExtraHalls() {
+    const section = document.getElementById("extraHallsSection");
+    const listEl = document.getElementById("extraHallsList");
+    if (!section || !listEl) return;
+    try {
+      const hallSelect = document.getElementById("skb-hall-select");
+      const primaryHallId = hallSelect ? parseInt(hallSelect.value) : null;
+      const primaryHall = this.halls.find(
+        (h) => parseInt(h.id) === primaryHallId,
+      );
+      if (!primaryHall || !primaryHall.unit_id) {
+        section.style.display = "none";
+        listEl.innerHTML = "";
+        return;
+      }
+      const unitId = primaryHall.unit_id;
+
+      // سالن‌هایی که در حال حاضر جوجه‌ریزی فعال دارند
+      const busyHalls = new Set(
+        this.flocks
+          .filter((f) => f.is_active === true)
+          .map((f) => parseInt(f.hall_id)),
+      );
+
+      const freeHalls = this.halls.filter(
+        (h) =>
+          parseInt(h.unit_id) === parseInt(unitId) &&
+          h.is_active !== false &&
+          parseInt(h.id) !== primaryHallId &&
+          !busyHalls.has(parseInt(h.id)),
+      );
+
+      if (freeHalls.length === 0) {
+        section.style.display = "none";
+        listEl.innerHTML = "";
+        return;
+      }
+
+      const mainCount =
+        parseInt(document.getElementById("skb-chick-count")?.value) || 0;
+
+      listEl.innerHTML = hatcheryRenderer.renderExtraHallsList(
+        freeHalls,
+        primaryHallId,
+        mainCount || "",
+        document.getElementById("skb-chick-date")?.value || "",
+      );
+      section.style.display = "block";
+    } catch (error) {
+      console.error("❌ Error building extra halls:", error);
+      section.style.display = "none";
+    }
+  }
+
+  // جمع‌آوری سالن‌های اضافه انتخاب‌شده
+  collectExtraHalls(mainCount) {
+    const jobs = [];
+    const checks = document.querySelectorAll(
+      "#extraHallsList .extra-hall-chk:checked",
+    );
+    checks.forEach((chk) => {
+      const hallId = parseInt(chk.dataset.hall);
+      const hall = this.halls.find((h) => parseInt(h.id) === hallId);
+      const countInput = document.querySelector(
+        `.extra-hall-count[data-hall="${hallId}"]`,
+      );
+      const count = parseInt(countInput?.value) || mainCount || 0;
+      const dateInput = document.querySelector(
+        `.extra-hall-date[data-hall="${hallId}"]`,
+      );
+      jobs.push({
+        hall_id: hallId,
+        hall_name: hall?.hall_name || `سالن ${hallId}`,
+        total_chicks_count: count,
+        date_raw: dateInput?.value?.trim() || "",
+      });
+    });
+    return jobs;
+  }
+
+  // ===== بوکمارک گله/دوره (با سالن اختیاری) =====
+
+  async addFlockBookmark(flockId = null) {
+    const flock =
+      this.findActiveFlockById(flockId) || this.activeFlock || null;
+    if (!flock) {
+      notificationService.warning("گله فعالی برای بوکمارک وجود ندارد");
+      return;
+    }
+    const placements = flock.placements || [];
+    const hallOptions =
+      '<option value="">— کل گله —</option>' +
+      placements
+        .map((p) => {
+          const hallName =
+            p.hall?.hall_name ||
+            this.halls.find((h) => parseInt(h.id) === parseInt(p.hall_id))
+              ?.hall_name ||
+            `سالن ${p.hall_id}`;
+          return `<option value="${p.id}">${hallName}${p.is_active ? "" : " (پایان یافته)"}</option>`;
+        })
+        .join("");
+
+    let chosen;
+    if (typeof Swal !== "undefined") {
+      const res = await Swal.fire({
+        title: `بوکمارک گله ${flock.flock_number}`,
+        html: `<div style="text-align:right;font-family:Vazir;direction:rtl;">
+          <label style="display:block;margin-bottom:6px;font-size:13px;">عنوان بوکمارک</label>
+          <input id="bmTitleInput" class="swal2-input" placeholder="مثال: پیگیری هفته جاری" style="direction:rtl;text-align:right;">
+          <label style="display:block;margin:10px 0 6px;font-size:13px;">سالن (اختیاری)</label>
+          <select id="bmHallSelect" class="swal2-select" style="width:100%;padding:8px;border:1px solid #d1d5db;border-radius:8px;">${hallOptions}</select>
+        </div>`,
+        showCancelButton: true,
+        confirmButtonText: "ذخیره بوکمارک",
+        cancelButtonText: "انصراف",
+        confirmButtonColor: "#0d9488",
+        reverseButtons: true,
+        focusConfirm: false,
+        preConfirm: () => {
+          const title = document.getElementById("bmTitleInput")?.value?.trim();
+          if (!title) {
+            Swal.showValidationMessage("عنوان الزامی است");
+            return false;
+          }
+          return {
+            title,
+            hall: document.getElementById("bmHallSelect")?.value || null,
+          };
+        },
+      });
+      if (!res.isConfirmed) return;
+      chosen = res.value;
+    } else {
+      const title = window.prompt("عنوان بوکمارک گله:");
+      if (!title) return;
+      const hall = window.prompt(
+        "شناسه سالن (اختیاری؛ خالی = کل گله):",
+      );
+      chosen = { title, hall: hall || null };
+    }
+
+    try {
+      const response = await hatcheryApi.createFlockBookmark({
+        title: chosen.title,
+        type: "bookmark",
+        customer_id: parseInt(this.customerId),
+        unit_id: this.currentUnitId
+          ? parseInt(this.currentUnitId)
+          : flock.unit_id || null,
+        flock_period_id: flock.id,
+        hall_id: chosen.hall ? parseInt(chosen.hall) : null,
+        priority: "medium",
+      });
+      if (response.success) {
+        notificationService.success(
+          `بوکمارک «${chosen.title}» برای گله ${flock.flock_number} ذخیره شد`,
+        );
+        if (typeof window.refreshBookmarks === "function") {
+          window.refreshBookmarks();
+        }
+      } else {
+        notificationService.error(
+          response.message || "خطا در ذخیره بوکمارک",
+        );
+      }
+    } catch (error) {
+      console.error("❌ Error creating flock bookmark:", error);
+      notificationService.error(error.message || "خطا در ذخیره بوکمارک");
+    }
+  }
+
+  // ===== پیامک گله/سالن (مودال مشترک با قالب‌ها + انتخاب گیرنده) =====
+
+  async sendFlockSms(hallId = null, flockId = null) {
+    const flock = flockId
+      ? this.findActiveFlockById(flockId)
+      : hallId
+        ? this.findActiveFlockByHall(hallId)
+        : this.activeFlock || null;
+    if (!flock) {
+      notificationService.warning("گله فعالی وجود ندارد");
+      return;
+    }
+
+    try {
+      // دریافت واحد (مدیر + کارشناسان) و مشتری (شماره مرغدار)
+      let unit = null;
+      if (flock.unit_id) {
+        const unitRes = await hatcheryApi.getUnit(flock.unit_id).catch(() => null);
+        if (unitRes?.success) unit = unitRes.data || null;
+      }
+      const custRes = await hatcheryApi
+        .getCustomer(this.customerId)
+        .catch(() => null);
+      const customer = custRes?.success ? custRes.data || {} : {};
+
+      // زنجیره گیرنده: کارشناس فارم ← مدیر فارم ← مرغدار
+      const recipients = [];
+      const experts = (unit && Array.isArray(unit.experts)) ? unit.experts : [];
+      const primaryExpert =
+        experts.find((e) => e.expert_phone) || experts[0] || null;
+      if (primaryExpert?.expert_phone) {
+        recipients.push({
+          role: "👨‍🔬 کارشناس فارم",
+          name: primaryExpert.expert_name || "کارشناس",
+          mobile: primaryExpert.expert_phone,
+        });
+      }
+      if (unit?.manager_phone) {
+        recipients.push({
+          role: "🧑‍💼 مدیر فارم",
+          name: unit.manager_name || "مدیر",
+          mobile: unit.manager_phone,
+        });
+      }
+      if (customer?.mobile_number) {
+        recipients.push({
+          role: "👨‍🌾 مرغدار",
+          name: customer.full_name || "مرغدار",
+          mobile: customer.mobile_number,
+        });
+      }
+      if (recipients.length === 0) {
+        notificationService.error(
+          "هیچ شماره موبایلی برای گیرنده (کارشناس/مدیر/مرغدار) ثبت نشده است",
+        );
+        return;
+      }
+
+      const { openSmsModal } = await import(
+        "../../../sms/sms.modal.service.js"
+      );
+      const result = await openSmsModal({
+        title: hallId
+          ? `📱 پیامک سالن — گله ${flock.flock_number}`
+          : `📱 پیامک گله ${flock.flock_number}`,
+        recipients,
+        flockNumber: flock.flock_number,
+        subtitle: hallId
+          ? "این پیامک برای سالن انتخاب‌شده ارسال می‌شود"
+          : "این پیامک برای گله ارسال می‌شود",
+      });
+      if (!result) return;
+
+      const response = await hatcheryApi.sendToRecipient(
+        result.recipient.mobile,
+        result.message,
+      );
+      if (response.success) {
+        notificationService.success(
+          `پیامک به ${result.recipient.role || "گیرنده"} ارسال شد`,
+        );
+      } else {
+        notificationService.error(
+          response.message || "خطا در ارسال پیامک",
+        );
+      }
+    } catch (error) {
+      console.error("❌ Error sending flock sms:", error);
+      notificationService.error(error.message || "خطا در ارسال پیامک");
+    }
+  }
+
+  // ===== پایان گله فعال =====
+
+  async endActiveFlock(flockId = null) {
+    const flock =
+      this.findActiveFlockById(flockId) || this.activeFlock || null;
+    if (!flock) {
+      notificationService.error("گله فعالی برای پایان وجود ندارد");
+      return;
+    }
+    if (typeof Swal !== "undefined") {
+      const result = await Swal.fire({
+        icon: "question",
+        title: "پایان گله",
+        html: `آیا از پایان گله شماره <b>${flock.flock_number}</b> اطمینان دارید؟<br>سالن‌های این گله بسته شده و برای شروع گله جدید آزاد می‌شوند.`,
+        showCancelButton: true,
+        confirmButtonText: "بله، پایان گله",
+        cancelButtonText: "انصراف",
+        confirmButtonColor: "#dc2626",
+        reverseButtons: true,
+      });
+      if (!result.isConfirmed) return;
+    } else if (
+      !window.confirm(`پایان گله شماره ${flock.flock_number}؟`)
+    ) {
+      return;
+    }
+
+    try {
+      const hasPlacements = (flock.placements?.length || 0) > 0;
+      let response;
+      if (hasPlacements) {
+        // پایان دوره کامل گله: محاسبه از ثبت هفتگی هر سالن + رکورد تفکیکی per سالن
+        response = await hatcheryApi.completeFlock(flock.id, {
+          completion_type: "completed",
+        });
+      } else {
+        // گله بدون سالن — فقط بستن وضعیت
+        response = await hatcheryApi.endFlock(flock.id, {
+          status: "completed",
+        });
+      }
+      if (!response.success) {
+        notificationService.error(
+          response.message || "خطا در ثبت پایان دوره گله",
+        );
+        return;
+      }
+      notificationService.success(
+        hasPlacements
+          ? `پایان دوره گله شماره ${flock.flock_number} ثبت شد (تفکیکی per سالن)`
+          : `گله شماره ${flock.flock_number} با موفقیت پایان یافت`,
+      );
+      this.activeFlock = null;
+      await this.loadData();
+      this.refreshFlockPanel();
+      this.refreshExtraHalls();
+      hatcheryFormService.resetFlockForm();
+    } catch (error) {
+      console.error("❌ Error ending flock:", error);
+      notificationService.error(error.message || "خطا در پایان گله");
     }
   }
 
@@ -1972,7 +2504,11 @@ if (typeof window !== "undefined") {
   window.saveChickRegister = () => hatcheryService.saveFlock();
   window.saveChickHygieneInfo = () => hatcheryService.saveHygiene();
   window.resetChickPeriodTab = () => hatcheryFormService.resetPeriodForm();
-  window.resetChickRegisterTab = () => hatcheryFormService.resetFlockForm();
+  window.resetChickRegisterTab = () => {
+    hatcheryFormService.resetFlockForm();
+    hatcheryService.refreshFlockPanel?.();
+    hatcheryService.refreshExtraHalls?.();
+  };
   window.resetChickHygieneTab = () => hatcheryFormService.resetHygieneForm();
   window.viewPeriod = (id) => hatcheryService.viewPeriod?.(id);
   window.editPeriod = (id) => hatcheryService.editPeriod(id);
@@ -1988,13 +2524,32 @@ if (typeof window !== "undefined") {
   window.loadHallAreaForChick = (id) =>
     hatcheryService.loadHallAreaForFlock(id);
   window.calculateDensity = () => hatcheryService.calculateDensity();
+  window.endActiveFlock = (flockId) => hatcheryService.endActiveFlock(flockId);
+  window.endActiveFlockOf = (flockId) => hatcheryService.endActiveFlock(flockId);
+  window.addFlockBookmark = (flockId) => hatcheryService.addFlockBookmark(flockId);
+  window.addFlockBookmarkOf = (flockId) =>
+    hatcheryService.addFlockBookmark(flockId);
+  window.sendFlockSms = (flockId) => hatcheryService.sendFlockSms(null, flockId);
+  window.sendFlockSmsFlock = (flockId) =>
+    hatcheryService.sendFlockSms(null, flockId);
+  window.sendFlockSmsHall = (hallId) => hatcheryService.sendFlockSms(hallId, null);
+  window.refreshFlockPanel = () => hatcheryService.refreshFlockPanel();
   window.generateChickReport = async () => {
     try {
       const { hatcheryReport } = await import("./hatchery.report.js");
-      await hatcheryReport.generateAndPrint();
+      await hatcheryReport.generateAndPrint("active");
     } catch (error) {
       console.error("❌ Error generating chick report:", error);
       notificationService.error("خطا در تولید گزارش");
+    }
+  };
+  window.generateChickHistoryReport = async () => {
+    try {
+      const { hatcheryReport } = await import("./hatchery.report.js");
+      await hatcheryReport.generateHistoryAndPrint();
+    } catch (error) {
+      console.error("❌ Error generating chick history report:", error);
+      notificationService.error("خطا در تولید گزارش تاریخچه");
     }
   };
   window.viewFlockDetails = (id) => hatcheryService.viewFlockDetails(id);

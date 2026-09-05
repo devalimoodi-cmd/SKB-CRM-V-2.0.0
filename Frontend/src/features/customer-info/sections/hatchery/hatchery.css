@@ -598,3 +598,320 @@
     justify-content: center;
   }
 }
+
+/* ============================================================
+   پنل وضعیت گله (دوره پرورش) — ثبت جوجه‌ریزی
+   ============================================================ */
+.flock-status-panel {
+  margin-bottom: 14px;
+}
+
+.flock-panel-gap {
+  height: 10px;
+}
+
+.flock-join-hint {
+  display: block;
+  margin-top: 4px;
+  color: #64748b;
+  font-size: 11.5px;
+  line-height: 1.8;
+}
+
+.flock-panel-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 18px;
+  background: #f1f5f9;
+  border: 1px dashed #cbd5e1;
+  border-radius: 10px;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.flock-panel {
+  background: linear-gradient(135deg, #ffffff 0%, #f0fdfa 100%);
+  border: 1px solid #99f6e4;
+  border-radius: 12px;
+  padding: 14px 16px;
+  font-family: Vazir, Tahoma, sans-serif;
+}
+
+.flock-panel.flock-empty {
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+
+.flock-panel-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #134e4a;
+  margin-bottom: 10px;
+}
+
+.flock-panel-title i {
+  color: #0d9488;
+}
+
+.flock-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 20px;
+  padding-bottom: 10px;
+  border-bottom: 1px dashed #99f6e4;
+  margin-bottom: 10px;
+}
+
+.flock-meta-item {
+  font-size: 13px;
+  color: #334155;
+}
+
+.flock-meta-item b {
+  color: #0f172a;
+}
+
+.flock-end-btn {
+  margin-inline-start: auto;
+  background: #fff1f2;
+  color: #e11d48;
+  border: 1px solid #fecdd3;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-family: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.flock-end-btn:hover {
+  background: #e11d48;
+  color: #fff;
+  border-color: #e11d48;
+}
+
+.flock-bookmark-btn {
+  margin-inline-start: auto;
+  background: #ecfdf5;
+  color: #047857;
+  border: 1px solid #a7f3d0;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-family: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.flock-bookmark-btn:hover {
+  background: #047857;
+  color: #fff;
+  border-color: #047857;
+}
+
+.flock-meta .flock-end-btn {
+  margin-inline-start: 8px;
+}
+
+.flock-sms-btn {
+  background: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-family: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.flock-sms-btn:hover {
+  background: #2563eb;
+  color: #fff;
+  border-color: #2563eb;
+}
+
+.flock-meta .flock-bookmark-btn,
+.flock-meta .flock-sms-btn {
+  margin-inline-start: 0;
+}
+
+.flock-hall-sms {
+  background: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #bfdbfe;
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.flock-hall-sms:hover {
+  background: #2563eb;
+  color: #fff;
+}
+
+.flock-halls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.flock-hall {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 7px 12px;
+  font-size: 12.5px;
+}
+
+.flock-hall.flock-hall-ended {
+  opacity: 0.62;
+}
+
+.flock-hall-name {
+  color: #0f172a;
+  font-weight: 600;
+}
+
+.flock-hall-name i {
+  color: #0d9488;
+  margin-inline-end: 4px;
+}
+
+.flock-hall-chicks {
+  color: #475569;
+}
+
+.flock-badge {
+  font-size: 11px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-weight: 600;
+}
+
+.flock-badge-active {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.flock-badge-ended {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.flock-halls-empty {
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+.flock-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 11.5px;
+  color: #0f766e;
+  background: #f0fdfa;
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+.flock-empty-text {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 13px;
+  color: #475569;
+  line-height: 2;
+}
+
+.flock-empty-text i {
+  color: #0d9488;
+  margin-top: 7px;
+}
+
+/* ===== بخش افزودن سالن‌های هم‌گله ===== */
+.flock-extra-section {
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  margin-top: 12px;
+}
+
+.flock-extra-section .form-section-title {
+  color: #134e4a;
+}
+
+.flock-extra-hint {
+  font-size: 12px;
+  color: #64748b;
+  margin: 0 0 10px;
+  line-height: 1.9;
+}
+
+.flock-extra-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.flock-extra-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.flock-extra-item:hover {
+  border-color: #5eead4;
+  background: #f0fdfa;
+}
+
+.flock-extra-item input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #0d9488;
+  cursor: pointer;
+}
+
+.flock-extra-name {
+  flex: 1;
+  font-size: 13px;
+  color: #1e293b;
+  font-weight: 600;
+}
+
+.flock-extra-count {
+  font-size: 12px;
+  color: #475569;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.flock-extra-count input {
+  width: 110px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 5px 8px;
+  font-family: inherit;
+  font-size: 12px;
+}
+

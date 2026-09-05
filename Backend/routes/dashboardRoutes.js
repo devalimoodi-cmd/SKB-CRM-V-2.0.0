@@ -20,6 +20,9 @@ router.use(authorize("expert", "admin", "sub_admin", "super_admin"));
 // دریافت لیست گله‌های فعال با وضعیت سررسید
 router.get("/flocks", dashboardController.getActiveFlocks);
 
+// دریافت کارت‌های گله (دوره پرورش) با سالن‌های عضو
+router.get("/flock-cards", dashboardController.getActiveFlockCards);
+
 // دریافت اطلاعات کامل مشتری برای مودال
 router.get("/customer/:id/details", dashboardController.getCustomerDetails);
 

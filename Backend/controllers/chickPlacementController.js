@@ -1,6 +1,7 @@
 const ChickPlacement = require("../models/ChickPlacement");
 const CustomerPersonalInfo = require("../models/CustomerPersonalInfo");
 const Hall = require("../models/Hall");
+const Flock = require("../models/Flock");
 const Unit = require("../models/Unit");
 const ChickenBreed = require("../models/ChickenBreed");
 const {
@@ -9,7 +10,87 @@ const {
 const { successResponse, errorResponse } = require("../utils/response");
 
 // ============================================
-// ایجاد جوجه‌ریزی جدید
+// محاسبه شماره بعدی گله برای (مشتری + واحد)
+// ============================================
+const getNextFlockNumber = async (customer_id, unit_id) => {
+  const last = await Flock.findOne({
+    where: { customer_id, unit_id },
+    order: [["flock_number", "DESC"]],
+    attributes: ["flock_number"],
+  });
+  return (last ? parseInt(last.flock_number) : 0) + 1;
+};
+
+// ============================================
+// ساخت رکورد گله جدید
+// ============================================
+const createFlockRecord = async (customer_id, unit_id, placement_date) => {
+  const nextNumber = await getNextFlockNumber(customer_id, unit_id);
+  return Flock.create({
+    customer_id,
+    unit_id,
+    flock_number: nextNumber,
+    placement_date,
+    status: "active",
+  });
+};
+
+// ============================================
+// تعیین گله برای یک جوجه‌ریزی
+// (انتخاب صریح: پیوستن به گله مشخص / شروع گله جدید / پیش‌فرض امن)
+// ============================================
+const resolveFlock = async ({
+  customer_id,
+  unit_id,
+  placement_date,
+  flock_id,
+  start_new_flock,
+}) => {
+  // ۱) شروع صریح گله جدید (کنار گله‌های فعال موجود)
+  if (start_new_flock) {
+    return createFlockRecord(customer_id, unit_id, placement_date);
+  }
+
+  // ۲) اگر گله مشخص شده، بررسی اعتبار آن
+  if (flock_id) {
+    const flock = await Flock.findOne({ where: { id: flock_id, customer_id } });
+    if (!flock) {
+      const err = new Error("گله یافت نشد");
+      err.status = 404;
+      throw err;
+    }
+    if (parseInt(flock.unit_id) !== parseInt(unit_id)) {
+      const err = new Error("گله متعلق به این واحد نیست");
+      err.status = 400;
+      throw err;
+    }
+    if (flock.status !== "active") {
+      const err = new Error("گله مورد نظر فعال نیست");
+      err.status = 400;
+      throw err;
+    }
+    return flock;
+  }
+
+  // ۳) بدون انتخاب صریح: پیوستن به جدیدترین گله فعالِ دارای حداقل یک سالن فعال؛
+  //    وگرنه ساخت گله جدید. (گله‌های فعالِ بی‌سالن بسته نمی‌شوند — پایان صریح دارند)
+  const activeFlocks = await Flock.findAll({
+    where: { customer_id, unit_id, status: "active" },
+    order: [["placement_date", "DESC"]],
+  });
+  for (const f of activeFlocks) {
+    const activeCnt = await ChickPlacement.count({
+      where: { flock_id: f.id, is_active: true },
+    });
+    if (activeCnt > 0) return f;
+  }
+
+  // ۴) ساخت گله جدید
+  return createFlockRecord(customer_id, unit_id, placement_date);
+};
+
+// ============================================
+// ایجاد جوجه‌ریزی جدید (زیر یک گله)
 // ============================================
 const createChickPlacement = async (req, res) => {
   try {
@@ -23,7 +104,8 @@ const createChickPlacement = async (req, res) => {
       unit_id,
       hall_id,
       placement_date,
-      flock_number,
+      flock_id, // اختیاری — برای «پیوستن به گله مشخص»
+      start_new_flock, // اختیاری — «شروع گله جدید» صریح
       chick_source_id,
       breed_id,
       chick_age_on_arrival,
@@ -46,32 +128,52 @@ const createChickPlacement = async (req, res) => {
       return errorResponse(res, "سالن یافت نشد", 404);
     }
 
-    // بررسی یکتایی شماره گله برای این مشتری
-    const existingFlock = await ChickPlacement.findOne({
-      where: { customer_id, flock_number },
+    // واحد الزامی است (گله در سطح واحد تعریف می‌شود)
+    if (!unit_id) {
+      return errorResponse(res, "شناسه واحد الزامی است", 400);
+    }
+    const unit = await Unit.findByPk(unit_id);
+    if (!unit) {
+      return errorResponse(res, "واحد یافت نشد", 404);
+    }
+    if (hall.unit_id && parseInt(hall.unit_id) !== parseInt(unit_id)) {
+      return errorResponse(res, "سالن متعلق به این واحد نیست", 400);
+    }
+
+    // فقط یک جوجه‌ریزی فعال در هر سالن
+    const activeInHall = await ChickPlacement.findOne({
+      where: { hall_id, is_active: true },
     });
-    if (existingFlock) {
+    if (activeInHall) {
       return errorResponse(
         res,
-        `شماره گله ${flock_number} قبلاً برای این مشتری ثبت شده است`,
+        "سالن در حال حاضر دارای جوجه‌ریزی فعال است؛ ابتدا دوره فعلی را پایان دهید",
         400,
       );
     }
 
-    // اگر unit_id ارسال شده، بررسی وجود واحد
-    if (unit_id) {
-      const unit = await Unit.findByPk(unit_id);
-      if (!unit) {
-        return errorResponse(res, "واحد یافت نشد", 404);
-      }
+    // پیدا کردن / ساخت گله
+    let flock;
+    try {
+      flock = await resolveFlock({
+        customer_id,
+        unit_id,
+        placement_date,
+        flock_id,
+        start_new_flock: !!start_new_flock,
+      });
+    } catch (resolveError) {
+      return errorResponse(res, resolveError.message, resolveError.status || 400);
     }
 
     const chickPlacement = await ChickPlacement.create({
       customer_id,
-      unit_id: unit_id || null,
+      unit_id,
       hall_id,
       placement_date,
-      flock_number,
+      flock_id: flock.id,
+      // شماره گله در سطح گله است؛ اینجا فقط برای سازگاری ذخیره می‌شود
+      flock_number: flock.flock_number,
       chick_source_id: chick_source_id || null,
       breed_id: breed_id || null,
       chick_age_on_arrival: chick_age_on_arrival || 1,
@@ -80,7 +182,12 @@ const createChickPlacement = async (req, res) => {
       placement_density: placement_density || null,
     });
 
-    successResponse(res, chickPlacement, "جوجه‌ریزی با موفقیت ثبت شد", 201);
+    successResponse(
+      res,
+      { ...chickPlacement.toJSON(), flock },
+      "جوجه‌ریزی با موفقیت ثبت شد",
+      201,
+    );
   } catch (error) {
     console.error("خطا در ثبت جوجه‌ریزی:", error);
     errorResponse(res, error.message, 500);
@@ -213,9 +320,14 @@ const updateChickPlacement = async (req, res) => {
 
     const updateData = {};
     for (const field of allowedFields) {
-      if (req.body[field] !== undefined) {
-        updateData[field] = req.body[field];
+      if (req.body[field] === undefined) continue;
+      // شماره گله اکنون در سطح گله/دوره است؛ فقط مقدار مثبت معتبر است (0 → نادیده)
+      if (field === "flock_number") {
+        const fn = parseInt(req.body[field]);
+        if (!isNaN(fn) && fn > 0) updateData[field] = fn;
+        continue;
       }
+      updateData[field] = req.body[field];
     }
 
     await chickPlacement.update(updateData);

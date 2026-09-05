@@ -16,6 +16,16 @@ export const hatcheryApi = {
     return apiService.get(endpoint);
   },
 
+  // دریافت اطلاعات مشتری (برای پیامک/گیرنده)
+  async getCustomer(id) {
+    return apiService.get(`/customers/${id}`);
+  },
+
+  // ارسال پیامک به گیرنده دلخواه (کارشناس/مدیر/مرغدار)
+  async sendToRecipient(mobile, message) {
+    return apiService.post("/sms/send-recipient", { mobile, message });
+  },
+
   // ایجاد واحد جدید
   async createUnit(data) {
     return apiService.post(API_CONSTANTS.ENDPOINTS.UNITS.CREATE, data);
@@ -108,6 +118,54 @@ export const hatcheryApi = {
       id,
     );
     return apiService.put(endpoint, data);
+  },
+
+  // ===== گله/دوره پرورش (جدول جدید flocks) =====
+
+  // دریافت گله فعال یک واحد (با سالن‌های عضو)
+  async getActiveFlockByUnit(unitId) {
+    return apiService.get("/flocks", {
+      unit_id: unitId,
+      status: "active",
+    });
+  },
+
+  // دریافت جزئیات کامل یک گله
+  async getFlockDetails(id) {
+    return apiService.get(`/flocks/${id}`);
+  },
+
+  // پایان دادن به گله (completed / cancelled)
+  async endFlock(id, data = {}) {
+    return apiService.put(`/flocks/${id}/end`, data);
+  },
+
+  // ثبت پایان دوره گله (سرگروه + ریز تفکیکی per سالن)
+  async completeFlock(flockId, sharedData = {}) {
+    return apiService.post("/flock-completions/complete-flock", {
+      flock_ids: [flockId],
+      shared_data: sharedData,
+    });
+  },
+
+  // دریافت پایان دوره ثبت‌شده یک گله
+  async getFlockCompletionByFlock(flockId) {
+    return apiService.get(`/flock-completions/flock/${flockId}`);
+  },
+
+  // دریافت همه گله‌های یک واحد (برای لیست/گزارش)
+  async getFlocksByUnit(unitId, params = {}) {
+    return apiService.get("/flocks", { unit_id: unitId, ...params });
+  },
+
+  // ایجاد بوکمارک برای گله/دوره (با سالن اختیاری)
+  async createFlockBookmark(data) {
+    return apiService.post("/bookmarks", data);
+  },
+
+  // ارسال یادآوری هفتگی گله/دوره (per گله یا با سالن اختیاری)
+  async sendFlockReminder(data) {
+    return apiService.post("/sms/flock-reminder", data);
   },
 
   // ===== دوره‌ها (Period) =====

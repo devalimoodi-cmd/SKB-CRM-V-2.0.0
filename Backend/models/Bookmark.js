@@ -53,6 +53,22 @@ const Bookmark = sequelize.define(
       type: DataTypes.INTEGER,
       allowNull: true,
     },
+    // 🆕 گله/دوره پرورش (جدول flocks) — بوکمارک روی گله
+    flock_period_id: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      references: {
+        model: "flocks",
+        key: "id",
+      },
+      comment: "شناسه گله/دوره پرورش (جدول flocks)",
+    },
+    // 🆕 سالن اختیاری داخل گله (رجوع به جوجه‌ریزی همان سالن)
+    hall_id: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      comment: "شناسه اختیاری جوجه‌ریزی/سالن داخل گله",
+    },
     unit_id: {
       type: DataTypes.INTEGER,
       allowNull: true,

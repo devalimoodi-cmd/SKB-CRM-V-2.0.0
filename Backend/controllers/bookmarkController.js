@@ -3,8 +3,25 @@ const CustomerPersonalInfo = require("../models/CustomerPersonalInfo");
 const ChickPlacement = require("../models/ChickPlacement");
 const Unit = require("../models/Unit");
 const User = require("../models/User");
+const Flock = require("../models/Flock");
+const Hall = require("../models/Hall");
 const { successResponse, errorResponse } = require("../utils/response");
 const { Op } = require("sequelize");
+
+// include اشتراکی برای نمایش گله/دوره (flocks) + سالن اختیاری
+const bookmarkPeriodInclude = () => [
+  {
+    model: Flock,
+    as: "flockPeriod",
+    attributes: ["id", "flock_number", "placement_date", "status", "ended_at"],
+  },
+  {
+    model: ChickPlacement,
+    as: "hallPlacement",
+    attributes: ["id", "flock_number", "placement_date", "is_active"],
+    include: [{ model: Hall, attributes: ["id", "hall_name"] }],
+  },
+];
 
 // ============================================================
 // دریافت لیست بوکمارک‌ها (با فیلتر)
@@ -59,6 +76,7 @@ const getBookmarks = async (req, res) => {
           as: "flock",
           attributes: ["id", "flock_number", "placement_date", "is_active"],
         },
+        ...bookmarkPeriodInclude(),
         {
           model: Unit,
           as: "unit",
@@ -122,6 +140,7 @@ const getBookmarkById = async (req, res) => {
           as: "flock",
           attributes: ["id", "flock_number", "placement_date"],
         },
+        ...bookmarkPeriodInclude(),
         {
           model: Unit,
           as: "unit",
@@ -157,6 +176,8 @@ const createBookmark = async (req, res) => {
       type,
       customer_id,
       flock_id,
+      flock_period_id,
+      hall_id,
       unit_id,
       week_number,
       flock_age_days,
@@ -180,7 +201,38 @@ const createBookmark = async (req, res) => {
       return errorResponse(res, "مشتری یافت نشد", 404);
     }
 
-    // اگر گله مشخص شده، بررسی وجود گله
+    // اگر گله/دوره (flocks) مشخص شده، بررسی و اعتبارسنجی
+    let flockPeriodId = flock_period_id || null;
+    if (flockPeriodId) {
+      const fp = await Flock.findByPk(flockPeriodId);
+      if (!fp) {
+        return errorResponse(res, "گله/دوره یافت نشد", 404);
+      }
+      if (parseInt(fp.customer_id) !== parseInt(customer_id)) {
+        return errorResponse(res, "گله متعلق به این مشتری نیست", 400);
+      }
+      flockPeriodId = fp.id;
+    }
+
+    // اگر سالن (اختیاری) مشخص شده، بررسی تعلق به گله
+    let hallPlacementId = hall_id || null;
+    if (hallPlacementId) {
+      const hp = await ChickPlacement.findByPk(hallPlacementId);
+      if (!hp) {
+        return errorResponse(res, "سالن/جوجه‌ریزی یافت نشد", 404);
+      }
+      if (parseInt(hp.customer_id) !== parseInt(customer_id)) {
+        return errorResponse(res, "سالن متعلق به این مشتری نیست", 400);
+      }
+      if (!flockPeriodId) {
+        flockPeriodId = hp.flock_id || null;
+      } else if (hp.flock_id && parseInt(hp.flock_id) !== parseInt(flockPeriodId)) {
+        return errorResponse(res, "سالن انتخاب‌شده عضو این گله نیست", 400);
+      }
+      hallPlacementId = hp.id;
+    }
+
+    // اگر گله قدیمی (per سالن) مشخص شده، بررسی وجود گله
     if (flock_id) {
       const flock = await ChickPlacement.findByPk(flock_id);
       if (!flock) {
@@ -207,6 +259,8 @@ const createBookmark = async (req, res) => {
       type: type || "bookmark",
       customer_id,
       flock_id: flock_id || null,
+      flock_period_id: flockPeriodId,
+      hall_id: hallPlacementId,
       unit_id: unit_id || null,
       week_number: week_number || null,
       flock_age_days: flock_age_days || null,
@@ -230,6 +284,7 @@ const createBookmark = async (req, res) => {
           as: "flock",
           attributes: ["id", "flock_number"],
         },
+        ...bookmarkPeriodInclude(),
       ],
     });
 
@@ -252,6 +307,8 @@ const updateBookmark = async (req, res) => {
       type,
       customer_id,
       flock_id,
+      flock_period_id,
+      hall_id,
       unit_id,
       week_number,
       flock_age_days,
@@ -280,6 +337,8 @@ const updateBookmark = async (req, res) => {
     if (type) updateData.type = type;
     if (customer_id) updateData.customer_id = customer_id;
     if (flock_id !== undefined) updateData.flock_id = flock_id;
+    if (flock_period_id !== undefined) updateData.flock_period_id = flock_period_id;
+    if (hall_id !== undefined) updateData.hall_id = hall_id;
     if (unit_id !== undefined) updateData.unit_id = unit_id;
     if (week_number !== undefined) updateData.week_number = week_number;
     if (flock_age_days !== undefined)
@@ -307,6 +366,7 @@ const updateBookmark = async (req, res) => {
           model: CustomerPersonalInfo,
           as: "customer",
         },
+        ...bookmarkPeriodInclude(),
       ],
     });
 

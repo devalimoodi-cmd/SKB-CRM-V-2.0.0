@@ -34,6 +34,15 @@ const ChickPlacement = sequelize.define(
         key: "id",
       },
     },
+    flock_id: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      references: {
+        model: "flocks",
+        key: "id",
+      },
+      comment: "شناسه گله (دوره پرورش) که این جوجه‌ریزی سالن به آن تعلق دارد",
+    },
     placement_date: {
       type: DataTypes.DATEONLY,
       allowNull: false,
@@ -92,13 +101,7 @@ const ChickPlacement = sequelize.define(
     tableName: "chick_placements",
     timestamps: true,
     underscored: true,
-    indexes: [
-      {
-        unique: true,
-        fields: ["customer_id", "flock_number"],
-        name: "unique_flock_number_per_customer",
-      },
-    ],
+    indexes: [{ fields: ["flock_id"] }, { fields: ["customer_id", "is_active"] }],
   },
 );
 

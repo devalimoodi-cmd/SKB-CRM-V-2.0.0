@@ -5,10 +5,13 @@ import { calculateWeekMetrics } from "./weekly.calculations.js";
 import { notificationService } from "../../../../core/services/notification.service.js";
 import { stateService } from "../../../../core/services/state.service.js";
 import { authService } from "../../../../core/services/auth.service.js";
+import { apiService } from "../../../../core/services/api.service.js";
+import { hatcheryApi } from "../hatchery/hatchery.api.js";
 import {
   convertPersianToGregorian,
   convertToPersianDate,
   daysBetween,
+  formatDate,
 } from "../../../../core/utils/date.utils.js";
 
 class WeeklyService {
@@ -209,12 +212,84 @@ class WeeklyService {
     }
 
     container.innerHTML = html;
+    this.groupFlockCards(container);
 
     // مقداردهی سلکت‌ها بعد از رندر
     setTimeout(() => {
       weeklyRenderer.populateSelects(this.dictionaries);
       this.updateAllWeekCards();
     }, 300);
+  }
+
+  // ===== گروه‌بندی کارت‌های سالن زیر آکاردئون گله =====
+
+  groupFlockCards(container) {
+    if (!container) return;
+    const cards = [...container.querySelectorAll(".flock-card")];
+    if (cards.length === 0) return;
+
+    const infoById = {};
+    (this.flocks || []).forEach((f) => {
+      infoById[f.id] = f;
+    });
+
+    const groups = new Map();
+    cards.forEach((card) => {
+      const flock = infoById[card.dataset.flockId];
+      const fid =
+        flock?.flock_id != null
+          ? String(flock.flock_id)
+          : String(flock?.id || "0");
+      if (!groups.has(fid)) {
+        groups.set(fid, {
+          flockNumber: flock?.flock_number || "-",
+          unitName: flock?.unit?.unit_name || flock?.unit_name || null,
+          items: [],
+        });
+      }
+      groups.get(fid).items.push(card);
+    });
+
+    const fragment = document.createDocumentFragment();
+    groups.forEach((group) => {
+      const wrapper = document.createElement("div");
+      wrapper.className = "flock-group";
+
+      const header = document.createElement("div");
+      header.className = "flock-group-header";
+      const unitText = group.unitName ? ` — واحد ${group.unitName}` : "";
+      header.innerHTML = `
+        <div class="flock-group-info">
+          <i class="fas fa-egg"></i>
+          <span class="flock-group-title">گله ${group.flockNumber}${unitText}</span>
+          <span class="flock-group-meta">${group.items.length} سالن</span>
+        </div>
+        <i class="fas fa-chevron-down flock-accordion-icon"></i>
+      `;
+      header.onclick = () => this.toggleFlockGroup(header);
+
+      const body = document.createElement("div");
+      body.className = "flock-group-body";
+      body.style.display = "none";
+      group.items.forEach((c) => body.appendChild(c));
+
+      wrapper.appendChild(header);
+      wrapper.appendChild(body);
+      fragment.appendChild(wrapper);
+    });
+
+    container.innerHTML = "";
+    container.appendChild(fragment);
+  }
+
+  toggleFlockGroup(header) {
+    const wrapper = header.closest(".flock-group");
+    const body = wrapper?.querySelector(".flock-group-body");
+    const icon = header.querySelector(".flock-accordion-icon");
+    if (!body) return;
+    const open = body.style.display === "block";
+    body.style.display = open ? "none" : "block";
+    if (icon) icon.classList.toggle("rotated", !open);
   }
 
   // دریافت و کش استانداردهای نژاد یک گله
@@ -1434,6 +1509,174 @@ class WeeklyService {
     }
   }
 
+  // ===== گزارش تاریخچه هفتگی (گله‌های تکمیل‌شده) =====
+
+  async generateWeeklyHistoryReport() {
+    try {
+      notificationService.info("📄 در حال آماده‌سازی تاریخچه هفتگی...");
+      const res = await apiService.get("/flocks", {
+        customer_id: this.customerId,
+        status: "completed",
+        limit: 500,
+      });
+      const flocks =
+        res?.success && Array.isArray(res.data?.flocks) ? res.data.flocks : [];
+
+      const customerResponse = await weeklyApi.getCustomer(this.customerId);
+      const customer = customerResponse.success ? customerResponse.data : {};
+
+      const blocks = [];
+      for (const flock of flocks) {
+        const placements = flock.placements || [];
+        let completion = null;
+        try {
+          const compRes = await hatcheryApi.getFlockCompletionByFlock(flock.id);
+          if (compRes.success && compRes.data) completion = compRes.data;
+        } catch (e) {
+          console.warn(`⚠️ بدون پایان دوره گله ${flock.id}`);
+        }
+
+        const halls = [];
+        for (const p of placements) {
+          let weeks = [];
+          try {
+            const wr = await weeklyApi.getWeeklyRecords(p.id);
+            if (wr.success && Array.isArray(wr.data?.records)) {
+              weeks = wr.data.records;
+            }
+          } catch (e) {
+            console.warn(`⚠️ بدون هفتگی سالن ${p.id}`);
+          }
+          halls.push({
+            placement: p,
+            hallName:
+              p.hall?.hall_name ||
+              p.Hall?.hall_name ||
+              `سالن ${p.hall_id || "-"}`,
+            weeks,
+          });
+        }
+        blocks.push({ flock, completion, halls });
+      }
+
+      const html = this.buildWeeklyHistoryHTML(customer, blocks);
+      this.openReportWindow(html);
+      notificationService.success("✅ گزارش تاریخچه هفتگی آماده شد");
+    } catch (error) {
+      console.error("❌ Error generating weekly history report:", error);
+      notificationService.error("❌ خطا در تولید گزارش تاریخچه هفتگی");
+    }
+  }
+
+  buildWeeklyHistoryHTML(customer, blocks) {
+    const title = "🕓 گزارش تاریخچه هفتگی (گله‌های تکمیل‌شده)";
+    const persianDate = formatDate(new Date());
+
+    const bodyBlocks = blocks
+      .map((b) => {
+        const f = b.flock;
+        const unitName = f.unit?.unit_name || "-";
+        const halls = b.halls
+          .map((h) => {
+            const weekRows = h.weeks
+              .map(
+                (w) => `
+                  <tr>
+                    <td>هفته ${w.week_number}</td>
+                    <td>${w.week_start_date ? convertToPersianDate(w.week_start_date) : "-"} تا ${w.week_end_date ? convertToPersianDate(w.week_end_date) : "-"}</td>
+                    <td>${w.weekly_weight ?? "-"}</td>
+                    <td>${w.weekly_feed_intake ?? w.daily_feed_intake ?? "-"}</td>
+                    <td>${w.weekly_mortality ?? 0}</td>
+                  </tr>`,
+              )
+              .join("");
+            return `
+              <div class="history-hall">
+                <h4>🧩 ${h.hallName}</h4>
+                <table class="report-table">
+                  <thead><tr><th>هفته</th><th>بازه تاریخ</th><th>وزن (گرم)</th><th>خوراک (کیلوگرم)</th><th>تلفات</th></tr></thead>
+                  <tbody>${weekRows || '<tr><td colspan="5" style="color:#94a3b8;">ثبت هفتگی‌ای موجود نیست</td></tr>'}</tbody>
+                </table>
+              </div>
+            `;
+          })
+          .join("");
+
+        const completionInfo = b.completion
+          ? `<div class="completion-summary">
+              <b>🏁 پایان دوره:</b>
+              جوجه اولیه ${(parseInt(b.completion.initial_chicks_count) || 0).toLocaleString()} |
+              نهایی ${(parseInt(b.completion.final_chicks_count) || 0).toLocaleString()} |
+              تلفات ${parseInt(b.completion.total_mortality) || 0} |
+              FCR ${b.completion.system_fcr ?? "-"} |
+              سن کشتار ${b.completion.slaughter_age_days ?? "-"} روز
+            </div>`
+          : "";
+
+        return `
+          <div class="report-flock history-flock">
+            <div class="history-flock-header">🐣 گله ${f.flock_number || "-"} — واحد ${unitName}</div>
+            ${completionInfo}
+            ${halls}
+          </div>
+        `;
+      })
+      .join('<hr class="report-divider">');
+
+    return `
+      <!DOCTYPE html>
+      <html lang="fa" dir="rtl">
+      <head>
+        <meta charset="UTF-8">
+        <title>${title}</title>
+        <style>
+          @font-face { font-family: "Vazir"; src: url("/assets/fonts/Vazir-Regular-FD.ttf") format("truetype"); font-weight: 400; }
+          @font-face { font-family: "Vazir"; src: url("/assets/fonts/Vazir-Bold-FD.ttf") format("truetype"); font-weight: 700; }
+          @media print { body { margin: 0.5cm; } }
+          body { font-family: 'Vazir', 'Tahoma', sans-serif; direction: rtl; background: #fff; color: #1e293b; font-size: 12px; margin: 0; }
+          .report-main { width: 100%; border-collapse: collapse; }
+          .report-main thead { display: table-header-group; }
+          .report-main td { border: none; padding: 0; }
+          .report-page-header { text-align: center; padding: 8px 0 12px; border-bottom: 3px solid #2c7a6e; margin-bottom: 14px; }
+          .report-page-header h1 { color: #2c7a6e; font-size: 20px; margin: 0 0 4px; }
+          .report-page-header .date { color: #94a3b8; font-size: 12px; }
+          .customer-box { background: #f8fafc; border: 1px solid #eef2f6; border-radius: 8px; padding: 8px 12px; margin-bottom: 14px; font-size: 12px; }
+          .history-flock { page-break-inside: auto; margin-bottom: 10px; }
+          .history-flock-header { background: #2c7a6e; color: #fff; padding: 6px 12px; border-radius: 8px; font-weight: 600; font-size: 13px; }
+          .history-hall { margin: 8px 2px; }
+          .history-hall h4 { color: #035552; font-size: 12px; margin: 0 0 4px; }
+          .completion-summary { background: #eef2ff; border-radius: 8px; padding: 6px 12px; margin: 6px 0; font-size: 12px; line-height: 2; }
+          .report-table { width: 100%; border-collapse: collapse; font-size: 11.5px; }
+          .report-table th { background: #035552; color: #fff; padding: 4px 8px; }
+          .report-table td { border: 1px solid #eef2f6; padding: 4px 8px; text-align: center; }
+          .report-divider { border: none; border-top: 1px dashed #e2e8f0; margin: 12px 0; }
+          .report-footer { text-align: center; color: #94a3b8; font-size: 11px; margin-top: 25px; }
+        </style>
+      </head>
+      <body>
+        <table class="report-main">
+          <thead>
+            <tr><td>
+              <div class="report-page-header"><h1>${title}</h1><div class="date">تاریخ گزارش: ${persianDate}</div></div>
+              <div class="customer-box">
+                <strong>مشتری:</strong> ${customer.full_name || "-"} — ${customer.farm_name || "-"} |
+                موبایل: ${customer.mobile_number || "-"} | استان: ${customer.province || "-"}
+              </div>
+            </td></tr>
+          </thead>
+          <tbody>
+            <tr><td>
+              ${blocks.length ? bodyBlocks : '<p style="text-align:center;color:#94a3b8;">گله تکمیل‌شده‌ای یافت نشد</p>'}
+              <div class="report-footer"><p>گزارش سامانه مدیریت مشتریان (SKB-CRM)</p></div>
+            </td></tr>
+          </tbody>
+        </table>
+        <script>window.onload = function(){ window.print(); }<\/script>
+      </body>
+      </html>
+    `;
+  }
+
   // ===== ابزارهای کمکی =====
 
   calculateAge(placementDate) {
@@ -1465,6 +1708,8 @@ if (typeof window !== "undefined") {
   window.openAllWeeks = () => weeklyService.openAllWeeks();
   window.closeAllWeeks = () => weeklyService.closeAllWeeks();
   window.generateFullWeeklyReport = () => weeklyService.generateFullReport();
+  window.generateWeeklyHistoryReport = () =>
+    weeklyService.generateWeeklyHistoryReport();
   window.generateFlockReport = (flockId) => weeklyService.generateFlockReport(flockId);
   window.saveWeekFromForm = (btn) => weeklyService.saveWeek(btn);
   window.resetWeekForm = (btn) => weeklyService.resetWeekForm?.(btn);

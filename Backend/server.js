@@ -17,6 +17,7 @@ const hallSystemRoutes = require("./routes/hallSystemRoutes");
 const hallWaterFeedRoutes = require("./routes/hallWaterFeedRoutes");
 const hallHygieneRoutes = require("./routes/hallHygieneRoutes");
 const chickPlacementRoutes = require("./routes/chickPlacementRoutes");
+const flockRoutes = require("./routes/flockRoutes");
 const weeklyRoutes = require("./routes/weeklyRoutes");
 const breedStandardRoutes = require("./routes/breedStandardRoutes");
 
@@ -106,6 +107,9 @@ app.use("/api/hall-hygiene", hallHygieneRoutes);
 
 // ================================  تعریف دوره جوجه ریزی ها =========
 app.use("/api/chick-placements", chickPlacementRoutes);
+
+// ================================  گله (دوره پرورش) =========
+app.use("/api/flocks", flockRoutes);
 
 // ========================================================================
 

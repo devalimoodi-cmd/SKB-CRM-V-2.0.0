@@ -15,6 +15,7 @@ import {
 class DashboardService {
   constructor() {
     this.flocks = [];
+    this.flockCards = [];
     this.bookmarks = [];
     this.summary = null;
     this.selectedFlockId = null;
@@ -74,6 +75,9 @@ SKB-CRM.IR`,
   }
 
   async init() {
+    // جلوگیری از اجرای دوباره (رفرشهای ناخواسته ابتدای کار)
+    if (this.initialized) return;
+
     // بررسی دسترسی
     const hasAccess = await authService.checkExpertPageAccess();
     if (!hasAccess) return;
@@ -81,8 +85,8 @@ SKB-CRM.IR`,
     await this.loadData();
     this.setupCharts();
 
-    // اگر هیچ گله‌ای انتخاب نشده، پیام راهنما نمایش داده شود
-    if (!this.selectedFlockId) {
+    // اگر هیچ گله/سالنی انتخاب نشده، پیام راهنما نمایش داده شود
+    if (!this.selectedFlockId && !this.selectedFlockGroupId) {
       this.showNoFlockSelectedMessage();
     }
 
@@ -109,8 +113,10 @@ SKB-CRM.IR`,
       // بارگذاری خلاصه آماری
       await this.loadSummary();
 
-      // بارگذاری داده‌های نمودارها (فقط اگر گله‌ای انتخاب شده باشد)
-      if (this.selectedFlockId) {
+      // بارگذاری داده‌های نمودارها (فقط اگر گله/سالنی انتخاب شده باشد)
+      if (this.selectedFlockGroupId) {
+        await this.loadChartsData(null, this.selectedFlockGroupId);
+      } else if (this.selectedFlockId) {
         await this.loadChartsData(this.selectedFlockId);
       }
 
@@ -144,10 +150,113 @@ SKB-CRM.IR`,
         this.totalPages = response.data.pagination?.totalPages || 0;
         stateService.setFlocks(this.flocks);
       }
+      // بروزرسانی کارت‌های گله (دوره پرورش)
+      await this.loadFlockCards();
     } catch (error) {
       console.error("❌ Error loading flocks:", error);
       this.flocks = [];
     }
+  }
+
+  // ===== کارت‌های گله (دوره پرورش) =====
+
+  async loadFlockCards() {
+    try {
+      const response = await dashboardApi.getFlockCards({ status: "all" });
+      if (!response.success) return;
+      this.flockCards = response.data.flocks || [];
+      this._cardsSignature = this.buildCardsSignature(this.flockCards);
+      this.renderTasks();
+    } catch (error) {
+      console.error("❌ Error loading flock cards:", error);
+      this.flockCards = [];
+    }
+  }
+
+  // ===== رفرش بی‌صدا (فقط وقتی واقعاً تغییری رخ داده رندر می‌شود) =====
+
+  buildCardsSignature(cards) {
+    return (cards || [])
+      .map(
+        (c) =>
+          `${c.customer?.id || 0}-${c.flock?.id || 0}-${c.flock?.status || "normal"}|${(c.flock?.halls || [])
+            .filter((h) => h.isActive)
+            .map((h) => `${h.id}:${h.status || ""}`)
+            .join(",")}`,
+      )
+      .join(";");
+  }
+
+  async refreshFlockCardsSilently() {
+    try {
+      const response = await dashboardApi.getFlockCards({ status: "all" });
+      if (!response.success) return false;
+      const cards = response.data.flocks || [];
+      const signature = this.buildCardsSignature(cards);
+      const changed = signature !== this._cardsSignature;
+      this.flockCards = cards;
+      this._cardsSignature = signature;
+      if (changed) {
+        // ترکیب کارت‌ها تغییر کرده → یک‌بار رندر
+        this.renderTasks();
+      } else {
+        // فقط چیپ‌های وضعیت پیامک را به‌روز کن (بدون رندر / بدون پرش)
+        this.updateSmsChipsFromCards(cards);
+      }
+      return changed;
+    } catch (error) {
+      console.warn("⚠️ خطا در رفرش بی‌صدای کارت‌ها:", error);
+      return false;
+    }
+  }
+
+  // به‌روزرسانی چیپ وضعیت پیامک هر سالن بدون بازنویسی کل کارت
+  updateSmsChipsFromCards(cards) {
+    (cards || []).forEach((card) => {
+      (card.flock?.halls || []).forEach((hall) => {
+        const row = document.querySelector(
+          `.task-hall-row[data-flock-id="${hall.id}"]`,
+        );
+        if (!row) return;
+        this.updateHallSmsChip(row, hall.smsLog || null);
+      });
+    });
+  }
+
+  updateHallSmsChip(row, smsLog) {
+    if (!row) return;
+    const log = smsLog || {};
+    const snd = log.sender || {};
+    const sender =
+      [snd.first_name, snd.last_name].filter(Boolean).join(" ") ||
+      snd.username ||
+      "";
+    let chip = row.querySelector(".sms-status");
+    if (!log.status) {
+      if (chip) chip.remove();
+      return;
+    }
+    const status = log.status || "sent";
+    const smsInfo = this.getSmsStatusInfo(status);
+    if (!chip) {
+      chip = document.createElement("span");
+      chip.className = "sms-status";
+      row.querySelector(".th-main")?.appendChild(chip);
+    }
+    chip.dataset.smsStatus = status;
+    if (log.message_id) {
+      chip.dataset.messageId = String(log.message_id);
+      chip.dataset.senderName = sender;
+    }
+    chip.style.background = smsInfo.bg;
+    chip.style.color = smsInfo.color;
+    chip.style.padding = "2px 8px";
+    chip.style.borderRadius = "12px";
+    chip.style.fontSize = "10px";
+    chip.style.fontWeight = "500";
+    chip.style.display = "inline-flex";
+    chip.style.alignItems = "center";
+    chip.textContent = smsInfo.text;
   }
 
   async loadBookmarks() {
@@ -175,9 +284,13 @@ SKB-CRM.IR`,
     }
   }
 
-  async loadChartsData(flockId = null) {
+  async loadChartsData(flockId = null, flockGroupId = null) {
     try {
-      const response = await dashboardApi.getChartsData(null, flockId);
+      const response = await dashboardApi.getChartsData(
+        null,
+        flockId,
+        flockGroupId,
+      );
       if (response.success && response.data) {
         this.updateCharts(response.data);
       }
@@ -186,7 +299,7 @@ SKB-CRM.IR`,
     }
   }
 
-  // ===== رندر تسک‌ها =====
+  // ===== رندر تسک‌ها (کارت گله-سطح در سررسید گذشته/نزدیک) =====
 
   renderTasks() {
     const dangerList = document.getElementById("dangerTaskList");
@@ -196,31 +309,112 @@ SKB-CRM.IR`,
 
     if (!dangerList || !successList) return;
 
-    const dangerFlocks = this.flocks.filter(
-      (f) => f.flock?.status === "danger",
-    );
-    const successFlocks = this.flocks.filter(
-      (f) => f.flock?.status === "success",
-    );
+    const cards = this.flockCards || [];
+    const dangerCards = cards.filter((c) => c.flock?.status === "danger");
+    const successCards = cards.filter((c) => c.flock?.status === "success");
 
     dangerList.innerHTML =
-      dangerFlocks.length === 0
+      dangerCards.length === 0
         ? this.getEmptyStateHTML("همه گله‌ها در وضعیت عادی هستند", "#10b981")
-        : dangerFlocks
-            .map((item) => this.renderTaskCard(item, "danger"))
+        : dangerCards
+            .map((c) => dashboardRenderer.renderFlockCard(c))
             .join("");
 
     successList.innerHTML =
-      successFlocks.length === 0
+      successCards.length === 0
         ? this.getEmptyStateHTML("هیچ گله‌ای نزدیک به سررسید نیست", "#10b981")
-        : successFlocks
-            .map((item) => this.renderTaskCard(item, "success"))
+        : successCards
+            .map((c) => dashboardRenderer.renderFlockCard(c))
             .join("");
 
-    if (dangerCount) dangerCount.textContent = dangerFlocks.length;
-    if (successCount) successCount.textContent = successFlocks.length;
+    if (dangerCount) dangerCount.textContent = dangerCards.length;
+    if (successCount) successCount.textContent = successCards.length;
 
     this.updateAccordionVisibility();
+  }
+
+  // ===== پیامک گله/سالن از کارت گله (زنجیره گیرنده) =====
+
+  async sendFlockCardSms(flockId, hallId = null) {
+    const card = (this.flockCards || []).find(
+      (c) => parseInt(c.flock?.id) === parseInt(flockId),
+    );
+    if (!card) {
+      notificationService.warning("گله در کارت‌ها یافت نشد");
+      return;
+    }
+    const flock = card.flock;
+    try {
+      let unit = null;
+      if (flock.unitId) {
+        const res = await apiService
+          .get(`/units/${flock.unitId}`)
+          .catch(() => null);
+        if (res?.success) unit = res.data || null;
+      }
+      const recipients = [];
+      const experts =
+        unit && Array.isArray(unit.experts) ? unit.experts : [];
+      const primaryExpert =
+        experts.find((e) => e.expert_phone) || experts[0] || null;
+      if (primaryExpert?.expert_phone) {
+        recipients.push({
+          role: "👨‍🔬 کارشناس فارم",
+          name: primaryExpert.expert_name || "کارشناس",
+          mobile: primaryExpert.expert_phone,
+        });
+      }
+      if (unit?.manager_phone) {
+        recipients.push({
+          role: "🧑‍💼 مدیر فارم",
+          name: unit.manager_name || "مدیر",
+          mobile: unit.manager_phone,
+        });
+      }
+      if (card.customer?.phone) {
+        recipients.push({
+          role: "👨‍🌾 مرغدار",
+          name: card.customer.name || "مرغدار",
+          mobile: card.customer.phone,
+        });
+      }
+      if (recipients.length === 0) {
+        notificationService.error(
+          "هیچ شماره موبایلی برای گیرنده ثبت نشده است",
+        );
+        return;
+      }
+
+      const { openSmsModal } = await import(
+        "../sms/sms.modal.service.js"
+      );
+      const result = await openSmsModal({
+        title: hallId
+          ? `📱 پیامک سالن — گله ${flock.flockNumber}`
+          : `📱 پیامک گله ${flock.flockNumber}`,
+        recipients,
+        flockNumber: flock.flockNumber,
+        subtitle: hallId
+          ? "این پیامک برای سالن انتخاب‌شده ارسال می‌شود"
+          : "این پیامک برای گله ارسال می‌شود",
+      });
+      if (!result) return;
+
+      const response = await apiService.post("/sms/send-recipient", {
+        mobile: result.recipient.mobile,
+        message: result.message,
+      });
+      if (response.success) {
+        notificationService.success(
+          `پیامک به ${result.recipient.role || "گیرنده"} ارسال شد`,
+        );
+      } else {
+        notificationService.error(response.message || "خطا در ارسال پیامک");
+      }
+    } catch (error) {
+      console.error("❌ Error sending flock card sms:", error);
+      notificationService.error(error.message || "خطا در ارسال پیامک");
+    }
   }
 
   renderTaskCard(item, type) {
@@ -729,46 +923,88 @@ SKB-CRM.IR`,
     console.log("✅ Charts updated with data:", data);
   }
 
+  // ===== انتخاب «کل گله» برای نمودار (تجمیع سالن‌های فعال گله) =====
+
+  async selectFlockGroupForChart(
+    customerId,
+    flockGroupId,
+    customerName,
+    flockNumber,
+    weekNumber,
+  ) {
+    if (!flockGroupId) return;
+    this.selectedFlockId = null;
+    this.selectedFlockGroupId = flockGroupId;
+    this.selectedCustomerId = customerId;
+
+    // حذف کلاس selected از همه کارت‌ها و ردیف‌های سالن
+    document
+      .querySelectorAll(".task-card.selected, .task-hall-row.selected")
+      .forEach((el) => el.classList.remove("selected"));
+
+    // هایلایت کارت گله
+    const grpCard = document.querySelector(
+      `.task-card[data-flock-group-id="${flockGroupId}"]`,
+    );
+    if (grpCard) grpCard.classList.add("selected");
+
+    notificationService.success(
+      `✅ گله ${flockNumber || ""} (کل گله)${weekNumber ? ` - هفته ${weekNumber}` : ""} - ${customerName} انتخاب شد`,
+    );
+
+    // بارگذاری داده‌های تجمیعی گله
+    await this.loadChartsData(null, flockGroupId);
+  }
+
   async selectFlockForChart(
     customerId,
     flockId,
     customerName,
     flockNumber,
     weekNumber,
+    hallName = null,
+    flockGroupId = null,
   ) {
-    // ذخیره گله انتخاب‌شده
+    // ذخیره سالن/گله انتخاب‌شده (flockId = شناسه جوجه‌ریزی همان سالن)
     this.selectedFlockId = flockId;
+    this.selectedFlockGroupId =
+      flockGroupId || this.selectedFlockGroupId || null;
     this.selectedCustomerId = customerId;
 
-    // حذف کلاس selected از همه کارت‌ها
-    document.querySelectorAll(".task-card").forEach((card) => {
-      card.classList.remove("selected");
-    });
+    // حذف کلاس selected از همه کارت‌ها و ردیف‌های سالن
+    document
+      .querySelectorAll(".task-card.selected, .task-hall-row.selected")
+      .forEach((el) => el.classList.remove("selected"));
 
-    // افزودن کلاس selected به کارت انتخاب شده
-    const selectedCard = document.querySelector(
-      `.task-card[data-customer-id="${customerId}"][data-flock-id="${flockId}"]`,
-    );
-    if (selectedCard) {
-      selectedCard.classList.add("selected");
+    // هایلایت کارت گله
+    if (flockGroupId) {
+      const grpCard = document.querySelector(
+        `.task-card[data-flock-group-id="${flockGroupId}"]`,
+      );
+      if (grpCard) grpCard.classList.add("selected");
     }
 
+    // هایلایت ردیف سالن انتخاب‌شده
+    const hallRow = document.querySelector(
+      `.task-hall-row[data-customer-id="${customerId}"][data-flock-id="${flockId}"]`,
+    );
+    if (hallRow) hallRow.classList.add("selected");
+
     notificationService.success(
-      `✅ گله ${flockNumber} (هفته ${weekNumber}) - ${customerName} انتخاب شد`,
+      `✅ ${flockNumber ? `گله ${flockNumber}` : ""}${hallName ? ` - ${hallName}` : ""} (هفته ${weekNumber}) - ${customerName} انتخاب شد`,
     );
 
-    // بارگذاری داده‌های نمودار برای گله انتخاب شده
+    // بارگذاری داده‌های نمودار برای سالن انتخاب شده
     await this.loadChartsData(flockId);
 
-    // ✅ بروزرسانی وضعیت پیامک‌ها همان لحظه که تسک انتخاب می‌شود
-    // ابتدا از سرور بخواه وضعیت پیامک‌های تحویل‌نشده همین گله را چک و در دیتابیس ذخیره کند
+    // ✅ بروزرسانی وضعیت پیامک‌ها همان لحظه که سالن/گله انتخاب می‌شود
     try {
       await dashboardApi.updateSmsStatusForFlock(customerId, flockId);
     } catch (e) {
       console.warn("⚠️ خطا در بروزرسانی وضعیت پیامک‌ها هنگام انتخاب تسک:", e);
     }
     await this.refreshAllTaskSmsStatus();
-    await this.loadFlocks();
+    // توجه: بدون رندر مجدد لیست تا حالت selected حفظ شود
   }
 
   // ===== آکاردئون =====
@@ -1377,28 +1613,31 @@ SKB-CRM.IR`,
   // ===== رفرش خودکار =====
 
   startAutoRefresh() {
-    // بروزرسانی هر 15 ثانیه (سریع‌تر برای نمایش وضعیت پیامک)
+    if (this.refreshInterval) {
+      clearInterval(this.refreshInterval);
+    }
+    // بروزرسانی هر 15 ثانیه: بدون رندر کامل — فقط اگر داده کارت‌ها واقعاً تغییر کرده باشد
     this.refreshInterval = setInterval(() => {
       if (!document.hidden) {
-        // ⚠️ رندر Tasks هر 15 ثانیه باعث پرش و از بین رفتن کلاس selected می‌شود!
-        // فقط داده‌ها و وضعیت پیامک‌ها را به‌روز می‌کنیم
-        this.loadFlocks();
+        this.refreshFlockCardsSilently();
         this.loadBookmarks();
-        // ✅ فقط وضعیت پیامک‌ها روی تسک‌ها آپدیت شود
+        // ✅ فقط وضعیت پیامک‌های در انتظار بررسی شوند
         this.refreshAllTaskSmsStatus();
       }
     }, 15000);
 
-    // بروزرسانی هنگام بازگشت به صفحه
+    // بروزرسانی هنگام بازگشت به صفحه (بدون رندر کامل)
     document.addEventListener("visibilitychange", () => {
       if (!document.hidden) {
-        this.loadData();
+        this.refreshFlockCardsSilently();
+        this.loadBookmarks();
       }
     });
 
-    // بروزرسانی هنگام فوکوس
+    // بروزرسانی هنگام فوکوس (بدون رندر کامل)
     window.addEventListener("focus", () => {
-      this.loadData();
+      this.refreshFlockCardsSilently();
+      this.loadBookmarks();
     });
   }
 
@@ -2668,12 +2907,30 @@ if (typeof window !== "undefined") {
     dashboardService.showCustomerDetail(customerId, flockId);
   window.goToCustomerProfile = (customerId) =>
     dashboardService.goToCustomerProfile(customerId);
+  window.sendFlockCardSms = (flockId, hallId = null) =>
+    dashboardService.sendFlockCardSms(flockId, hallId);
+  window.selectFlockGroupForChart = (
+    customerId,
+    flockGroupId,
+    customerName,
+    flockNumber,
+    weekNumber,
+  ) =>
+    dashboardService.selectFlockGroupForChart(
+      customerId,
+      flockGroupId,
+      customerName,
+      flockNumber,
+      weekNumber,
+    );
   window.selectFlockForChart = (
     customerId,
     flockId,
     customerName,
     flockNumber,
     weekNumber,
+    hallName = null,
+    flockGroupId = null,
   ) =>
     dashboardService.selectFlockForChart(
       customerId,
@@ -2681,6 +2938,8 @@ if (typeof window !== "undefined") {
       customerName,
       flockNumber,
       weekNumber,
+      hallName,
+      flockGroupId,
     );
   window.sendSmsToCustomer = (
     customerId,
@@ -2704,6 +2963,19 @@ if (typeof window !== "undefined") {
     dashboardService.showSmsHistory(customerId, flockId);
   window.refreshSmsStatus = (customerId, flockId) =>
     dashboardService.refreshSmsStatus(customerId, flockId);
+  window.toggleTaskCardHalls = (flockGroupId) => {
+    const card = document.querySelector(
+      `.task-card[data-flock-group-id="${flockGroupId}"]`,
+    );
+    if (!card) return;
+    const body = card.querySelector(".flock-halls");
+    const toggle = card.querySelector(".task-halls-toggle");
+    if (!body) return;
+    const open = body.classList.toggle("open");
+    if (toggle) toggle.classList.toggle("open", open);
+    const icon = toggle?.querySelector(".accordion-icon");
+    if (icon) icon.style.transform = open ? "rotate(180deg)" : "rotate(0deg)";
+  };
   window.toggleAccordion = (sectionId) => {
     const section = document.getElementById(sectionId);
     if (!section) return;

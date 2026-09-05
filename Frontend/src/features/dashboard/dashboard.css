@@ -912,3 +912,482 @@
     font-size: 16px;
   }
 }
+
+/* ============================================================
+   کارت‌های گله (دوره پرورش) — داشبورد
+   ============================================================ */
+.flock-cards-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.flock-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-right: 5px solid #0d9488;
+  border-radius: 12px;
+  padding: 14px 16px;
+  transition: box-shadow 0.2s;
+  font-family: Vazir, Tahoma, sans-serif;
+}
+
+.flock-card:hover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+.flock-card-danger {
+  border-right-color: #dc2626;
+  background: linear-gradient(135deg, #ffffff 0%, #fff5f5 100%);
+}
+
+.flock-card-success {
+  border-right-color: #16a34a;
+  background: linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%);
+}
+
+.flock-card-normal {
+  border-right-color: #3b82f6;
+  background: linear-gradient(135deg, #ffffff 0%, #eff6ff 100%);
+}
+
+.flock-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.fc-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.fc-farm {
+  font-size: 12.5px;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+.fc-status {
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.flock-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  padding: 8px 10px;
+  background: #f8fafc;
+  border-radius: 8px;
+  font-size: 12.5px;
+  color: #475569;
+  margin-bottom: 10px;
+}
+
+.flock-card-meta span {
+  white-space: nowrap;
+}
+
+.flock-card-halls {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.flock-card-hall {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 7px 12px;
+  font-size: 12.5px;
+  background: #ffffff;
+}
+
+.flock-card-hall.flock-hall-ended {
+  opacity: 0.6;
+  background: #f8fafc;
+}
+
+.fh-name {
+  flex: 1;
+  color: #0f172a;
+  font-weight: 600;
+}
+
+.fh-name i {
+  color: #0d9488;
+  margin-inline-end: 4px;
+}
+
+.fh-meta {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.fh-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 10px;
+  border-radius: 999px;
+}
+
+.fh-badge.ended {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.flock-halls-empty {
+  color: #94a3b8;
+  font-size: 12px;
+  padding: 8px;
+  text-align: center;
+}
+
+/* ===== کارت تسک گله-سطح با ردیف‌های سالن ===== */
+.task-card.flock-task-card {
+  display: block;
+  width: 100%;
+}
+.flock-task-card .task-card-info {
+  width: 100%;
+}
+.flock-task-card.selected {
+  outline: 2px solid #2563eb;
+  outline-offset: -2px;
+  border-radius: 12px;
+}
+.flock-halls {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed rgba(100, 116, 139, 0.35);
+}
+.task-hall-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 7px 10px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease,
+    box-shadow 0.15s ease;
+}
+.task-hall-row:hover {
+  border-color: #93c5fd;
+  background: #f8fafc;
+}
+.task-hall-row.selected {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 1px #2563eb inset;
+  background: #eff6ff;
+}
+.task-hall-row .th-main {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  font-size: 12px;
+  color: #334155;
+  flex: 1;
+  min-width: 0;
+}
+.task-hall-row .task-hall-actions {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  flex-shrink: 0;
+}
+/* چیدمان دوخطی ردیف سالن: خط اول اطلاعات+اکشن، خط دوم استپر هفته‌ها */
+.task-hall-row {
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+}
+.task-hall-row .th-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+}
+.task-hall-row .th-stepper {
+  width: 100%;
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px dashed rgba(100, 116, 139, 0.2);
+}
+.task-hall-row .th-stepper .stepper-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: #94a3b8;
+  margin-bottom: 2px;
+  text-align: right;
+}
+.task-hall-row .th-stepper .steps-container {
+  padding: 2px 4px;
+}
+.task-hall-row .task-hall-actions button {
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ===== استایل دکمه‌های اکشن کارت تسک/سالن ===== */
+.flock-task-card .task-card-actions button,
+.task-hall-row .task-hall-actions button {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid #e2e8f0;
+  border-radius: 9px;
+  background: #ffffff;
+  color: #64748b;
+  font-size: 13px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.15s ease, color 0.15s ease,
+    border-color 0.15s ease, transform 0.15s ease;
+}
+.flock-task-card .task-card-actions button:hover,
+.task-hall-row .task-hall-actions button:hover {
+  transform: translateY(-1px);
+}
+.flock-task-card .task-card-actions .btn-profile,
+.task-hall-row .task-hall-actions .btn-profile {
+  color: #2563eb;
+}
+.flock-task-card .task-card-actions .btn-profile:hover,
+.task-hall-row .task-hall-actions .btn-profile:hover {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+}
+.flock-task-card .task-card-actions .btn-detail,
+.task-hall-row .task-hall-actions .btn-detail {
+  color: #0d9488;
+}
+.flock-task-card .task-card-actions .btn-detail:hover,
+.task-hall-row .task-hall-actions .btn-detail:hover {
+  border-color: #99f6e4;
+  background: #f0fdfa;
+}
+.flock-task-card .task-card-actions .btn-sms,
+.task-hall-row .task-hall-actions .btn-sms {
+  color: #7c3aed;
+}
+.flock-task-card .task-card-actions .btn-sms:hover,
+.task-hall-row .task-hall-actions .btn-sms:hover {
+  border-color: #ddd6fe;
+  background: #f5f3ff;
+}
+.flock-task-card .task-card-actions .btn-refresh,
+.task-hall-row .task-hall-actions .btn-refresh {
+  color: #d97706;
+}
+.flock-task-card .task-card-actions .btn-refresh:hover,
+.task-hall-row .task-hall-actions .btn-refresh:hover {
+  border-color: #fde68a;
+  background: #fffbeb;
+  transform: rotate(180deg) translateY(-1px);
+}
+.flock-task-card .task-card-actions .btn-history,
+.task-hall-row .task-hall-actions .btn-history {
+  color: #db2777;
+}
+.flock-task-card .task-card-actions .btn-history:hover,
+.task-hall-row .task-hall-actions .btn-history:hover {
+  border-color: #fbcfe8;
+  background: #fdf2f8;
+}
+
+/* ============ بازطراحی گرافیکی کارت‌های تسک ============ */
+.task-card.flock-task-card {
+  position: relative;
+  background: #ffffff;
+  border: 1px solid #e8edf3;
+  border-radius: 14px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+  transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+}
+.task-card.flock-task-card:hover {
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12);
+  transform: translateY(-2px);
+}
+.task-card.flock-task-card.selected {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.25),
+    0 10px 24px rgba(37, 99, 235, 0.14);
+}
+.flock-task-card .fc-top-strip {
+  height: 5px;
+  border-radius: 14px 14px 0 0;
+}
+.task-card-danger.flock-task-card .fc-top-strip {
+  background: linear-gradient(90deg, #dc2626, #f87171);
+}
+.task-card-success.flock-task-card .fc-top-strip {
+  background: linear-gradient(90deg, #10b981, #34d399);
+}
+.task-card-normal.flock-task-card .fc-top-strip {
+  background: linear-gradient(90deg, #3b82f6, #60a5fa);
+}
+.flock-task-card .task-card-info {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 13px 16px 2px 16px;
+}
+.fc-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+.fc-headline {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+.fc-hint {
+  font-size: 10px;
+  color: #94a3b8;
+  margin-top: 4px;
+}
+.task-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #f1f5f9;
+  color: #334155;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+/* ===== آکاردئون سالن‌ها (کارت‌های چندسالنه) ===== */
+.task-halls-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 16px 0 16px;
+  padding: 7px 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  cursor: pointer;
+  user-select: none;
+  font-size: 12px;
+  font-weight: 700;
+  color: #334155;
+  transition: all 0.15s ease;
+}
+.task-halls-toggle:hover {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+  color: #1d4ed8;
+}
+.task-halls-toggle .th-count-badge {
+  background: #2563eb;
+  color: #ffffff;
+  border-radius: 999px;
+  font-size: 10px;
+  padding: 1px 8px;
+  font-weight: 800;
+}
+.task-halls-toggle .th-toggle-hint {
+  margin-inline-start: auto;
+  color: #94a3b8;
+  font-size: 10px;
+  font-weight: 500;
+}
+.task-halls-toggle .accordion-icon {
+  transition: transform 0.2s ease;
+  font-size: 11px;
+  color: #94a3b8;
+}
+.task-card.flock-task-card .flock-halls {
+  margin: 6px 16px 14px 16px;
+  border-top: none;
+  padding-top: 0;
+}
+.task-card.flock-task-card .flock-halls.halls-collapsible {
+  display: none;
+  margin-top: 6px;
+}
+.task-card.flock-task-card .flock-halls.halls-collapsible.open {
+  display: flex;
+}
+
+/* ===== مشخص‌سازی واضح سالن انتخاب‌شده ===== */
+.task-hall-row.selected {
+  border-color: #2563eb;
+  background: linear-gradient(135deg, #eff6ff 0%, #ffffff 70%);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.18), inset 4px 0 0 #2563eb;
+}
+.task-hall-row.selected .th-hall {
+  color: #1d4ed8;
+}
+.th-selected-tag {
+  display: none;
+  background: #2563eb;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 8px;
+  border-radius: 999px;
+  align-items: center;
+}
+.task-hall-row.selected .th-selected-tag {
+  display: inline-flex;
+}
+
+/* ===== تولتیپ استاندارد دکمه‌های تسک ===== */
+.flock-task-card .task-card-actions .tooltip-container,
+.task-hall-row .task-hall-actions .tooltip-container {
+  position: relative;
+  display: inline-flex;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+}
+.flock-task-card .task-card-actions .tooltip-container button,
+.task-hall-row .task-hall-actions .tooltip-container button {
+  width: 100%;
+  height: 100%;
+}
+.flock-task-card .task-card-actions .tooltip,
+.task-hall-row .task-hall-actions .tooltip {
+  font-size: 11px;
+  padding: 5px 10px;
+  white-space: nowrap;
+  z-index: 999;
+}
+
+
+

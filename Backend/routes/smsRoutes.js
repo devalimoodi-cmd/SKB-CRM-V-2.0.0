@@ -46,6 +46,19 @@ router.post(
   smsController.sendWeekReminder,
 );
 
+// یادآوری هفتگی گله/دوره (per گله یا با سالن اختیاری)
+router.post(
+  "/flock-reminder",
+  authorize("admin", "super_admin", "sub_admin", "expert"),
+  smsController.sendFlockReminder,
+);
+
+// ارسال پیامک به گیرنده دلخواه (کارشناس فارم / مدیر فارم / مرغدار)
+router.post(
+  "/send-recipient",
+  authorize("admin", "super_admin", "sub_admin", "expert"),
+  smsController.sendToRecipient,
+);
 // ============================================
 // مسیرهای صفحه کارشناس
 // ============================================

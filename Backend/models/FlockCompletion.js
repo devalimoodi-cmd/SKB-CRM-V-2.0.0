@@ -19,9 +19,18 @@ const FlockCompletion = sequelize.define(
     },
     chick_placement_id: {
       type: DataTypes.INTEGER,
+      allowNull: true,
+      comment:
+        "🆔 جوجه‌ریزی نماینده گله (اولین سالن) — برای سازگاری با نمایش‌های قدیمی",
+    },
+    flock_id: {
+      type: DataTypes.INTEGER,
       allowNull: false,
-      unique: true,
-      comment: "🆔 شناسه گله (ارجاع به جدول chick_placements) - UNIQUE",
+      references: {
+        model: "flocks",
+        key: "id",
+      },
+      comment: "🆔 شناسه گله/دوره پرورش (ارجاع به جدول flocks) — یک پایان دوره per گله",
     },
     customer_id: {
       type: DataTypes.INTEGER,
@@ -39,8 +48,8 @@ const FlockCompletion = sequelize.define(
     },
     hall_id: {
       type: DataTypes.INTEGER,
-      allowNull: false,
-      comment: "🆔 شناسه سالن (ارجاع به جدول halls)",
+      allowNull: true,
+      comment: "🆔 سالن نماینده گله (اولین سالن) — ریز هر سالن در flock_completion_halls",
     },
     completed_by: {
       type: DataTypes.INTEGER,
@@ -221,9 +230,8 @@ const FlockCompletion = sequelize.define(
     underscored: true,
     paranoid: false,
     indexes: [
-      { fields: ["chick_placement_id"], unique: true },
+      { fields: ["flock_id"], unique: true },
       { fields: ["customer_id"] },
-      { fields: ["hall_id"] },
       { fields: ["unit_id"] },
       { fields: ["completion_date"] },
       { fields: ["slaughter_date"] },

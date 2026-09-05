@@ -153,6 +153,95 @@ export const hatcheryRenderer = {
 
   // ===== رندر جدول دوره‌ها =====
 
+  // ===== رندر پنل وضعیت گله (دوره پرورش واحد) =====
+
+  renderFlockPanel(unitName, flock, placements = []) {
+    if (!flock) {
+      return `
+        <div class="flock-panel flock-empty">
+          <div class="flock-panel-title"><i class="fas fa-egg"></i> وضعیت گله (دوره پرورش) — واحد:
+            <b>${unitName || "—"}</b></div>
+          <div class="flock-empty-text">
+            <i class="fas fa-info-circle"></i>
+            این واحد هم‌اکنون <b>گله فعال</b> ندارد. با ثبت جوجه‌ریزی اولین سالن، <b>گله جدید به‌صورت خودکار</b>
+            ساخته می‌شود و سالن‌های بعدی همین واحد به همان گله اضافه می‌شوند.
+          </div>
+        </div>
+      `;
+    }
+
+    const members = placements && placements.length ? placements : [];
+    const hallRows = members
+      .map((p) => {
+        const hallName = p.hall?.hall_name || p.Hall?.hall_name || `سالن #${p.hall_id}`;
+        const chicks = p.total_chicks_count
+          ? formatNumber(parseInt(p.total_chicks_count))
+          : "—";
+        return `
+          <div class="flock-hall ${p.is_active ? "" : "flock-hall-ended"}">
+            <span class="flock-hall-name"><i class="fas fa-warehouse"></i> ${hallName}</span>
+            <span class="flock-hall-chicks">${chicks} قطعه</span>
+            <span class="flock-badge ${p.is_active ? "flock-badge-active" : "flock-badge-ended"}">
+              ${p.is_active ? "در جریان" : "پایان یافته"}
+            </span>
+            ${p.is_active ? `<button type="button" class="flock-hall-sms" title="یادآوری پیامکی سالن" onclick="window.sendFlockSmsHall(${p.id})"><i class="fas fa-sms"></i></button>` : ""}
+          </div>
+        `;
+      })
+      .join("");
+
+    return `
+      <div class="flock-panel">
+        <div class="flock-panel-title"><i class="fas fa-egg"></i> گله فعال واحد:
+          <b>${unitName || "—"}</b></div>
+        <div class="flock-meta">
+          <div class="flock-meta-item">شماره گله: <b>${flock.flock_number}</b></div>
+          <div class="flock-meta-item">تاریخ جوجه‌ریزی:
+            <b>${flock.placement_date ? convertToPersianDate(flock.placement_date) : "—"}</b></div>
+          <div class="flock-meta-item">سالن‌های عضو: <b>${members.length}</b></div>
+          <button type="button" class="flock-bookmark-btn" onclick="window.addFlockBookmarkOf(${flock.id})">
+            <i class="fas fa-bookmark"></i> بوکمارک گله
+          </button>
+          <button type="button" class="flock-sms-btn" onclick="window.sendFlockSmsFlock(${flock.id})">
+            <i class="fas fa-sms"></i> پیامک گله
+          </button>
+          <button type="button" class="flock-end-btn" onclick="window.endActiveFlockOf(${flock.id})">
+            <i class="fas fa-ban"></i> پایان گله
+          </button>
+        </div>
+        <div class="flock-halls">
+          ${hallRows || '<div class="flock-halls-empty">هنوز سالنی به این گله اضافه نشده است</div>'}
+        </div>
+        <div class="flock-note">
+          <i class="fas fa-info-circle"></i>
+          ثبت جوجه‌ریزی سالن آزاد همین واحد، به همین گله افزوده می‌شود.
+        </div>
+      </div>
+    `;
+  },
+
+  // ===== رندر لیست سالن‌های قابل افزودن به همین گله =====
+
+  renderExtraHallsList(halls, excludedHallId, defaultCount = "", defaultDate = "") {
+    if (!halls || halls.length === 0) return "";
+    return halls
+      .map(
+        (hall) => `
+          <label class="flock-extra-item">
+            <input type="checkbox" class="extra-hall-chk" data-hall="${hall.id}">
+            <span class="flock-extra-name">${hall.hall_name} (شماره ${hall.hall_number || hall.id})</span>
+            <span class="flock-extra-count">تعداد جوجه: <input type="number" min="1"
+                class="extra-hall-count" data-hall="${hall.id}" value="${defaultCount || ""}"
+                placeholder="مثل: ${defaultCount || "۱۰۰۰۰"}"></span>
+            <span class="flock-extra-count">تاریخ جوجه‌ریزی: <input type="text"
+                class="extra-hall-date" data-hall="${hall.id}" value="${defaultDate || ""}"
+                placeholder="مثل: ۱۴۰۵/۰۶/۱۵" style="width:110px;"></span>
+          </label>
+        `,
+      )
+      .join("");
+  },
+
   renderPeriodsTable(periods) {
     if (!periods || periods.length === 0) {
       return '<tr><td colspan="8" style="text-align: center;">هیچ دوره‌ای ثبت نشده است</td></tr>';

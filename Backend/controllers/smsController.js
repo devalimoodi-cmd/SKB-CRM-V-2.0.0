@@ -256,6 +256,131 @@ const sendWeekReminder = async (req, res) => {
 };
 
 // ============================================
+// ارسال یادآوری هفتگی گله/دوره (per گله یا per سالن اختیاری)
+// ============================================
+const sendFlockReminder = async (req, res) => {
+  try {
+    const { customer_id, flock_id, hall_id } = req.body;
+
+    if (!customer_id || !flock_id) {
+      return errorResponse(
+        res,
+        "شناسه مشتری و گله/دوره الزامی است",
+        400,
+      );
+    }
+
+    const Flock = require("../models/Flock");
+    const ChickPlacement = require("../models/ChickPlacement");
+
+    const customer = await CustomerPersonalInfo.findByPk(customer_id);
+    if (!customer) {
+      return errorResponse(res, "مشتری یافت نشد", 404);
+    }
+    if (!customer.mobile_number) {
+      return errorResponse(res, "شماره موبایل مشتری ثبت نشده است", 400);
+    }
+
+    const flock = await Flock.findByPk(flock_id);
+    if (!flock) {
+      return errorResponse(res, "گله/دوره یافت نشد", 404);
+    }
+    if (parseInt(flock.customer_id) !== parseInt(customer_id)) {
+      return errorResponse(res, "گله متعلق به این مشتری نیست", 400);
+    }
+
+    // تاریخ مبنا برای محاسبه هفته: سالن اختیاری یا تاریخ تعریف گله
+    let baseDate = flock.placement_date;
+    let label = `گله ${flock.flock_number}`;
+    if (hall_id) {
+      const placement = await ChickPlacement.findByPk(hall_id);
+      if (!placement) {
+        return errorResponse(res, "سالن/جوجه‌ریزی یافت نشد", 404);
+      }
+      if (
+        placement.flock_id &&
+        parseInt(placement.flock_id) !== parseInt(flock.id)
+      ) {
+        return errorResponse(res, "سالن عضو این گله نیست", 400);
+      }
+      baseDate = placement.placement_date;
+      label = `گله ${flock.flock_number}`;
+    }
+
+    const start = new Date(baseDate);
+    const today = new Date();
+    if (isNaN(start.getTime())) {
+      return errorResponse(res, "تاریخ مبنا نامعتبر است", 400);
+    }
+    const diffDays = Math.floor(
+      (today - start) / (1000 * 60 * 60 * 24),
+    );
+    const weekNumber = Math.max(1, Math.floor(diffDays / 7) + 1);
+    const weekStart = new Date(start);
+    weekStart.setDate(start.getDate() + (weekNumber - 1) * 7);
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 6);
+    const dueDate = weekEnd.toISOString().slice(0, 10);
+
+    const result = await SmsService.sendWeekReminder(
+      customer.mobile_number,
+      {
+        username: customer.full_name || customer.mobile_number,
+        weekNumber,
+        dueDate,
+      },
+    );
+
+    if (result.success) {
+      successResponse(
+        res,
+        { ...result, flockNumber: flock.flock_number, weekNumber, dueDate },
+        `یادآوری هفتگی ${label} ارسال شد`,
+      );
+    } else {
+      errorResponse(res, result.error || "خطا در ارسال پیامک", 502);
+    }
+  } catch (error) {
+    console.error("❌ خطا در ارسال یادآوری گله:", error);
+    errorResponse(res, error.message, 502);
+  }
+};
+
+// ============================================
+// ارسال پیامک به گیرنده دلخواه (کارشناس/مدیر/مرغدار)
+// ============================================
+const sendToRecipient = async (req, res) => {
+  try {
+    const { mobile, message } = req.body;
+    if (!mobile || !message) {
+      return errorResponse(
+        res,
+        "شماره موبایل و متن پیام الزامی است",
+        400,
+      );
+    }
+    const lines = await SmsService.getLines();
+    const lineNumber = (lines && lines[0]) || process.env.SMS_DEFAULT_LINE;
+    if (!lineNumber) {
+      return errorResponse(res, "هیچ خط ارسالی یافت نشد", 400);
+    }
+    const result = await SmsService.sendSingle(lineNumber, message, mobile);
+    if (result.success) {
+      successResponse(
+        res,
+        { ...result, mobile },
+        "پیامک با موفقیت ارسال شد",
+      );
+    } else {
+      errorResponse(res, result.error || "خطا در ارسال پیامک", 502);
+    }
+  } catch (error) {
+    console.error("❌ خطا در ارسال به گیرنده:", error);
+    errorResponse(res, error.message, 502);
+  }
+};
+
+// ============================================
 // بررسی وضعیت پیامک
 // ============================================
 const getMessageStatus = async (req, res) => {
@@ -1015,6 +1140,8 @@ module.exports = {
   sendVerify,
   sendWeekRegister,
   sendWeekReminder,
+  sendFlockReminder,
+  sendToRecipient,
   getMessageStatus,
   getReceivedMessages,
   sendToCustomer,

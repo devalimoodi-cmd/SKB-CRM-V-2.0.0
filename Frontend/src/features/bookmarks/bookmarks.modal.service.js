@@ -297,7 +297,12 @@ export const bookmarksModalService = {
               flocks.data.placements.forEach((f) => {
                 const opt = document.createElement("option");
                 opt.value = f.id;
-                opt.textContent = `گله ${f.flock_number}`;
+                const hallName =
+                  f.hall?.hall_name ||
+                  f.Hall?.hall_name ||
+                  f.hall_name ||
+                  (f.hall_id ? `سالن ${f.hall_id}` : "");
+                opt.textContent = `گله ${f.flock_number}${hallName ? " - " + hallName : ""}`;
                 flockSelect.appendChild(opt);
               });
             }

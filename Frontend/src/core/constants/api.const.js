@@ -100,6 +100,7 @@ export const API_CONSTANTS = {
     },
     DASHBOARD: {
       FLOCKS: "/dashboard/flocks",
+      FLOCK_CARDS: "/dashboard/flock-cards",
       SUMMARY: "/dashboard/summary",
       CUSTOMER_DETAILS: "/dashboard/customer/:id/details",
       CHARTS: "/dashboard/charts",

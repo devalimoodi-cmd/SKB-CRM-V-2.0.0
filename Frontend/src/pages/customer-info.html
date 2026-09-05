@@ -780,7 +780,10 @@
                             </div>
                             <div class="weekly-card__actions">
                                 <button class="btn-report-all-hall" onclick="generateChickReport()">
-                                    <i class="fas fa-file"></i> دریافت گزارش کامل جوجه ریزی
+                                    <i class="fas fa-file"></i> گزارش کامل جوجه ریزی (فعال)
+                                </button>
+                                <button class="btn-report-all-hall" onclick="generateChickHistoryReport()">
+                                    <i class="fas fa-history"></i> گزارش تاریخچه جوجه ریزی
                                 </button>
                             </div>
                         </div>
@@ -799,15 +802,26 @@
                             </div>
 
                             <div id="chickRegisterTab" class="tab-content active">
+                                <div id="flockStatusPanel" class="flock-status-panel">
+                                    <div class="flock-panel-loading"><i
+                                            class="fas fa-spinner fa-spin"></i> در حال بررسی وضعیت گله...</div>
+                                </div>
                                 <div class="form-section">
                                     <h3 class="form-section-title">ثبت دوره جوجه ریزی جدید</h3>
                                     <div class="form-grid">
                                         <div class="form-group"><label>شماره گله</label><input type="text"
                                                 id="skb-flock-number" readonly disabled></div>
                                         <div class="form-group"><label>سالن <span
-                                                    class="required">*</span></label><select id="skb-hall-select"
-                                                class="hall-select"
-                                                onchange="loadHallAreaForChick(this.value)"></select></div>
+                                        class="required">*</span></label><select id="skb-hall-select"
+                                        class="hall-select"
+                                        onchange="loadHallAreaForChick(this.value)"></select></div>
+                                        <div class="form-group full-width-field" id="flockJoinGroup"
+                                            style="display:none">
+                                            <label>گله / دوره پرورش</label>
+                                            <select id="skb-flock-join" class="form-control"></select>
+                                            <small class="flock-join-hint">انتخاب «گله جدید» یعنی این جوجه‌ریزی
+                                                نوبتِ جدیدی در همین واحد است و به گله‌های قبلی نمی‌پیوندد.</small>
+                                        </div>
                                         <div class="form-group"><label>تاریخ جوجه ریزی <span
                                                     class="required">*</span></label><input type="text"
                                                 id="skb-chick-date"></div>
@@ -826,6 +840,14 @@
                                         <div class="form-group"><label>تراکم سالن فعلی (قطعه/مترمربع)</label><input
                                                 type="text" id="skb-current-density" readonly disabled></div>
                                     </div>
+                                </div>
+                                <div class="form-section flock-extra-section" id="extraHallsSection"
+                                    style="display:none">
+                                    <h3 class="form-section-title"><i class="fas fa-layer-group"></i> افزودن سالن‌های
+                                        دیگر به همین گله (یک نوبت)</h3>
+                                    <p class="flock-extra-hint">با انتخاب سالن‌های زیر، جوجه‌ریزی همین دوره به‌صورت
+                                        هم‌زمان برای آن‌ها ثبت می‌شود و همه زیر <b>یک گله</b> قرار می‌گیرند.</p>
+                                    <div id="extraHallsList" class="flock-extra-list"></div>
                                 </div>
                                 <div class="form-actions">
                                     <button class="btn btn-secondary" onclick="resetChickRegisterTab()">ریست
@@ -930,6 +952,9 @@
                             <div class="weekly-card__actions">
                                 <button class="btn-report-all-hall" onclick="generateFullWeeklyReport()">
                                     <i class="fas fa-file"></i> دریافت گزارش کامل هفتگی
+                                </button>
+                                <button class="btn-report-all-hall" onclick="generateWeeklyHistoryReport()">
+                                    <i class="fas fa-history"></i> گزارش تاریخچه هفتگی
                                 </button>
                             </div>
                         </div>
