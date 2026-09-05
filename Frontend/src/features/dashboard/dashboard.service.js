@@ -181,7 +181,10 @@ SKB-CRM.IR`,
         (c) =>
           `${c.customer?.id || 0}-${c.flock?.id || 0}-${c.flock?.status || "normal"}|${(c.flock?.halls || [])
             .filter((h) => h.isActive)
-            .map((h) => `${h.id}:${h.status || ""}`)
+            .map(
+              (h) =>
+                `${h.id}:${h.status || ""}:${(h.overdueWeeks || []).join(",")}:${(h.completeWeeks || []).length}`,
+            )
             .join(",")}`,
       )
       .join(";");
@@ -285,18 +288,67 @@ SKB-CRM.IR`,
   }
 
   async loadChartsData(flockId = null, flockGroupId = null) {
+    // فقط آخرین درخواست اعمال میشود (جلوگیری از پرش/نتیجه قدیمی)
+    const seq = (this._chartRequestSeq = (this._chartRequestSeq || 0) + 1);
+    this.setChartsLoading(true);
     try {
       const response = await dashboardApi.getChartsData(
         null,
         flockId,
         flockGroupId,
       );
+      if (seq !== this._chartRequestSeq) return;
       if (response.success && response.data) {
         this.updateCharts(response.data);
       }
     } catch (error) {
-      console.error("❌ Error loading charts data:", error);
+      if (seq === this._chartRequestSeq) {
+        console.error("❌ Error loading charts data:", error);
+      }
+    } finally {
+      if (seq === this._chartRequestSeq) {
+        this.setChartsLoading(false);
+      }
     }
+  }
+
+  // نمایش/مخفی‌کردن لودینگ نمودارها (حداکثر ۸ ثانیه خودکار مخفی می‌شود)
+  setChartsLoading(loading) {
+    const el = document.getElementById("chartLoadingOverlay");
+    if (!el) return;
+    if (!loading) {
+      clearTimeout(this._chartLoadingTimer);
+      el.style.display = "none";
+      return;
+    }
+    clearTimeout(this._chartLoadingTimer);
+    el.style.display = "flex";
+    this._chartLoadingTimer = setTimeout(() => {
+      el.style.display = "none";
+    }, 8000);
+  }
+
+  // هدر بالای نمودارها: چیزی که انتخاب شده را نشان می‌دهد
+  updateChartSelectionHeader(info = null) {
+    const labelEl = document.getElementById("chartSelectionLabel");
+    const header = document.getElementById("chartSelectionHeader");
+    if (!labelEl) return;
+    if (!info || !info.scope) {
+      header?.classList.remove("has-selection");
+      labelEl.textContent =
+        "هنوز گله یا سالنی انتخاب نشده — از لیست تسک‌ها انتخاب کنید";
+      return;
+    }
+    header?.classList.add("has-selection");
+    const pill =
+      info.scope === "flock"
+        ? '<span class="cs-pill cs-flock"><i class="fas fa-warehouse"></i> کل گله</span>'
+        : '<span class="cs-pill cs-hall"><i class="fas fa-map-marker-alt"></i> سالن</span>';
+    labelEl.innerHTML = `${pill} <b>گله ${info.flockNumber || ""}</b>${
+      info.hallName
+        ? ` <span class="cs-sep">-</span> ${info.hallName}`
+        : ""
+    } <span class="cs-sep">|</span> ${info.customerName || ""}`;
   }
 
   // ===== رندر تسک‌ها (کارت گله-سطح در سررسید گذشته/نزدیک) =====
@@ -554,10 +606,10 @@ SKB-CRM.IR`,
 
   getSmsStatusInfo(status) {
     const map = {
-      pending: { text: "⏳ در انتظار", color: "#f59e0b", bg: "#fef3c7" },
-      sent: { text: "📱 ارسال شده", color: "#3b82f6", bg: "#dbeafe" },
-      delivered: { text: "✅ تحویل داده شده", color: "#3b82f6", bg: "#dbeafe" },
-      failed: { text: "❌ ناموفق", color: "#dc2626", bg: "#fee2e2" },
+      pending: { text: "در انتظار", color: "#d97706", bg: "#fef3c7" },
+      sent: { text: "ارسال شده", color: "#2563eb", bg: "#dbeafe" },
+      delivered: { text: "تحویل داده شده", color: "#047857", bg: "#d1fae5" },
+      failed: { text: "ناموفق", color: "#dc2626", bg: "#fee2e2" },
     };
     return map[status] || map.pending;
   }
@@ -951,6 +1003,12 @@ SKB-CRM.IR`,
     notificationService.success(
       `✅ گله ${flockNumber || ""} (کل گله)${weekNumber ? ` - هفته ${weekNumber}` : ""} - ${customerName} انتخاب شد`,
     );
+    this.updateChartSelectionHeader({
+      scope: "flock",
+      flockNumber,
+      hallName: null,
+      customerName,
+    });
 
     // بارگذاری داده‌های تجمیعی گله
     await this.loadChartsData(null, flockGroupId);
@@ -993,16 +1051,17 @@ SKB-CRM.IR`,
     notificationService.success(
       `✅ ${flockNumber ? `گله ${flockNumber}` : ""}${hallName ? ` - ${hallName}` : ""} (هفته ${weekNumber}) - ${customerName} انتخاب شد`,
     );
+    this.updateChartSelectionHeader({
+      scope: "hall",
+      flockNumber,
+      hallName,
+      customerName,
+    });
 
     // بارگذاری داده‌های نمودار برای سالن انتخاب شده
     await this.loadChartsData(flockId);
 
     // ✅ بروزرسانی وضعیت پیامک‌ها همان لحظه که سالن/گله انتخاب می‌شود
-    try {
-      await dashboardApi.updateSmsStatusForFlock(customerId, flockId);
-    } catch (e) {
-      console.warn("⚠️ خطا در بروزرسانی وضعیت پیامک‌ها هنگام انتخاب تسک:", e);
-    }
     await this.refreshAllTaskSmsStatus();
     // توجه: بدون رندر مجدد لیست تا حالت selected حفظ شود
   }
@@ -1599,8 +1658,8 @@ SKB-CRM.IR`,
 
             statusEl.innerHTML = `
               <span>${smsInfo.text}</span>
-              ${isDelivered && deliveredText ? `<span style="font-size:9px; opacity:0.8;">📬 تحویل: ${deliveredText}</span>` : ""}
-              <span style="font-size:9px; opacity:0.8;">👤 ${senderName}</span>
+              ${isDelivered && deliveredText ? `<span style="font-size:9px; opacity:0.8;">تحویل: ${deliveredText}</span>` : ""}
+              <span style="font-size:9px; opacity:0.8;">فرستنده: ${senderName}</span>
             `;
           }
         } catch (err) {

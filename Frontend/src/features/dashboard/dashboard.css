@@ -1389,5 +1389,209 @@
   z-index: 999;
 }
 
+/* ===== هدر انتخاب نمودارها و لودینگ ===== */
+.dashboard-left {
+  position: relative;
+}
+.chart-selection-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  background: linear-gradient(135deg, #f8fafc, #ffffff);
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 9px 14px;
+  margin-bottom: 12px;
+  font-size: 12px;
+  color: #475569;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+}
+.chart-selection-header > i {
+  color: #2c7a6e;
+}
+.chart-selection-header .cs-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 800;
+}
+.cs-pill.cs-flock {
+  background: #ecfdf5;
+  color: #047857;
+  border: 1px solid #a7f3d0;
+}
+.cs-pill.cs-hall {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+}
+.chart-selection-header .cs-sep {
+  color: #cbd5e1;
+  font-weight: 700;
+}
+.chart-selection-header b {
+  color: #0f172a;
+}
+.dashboard-chart-loading {
+  position: absolute;
+  inset: 46px 0 0 0;
+  background: rgba(248, 250, 252, 0.7);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 40px;
+  z-index: 60;
+  border-radius: 12px;
+  pointer-events: none;
+}
+.dc-loader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #ffffff;
+  padding: 8px 16px;
+  border-radius: 999px;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.12);
+  border: 1px solid #e2e8f0;
+  font-size: 12px;
+  font-weight: 700;
+  color: #334155;
+}
+.dc-spinner {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2.5px solid #e2e8f0;
+  border-top-color: #2c7a6e;
+  animation: dcSpin 0.7s linear infinite;
+}
+@keyframes dcSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ============ فونت وزیر + تایپوگرافی مرتب کارت‌های تسک ============ */
+.flock-task-card,
+.task-hall-row,
+.flock-task-card button,
+.task-hall-row button,
+.task-halls-toggle,
+.chart-selection-header {
+  font-family: "Vazir", "Vazirmatn", Tahoma, sans-serif;
+}
+.task-chip i,
+.th-info i,
+.days-info i,
+.fc-hint i,
+.th-selected-tag i {
+  font-size: 10px;
+  margin-inline-end: 4px;
+}
+.th-info {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  color: #475569;
+  white-space: nowrap;
+}
+.flock-task-card .customer-name {
+  font-size: 15px;
+  letter-spacing: -0.2px;
+}
+.flock-task-card .customer-farm {
+  margin-top: 2px;
+  line-height: 1.6;
+}
+.flock-task-card .week-info {
+  gap: 6px;
+  line-height: 2;
+}
+
+/* رنگ چیپ‌ها — زنده‌تر و دسته‌بندی‌شده */
+.task-chip {
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid transparent;
+}
+.task-chip.chip-flock {
+  background: #fffbeb;
+  color: #b45309;
+  border-color: #fde68a;
+}
+.task-chip.chip-unit {
+  background: #f0f9ff;
+  color: #0369a1;
+  border-color: #bae6fd;
+}
+.task-chip.chip-date {
+  background: #f5f3ff;
+  color: #6d28d9;
+  border-color: #ddd6fe;
+}
+.task-chip.chip-age {
+  background: #ecfdf5;
+  color: #047857;
+  border-color: #a7f3d0;
+}
+
+/* نقطه رنگی کنار وضعیت (به‌جای ایموجی) */
+.status-text {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+.status-text::before {
+  content: "";
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  margin-inline-end: 6px;
+  flex-shrink: 0;
+}
+
+/* حاشیه‌های رنگی زنده‌تر بر اساس وضعیت گله */
+.task-card-danger.flock-task-card {
+  border-color: #fecaca;
+}
+.task-card-success.flock-task-card {
+  border-color: #a7f3d0;
+}
+.task-card-normal.flock-task-card {
+  border-color: #bfdbfe;
+}
+.task-hall-row .th-hall i,
+.task-hall-row .th-info i {
+  color: #64748b;
+}
+
+/* ===== هاله چشم‌کزن قرمز برای هفته‌های معوق در استپر ===== */
+.step-circle.overdue {
+  background: #fee2e2;
+  color: #dc2626;
+  border: 2.5px solid #ef4444;
+  animation: overdue-pulse 1.4s ease-in-out infinite;
+}
+@keyframes overdue-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(239, 68, 68, 0.35);
+  }
+}
+.overdue-pill .fa-exclamation-circle {
+  margin-inline-end: 4px;
+}
+
 
 

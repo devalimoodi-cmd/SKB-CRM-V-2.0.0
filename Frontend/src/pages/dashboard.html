@@ -118,6 +118,18 @@
         <!-- ===== LEFT: Charts ===== -->
         <div class="dashboard-left">
 
+            <!-- هدر انتخاب نمودار + لودینگ -->
+            <div class="chart-selection-header" id="chartSelectionHeader">
+                <i class="fas fa-chart-line"></i>
+                <span id="chartSelectionLabel">هنوز گله یا سالنی انتخاب نشده — از لیست تسک‌ها انتخاب کنید</span>
+            </div>
+            <div class="dashboard-chart-loading" id="chartLoadingOverlay" style="display:none;">
+                <div class="dc-loader">
+                    <span class="dc-spinner"></span>
+                    <span>در حال بارگذاری داده‌های نمودار…</span>
+                </div>
+            </div>
+
             <div class="chart-card">
                 <div class="chart-title">
                     <span class="title-icon"><i class="fas fa-weight"></i></span>

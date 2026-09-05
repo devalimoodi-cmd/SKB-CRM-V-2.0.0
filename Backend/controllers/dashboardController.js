@@ -354,15 +354,54 @@ const getActiveFlockCards = async (req, res) => {
       const weekRows = placementIds.length
         ? await WeeklyManagement.findAll({
             where: { chick_placement_id: { [Op.in]: placementIds } },
-            attributes: ["chick_placement_id", "week_number"],
+            attributes: [
+              "chick_placement_id",
+              "week_number",
+              "week_start_date",
+              "week_end_date",
+              "weekly_weight",
+              "weekly_mortality",
+              "weekly_feed_intake",
+            ],
           })
         : [];
-      const weeksByPlacement = {};
+      const recordedWeeksByPlacement = {};
+      const completeWeeksByPlacement = {};
+      const rowsByPlacement = {};
       weekRows.forEach((w) => {
-        if (!weeksByPlacement[w.chick_placement_id]) {
-          weeksByPlacement[w.chick_placement_id] = [];
+        if (!recordedWeeksByPlacement[w.chick_placement_id]) {
+          recordedWeeksByPlacement[w.chick_placement_id] = [];
         }
-        weeksByPlacement[w.chick_placement_id].push(w.week_number);
+        recordedWeeksByPlacement[w.chick_placement_id].push(w.week_number);
+
+        if (!rowsByPlacement[w.chick_placement_id]) {
+          rowsByPlacement[w.chick_placement_id] = [];
+        }
+        rowsByPlacement[w.chick_placement_id].push({
+          week_number: w.week_number,
+          week_start_date: w.week_start_date,
+          week_end_date: w.week_end_date,
+        });
+
+        // هفته کامل: وزن، تلفات و خوراک — هر سه مقدار دارند (تلفات صفر مجاز است)
+        const hasWeight =
+          w.weekly_weight !== null &&
+          w.weekly_weight !== undefined &&
+          String(w.weekly_weight).trim() !== "";
+        const hasLoss =
+          w.weekly_mortality !== null &&
+          w.weekly_mortality !== undefined &&
+          String(w.weekly_mortality).trim() !== "";
+        const hasFeed =
+          w.weekly_feed_intake !== null &&
+          w.weekly_feed_intake !== undefined &&
+          String(w.weekly_feed_intake).trim() !== "";
+        if (hasWeight && hasLoss && hasFeed) {
+          if (!completeWeeksByPlacement[w.chick_placement_id]) {
+            completeWeeksByPlacement[w.chick_placement_id] = [];
+          }
+          completeWeeksByPlacement[w.chick_placement_id].push(w.week_number);
+        }
       });
 
       // ── آخرین پیامک امروز برای هر سالن (نشانگر وضعیت تسک روی کارت) ──
@@ -407,7 +446,64 @@ const getActiveFlockCards = async (req, res) => {
         const age = calculateFlockAge(p.placement_date);
         const week = calculateCurrentWeek(p.placement_date);
         const range = calculateWeekRange(p.placement_date, week);
-        const hallStatus = p.is_active ? calculateStatus(range.weekEndDate) : null;
+        const recorded = recordedWeeksByPlacement[p.id] || [];
+        const complete = completeWeeksByPlacement[p.id] || [];
+        const rows = rowsByPlacement[p.id] || [];
+
+        // هفته‌های معوق: بر اساس تقویم/تاریخ‌های ذخیره‌شده خودِ رکورد هفتگی
+        const overdueWeeks = [];
+        if (p.is_active) {
+          const todayStart = new Date();
+          todayStart.setHours(0, 0, 0, 0);
+
+          // دوشنبه‌ی هفته‌ی جوجه‌ریزی = آغاز هفته ۱ در تقویم ثبت هفتگی
+          const placementStart = new Date(p.placement_date);
+          placementStart.setHours(0, 0, 0, 0);
+          const mondayAnchor = new Date(placementStart);
+          mondayAnchor.setDate(
+            placementStart.getDate() - ((placementStart.getDay() + 6) % 7),
+          );
+          const week1Row = rows.find((r) => Number(r.week_number) === 1);
+          const week1Start = week1Row?.week_start_date
+            ? new Date(week1Row.week_start_date)
+            : mondayAnchor;
+          week1Start.setHours(0, 0, 0, 0);
+
+          const rowByWeek = {};
+          rows.forEach((r) => {
+            rowByWeek[Number(r.week_number)] = r;
+          });
+          const lastRowWeek = rows.length
+            ? Math.max(...rows.map((r) => Number(r.week_number)))
+            : 0;
+          const ceiling = Math.max(week, lastRowWeek);
+
+          for (let w = 1; w <= ceiling; w++) {
+            const r = rowByWeek[w];
+            if (r) {
+              // هفته رکورد دارد: اگر نامکمل باشد و پایانش گذشته/امروز = معوق
+              if (complete.includes(w)) continue;
+              const end = new Date(r.week_end_date);
+              end.setHours(0, 0, 0, 0);
+              if (end <= todayStart) overdueWeeks.push(w);
+            } else {
+              // هفته رکورد ندارد: پایان موردانتظار طبق تقویم هفتگی
+              const expEnd = new Date(week1Start);
+              expEnd.setDate(week1Start.getDate() + (w - 1) * 7 + 6);
+              if (expEnd <= todayStart) overdueWeeks.push(w);
+            }
+          }
+        }
+
+        const fallbackStatus = calculateStatus(range.weekEndDate);
+        const hallStatus = p.is_active
+          ? overdueWeeks.length > 0
+            ? "danger"
+            : fallbackStatus === "danger"
+              ? "success" // هفته جاری تمام شده ولی کامل است → دیگر قرمز نیست
+              : fallbackStatus
+          : null;
+
         return {
           id: p.id,
           hallId: p.hall_id,
@@ -420,7 +516,9 @@ const getActiveFlockCards = async (req, res) => {
           weekStartDate: range.weekStartDate,
           weekEndDate: range.weekEndDate,
           status: hallStatus,
-          completedWeeks: weeksByPlacement[p.id] || [],
+          completedWeeks: recorded,
+          completeWeeks: complete,
+          overdueWeeks: overdueWeeks,
           smsLog: todaySmsByPlacement[p.id] || null,
         };
       });

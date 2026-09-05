@@ -196,15 +196,27 @@ export const dashboardRenderer = {
 
     const meta = [];
     if (flock?.flockNumber)
-      meta.push(`<span class="task-chip">🐣 گله ${flock.flockNumber}</span>`);
+      meta.push(`<span class="task-chip chip-flock"><i class="fas fa-feather"></i> گله ${flock.flockNumber}</span>`);
     if (flock?.unitName)
-      meta.push(`<span class="task-chip">🏢 ${flock.unitName}</span>`);
+      meta.push(`<span class="task-chip chip-unit"><i class="fas fa-industry"></i> ${flock.unitName}</span>`);
     if (flock?.placementDate)
       meta.push(
-        `<span class="task-chip">📆 ${convertToPersianDate(flock.placementDate)}</span>`,
+        `<span class="task-chip chip-date"><i class="fas fa-calendar-alt"></i> ${convertToPersianDate(flock.placementDate)}</span>`,
       );
     if (flock?.flockAge != null)
-      meta.push(`<span class="task-chip">🎂 ${flock.flockAge} روز</span>`);
+      meta.push(`<span class="task-chip chip-age"><i class="fas fa-hourglass-half"></i> ${flock.flockAge} روز</span>`);
+
+    const flockOverdue = [
+      ...new Set(
+        (activeHalls.length ? activeHalls : halls).flatMap(
+          (h) => h.overdueWeeks || [],
+        ),
+      ),
+    ].sort((a, b) => a - b);
+    const headerWeekStatus =
+      flock?.status === "danger" && flockOverdue.length
+        ? `<span class="days-info overdue-pill" style="color:#dc2626; font-weight:600; background:#fee2e2; padding:2px 10px; border-radius:12px;"><i class="fas fa-exclamation-circle"></i> هفته‌های معوق: ${flockOverdue.join("، ")} — پس از ثبت کامل هفتگی حذف می‌شود</span>`
+        : this.daysInfoHTML(flock?.weekEndDate, flock?.status);
 
     const hallRows = activeHalls.length
       ? activeHalls.map((h) => this.renderHallRow(card, h)).join("")
@@ -244,11 +256,11 @@ export const dashboardRenderer = {
             </div>
             <div class="week-info" style="display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin-top:8px; font-size:12px; color:#475569;">
               ${meta.join("")}
-              ${this.daysInfoHTML(flock?.weekEndDate, flock?.status)}
+              ${headerWeekStatus}
             </div>
             ${
               defHall
-                ? '<div class="fc-hint">🖱️ کلیک روی گله = نمودار کل گله | کلیک روی هر سالن = نمودار همان سالن</div>'
+                ? '<div class="fc-hint"><i class="fas fa-mouse-pointer"></i> کلیک روی گله: نمودار کل گله — کلیک روی سالن: نمودار همان سالن</div>'
                 : ""
             }
           </div>
@@ -295,28 +307,36 @@ export const dashboardRenderer = {
       ? ` data-message-id="${smsLog.message_id}" data-sender-name="${String(sender).replace(/"/g, "")}" data-sms-status="${smsStatus}"`
       : "";
 
+    const hallOverdue = Array.isArray(hall.overdueWeeks)
+      ? hall.overdueWeeks.map(Number)
+      : [];
+    const hallDaysHTML =
+      hall.status === "danger" && hallOverdue.length
+        ? `<span class="days-info overdue-pill" style="color:#dc2626; font-weight:600; background:#fee2e2; padding:2px 10px; border-radius:12px;"><i class="fas fa-exclamation-circle"></i> معوق: هفته ${hallOverdue.join("، ")}</span>`
+        : this.daysInfoHTML(hall.weekEndDate, hall.status);
+
     return `
       <div class="task-hall-row"
            data-customer-id="${customer?.id ?? 0}"
            data-flock-id="${hall.id}"
            data-week-number="${hall.weekNumber ?? 0}"
            data-flock-number="${flock?.flockNumber ?? 0}"
-           onclick="window.selectFlockForChart(${customer?.id ?? 0}, ${hall.id}, '${csafe}', ${flock?.flockNumber ?? "null"}, ${hall.weekNumber ?? "null"}, '${hname}', ${flock?.id ?? 0})"
+           onclick="event.stopPropagation(); window.selectFlockForChart(${customer?.id ?? 0}, ${hall.id}, '${csafe}', ${flock?.flockNumber ?? "null"}, ${hall.weekNumber ?? "null"}, '${hname}', ${flock?.id ?? 0})"
            title="کلیک: نمایش نمودار این سالن">
         <div class="th-head">
         <div class="th-main">
-          <span class="th-selected-tag">✅ روی نمودار</span>
+          <span class="th-selected-tag"><i class="fas fa-eye"></i> در حال نمایش</span>
           <span class="th-hall" style="font-weight:600; color:#1e293b;"><i class="fas fa-warehouse"></i> ${hname}</span>
-          ${hall.breedName ? `<span>🧬 ${hall.breedName}</span>` : ""}
-          <span>📅 هفته ${hall.weekNumber ?? "-"}</span>
+          ${hall.breedName ? `<span class="th-info"><i class="fas fa-dna"></i> ${hall.breedName}</span>` : ""}
+          <span class="th-info"><i class="fas fa-calendar-week"></i> هفته ${hall.weekNumber ?? "-"}</span>
           ${
             hall.weekStartDate
-              ? `<span>📆 ${convertToPersianDate(hall.weekStartDate)} تا ${convertToPersianDate(hall.weekEndDate)}</span>`
+              ? `<span class="th-info"><i class="fas fa-calendar-alt"></i> ${convertToPersianDate(hall.weekStartDate)} تا ${convertToPersianDate(hall.weekEndDate)}</span>`
               : ""
           }
-          <span>🎂 ${hall.ageDays ?? 0} روز</span>
+          <span class="th-info"><i class="fas fa-hourglass-half"></i> ${hall.ageDays ?? 0} روز</span>
           <span class="status-text" style="color:${hSt.color}; font-weight:600; background:${hSt.bg}; padding:1px 8px; border-radius:12px;">${hSt.text}</span>
-          ${this.daysInfoHTML(hall.weekEndDate, hall.status)}
+          ${hallDaysHTML}
           ${
             smsInfo
               ? `<span class="sms-status" ${chipAttrs} style="background:${smsInfo.bg}; color:${smsInfo.color}; padding:2px 8px; border-radius:12px; font-size:10px; font-weight:500; display:inline-flex; align-items:center;">${smsInfo.text}</span>`
@@ -339,7 +359,7 @@ export const dashboardRenderer = {
         </div>
         </div>
         <div class="th-stepper">
-          <span class="stepper-label">📊 هفته‌های سالن</span>
+          <span class="stepper-label">پیشرفت هفته‌های سالن</span>
           <div class="steps-container">${this.renderWeeksBar(hall)}</div>
         </div>
       </div>
@@ -347,8 +367,13 @@ export const dashboardRenderer = {
   },
 
   renderWeeksBar(hall) {
-    const completed = Array.isArray(hall.completedWeeks)
-      ? hall.completedWeeks.map(Number)
+    const completed = Array.isArray(hall.completeWeeks)
+      ? hall.completeWeeks.map(Number)
+      : Array.isArray(hall.completedWeeks)
+        ? hall.completedWeeks.map(Number)
+        : [];
+    const overdue = Array.isArray(hall.overdueWeeks)
+      ? hall.overdueWeeks.map(Number)
       : [];
     const current = parseInt(hall.weekNumber) || 1;
     const maxCompleted = completed.length ? Math.max(...completed) : 0;
@@ -356,9 +381,11 @@ export const dashboardRenderer = {
     let html = "";
     for (let i = 1; i <= totalWeeks; i++) {
       const isCompleted = completed.includes(i);
+      const isOverdue = overdue.includes(i);
       const isActive = i === current;
       let circleClass = "step-circle";
       if (isCompleted) circleClass += " completed";
+      else if (isOverdue) circleClass += " overdue";
       else if (isActive) circleClass += " active";
       else circleClass += " pending";
 
@@ -371,10 +398,12 @@ export const dashboardRenderer = {
       }
 
       const tip = isCompleted
-        ? `✅ هفته ${i}: ثبت شده`
-        : isActive
-          ? `⏳ هفته ${i}: در حال انجام`
-          : `❌ هفته ${i}: ثبت نشده`;
+        ? `هفته ${i}: کامل ثبت شده`
+        : isOverdue
+          ? `هفته ${i}: معوق — ثبت نشده`
+          : isActive
+            ? `هفته ${i}: در حال انجام`
+            : `هفته ${i}: ثبت نشده`;
 
       html += `
         <div class="${itemClass}">
@@ -388,19 +417,19 @@ export const dashboardRenderer = {
     const map = {
       danger: {
         type: "danger",
-        text: "🔴 سررسید گذشته / نیاز به اقدام",
+        text: "سررسید گذشته — نیاز به اقدام",
         color: "#dc2626",
         bg: "#fee2e2",
       },
       success: {
         type: "success",
-        text: "🟢 نزدیک به سررسید",
+        text: "نزدیک به سررسید",
         color: "#16a34a",
         bg: "#dcfce7",
       },
       normal: {
         type: "normal",
-        text: "🔵 عادی",
+        text: "عادی",
         color: "#3b82f6",
         bg: "#dbeafe",
       },
@@ -416,14 +445,14 @@ export const dashboardRenderer = {
     today.setHours(0, 0, 0, 0);
     const diff = Math.ceil((end - today) / (1000 * 60 * 60 * 24));
     if (diff <= 0) {
-      return `<span class="days-info" style="color:#dc2626; font-weight:500; background:#fee2e2; padding:2px 10px; border-radius:12px;">📅 ${
+      return `<span class="days-info" style="color:#dc2626; font-weight:600; background:#fee2e2; padding:2px 10px; border-radius:12px;"><i class="fas fa-exclamation-triangle"></i> ${
         Math.abs(diff) === 0
           ? "امروز سررسید است"
           : `${Math.abs(diff)} روز از سررسید گذشته`
       }</span>`;
     }
     if (status === "danger" || status === "success") {
-      return `<span class="days-info" style="color:#16a34a; font-weight:500; background:#dcfce7; padding:2px 10px; border-radius:12px;">⏳ ${diff} روز تا سررسید</span>`;
+      return `<span class="days-info" style="color:#16a34a; font-weight:600; background:#dcfce7; padding:2px 10px; border-radius:12px;"><i class="fas fa-hourglass-half"></i> ${diff} روز تا سررسید</span>`;
     }
     return "";
   },
@@ -473,10 +502,10 @@ export const dashboardRenderer = {
 
   getSmsStatusInfo(status) {
     const map = {
-      pending: { text: "⏳ در انتظار", color: "#f59e0b", bg: "#fef3c7" },
-      sent: { text: "📱 ارسال شده", color: "#3b82f6", bg: "#dbeafe" },
-      delivered: { text: "✅ تحویل داده شده", color: "#3b82f6", bg: "#dbeafe" },
-      failed: { text: "❌ ناموفق", color: "#dc2626", bg: "#fee2e2" },
+      pending: { text: "در انتظار", color: "#d97706", bg: "#fef3c7" },
+      sent: { text: "ارسال شده", color: "#2563eb", bg: "#dbeafe" },
+      delivered: { text: "تحویل داده شده", color: "#047857", bg: "#d1fae5" },
+      failed: { text: "ناموفق", color: "#dc2626", bg: "#fee2e2" },
     };
     return map[status] || map.pending;
   },
