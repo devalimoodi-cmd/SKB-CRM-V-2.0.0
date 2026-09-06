@@ -6,8 +6,8 @@ export const smsValidation = {
       errors.push("متن پیامک نمی‌تواند خالی باشد");
     }
 
-    if (message && message.length > 500) {
-      errors.push("متن پیامک نباید بیشتر از 500 کاراکتر باشد");
+    if (message && message.length > 1000) {
+      errors.push("متن پیامک نباید بیشتر از 1000 کاراکتر باشد");
     }
 
     // بررسی کاراکترهای غیرمجاز

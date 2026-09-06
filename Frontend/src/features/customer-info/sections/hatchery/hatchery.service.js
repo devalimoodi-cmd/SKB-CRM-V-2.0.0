@@ -1103,21 +1103,21 @@ class HatcheryService {
         experts.find((e) => e.expert_phone) || experts[0] || null;
       if (primaryExpert?.expert_phone) {
         recipients.push({
-          role: "👨‍🔬 کارشناس فارم",
+          role: "کارشناس فارم",
           name: primaryExpert.expert_name || "کارشناس",
           mobile: primaryExpert.expert_phone,
         });
       }
       if (unit?.manager_phone) {
         recipients.push({
-          role: "🧑‍💼 مدیر فارم",
+          role: "مدیر فارم",
           name: unit.manager_name || "مدیر",
           mobile: unit.manager_phone,
         });
       }
       if (customer?.mobile_number) {
         recipients.push({
-          role: "👨‍🌾 مرغدار",
+          role: "مرغدار",
           name: customer.full_name || "مرغدار",
           mobile: customer.mobile_number,
         });
@@ -1132,29 +1132,78 @@ class HatcheryService {
       const { openSmsModal } = await import(
         "../../../sms/sms.modal.service.js"
       );
+      const cleanHallName = (name) =>
+        String(name || "").trim().replace(/^سالن\s*/i, "");
+      let hallName = null;
+      if (hallId) {
+        const hallRow = (flock.placements || []).find(
+          (x) =>
+            parseInt(x.id) === parseInt(hallId) ||
+            parseInt(x.chick_placement_id) === parseInt(hallId),
+        );
+        hallName = cleanHallName(
+          hallRow?.hall?.hall_name ||
+            hallRow?.hall_name ||
+            (this.halls.find(
+              (h) => parseInt(h.id) === parseInt(hallRow?.hall_id),
+            ) || {})
+              .hall_name ||
+            null,
+        );
+      }
+
       const result = await openSmsModal({
         title: hallId
-          ? `📱 پیامک سالن — گله ${flock.flock_number}`
-          : `📱 پیامک گله ${flock.flock_number}`,
+          ? `پیامک سالن — گله ${flock.flock_number}`
+          : `پیامک گله ${flock.flock_number}`,
         recipients,
         flockNumber: flock.flock_number,
+        hallName,
+        scope: hallId ? "hall" : "flock",
         subtitle: hallId
-          ? "این پیامک برای سالن انتخاب‌شده ارسال می‌شود"
-          : "این پیامک برای گله ارسال می‌شود",
+          ? `پیام برای گله ${flock.flock_number}${hallName ? ` — سالن ${hallName}` : ""} ساخته می‌شود`
+          : `پیام برای گله ${flock.flock_number} (کل گله) ساخته می‌شود`,
       });
       if (!result) return;
 
-      const response = await hatcheryApi.sendToRecipient(
-        result.recipient.mobile,
-        result.message,
-      );
-      if (response.success) {
+      const items =
+        Array.isArray(result.messages) && result.messages.length
+          ? result.messages
+          : [{ recipient: result.recipient, message: result.message }];
+      let okCount = 0;
+      let failCount = 0;
+      for (const item of items) {
+        try {
+          const response = await hatcheryApi.sendToRecipient(
+            item.recipient?.mobile,
+            item.message,
+            {
+              customerId: this.customerId,
+              flockPeriodId: flock.id || null,
+              hallId: hallId || null,
+              scope: hallId ? "hall" : "flock",
+              flockNumber: flock.flock_number,
+              hallName: hallName || null,
+              weekNumber: null,
+              recipientRole: item.recipient?.role || null,
+              recipientName: item.recipient?.name || null,
+            },
+          );
+          if (response && response.success) okCount++;
+          else failCount++;
+        } catch (e) {
+          failCount++;
+        }
+      }
+      if (okCount > 0) {
         notificationService.success(
-          `پیامک به ${result.recipient.role || "گیرنده"} ارسال شد`,
+          failCount === 0
+            ? `پیامک به ${okCount} گیرنده ارسال شد`
+            : `پیامک به ${okCount} گیرنده ارسال شد (${failCount} ناموفق)`,
         );
       } else {
         notificationService.error(
-          response.message || "خطا در ارسال پیامک",
+          failCount > 0 ? "ارسال پیامک ناموفق بود" : "گیرنده‌ای برای ارسال انتخاب نشد",
         );
       }
     } catch (error) {

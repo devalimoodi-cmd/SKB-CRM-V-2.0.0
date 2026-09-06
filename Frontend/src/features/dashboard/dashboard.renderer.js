@@ -178,9 +178,9 @@ export const dashboardRenderer = {
         `;
   },
 
-  // ===== رندر کارت گله (دوره پرورش) با سالن‌های عضو =====
+  // ===== رندر قدیمی کارت گله (غیرفعال — نسخه ۲ در انتهای فایل) =====
 
-  renderFlockCard(card) {
+  renderFlockCardLegacy(card) {
     const { customer, flock } = card || {};
     const halls = flock?.halls || [];
     const activeHalls = halls.filter((h) => h.isActive);
@@ -215,7 +215,7 @@ export const dashboardRenderer = {
     ].sort((a, b) => a - b);
     const headerWeekStatus =
       flock?.status === "danger" && flockOverdue.length
-        ? `<span class="days-info overdue-pill" style="color:#dc2626; font-weight:600; background:#fee2e2; padding:2px 10px; border-radius:12px;"><i class="fas fa-exclamation-circle"></i> هفته‌های معوق: ${flockOverdue.join("، ")} — پس از ثبت کامل هفتگی حذف می‌شود</span>`
+        ? `<span class="days-info overdue-pill" style="color:#dc2626; font-weight:600;"><i class="fas fa-exclamation-circle"></i> هفته‌های معوق: ${flockOverdue.join("، ")} — پس از ثبت کامل هفتگی حذف می‌شود</span>`
         : this.daysInfoHTML(flock?.weekEndDate, flock?.status);
 
     const hallRows = activeHalls.length
@@ -252,12 +252,9 @@ export const dashboardRenderer = {
                 <div class="customer-name" style="font-weight:700; color:#0f172a;">${customer?.name || "نامشخص"}</div>
                 <div class="customer-farm" style="font-size:12px; color:#64748b;">${customer?.farmName || ""}${customer?.city ? " | " + customer.city : ""}</div>
               </div>
-              <span class="status-text" style="color:${st.color}; font-weight:700; background:${st.bg}; padding:3px 12px; border-radius:999px; border:1px solid ${st.color}44;">${st.text}</span>
+              <span class="status-text" style="color:${st.color}; font-weight:700;">${st.text}</span>
             </div>
-            <div class="week-info" style="display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin-top:8px; font-size:12px; color:#475569;">
-              ${meta.join("")}
-              ${headerWeekStatus}
-            </div>
+            <div class="task-meta-band">${meta.join("")}</div>
             ${
               defHall
                 ? '<div class="fc-hint"><i class="fas fa-mouse-pointer"></i> کلیک روی گله: نمودار کل گله — کلیک روی سالن: نمودار همان سالن</div>'
@@ -265,6 +262,10 @@ export const dashboardRenderer = {
             }
           </div>
           <div class="task-card-actions">
+            <div class="rail-status">
+              ${headerWeekStatus}
+              ${this.smsTodayHTML(flock?.smsToday)}
+            </div>
             <span class="tooltip-container">
               <button class="btn-profile" onclick="event.stopPropagation(); window.goToCustomerProfile(${customer?.id ?? 0})"><i class="fas fa-user"></i></button>
               <span class="tooltip tooltip-top">مشاهده پروفایل مرغدار</span>
@@ -276,6 +277,10 @@ export const dashboardRenderer = {
             <span class="tooltip-container">
               <button class="btn-sms" onclick="event.stopPropagation(); window.sendFlockCardSms(${flock?.id ?? 0}, null)"><i class="fas fa-sms"></i></button>
               <span class="tooltip tooltip-top">ارسال پیامک گله</span>
+            </span>
+            <span class="tooltip-container">
+              <button class="btn-history" onclick="event.stopPropagation(); window.showSmsHistory(${customer?.id ?? 0}, null, ${flock?.id ?? 0})"><i class="fas fa-history"></i></button>
+              <span class="tooltip tooltip-top">تاریخچه پیامک‌های گله</span>
             </span>
           </div>
         </div>
@@ -306,13 +311,39 @@ export const dashboardRenderer = {
     const chipAttrs = smsLog?.message_id
       ? ` data-message-id="${smsLog.message_id}" data-sender-name="${String(sender).replace(/"/g, "")}" data-sms-status="${smsStatus}"`
       : "";
+    const fmtDateTime = (d) => {
+      if (!d) return "";
+      try {
+        return new Intl.DateTimeFormat("fa-IR", {
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+        }).format(new Date(d));
+      } catch {
+        return "";
+      }
+    };
+    const deliveredAtText = smsLog?.delivered_at
+      ? fmtDateTime(smsLog.delivered_at)
+      : "";
+    const senderLine = sender
+      ? `<div style="font-size:9px; opacity:0.85;">فرستنده: ${sender}</div>`
+      : "";
+    const deliveryLine = deliveredAtText
+      ? `<div style="font-size:9px; opacity:0.85;">تحویل: ${deliveredAtText}</div>`
+      : "";
+    const chipHTML = smsInfo
+      ? `<span class="sms-status" ${chipAttrs} style="display:inline-flex; flex-direction:column; align-items:flex-start; gap:1px; line-height:1.6; background:${smsInfo.bg}; color:${smsInfo.color}; padding:3px 9px; border-radius:10px; font-size:10px; font-weight:500;">${smsInfo.text}${senderLine}${deliveryLine}</span>`
+      : "";
 
     const hallOverdue = Array.isArray(hall.overdueWeeks)
       ? hall.overdueWeeks.map(Number)
       : [];
     const hallDaysHTML =
       hall.status === "danger" && hallOverdue.length
-        ? `<span class="days-info overdue-pill" style="color:#dc2626; font-weight:600; background:#fee2e2; padding:2px 10px; border-radius:12px;"><i class="fas fa-exclamation-circle"></i> معوق: هفته ${hallOverdue.join("، ")}</span>`
+        ? `<span class="days-info overdue-pill" style="color:#dc2626; font-weight:600;"><i class="fas fa-exclamation-circle"></i> معوق: هفته ${hallOverdue.join("، ")}</span>`
         : this.daysInfoHTML(hall.weekEndDate, hall.status);
 
     return `
@@ -335,13 +366,12 @@ export const dashboardRenderer = {
               : ""
           }
           <span class="th-info"><i class="fas fa-hourglass-half"></i> ${hall.ageDays ?? 0} روز</span>
-          <span class="status-text" style="color:${hSt.color}; font-weight:600; background:${hSt.bg}; padding:1px 8px; border-radius:12px;">${hSt.text}</span>
+          ${chipHTML}
+        </div>
+        <div class="hall-status-stack">
+          <span class="status-text" style="color:${hSt.color}; font-weight:600;">${hSt.text}</span>
           ${hallDaysHTML}
-          ${
-            smsInfo
-              ? `<span class="sms-status" ${chipAttrs} style="background:${smsInfo.bg}; color:${smsInfo.color}; padding:2px 8px; border-radius:12px; font-size:10px; font-weight:500; display:inline-flex; align-items:center;">${smsInfo.text}</span>`
-              : ""
-          }
+          ${this.smsTodayHTML(hall.smsToday)}
         </div>
         <div class="task-hall-actions">
           <span class="tooltip-container">
@@ -349,7 +379,7 @@ export const dashboardRenderer = {
             <span class="tooltip tooltip-top">ارسال پیامک این سالن</span>
           </span>
           <span class="tooltip-container">
-            <button class="btn-refresh" onclick="event.stopPropagation(); window.refreshSmsStatus(${customer?.id ?? 0}, ${hall.id})"><i class="fas fa-sync-alt"></i></button>
+            <button class="btn-refresh" onclick="event.stopPropagation(); window.refreshSmsStatus(${customer?.id ?? 0}, ${hall.id}, ${flock?.id ?? 0})"><i class="fas fa-sync-alt"></i></button>
             <span class="tooltip tooltip-top">بروزرسانی وضعیت پیامک این سالن</span>
           </span>
           <span class="tooltip-container">
@@ -413,6 +443,30 @@ export const dashboardRenderer = {
     return html;
   },
 
+  smsTodayHTML(today) {
+    if (!today) return "";
+    const parts = [];
+    if (today.count > 0) {
+      const sentRoles =
+        today.roles && today.roles.length ? ` (${today.roles.join("، ")})` : "";
+      const latest = today.latest || {};
+      const senderName = latest.sender
+        ? [latest.sender.first_name, latest.sender.last_name]
+            .filter(Boolean)
+            .join(" ") || latest.sender.username || ""
+        : "";
+      parts.push(
+        `<span class="sms-today-pill ok" title="فرستنده: ${senderName}"><i class="fas fa-check-circle"></i> امروز ارسال شد${sentRoles}</span>`,
+      );
+    }
+    if (today.remaining && today.remaining.length) {
+      parts.push(
+        `<span class="sms-today-pill pending"><i class="fas fa-exclamation-circle"></i> مانده: ${today.remaining.join("، ")}</span>`,
+      );
+    }
+    return parts.join(" ");
+  },
+
   statusUI(status) {
     const map = {
       danger: {
@@ -445,14 +499,14 @@ export const dashboardRenderer = {
     today.setHours(0, 0, 0, 0);
     const diff = Math.ceil((end - today) / (1000 * 60 * 60 * 24));
     if (diff <= 0) {
-      return `<span class="days-info" style="color:#dc2626; font-weight:600; background:#fee2e2; padding:2px 10px; border-radius:12px;"><i class="fas fa-exclamation-triangle"></i> ${
+      return `<span class="days-info" style="color:#dc2626; font-weight:600;"><i class="fas fa-exclamation-triangle"></i> ${
         Math.abs(diff) === 0
           ? "امروز سررسید است"
           : `${Math.abs(diff)} روز از سررسید گذشته`
       }</span>`;
     }
     if (status === "danger" || status === "success") {
-      return `<span class="days-info" style="color:#16a34a; font-weight:600; background:#dcfce7; padding:2px 10px; border-radius:12px;"><i class="fas fa-hourglass-half"></i> ${diff} روز تا سررسید</span>`;
+      return `<span class="days-info" style="color:#16a34a; font-weight:600;"><i class="fas fa-hourglass-half"></i> ${diff} روز تا سررسید</span>`;
     }
     return "";
   },
@@ -540,4 +594,190 @@ export const dashboardRenderer = {
     };
     return texts[status] || status;
   },
+
+  // ============================================================
+  // رندر فشرده کارت گله (نسخه ۲ — هدر + ریل وضعیت + سالن‌های جمع‌شونده)
+  // ============================================================
+  renderFlockCard(card) {
+    const { customer, flock } = card || {};
+    const halls = (flock?.halls || []).filter((h) => h.isActive);
+    const st = this.statusUI(flock?.status);
+    const defHall = halls[0] || null;
+    const csafe = String(customer?.name || "").replace(/'/g, "");
+    const customerInitial =
+      String(customer?.name || "؟").trim().charAt(0) || "؟";
+    const groupClick = flock?.id
+      ? `window.selectFlockGroupForChart(${customer?.id ?? 0}, ${flock.id}, '${csafe}', ${flock?.flockNumber ?? "null"}, ${flock?.weekNumber ?? "null"})`
+      : "";
+
+    // ── متادیتای فشرده هدر ──
+    const meta = [];
+    if (flock?.flockNumber)
+      meta.push(
+        `<span class="fc-chip"><i class="fas fa-feather"></i> گله ${flock.flockNumber}</span>`,
+      );
+    if (flock?.placementDate)
+      meta.push(
+        `<span class="fc-chip"><i class="fas fa-calendar-alt"></i> ${convertToPersianDate(flock.placementDate)}</span>`,
+      );
+    if (flock?.flockAge != null)
+      meta.push(
+        `<span class="fc-chip"><i class="fas fa-hourglass-half"></i> ${flock.flockAge} روز</span>`,
+      );
+
+    // ── ردیف واحد/شهر ──
+    const farmParts = [];
+    const farmNameTxt = flock?.unitName || customer?.farmName || "";
+    if (farmNameTxt)
+      farmParts.push(`<i class="fas fa-warehouse"></i> ${farmNameTxt}`);
+    if (customer?.city)
+      farmParts.push(`<i class="fas fa-map-pin"></i> ${customer.city}`);
+    const farmHTML = farmParts.length
+      ? `<div class="fc-farm-line">${farmParts.join('<span class="fc-sep">|</span>')}</div>`
+      : "";
+
+    // ── روزهای مانده تا سررسید ──
+    let diffDays = null;
+    if (flock?.weekEndDate) {
+      const endD = new Date(flock.weekEndDate);
+      const nowD = new Date();
+      endD.setHours(0, 0, 0, 0);
+      nowD.setHours(0, 0, 0, 0);
+      diffDays = Math.ceil((endD - nowD) / (1000 * 60 * 60 * 24));
+    }
+    let deadlineText = "زمان‌بندی عادی";
+    if (flock?.status === "danger") deadlineText = "گذشته — نیاز به اقدام";
+    else if (flock?.status === "success") {
+      deadlineText =
+        diffDays === 0
+          ? "امروز سررسید است"
+          : diffDays != null && diffDays > 0
+            ? `${diffDays} روز تا سررسید`
+            : "گذشته — نیاز به اقدام";
+    }
+
+    // ── هفته‌های معوق گله ──
+    const flockOverdue = [
+      ...new Set(halls.flatMap((h) => h.overdueWeeks || [])),
+    ].sort((a, b) => a - b);
+
+    // ── آیتم‌های ریل وضعیت ──
+    const items = [];
+    items.push(
+      `<div class="fc-sitem"><span class="fc-sdot ${st.type}"></span><span class="fc-slbl">سررسید:</span><span class="fc-sval ${st.type}">${deadlineText}</span></div>`,
+    );
+    if (flock?.status === "danger" && flockOverdue.length) {
+      items.push(
+        `<div class="fc-sitem"><span class="fc-sdot danger"></span><span class="fc-slbl">معوق:</span><span class="fc-sval danger">هفته ${flockOverdue.join("، ")}</span></div>`,
+      );
+    }
+
+    const today = flock?.smsToday || null;
+    if (today && Number(today.count) > 0) {
+      const roleTxt =
+        today.roles && today.roles.length
+          ? ` (${today.roles.join("، ")})`
+          : "";
+      const snd = today.latest?.sender || null;
+      const senderName = snd
+        ? [snd.first_name, snd.last_name].filter(Boolean).join(" ") ||
+          snd.username ||
+          ""
+        : "";
+      items.push(
+        `<div class="fc-sitem"><i class="fas fa-check-circle fc-sicon success"></i><span class="fc-slbl">پیامک:</span><span class="fc-sval success"${senderName ? ` title="فرستنده: ${String(senderName).replace(/"/g, "")}"` : ""}>امروز ارسال شد${roleTxt}</span></div>`,
+      );
+    }
+    if (today?.remaining && today.remaining.length) {
+      items.push(
+        `<div class="fc-sitem"><i class="fas fa-exclamation-circle fc-sicon warning"></i><span class="fc-slbl">مانده:</span><span class="fc-sval warning">${today.remaining.join("، ")}</span></div>`,
+      );
+    }
+
+    // ── کارشناسان خدمات گله ──
+    const experts = Array.isArray(flock?.experts) ? flock.experts : [];
+    const expertText = experts.length
+      ? experts
+          .map(
+            (e) =>
+              `${e.name || "نامشخص"}${
+                e.halls && e.halls.length ? ` (${e.halls.join("، ")})` : ""
+              }`,
+          )
+          .join("، ")
+      : "ثبت نشده";
+    items.push(
+      `<div class="fc-sitem"><i class="fas fa-user-tie fc-sicon expert"></i><span class="fc-slbl">کارشناس خدمات:</span><span class="fc-sval">${expertText}</span></div>`,
+    );
+
+    // ── سالن‌ها (همیشه داخل بخش جمع‌شونده) ──
+    const hallRows = halls.length
+      ? halls.map((h) => this.renderHallRow(card, h)).join("")
+      : '<div class="flock-halls-empty">سالن فعالی در این گله نیست</div>';
+    const hallsBlock = `
+      <div class="task-halls-toggle" onclick="event.stopPropagation(); window.toggleTaskCardHalls(${flock?.id ?? 0})">
+        <i class="fas fa-warehouse"></i>
+        <span>سالن‌های گله</span>
+        <span class="th-count-badge">${halls.length}</span>
+        <span class="th-toggle-hint">${halls.length ? `${halls.length} سالن فعال` : "بدون سالن فعال"}</span>
+        <i class="fas fa-chevron-down accordion-icon"></i>
+      </div>
+      <div class="flock-halls halls-collapsible">${hallRows}</div>`;
+
+    return `
+      <div class="task-card task-card-${flock?.status || "normal"} selectable-card flock-task-card"
+           data-customer-id="${customer?.id ?? 0}"
+           data-flock-group-id="${flock?.id ?? 0}"
+           data-flock-id="${flock?.id ?? 0}"
+           onclick="${groupClick}"
+           style="cursor:pointer;">
+        <div class="fc-top-strip"></div>
+
+        <div class="fc-hdr">
+          <div class="fc-avatar" style="color:${st.color}; border-color:${st.color}55;">
+            ${customerInitial}
+            <span class="fc-ring" style="background:${st.color};"></span>
+          </div>
+          <div class="fc-hdr-main">
+            <div class="fc-title-line">
+              <span class="fc-cust">${customer?.name || "نامشخص"}</span>
+              ${customer?.id ? `<span class="fc-id-pill">#${customer.id}</span>` : ""}
+            </div>
+            ${farmHTML}
+            <div class="fc-meta-row">${meta.join("")}</div>
+          </div>
+          <div class="fc-hdr-actions">
+            <span class="tooltip-container">
+              <button class="btn-profile" onclick="event.stopPropagation(); window.goToCustomerProfile(${customer?.id ?? 0})"><i class="fas fa-user"></i></button>
+              <span class="tooltip tooltip-top">مشاهده پروفایل مرغدار</span>
+            </span>
+            <span class="tooltip-container">
+              <button class="btn-detail" onclick="event.stopPropagation(); window.showCustomerDetail(${customer?.id ?? 0}, ${defHall ? defHall.id : "null"})"><i class="fas fa-info-circle"></i></button>
+              <span class="tooltip tooltip-top">جزئیات مشتری</span>
+            </span>
+            <span class="tooltip-container">
+              <button class="btn-sms" onclick="event.stopPropagation(); window.sendFlockCardSms(${flock?.id ?? 0}, null)"><i class="fas fa-sms"></i></button>
+              <span class="tooltip tooltip-top">ارسال پیامک گله</span>
+            </span>
+            <span class="tooltip-container">
+              <button class="btn-refresh" onclick="event.stopPropagation(); window.refreshSmsStatus(${customer?.id ?? 0}, null, ${flock?.id ?? 0})"><i class="fas fa-sync-alt"></i></button>
+              <span class="tooltip tooltip-top">بروزرسانی وضعیت پیامک‌های گله</span>
+            </span>
+            <span class="tooltip-container">
+              <button class="btn-history" onclick="event.stopPropagation(); window.showSmsHistory(${customer?.id ?? 0}, null, ${flock?.id ?? 0})"><i class="fas fa-history"></i></button>
+              <span class="tooltip tooltip-top">تاریخچه پیامک‌های گله</span>
+            </span>
+          </div>
+        </div>
+
+        <div class="fc-stats-sec">
+          <div class="fc-sec-title"><i class="fas fa-bolt"></i> وضعیت‌ها</div>
+          <div class="fc-stats-grid">${items.join("")}</div>
+        </div>
+
+        ${hallsBlock}
+      </div>
+    `;
+  },
+
 };

@@ -21,9 +21,13 @@ export const hatcheryApi = {
     return apiService.get(`/customers/${id}`);
   },
 
-  // ارسال پیامک به گیرنده دلخواه (کارشناس/مدیر/مرغدار)
-  async sendToRecipient(mobile, message) {
-    return apiService.post("/sms/send-recipient", { mobile, message });
+  // ارسال پیامک به گیرنده دلخواه (کارشناس/مدیر/مرغدار) + زمینه گله/سالن
+  async sendToRecipient(mobile, message, ctx = {}) {
+    return apiService.post("/sms/send-recipient", {
+      mobile,
+      message,
+      ...ctx,
+    });
   },
 
   // ایجاد واحد جدید

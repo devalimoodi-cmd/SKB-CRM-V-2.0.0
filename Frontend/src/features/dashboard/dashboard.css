@@ -1344,6 +1344,66 @@
   display: flex;
 }
 
+/* ===== ریل وضعیت/پیامک کنار اکشن‌ها ===== */
+.flock-task-card .task-card-actions {
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+.flock-task-card .task-card-actions .rail-status {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  max-width: 180px;
+}
+.flock-task-card .task-card-actions .rail-status .days-info,
+.flock-task-card .task-card-actions .rail-status .sms-today-pill {
+  white-space: normal;
+  text-align: left;
+}
+
+/* چیپ‌های متادیتا بدون ظاهر بج (فقط متن) */
+.flock-task-card .task-meta-band .task-chip {
+  background: transparent;
+  border: none;
+  color: #64748b;
+  font-weight: 500;
+  padding: 1px 6px;
+  font-size: 11px;
+}
+
+/* بخش‌بندی داخلی کارت (اطلاعات دوره / وضعیت و پیامک) ===== */
+.task-meta-band {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+.task-status-band {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px dashed rgba(100, 116, 139, 0.18);
+}
+.flock-task-card .task-card-info .fc-main {
+  min-width: 0;
+}
+.task-hall-row .th-head {
+  align-items: flex-start;
+}
+.task-hall-row .hall-status-stack {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 4px 8px;
+  min-width: 0;
+}
+
 /* ===== مشخص‌سازی واضح سالن انتخاب‌شده ===== */
 .task-hall-row.selected {
   border-color: #2563eb;
@@ -1593,5 +1653,534 @@
   margin-inline-end: 4px;
 }
 
+/* ===== چیپ وضعیت «امروز» ===== */
+.sms-today-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 9px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.sms-today-pill.ok {
+  background: #d1fae5;
+  color: #047857;
+  border: 1px solid #6ee7b7;
+}
+.sms-today-pill.pending {
+  background: #fffbeb;
+  color: #b45309;
+  border: 1px solid #fcd34d;
+}
+
+/* ===== حالت «بدون بج»: وضعیت‌ها فقط متن/آیکون رنگی ===== */
+.sms-today-pill {
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+}
+.sms-today-pill i,
+.days-info i {
+  margin-inline-end: 4px;
+}
+.status-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+}
+.status-text::before {
+  width: 8px;
+  height: 8px;
+  margin-inline-end: 5px;
+}
+
+/* چیپ پیامک سالن بدون ظاهر بج — فقط متن رنگی */
+.task-hall-row .sms-status {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  font-weight: 500;
+  line-height: 1.7;
+}
+.task-hall-row .sms-status div {
+  opacity: 0.8;
+}
 
 
+
+
+
+/* ================================================================
+   کارت فشرده گله (نسخه ۲) — هدر، ریل وضعیت، سالن جمع‌شونده
+   ================================================================ */
+.task-card.flock-task-card {
+  background: linear-gradient(160deg, #ffffff 0%, #fbfcfd 60%, #f6f8fa 100%);
+  border: 1px solid #e6ebf1;
+  border-right: 4px solid #dc2626;
+  border-radius: 14px;
+}
+.task-card-danger.flock-task-card {
+  border-right-color: #dc2626;
+}
+.task-card-success.flock-task-card {
+  border-right-color: #10b981;
+}
+.task-card-normal.flock-task-card {
+  border-right-color: #3b82f6;
+}
+.flock-task-card .fc-top-strip {
+  height: 3px;
+  border-radius: 12px 12px 0 0;
+}
+
+/* ===== آواتار فشرده با حلقه وضعیت ===== */
+.task-card.flock-task-card .fc-avatar {
+  width: 38px;
+  height: 38px;
+  font-size: 13px;
+  font-weight: 800;
+  background: #ffffff;
+  border-width: 2px;
+  border-style: solid;
+  border-radius: 50%;
+  position: relative;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.6);
+}
+.task-card.flock-task-card .fc-avatar .fc-ring {
+  position: absolute;
+  bottom: -2px;
+  left: -2px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  border: 2px solid #ffffff;
+  animation: fcPulse 1.6s ease-in-out infinite;
+}
+@keyframes fcPulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.28);
+  }
+  50% {
+    box-shadow: 0 0 0 5px rgba(220, 38, 38, 0.04);
+  }
+}
+
+/* ===== هدر فشرده ===== */
+.flock-task-card .fc-hdr {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 14px 6px;
+}
+.flock-task-card .fc-hdr-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.flock-task-card .fc-title-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.flock-task-card .fc-cust {
+  font-size: 14px;
+  font-weight: 800;
+  color: #0f172a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.flock-task-card .fc-id-pill {
+  font-size: 9px;
+  font-weight: 600;
+  color: #94a3b8;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  padding: 0 6px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+.flock-task-card .fc-farm-line {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+  font-size: 10.5px;
+  color: #64748b;
+}
+.flock-task-card .fc-farm-line i {
+  font-size: 9px;
+  color: #94a3b8;
+}
+.flock-task-card .fc-sep {
+  color: #cbd5e1;
+  font-size: 10px;
+}
+.flock-task-card .fc-meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px 6px;
+  margin-top: 1px;
+}
+.flock-task-card .fc-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 9.5px;
+  font-weight: 500;
+  color: #64748b;
+  background: #f8fafc;
+  border: 1px solid #eef2f6;
+  padding: 1px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.flock-task-card .fc-chip i {
+  font-size: 8px;
+  color: #94a3b8;
+}
+
+/* ===== اکشن‌های هدر ===== */
+.flock-task-card .fc-hdr-actions {
+  display: flex;
+  gap: 2px;
+  align-items: center;
+  flex-shrink: 0;
+}
+.flock-task-card .fc-hdr-actions .tooltip-container {
+  width: 26px;
+  height: 26px;
+}
+.flock-task-card .fc-hdr-actions button {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #94a3b8;
+  font-size: 12px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.18s ease;
+}
+.flock-task-card .fc-hdr-actions button:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+  transform: translateY(-1px);
+}
+.flock-task-card .fc-hdr-actions .btn-profile:hover {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+.flock-task-card .fc-hdr-actions .btn-detail:hover {
+  background: #ccfbf1;
+  color: #0f766e;
+}
+.flock-task-card .fc-hdr-actions .btn-sms:hover {
+  background: #ddd6fe;
+  color: #6d28d9;
+}
+.flock-task-card .fc-hdr-actions .btn-history:hover {
+  background: #fae8ff;
+  color: #a21caf;
+}
+
+/* ===== ریل وضعیت‌ها ===== */
+.flock-task-card .fc-stats-sec {
+  padding: 3px 14px 7px;
+  border-bottom: 1px dashed #e2e8f0;
+  background: rgba(248, 250, 252, 0.55);
+}
+.flock-task-card .fc-sec-title {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 9.5px;
+  font-weight: 800;
+  color: #94a3b8;
+  letter-spacing: 0.2px;
+  margin-bottom: 3px;
+}
+.flock-task-card .fc-sec-title i {
+  font-size: 10px;
+  color: #dc2626;
+}
+.flock-task-card .fc-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 1px 18px;
+}
+.flock-task-card .fc-sitem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10.5px;
+  padding: 2px 2px;
+  border-radius: 6px;
+  min-width: 0;
+}
+.flock-task-card .fc-sdot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+@keyframes fcDotPulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.05);
+  }
+}
+.flock-task-card .fc-sdot.danger {
+  background: #dc2626;
+  animation: fcDotPulse 1.5s ease-in-out infinite;
+}
+.flock-task-card .fc-sdot.success {
+  background: #16a34a;
+}
+.flock-task-card .fc-sdot.warning {
+  background: #f59e0b;
+}
+.flock-task-card .fc-sdot.normal {
+  background: #3b82f6;
+}
+.flock-task-card .fc-sicon {
+  font-size: 11px;
+  width: 14px;
+  text-align: center;
+  flex-shrink: 0;
+}
+.flock-task-card .fc-sicon.success {
+  color: #16a34a;
+}
+.flock-task-card .fc-sicon.warning {
+  color: #d97706;
+}
+.flock-task-card .fc-sicon.expert {
+  color: #2c7a6e;
+}
+.flock-task-card .fc-slbl {
+  font-size: 9px;
+  color: #94a3b8;
+  flex-shrink: 0;
+}
+.flock-task-card .fc-sval {
+  color: #0f172a;
+  font-weight: 600;
+  font-size: 10.5px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.flock-task-card .fc-sval.danger {
+  color: #dc2626;
+}
+.flock-task-card .fc-sval.success {
+  color: #16a34a;
+}
+.flock-task-card .fc-sval.warning {
+  color: #d97706;
+}
+
+/* ===== جایگاه بخش سالن‌ها در کارت فشرده ===== */
+.flock-task-card .task-halls-toggle {
+  margin: 8px 14px 0;
+}
+.task-card.flock-task-card .flock-halls {
+  margin: 6px 14px 14px;
+}
+.task-hall-row {
+  background: #ffffff;
+}
+
+/* ===== ریسپانسیو کارت فشرده ===== */
+@media (max-width: 640px) {
+  .flock-task-card .fc-hdr {
+    flex-wrap: wrap;
+  }
+  .flock-task-card .fc-hdr-main {
+    order: 2;
+    width: 100%;
+  }
+  .flock-task-card .fc-hdr-actions {
+    order: 3;
+    width: 100%;
+    justify-content: flex-start;
+    padding-top: 4px;
+    border-top: 1px solid #f1f5f9;
+  }
+  .flock-task-card .fc-stats-grid {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+  .flock-task-card .task-halls-toggle,
+  .flock-task-card .flock-halls {
+    margin-inline: 10px;
+  }
+}
+
+
+/* ================================================================
+   پولیش گرافیکی کارت تسک — مرتب‌تر و خواناتر
+   ================================================================ */
+.task-card.flock-task-card {
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.05);
+}
+.task-card.flock-task-card:hover {
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12);
+}
+.task-card.flock-task-card .fc-top-strip {
+  background-image: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.35) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  background-size: 200% 100%;
+  animation: fcStripShimmer 4s ease-in-out infinite;
+}
+@keyframes fcStripShimmer {
+  0%,
+  100% {
+    background-position: 120% 0;
+  }
+  50% {
+    background-position: -20% 0;
+  }
+}
+
+/* دکمه‌های هدر: رنگ اختصاصی ملایم در حالت عادی */
+.flock-task-card .fc-hdr-actions button {
+  width: 27px;
+  height: 27px;
+  border-radius: 9px;
+  font-size: 12px;
+}
+.flock-task-card .fc-hdr-actions .btn-profile {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+.flock-task-card .fc-hdr-actions .btn-profile:hover {
+  background: #dbeafe;
+}
+.flock-task-card .fc-hdr-actions .btn-detail {
+  background: #f0fdfa;
+  color: #0f766e;
+}
+.flock-task-card .fc-hdr-actions .btn-detail:hover {
+  background: #ccfbf1;
+}
+.flock-task-card .fc-hdr-actions .btn-sms {
+  background: #f5f3ff;
+  color: #6d28d9;
+}
+.flock-task-card .fc-hdr-actions .btn-sms:hover {
+  background: #ede9fe;
+}
+.flock-task-card .fc-hdr-actions .btn-refresh {
+  background: #fffbeb;
+  color: #b45309;
+}
+.flock-task-card .fc-hdr-actions .btn-refresh:hover {
+  background: #fef3c7;
+  transform: rotate(160deg) translateY(-1px);
+}
+.flock-task-card .fc-hdr-actions .btn-history {
+  background: #fdf2f8;
+  color: #be185d;
+}
+.flock-task-card .fc-hdr-actions .btn-history:hover {
+  background: #fce7f3;
+}
+
+/* چیپ‌های متادیتا: فاصله و تمیزی بهتر */
+.flock-task-card .fc-meta-row {
+  gap: 4px 6px;
+  margin-top: 3px;
+}
+.flock-task-card .fc-chip {
+  background: #ffffff;
+  border-color: #e8edf3;
+  color: #5b6b7f;
+  padding: 2px 9px;
+}
+
+/* ریل وضعیت: خطوط جداکننده ظریف */
+.flock-task-card .fc-stats-sec {
+  background: linear-gradient(180deg, #fafbfc 0%, rgba(250, 251, 252, 0.4) 100%);
+}
+.flock-task-card .fc-sec-title {
+  color: #8a99ad;
+  font-size: 9px;
+}
+.flock-task-card .fc-sitem {
+  gap: 7px;
+}
+.flock-task-card .fc-sitem + .fc-sitem {
+  border-inline-start: 1px solid #edf1f6;
+  padding-inline-start: 12px;
+}
+.flock-task-card .fc-slbl {
+  font-size: 9.5px;
+}
+
+/* نوار سالن‌ها */
+.task-halls-toggle {
+  background: linear-gradient(180deg, #ffffff, #f8fafc);
+}
+.task-halls-toggle:hover {
+  background: #eff6ff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(37, 99, 235, 0.08);
+}
+.task-halls-toggle .th-count-badge {
+  background: #2c7a6e;
+}
+.task-halls-toggle.open {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+/* ردیف سالن: پس‌زمینه و حاشیه تمیز */
+.task-hall-row {
+  border-color: #e8edf3;
+  background: linear-gradient(180deg, #ffffff, #fbfdfe);
+}
+.task-hall-row:hover {
+  background: #f8fafc;
+}
+.task-hall-row.selected {
+  background: linear-gradient(135deg, #eff6ff 0%, #ffffff 70%);
+}
+
+/* نام مشتری کمی بزرگ‌تر و مرتب */
+.flock-task-card .fc-cust {
+  font-size: 15px;
+}
+.flock-task-card .fc-id-pill {
+  font-size: 9.5px;
+  color: #64748b;
+}
+
+
+@media (max-width: 640px) {
+  .flock-task-card .fc-sitem + .fc-sitem {
+    border-inline-start: none;
+    padding-inline-start: 0;
+  }
+}

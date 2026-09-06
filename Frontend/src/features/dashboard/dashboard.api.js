@@ -82,11 +82,12 @@ export const dashboardApi = {
   },
 
   // دریافت تاریخچه پیامک‌های مشتری (GET /sms/log/:customerId)
-  async getSmsHistory(customerId, flockId = null) {
+  async getSmsHistory(customerId, flockId = null, flockPeriodId = null) {
     try {
       const endpoint = `${API_CONSTANTS.ENDPOINTS.SMS.LOG}/${customerId}`;
       const params = {};
       if (flockId) params.flock_id = flockId;
+      if (flockPeriodId) params.flock_period_id = flockPeriodId;
 
       const json = await apiService.get(endpoint, params);
       // بک‌اند آرایه مستقیم برمی‌گرداند: successResponse(res, logs, ...)
@@ -111,9 +112,13 @@ export const dashboardApi = {
   },
 
   // ❌ بروزرسانی وضعیت پیامک‌های ارسال‌شده یک گله (چک سرویس و ذخیره در دیتابیس)
-  // ✅ مسیر درست: /sms/update-status/flock/:customerId/:flockId
-  async updateSmsStatusForFlock(customerId, flockId) {
-    return apiService.get(`/sms/update-status/flock/${customerId}/${flockId}`);
+  // ✅ مسیر درست: /sms/update-status/flock/:customerId/:flockId?flock_period_id=...
+  async updateSmsStatusForFlock(customerId, flockId, flockPeriodId = null) {
+    let url = `/sms/update-status/flock/${customerId}/${flockId ?? "null"}`;
+    if (flockPeriodId) {
+      url += `?flock_period_id=${flockPeriodId}`;
+    }
+    return apiService.get(url);
   },
 
   // ===== مشتریان =====

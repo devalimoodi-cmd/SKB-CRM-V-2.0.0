@@ -10,6 +10,7 @@ const Flock = require("../models/Flock");
 const WeeklyManagement = require("../models/WeeklyManagement");
 const Hall = require("../models/Hall");
 const Unit = require("../models/Unit");
+const UnitExpert = require("../models/UnitExpert");
 const User = require("../models/User");
 const ChickenBreed = require("../models/ChickenBreed");
 const ChickSource = require("../models/ChickSource");
@@ -311,8 +312,40 @@ const getActiveFlockCards = async (req, res) => {
   try {
     const { status } = req.query;
 
+    // ── فیلتر مالکیت برای کارشناسان: فقط گله‌هایی که سالن فعالشان به همین کاربر ثبت شده ──
+    const userRole = req.user?.role;
+    const userId = req.user?.id;
+    const flockWhere = { status: "active" };
+
+    if (userRole === "expert" && userId) {
+      try {
+        const ownedPlacements = await ChickPlacement.findAll({
+          where: { is_active: true },
+          attributes: ["flock_id"],
+          include: [
+            {
+              model: Hall,
+              attributes: ["service_expert_id"],
+              where: { service_expert_id: userId },
+              required: true,
+            },
+          ],
+        });
+        const ownedFlockIds = [
+          ...new Set(
+            (ownedPlacements || [])
+              .map((o) => o.flock_id)
+              .filter((v) => v !== null && v !== undefined),
+          ),
+        ];
+        flockWhere.id = { [Op.in]: ownedFlockIds };
+      } catch (expertFilterError) {
+        console.error("⚠️ خطا در فیلتر گله‌های کارشناس:", expertFilterError.message);
+      }
+    }
+
     const flocks = await Flock.findAll({
-      where: { status: "active" },
+      where: flockWhere,
       include: [
         {
           model: CustomerPersonalInfo,
@@ -322,19 +355,58 @@ const getActiveFlockCards = async (req, res) => {
         {
           model: Unit,
           as: "unit",
-          attributes: ["id", "unit_name"],
+          attributes: ["id", "unit_name", "manager_name", "manager_phone"],
+          include: [
+            {
+              model: UnitExpert,
+              as: "experts",
+              attributes: ["expert_name", "expert_phone"],
+              required: false,
+            },
+          ],
         },
         {
           model: ChickPlacement,
           as: "placements",
           include: [
-            { model: Hall, attributes: ["id", "hall_name"] },
+            {
+              model: Hall,
+              attributes: ["id", "hall_name", "service_expert_id"],
+            },
             { model: ChickenBreed, as: "breed", attributes: ["id", "name"] },
           ],
         },
       ],
       order: [["placement_date", "ASC"]],
     });
+    // ── نقشه نام کارشناسان خدمات (کاربران) برای نمایش روی کارت‌ها ──
+    const expertIds = [
+      ...new Set(
+        flocks
+          .flatMap((f) => f.placements || [])
+          .map((p) => p.Hall?.service_expert_id)
+          .filter((v) => v !== null && v !== undefined),
+      ),
+    ];
+    const expertNameById = new Map();
+    if (expertIds.length) {
+      try {
+        const expertUsers = await User.findAll({
+          where: { id: { [Op.in]: expertIds } },
+          attributes: ["id", "first_name", "last_name"],
+        });
+        expertUsers.forEach((u) => {
+          expertNameById.set(
+            u.id,
+            `${u.first_name || ""} ${u.last_name || ""}`.trim() ||
+              `کارشناس ${u.id}`,
+          );
+        });
+      } catch (expertNameError) {
+        console.error("⚠️ خطا در دریافت نام کارشناسان:", expertNameError.message);
+      }
+    }
+
 
     let dangerCount = 0;
     let successCount = 0;
@@ -427,20 +499,131 @@ const getActiveFlockCards = async (req, res) => {
             ],
           });
           smsRows.forEach((r) => {
-            if (todaySmsByPlacement[r.flock_id]) return;
+            const pid = r.flock_id;
+            if (!todaySmsByPlacement[pid]) {
+              const d = r.toJSON();
+              todaySmsByPlacement[pid] = {
+                latest: {
+                  status: d.status,
+                  message_id: d.message_id,
+                  sent_at: d.sent_at,
+                  delivered_at: d.delivered_at,
+                  sender: d.sender || null,
+                },
+                roles: new Set(),
+                count: 0,
+              };
+            }
+            todaySmsByPlacement[pid].count++;
+            if (r.recipient_role) {
+              todaySmsByPlacement[pid].roles.add(
+                String(r.recipient_role)
+                  .replace(
+                    /[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{FE0F}\u{200D}]/gu,
+                    "",
+                  )
+                  .trim(),
+              );
+            }
+          });
+        } catch (smsError) {
+          console.error("⚠️ خطا در دریافت لاگ پیامک سالن‌های گله:", smsError.message);
+        }
+      }
+
+      // ── گیرنده‌های انتظاری گله (برای نشان «وضعیت امروز») ──
+      const unitRow = fd.unit || null;
+      const expertsList =
+        unitRow && Array.isArray(unitRow.experts) ? unitRow.experts : [];
+      const primaryExpert =
+        expertsList.find((e) => e.expert_phone) || expertsList[0] || null;
+      const expectedRecipients = [];
+      if (primaryExpert?.expert_phone) {
+        expectedRecipients.push({
+          role: "کارشناس فارم",
+          name: primaryExpert.expert_name || "کارشناس",
+          mobile: primaryExpert.expert_phone,
+        });
+      }
+      if (unitRow?.manager_phone) {
+        expectedRecipients.push({
+          role: "مدیر فارم",
+          name: unitRow.manager_name || "مدیر",
+          mobile: unitRow.manager_phone,
+        });
+      }
+      if (cust?.mobile_number) {
+        expectedRecipients.push({
+          role: "مرغدار",
+          name: cust.full_name || "مرغدار",
+          mobile: cust.mobile_number,
+        });
+      }
+      const expectedRoles = expectedRecipients.map((r) => r.role);
+
+      // جمع‌بندی پیامک‌های امروز برای خودِ گله (ارسال گله-سطح)
+      const flockTodayBucket = { count: 0, latest: null, roles: new Set() };
+      try {
+        const startOfDay = new Date();
+        startOfDay.setHours(0, 0, 0, 0);
+        const endOfDay = new Date();
+        endOfDay.setHours(23, 59, 59, 999);
+        const flockLogs = await SmsLog.findAll({
+          where: {
+            flock_period_id: fd.id,
+            sent_at: { [Op.between]: [startOfDay, endOfDay] },
+          },
+          order: [["sent_at", "DESC"]],
+          include: [
+            {
+              model: User,
+              as: "sender",
+              attributes: ["id", "first_name", "last_name", "username"],
+            },
+          ],
+        });
+        flockLogs.forEach((r) => {
+          flockTodayBucket.count++;
+          if (!flockTodayBucket.latest) {
             const d = r.toJSON();
-            todaySmsByPlacement[r.flock_id] = {
+            flockTodayBucket.latest = {
               status: d.status,
               message_id: d.message_id,
               sent_at: d.sent_at,
               delivered_at: d.delivered_at,
               sender: d.sender || null,
             };
-          });
-        } catch (smsError) {
-          console.error("⚠️ خطا در دریافت لاگ پیامک سالن‌های گله:", smsError.message);
-        }
+          }
+          if (r.recipient_role) {
+            flockTodayBucket.roles.add(
+              String(r.recipient_role)
+                .replace(
+                  /[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{FE0F}\u{200D}]/gu,
+                  "",
+                )
+                .trim(),
+            );
+          }
+        });
+      } catch (smsFlockError) {
+        console.warn(
+          "⚠️ خطا در دریافت لاگ پیامک امروز گله:",
+          smsFlockError.message,
+        );
       }
+
+      const summarizeToday = (bucket) => {
+        const count = bucket?.count || 0;
+        const roles = bucket?.roles ? Array.from(bucket.roles) : [];
+        const remaining = expectedRoles.filter((role) => !roles.includes(role));
+        return {
+          count,
+          latest: bucket?.latest || null,
+          roles,
+          remaining,
+          allSent: count > 0 && remaining.length === 0,
+        };
+      };
 
       const halls = placements.map((p) => {
         const age = calculateFlockAge(p.placement_date);
@@ -450,8 +633,9 @@ const getActiveFlockCards = async (req, res) => {
         const complete = completeWeeksByPlacement[p.id] || [];
         const rows = rowsByPlacement[p.id] || [];
 
-        // هفته‌های معوق: بر اساس تقویم/تاریخ‌های ذخیره‌شده خودِ رکورد هفتگی
+        // هفته‌های معوق و نزدیک‌به‌سررسید — بر اساس تقویم/تاریخ‌های ذخیره‌شده رکورد هفتگی
         const overdueWeeks = [];
+        let nearDeadline = false;
         if (p.is_active) {
           const todayStart = new Date();
           todayStart.setHours(0, 0, 0, 0);
@@ -476,32 +660,37 @@ const getActiveFlockCards = async (req, res) => {
           const lastRowWeek = rows.length
             ? Math.max(...rows.map((r) => Number(r.week_number)))
             : 0;
-          const ceiling = Math.max(week, lastRowWeek);
+          const ceiling = Math.max(week, lastRowWeek) + 1;
 
           for (let w = 1; w <= ceiling; w++) {
             const r = rowByWeek[w];
-            if (r) {
-              // هفته رکورد دارد: اگر نامکمل باشد و پایانش گذشته/امروز = معوق
-              if (complete.includes(w)) continue;
-              const end = new Date(r.week_end_date);
-              end.setHours(0, 0, 0, 0);
-              if (end <= todayStart) overdueWeeks.push(w);
-            } else {
-              // هفته رکورد ندارد: پایان موردانتظار طبق تقویم هفتگی
-              const expEnd = new Date(week1Start);
-              expEnd.setDate(week1Start.getDate() + (w - 1) * 7 + 6);
-              if (expEnd <= todayStart) overdueWeeks.push(w);
+            if (r && complete.includes(w)) continue; // هفته کاملِ ثبت‌شده
+
+            const end = r ? new Date(r.week_end_date) : new Date(week1Start);
+            if (!r) {
+              end.setDate(week1Start.getDate() + (w - 1) * 7 + 6);
+            }
+            end.setHours(0, 0, 0, 0);
+
+            const diffDays = Math.ceil(
+              (end - todayStart) / (1000 * 60 * 60 * 24),
+            );
+            if (diffDays <= 0) {
+              // هفته‌ای که تمام شده ولی کامل نیست = معوق
+              overdueWeeks.push(w);
+            } else if (diffDays <= 2) {
+              // هفته جاریِ ثبت‌نشده که ۱ تا ۲ روز تا پایان مهلتش مانده
+              nearDeadline = true;
             }
           }
         }
 
-        const fallbackStatus = calculateStatus(range.weekEndDate);
         const hallStatus = p.is_active
           ? overdueWeeks.length > 0
             ? "danger"
-            : fallbackStatus === "danger"
-              ? "success" // هفته جاری تمام شده ولی کامل است → دیگر قرمز نیست
-              : fallbackStatus
+            : nearDeadline
+              ? "success"
+              : "normal"
           : null;
 
         return {
@@ -519,7 +708,15 @@ const getActiveFlockCards = async (req, res) => {
           completedWeeks: recorded,
           completeWeeks: complete,
           overdueWeeks: overdueWeeks,
-          smsLog: todaySmsByPlacement[p.id] || null,
+          smsLog: todaySmsByPlacement[p.id]?.latest || null,
+          smsToday: summarizeToday(todaySmsByPlacement[p.id]),
+          expert: p.Hall?.service_expert_id
+            ? {
+                id: p.Hall.service_expert_id,
+                name:
+                  expertNameById.get(p.Hall.service_expert_id) || "نامشخص",
+              }
+            : null,
         };
       });
 
@@ -530,6 +727,20 @@ const getActiveFlockCards = async (req, res) => {
         : activeHalls.some((h) => h.status === "success")
           ? "success"
           : "normal";
+
+      // ── کارشناسان خدمات سالن‌های گله (نمایش در بخش وضعیت‌ها) ──
+      const expertAgg = new Map();
+      activeHalls.forEach((h) => {
+        if (!h.expert) return;
+        const entry = expertAgg.get(h.expert.id) || {
+          id: h.expert.id,
+          name: h.expert.name,
+          halls: [],
+        };
+        entry.halls.push(h.hallName || `سالن ${h.hallId}`);
+        expertAgg.set(h.expert.id, entry);
+      });
+      const flockExperts = Array.from(expertAgg.values());
 
       if (status && status !== "all" && status !== worstStatus) continue;
       if (worstStatus === "danger") dangerCount++;
@@ -561,6 +772,8 @@ const getActiveFlockCards = async (req, res) => {
           weekEndDate: flockRange.weekEndDate,
           status: worstStatus,
           halls: halls,
+          smsToday: summarizeToday(flockTodayBucket),
+          experts: flockExperts,
         },
       });
     }

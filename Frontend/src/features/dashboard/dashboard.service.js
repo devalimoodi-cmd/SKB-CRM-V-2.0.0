@@ -179,11 +179,11 @@ SKB-CRM.IR`,
     return (cards || [])
       .map(
         (c) =>
-          `${c.customer?.id || 0}-${c.flock?.id || 0}-${c.flock?.status || "normal"}|${(c.flock?.halls || [])
+          `${c.customer?.id || 0}-${c.flock?.id || 0}-${c.flock?.status || "normal"}-S${c.flock?.smsToday ? `${c.flock.smsToday.count}:${(c.flock.smsToday.roles || []).join(",")}` : ""}|${(c.flock?.halls || [])
             .filter((h) => h.isActive)
             .map(
               (h) =>
-                `${h.id}:${h.status || ""}:${(h.overdueWeeks || []).join(",")}:${(h.completeWeeks || []).length}`,
+                `${h.id}:${h.status || ""}:${(h.overdueWeeks || []).join(",")}:${(h.completeWeeks || []).length}:S${h.smsToday ? `${h.smsToday.count}:${(h.smsToday.roles || []).join(",")}` : ""}`,
             )
             .join(",")}`,
       )
@@ -251,15 +251,41 @@ SKB-CRM.IR`,
       chip.dataset.messageId = String(log.message_id);
       chip.dataset.senderName = sender;
     }
+    const fmtDateTime = (d) => {
+      if (!d) return "";
+      try {
+        return new Intl.DateTimeFormat("fa-IR", {
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+        }).format(new Date(d));
+      } catch {
+        return "";
+      }
+    };
+    const deliveredAtText = log.delivered_at
+      ? fmtDateTime(log.delivered_at)
+      : "";
+    const senderLine = sender
+      ? `<div style="font-size:9px; opacity:0.85;">فرستنده: ${sender}</div>`
+      : "";
+    const deliveryLine = deliveredAtText
+      ? `<div style="font-size:9px; opacity:0.85;">تحویل: ${deliveredAtText}</div>`
+      : "";
     chip.style.background = smsInfo.bg;
     chip.style.color = smsInfo.color;
-    chip.style.padding = "2px 8px";
-    chip.style.borderRadius = "12px";
+    chip.style.padding = "3px 9px";
+    chip.style.borderRadius = "10px";
     chip.style.fontSize = "10px";
     chip.style.fontWeight = "500";
     chip.style.display = "inline-flex";
-    chip.style.alignItems = "center";
-    chip.textContent = smsInfo.text;
+    chip.style.flexDirection = "column";
+    chip.style.alignItems = "flex-start";
+    chip.style.gap = "1px";
+    chip.style.lineHeight = "1.6";
+    chip.innerHTML = `${smsInfo.text}${senderLine}${deliveryLine}`;
   }
 
   async loadBookmarks() {
@@ -411,21 +437,21 @@ SKB-CRM.IR`,
         experts.find((e) => e.expert_phone) || experts[0] || null;
       if (primaryExpert?.expert_phone) {
         recipients.push({
-          role: "👨‍🔬 کارشناس فارم",
+          role: "کارشناس فارم",
           name: primaryExpert.expert_name || "کارشناس",
           mobile: primaryExpert.expert_phone,
         });
       }
       if (unit?.manager_phone) {
         recipients.push({
-          role: "🧑‍💼 مدیر فارم",
+          role: "مدیر فارم",
           name: unit.manager_name || "مدیر",
           mobile: unit.manager_phone,
         });
       }
       if (card.customer?.phone) {
         recipients.push({
-          role: "👨‍🌾 مرغدار",
+          role: "مرغدار",
           name: card.customer.name || "مرغدار",
           mobile: card.customer.phone,
         });
@@ -440,29 +466,73 @@ SKB-CRM.IR`,
       const { openSmsModal } = await import(
         "../sms/sms.modal.service.js"
       );
+      const cleanHallName = (name) =>
+        String(name || "").trim().replace(/^سالن\s*/i, "");
+      let hallName = null;
+      let weekNumber = flock?.weekNumber || null;
+      if (hallId) {
+        const hallRow = (flock.halls || []).find(
+          (x) => parseInt(x.id) === parseInt(hallId),
+        );
+        hallName = hallRow?.hallName ? cleanHallName(hallRow.hallName) : null;
+        if (hallRow?.weekNumber != null) weekNumber = hallRow.weekNumber;
+      }
+
       const result = await openSmsModal({
         title: hallId
-          ? `📱 پیامک سالن — گله ${flock.flockNumber}`
-          : `📱 پیامک گله ${flock.flockNumber}`,
+          ? `پیامک سالن — گله ${flock.flockNumber}`
+          : `پیامک گله ${flock.flockNumber}`,
         recipients,
         flockNumber: flock.flockNumber,
+        weekNumber,
+        hallName,
+        scope: hallId ? "hall" : "flock",
         subtitle: hallId
-          ? "این پیامک برای سالن انتخاب‌شده ارسال می‌شود"
-          : "این پیامک برای گله ارسال می‌شود",
+          ? `پیام برای گله ${flock.flockNumber}${hallName ? ` — سالن ${hallName}` : ""} ساخته می‌شود`
+          : `پیام برای گله ${flock.flockNumber} (کل گله) ساخته می‌شود`,
       });
       if (!result) return;
 
-      const response = await apiService.post("/sms/send-recipient", {
-        mobile: result.recipient.mobile,
-        message: result.message,
-      });
-      if (response.success) {
+      const items =
+        Array.isArray(result.messages) && result.messages.length
+          ? result.messages
+          : [{ recipient: result.recipient, message: result.message }];
+      let okCount = 0;
+      let failCount = 0;
+      for (const item of items) {
+        try {
+          const resp = await apiService.post("/sms/send-recipient", {
+            mobile: item.recipient?.mobile,
+            message: item.message,
+            customerId: card.customer?.id || null,
+            flockPeriodId: flock.id,
+            hallId: hallId || null,
+            scope: hallId ? "hall" : "flock",
+            flockNumber: flock.flockNumber,
+            hallName: hallName || null,
+            weekNumber: weekNumber || null,
+            recipientRole: item.recipient?.role || null,
+            recipientName: item.recipient?.name || null,
+          });
+          if (resp && resp.success) okCount++;
+          else failCount++;
+        } catch (e) {
+          failCount++;
+        }
+      }
+      if (okCount > 0) {
         notificationService.success(
-          `پیامک به ${result.recipient.role || "گیرنده"} ارسال شد`,
+          failCount === 0
+            ? `پیامک به ${okCount} گیرنده ارسال شد`
+            : `پیامک به ${okCount} گیرنده ارسال شد (${failCount} ناموفق)`,
         );
       } else {
-        notificationService.error(response.message || "خطا در ارسال پیامک");
+        notificationService.error(
+          failCount > 0 ? "ارسال پیامک ناموفق بود" : "گیرنده‌ای برای ارسال انتخاب نشد",
+        );
       }
+      // به‌روزرسانی فوری نشان «امروز» بعد از ارسال
+      await this.refreshFlockCardsSilently();
     } catch (error) {
       console.error("❌ Error sending flock card sms:", error);
       notificationService.error(error.message || "خطا در ارسال پیامک");
@@ -1395,7 +1465,7 @@ SKB-CRM.IR`,
               <!-- شمارنده کاراکتر -->
               <div style="display: flex; justify-content: space-between; font-size: 12px; color: #94a3b8; padding: 0 2px;">
                 <span>تعداد کاراکتر: <strong id="smsCharCount" style="color:#2c7a6e;">${defaultMessage.length}</strong></span>
-                <span>حداکثر 500 کاراکتر</span>
+                <span>حداکثر 1000 کاراکتر</span>
               </div>
             </div>
           `,
@@ -1414,7 +1484,7 @@ SKB-CRM.IR`,
               charCount.textContent = textarea.value.length;
               textarea.addEventListener("input", () => {
                 charCount.textContent = textarea.value.length;
-                if (textarea.value.length > 500) {
+                if (textarea.value.length > 1000) {
                   charCount.style.color = "#dc2626";
                 } else {
                   charCount.style.color = "#2c7a6e";
@@ -1445,9 +1515,9 @@ SKB-CRM.IR`,
               Swal.showValidationMessage("لطفاً متن پیامک را وارد کنید");
               return false;
             }
-            if (message.length > 500) {
+            if (message.length > 1000) {
               Swal.showValidationMessage(
-                "متن پیامک نباید بیشتر از 500 کاراکتر باشد",
+                "متن پیامک نباید بیشتر از 1000 کاراکتر باشد",
               );
               return false;
             }
@@ -1742,13 +1812,60 @@ SKB-CRM.IR`,
     return texts[priority] || "متوسط";
   }
 
+  // ===== ابزارهای لودینگ مودال وضعیت پیامک =====
+  showSmsLoader(text = "در حال بارگذاری...") {
+    if (typeof Swal === "undefined") return false;
+    try {
+      if (Swal.isVisible && Swal.isVisible()) return false;
+      Swal.fire({
+        title: "⏳ لطفاً صبر کنید...",
+        html: `
+          <div style="display:flex; align-items:center; justify-content:center; gap:10px; direction:rtl; font-family:'Vazir', sans-serif; padding:8px 0;">
+            <i class="fas fa-circle-notch fa-spin" style="font-size:22px; color:#2c7a6e;"></i>
+            <span style="font-size:13px; color:#334155;">${text}</span>
+          </div>`,
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        showConfirmButton: false,
+      });
+      return true;
+    } catch (e) {
+      console.warn("⚠️ خطا در نمایش لودینگ:", e);
+      return false;
+    }
+  }
+
+  closeSmsLoader() {
+    if (typeof Swal === "undefined") return;
+    try {
+      if (Swal.isVisible && Swal.isVisible()) Swal.close();
+    } catch (e) {
+      // ignore
+    }
+  }
+
   // ===== توابع SMS History =====
 
-  async showSmsHistory(customerId, flockId = null) {
+  async showSmsHistory(customerId, flockId = null, flockPeriodId = null) {
+    // ذخیره بافت مودال تاریخچه تا دکمه «بروزرسانی» همان دامنه را رفرش کند
+    this.smsHistoryCtx = { customerId, flockId, flockPeriodId };
+
+    // ⏳ لودینگ + بروزرسانی خودکار وضعیت پیامک‌های همان دامنه قبل از نمایش جدول
+    const loaderShown = this.showSmsLoader(
+      "در حال دریافت و بروزرسانی وضعیت پیامک‌ها...",
+    );
+    try {
+      await this.refreshSmsStatus(customerId, flockId, flockPeriodId, false);
+    } catch (e) {
+      console.warn("⚠️ خطا در بروزرسانی خودکار وضعیت پیامک‌ها:", e);
+    } finally {
+      if (loaderShown) this.closeSmsLoader();
+    }
+
     let records = [];
     try {
       const response = await dashboardApi
-        .getSmsHistory(customerId, flockId)
+        .getSmsHistory(customerId, flockId, flockPeriodId)
         .catch(() => ({ success: false, data: [] }));
       records = response.success
         ? response.data?.messages || response.data || []
@@ -1757,36 +1874,8 @@ SKB-CRM.IR`,
       records = [];
     }
 
-    // ✅ بررسی وضعیت واقعی پیامک‌ها از سرویس (برای پیامک‌هایی که وضعیت تحویل ندارند)
-    // این کار باعث می‌شود زمان و وضعیت تحویل برای هر پیامک به‌روز شود
-    const pendingStatusChecks = records.filter(
-      (r) => r.message_id && !r.delivery_state,
-    );
-    if (pendingStatusChecks.length > 0) {
-      await Promise.all(
-        pendingStatusChecks.map(async (r) => {
-          try {
-            const statusRes = await dashboardApi.checkSmsStatus(r.message_id);
-            if (statusRes.success && statusRes.data?.deliveryState) {
-              r.delivery_state = statusRes.data.deliveryState;
-              // آپدیت وضعیت بر اساس deliveryState
-              if (statusRes.data.deliveryState === 1) {
-                r.status = "delivered";
-                r.delivered_at = r.delivered_at || new Date().toISOString();
-              } else if (statusRes.data.deliveryState === 6) {
-                r.status = "failed";
-              } else if (statusRes.data.deliveryState === 3) {
-                r.status = "sent";
-              } else {
-                r.status = "pending";
-              }
-            }
-          } catch (err) {
-            console.warn("⚠️ خطا در بررسی وضعیت پیامک:", err);
-          }
-        }),
-      );
-    }
+    // بروزرسانی وضعیت پیامک‌ها در بالا (سمت سرور، همان دامنه) انجام شد؛
+    // در این مرحله فقط تاریخچه‌ی ذخیره‌شده/به‌روزشده نمایش داده می‌شود.
 
     if (typeof Swal !== "undefined") {
       // تابع کمکی تبدیل زمان تاریخچه لاگ
@@ -1809,16 +1898,21 @@ SKB-CRM.IR`,
       // تابع کمکی وضعیت تحویل از بک‌اند
       const getDeliveryText = (deliveryState) => {
         const map = {
+          0: "⏳ در صف ارسال",
           1: "✅ رسیده به گوشی",
           2: "❌ نرسیده به گوشی",
-          3: "📡 رسیده به مخابرات",
+          3: "📡 پردازش در مخابرات",
           4: "❌ نرسیده به مخابرات",
-          5: "📡 رسیده به اپراتور",
-          6: "❌ ناموفق",
+          5: "📡 رسیده به مخابرات",
+          6: "❌ خطا",
           7: "⛔ لیست سیاه",
           8: "❓ نامشخص",
         };
-        return map[deliveryState] || "-";
+        return deliveryState === null ||
+          deliveryState === undefined ||
+          deliveryState === ""
+          ? "-"
+          : map[Number(deliveryState)] || "نامشخص";
       };
 
       // تابع کمکی نام فرستنده
@@ -1834,7 +1928,7 @@ SKB-CRM.IR`,
       let rows = "";
       if (records.length === 0) {
         rows =
-          '<tr><td colspan="7" style="text-align:center; padding:20px; color:#94a3b8;">هیچ پیامکی ارسال نشده است</td></tr>';
+          '<tr><td colspan="8" style="text-align:center; padding:20px; color:#94a3b8;">هیچ پیامکی ارسال نشده است</td></tr>';
       } else {
         rows = records
           .map(
@@ -1842,6 +1936,20 @@ SKB-CRM.IR`,
             <tr>
               <td style="padding:8px; border-bottom:1px solid #f1f5f9; text-align:center;">${i + 1}</td>
               <td style="padding:8px; border-bottom:1px solid #f1f5f9; text-align:center; max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${r.message || "-"}</td>
+              <td style="padding:8px; border-bottom:1px solid #f1f5f9; text-align:center; min-width:140px;">
+                <div><span style="display:inline-block; padding:1px 8px; border-radius:999px; font-size:9.5px; font-weight:700; background:${
+                  r.scope === "hall" ? "#eff6ff" : "#ecfdf5"
+                }; color:${
+                  r.scope === "hall" ? "#1d4ed8" : "#047857"
+                };">${r.scope === "hall" ? "سالن" : "کل گله"}</span></div>
+                <div style="font-size:10.5px; font-weight:700; color:#334155; margin-top:2px;">${r.targetLabel || r.target_title || "—"}</div>
+                <div style="font-size:10px; color:#64748b;">${r.roleLabel || "—"}</div>
+                ${
+                  r.flock_number
+                    ? `<div style="font-size:9.5px; color:#94a3b8; margin-top:1px;">گله ${r.flock_number}${r.week_number ? ` | هفته ${r.week_number}` : ""}</div>`
+                    : ""
+                }
+              </td>
               <td style="padding:8px; border-bottom:1px solid #f1f5f9; text-align:center;">${formatDateTime(r.sent_at || r.created_at)}</td>
               <td style="padding:8px; border-bottom:1px solid #f1f5f9; text-align:center;">${formatDateTime(r.delivered_at)}</td>
               <td style="padding:8px; border-bottom:1px solid #f1f5f9; text-align:center;">${getDeliveryText(r.delivery_state)}</td>
@@ -1881,41 +1989,85 @@ SKB-CRM.IR`,
                   <tr style="background:#f8fafc;">
                     <th style="padding:8px; border-bottom:2px solid #eef2f6;">ردیف</th>
                     <th style="padding:8px; border-bottom:2px solid #eef2f6;">متن پیام</th>
+                    <th style="padding:8px; border-bottom:2px solid #eef2f6;">هدف / گیرنده</th>
                     <th style="padding:8px; border-bottom:2px solid #eef2f6;">تاریخ و زمان ارسال</th>
                     <th style="padding:8px; border-bottom:2px solid #eef2f6;">تاریخ و زمان تحویل</th>
                     <th style="padding:8px; border-bottom:2px solid #eef2f6;">وضعیت تحویل</th>
                     <th style="padding:8px; border-bottom:2px solid #eef2f6;">وضعیت</th>
-                    <th style="padding:8px; border-bottom:2px solid #eef2f6;">👤 فرستنده</th>
+                    <th style="padding:8px; border-bottom:2px solid #eef2f6;">فرستنده</th>
                   </tr>
                 </thead>
                 <tbody>${rows}</tbody>
               </table>
             </div>
+            <div style="display:flex; justify-content:center; margin-top:12px;">
+              <button type="button" onclick="window.refreshSmsHistoryFromModal()"
+                      style="display:inline-flex; align-items:center; gap:6px; padding:8px 16px; border:none; border-radius:8px; background:#2c7a6e; color:#ffffff; font-family:'Vazir'; font-size:12px; font-weight:600; cursor:pointer; box-shadow:0 2px 8px rgba(44,122,110,0.25);">
+                <i class="fas fa-sync-alt"></i> بروزرسانی وضعیت پیامک‌های قبلی
+              </button>
+            </div>
           `,
         confirmButtonText: "بستن",
         confirmButtonColor: "#2c7a6e",
-        width: 900,
+        width: 1080,
       });
     }
   }
 
-  async refreshSmsStatus(customerId, flockId) {
+  // ===== رفرش از داخل مودال تاریخچه (بروزرسانی همه پیامک‌های قبلی همان دامنه) =====
+  async refreshSmsHistoryFromModal() {
+    const ctx = this.smsHistoryCtx || {};
+    if (!ctx.customerId) {
+      notificationService.warning("دامنه تاریخچه مشخص نیست");
+      return;
+    }
+    try {
+      if (typeof Swal !== "undefined") Swal.close();
+      notificationService.info(
+        "⏳ در حال بروزرسانی وضعیت پیامک‌های قبلی...",
+      );
+    } catch (err) {
+      console.error("❌ خطا در بروزرسانی وضعیت پیامک‌های قبلی:", err);
+    }
+    // showSmsHistory خودش لودینگ + بروزرسانی سمت سرور + باز کردن مجدد را انجام می‌دهد
+    await this.showSmsHistory(
+      ctx.customerId,
+      ctx.flockId ?? null,
+      ctx.flockPeriodId ?? null,
+    );
+  }
+
+
+  async refreshSmsStatus(customerId, flockId, flockPeriodId = null, openModal = true) {
+    let loaderShown = false;
     try {
       // نمایش پیام در حال بررسی
-      notificationService.info("⏳ در حال بررسی و بروزرسانی وضعیت پیامک‌ها...");
+      if (openModal) {
+        notificationService.info("⏳ در حال بررسی و بروزرسانی وضعیت پیامک‌ها...");
+        loaderShown = this.showSmsLoader(
+          "در حال بررسی و بروزرسانی وضعیت پیامک‌ها...",
+        );
+      }
 
       // ۱. فراخوانی سرویس سرور برای چک وضعیت واقعی پیامک‌های ارسال‌نشده
       //    این سرویس برای هر پیامک بدون وضعیت تحویل، از سرویس‌دهنده پیامک استعلام می‌گیرد
       //    و وضعیت واقعی (تحویل/ناموفق/در انتظار) را در دیتابیس ذخیره می‌کند
       const updateRes = await dashboardApi
-        .updateSmsStatusForFlock(customerId, flockId)
+        .updateSmsStatusForFlock(customerId, flockId, flockPeriodId)
         .catch(() => null);
 
-      // ۲. دریافت تاریخچه به‌روزشده از دیتابیس (بعد از ذخیره وضعیت‌ها)
+      // حالت بی‌صدا (فراخوانی از لودینگ مودال تاریخچه): فقط بروزرسانی سمت سرور
+      if (!openModal) {
+        await this.loadFlocks();
+        await this.refreshAllTaskSmsStatus();
+        return;
+      }
+
+      // ۲. دریافت تاریخچه به‌روزشده از دیتابیس (بعد از ذخیره وضعیت‌ها) — با همان دامنه/مقیاس
       let records = [];
       try {
         const response = await dashboardApi
-          .getSmsHistory(customerId, flockId)
+          .getSmsHistory(customerId, flockId, flockPeriodId)
           .catch(() => ({ success: false, data: [] }));
         records = response.success
           ? response.data?.messages || response.data || []
@@ -1928,12 +2080,29 @@ SKB-CRM.IR`,
       const totalChecked = stats.total ?? records.length;
       const updatedCount = stats.updated ?? 0;
 
+      // اگر پیامکی برای بررسی وجود ندارد، بدون خطا/مودال خالی تمام کن
+      const hasAny =
+        (Number(totalChecked) > 0 ||
+          Number(updatedCount) > 0 ||
+          records.length > 0);
+      if (!hasAny) {
+        await this.loadFlocks();
+        await this.refreshAllTaskSmsStatus();
+        if (loaderShown) this.closeSmsLoader();
+        if (openModal) {
+          notificationService.info("هیچ پیامکی برای بروزرسانی وضعیت وجود ندارد");
+        }
+        return;
+      }
+
       // ۳. رفرش کارت‌ها و وضعیت‌ها
       await this.loadFlocks();
       await this.refreshAllTaskSmsStatus();
 
+      if (loaderShown) this.closeSmsLoader();
+
       // ۴. نمایش مودال با وضعیت‌های جدید
-      if (typeof Swal !== "undefined") {
+      if (openModal && typeof Swal !== "undefined") {
         const formatDateTime = (dateStr) => {
           if (!dateStr) return "-";
           try {
@@ -1951,16 +2120,29 @@ SKB-CRM.IR`,
 
         const getDeliveryText = (deliveryState) => {
           const map = {
+            0: "⏳ در صف ارسال",
             1: "✅ رسیده به گوشی",
             2: "❌ نرسیده به گوشی",
-            3: "📡 رسیده به مخابرات",
+            3: "📡 پردازش در مخابرات",
             4: "❌ نرسیده به مخابرات",
-            5: "📡 رسیده به اپراتور",
-            6: "❌ ناموفق",
+            5: "📡 رسیده به مخابرات",
+            6: "❌ خطا",
             7: "⛔ لیست سیاه",
             8: "❓ نامشخص",
           };
-          return map[deliveryState] || "-";
+          return deliveryState === null ||
+            deliveryState === undefined ||
+            deliveryState === ""
+            ? "-"
+            : map[Number(deliveryState)] || "نامشخص";
+        };
+        const getSenderName = (sender) => {
+          if (!sender) return "کاربر سیستم";
+          return (
+            `${sender.first_name || ""} ${sender.last_name || ""}`.trim() ||
+            sender.username ||
+            "کاربر سیستم"
+          );
         };
 
         let rows = records
@@ -1968,9 +2150,38 @@ SKB-CRM.IR`,
             (r, i) => `
             <tr>
               <td style="padding:8px; border-bottom:1px solid #f1f5f9; text-align:center;">${i + 1}</td>
-              <td style="padding:8px; border-bottom:1px solid #f1f5f9; text-align:center; max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${r.message || ""}">${r.message || "-"}</td>
+              <td style="padding:8px; border-bottom:1px solid #f1f5f9; text-align:center; max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${r.message || ""}">${r.message || "-"}</td>
+              <td style="padding:8px; border-bottom:1px solid #f1f5f9; text-align:center; min-width:150px;">
+                <div><span style="display:inline-block; padding:1px 8px; border-radius:999px; font-size:9.5px; font-weight:700; background:${
+                  r.scope === "hall" ? "#eff6ff" : "#ecfdf5"
+                }; color:${
+                  r.scope === "hall" ? "#1d4ed8" : "#047857"
+                };">${r.scope === "hall" ? "سالن" : "کل گله"}</span></div>
+                <div style="font-size:10.5px; font-weight:700; color:#334155; margin-top:2px;">${r.targetLabel || r.target_title || "—"}</div>
+                <div style="font-size:10px; color:#64748b;">${r.roleLabel || "—"}</div>
+                ${
+                  r.flock_number
+                    ? `<div style="font-size:9.5px; color:#94a3b8; margin-top:1px;">گله ${r.flock_number}${r.week_number ? ` | هفته ${r.week_number}` : ""}</div>`
+                    : ""
+                }
+              </td>
               <td style="padding:8px; border-bottom:1px solid #f1f5f9; text-align:center;">${formatDateTime(r.sent_at || r.created_at)}</td>
-              <td style="padding:8px; border-bottom:1px solid #f1f5f9; text-align:center;">${getDeliveryText(r.delivery_state)}</td>
+              <td style="padding:8px; border-bottom:1px solid #f1f5f9; text-align:center; min-width:120px;">
+                <span style="display:inline-block; padding:2px 8px; border-radius:8px; font-size:10px; font-weight:600; background:${
+                  r.delivery_state === 1
+                    ? "#ecfdf5"
+                    : r.delivery_state === 6 || r.status === "failed"
+                      ? "#fef2f2"
+                      : "#fffbeb"
+                }; color:${
+                  r.delivery_state === 1
+                    ? "#047857"
+                    : r.delivery_state === 6 || r.status === "failed"
+                      ? "#b91c1c"
+                      : "#b45309"
+                };">${getDeliveryText(r.delivery_state)}</span>
+              </td>
+              <td style="padding:8px; border-bottom:1px solid #f1f5f9; text-align:center; min-width:100px;">${formatDateTime(r.delivered_at)}</td>
               <td style="padding:8px; border-bottom:1px solid #f1f5f9; text-align:center;">
                 <span style="display:inline-block; padding:2px 10px; border-radius:12px; font-size:10px; font-weight:500; background:${
                   r.status === "delivered"
@@ -1990,6 +2201,7 @@ SKB-CRM.IR`,
                         : "#d97706"
                 };">${this.getSmsStatusInfo(r.status || "pending").text}</span>
               </td>
+              <td style="padding:8px; border-bottom:1px solid #f1f5f9; text-align:center; font-size:11px; color:#475569;">${getSenderName(r.sender)}</td>
             </tr>
           `,
           )
@@ -2030,9 +2242,12 @@ SKB-CRM.IR`,
                     <tr style="background:#f8fafc; position:sticky; top:0;">
                       <th style="padding:8px; border-bottom:2px solid #eef2f6;">ردیف</th>
                       <th style="padding:8px; border-bottom:2px solid #eef2f6;">متن پیام</th>
-                      <th style="padding:8px; border-bottom:2px solid #eef2f6;">تاریخ ارسال</th>
+                      <th style="padding:8px; border-bottom:2px solid #eef2f6;">گیرنده</th>
+                      <th style="padding:8px; border-bottom:2px solid #eef2f6;">تاریخ و زمان ارسال</th>
                       <th style="padding:8px; border-bottom:2px solid #eef2f6;">وضعیت تحویل</th>
+                      <th style="padding:8px; border-bottom:2px solid #eef2f6;">تاریخ و زمان تحویل</th>
                       <th style="padding:8px; border-bottom:2px solid #eef2f6;">وضعیت</th>
+                      <th style="padding:8px; border-bottom:2px solid #eef2f6;">فرستنده</th>
                     </tr>
                   </thead>
                   <tbody>${rows}</tbody>
@@ -2045,16 +2260,19 @@ SKB-CRM.IR`,
           `,
           confirmButtonText: "باشه",
           confirmButtonColor: "#2c7a6e",
-          width: 750,
+          width: 1120,
         });
       }
 
-      notificationService.success(
-        updateRes?.success
-          ? `✅ وضعیت ${totalChecked} پیامک بررسی و در دیتابیس ذخیره شد`
-          : "✅ وضعیت پیامک‌ها بروزرسانی شد",
-      );
+      if (openModal) {
+        notificationService.success(
+          updateRes?.success
+            ? `✅ وضعیت ${totalChecked} پیامک بررسی و در دیتابیس ذخیره شد`
+            : "✅ وضعیت پیامک‌ها بروزرسانی شد",
+        );
+      }
     } catch (error) {
+      if (loaderShown) this.closeSmsLoader();
       console.error("❌ Error refreshing SMS status:", error);
       notificationService.error("خطا در بروزرسانی");
     }
@@ -3018,10 +3236,22 @@ if (typeof window !== "undefined") {
     );
   window.removeTaskCard = (element, customerId, flockId) =>
     dashboardService.removeTaskCard(element, customerId, flockId);
-  window.showSmsHistory = (customerId, flockId) =>
-    dashboardService.showSmsHistory(customerId, flockId);
-  window.refreshSmsStatus = (customerId, flockId) =>
-    dashboardService.refreshSmsStatus(customerId, flockId);
+  window.showSmsHistory = (customerId, flockId = null, flockPeriodId = null) =>
+    dashboardService.showSmsHistory(customerId, flockId, flockPeriodId);
+  window.refreshSmsStatus = (
+    customerId,
+    flockId = null,
+    flockPeriodId = null,
+    openModal = true,
+  ) =>
+    dashboardService.refreshSmsStatus(
+      customerId,
+      flockId,
+      flockPeriodId,
+      openModal,
+    );
+  window.refreshSmsHistoryFromModal = () =>
+    dashboardService.refreshSmsHistoryFromModal();
   window.toggleTaskCardHalls = (flockGroupId) => {
     const card = document.querySelector(
       `.task-card[data-flock-group-id="${flockGroupId}"]`,

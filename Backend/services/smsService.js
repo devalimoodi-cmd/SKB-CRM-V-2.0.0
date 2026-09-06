@@ -122,11 +122,19 @@ class SmsService {
       );
 
       if (response.data.status === 1) {
+        const data = response.data.data || {};
+        const singleId = data.messageId ?? data.message_id ?? null;
+        const idList = Array.isArray(data.messageIds)
+          ? data.messageIds.filter((m) => m !== null && m !== undefined)
+          : singleId
+            ? [singleId]
+            : [];
         return {
           success: true,
-          packId: response.data.data.packId,
-          messageIds: response.data.data.messageIds,
-          cost: response.data.data.cost,
+          packId: data.packId ?? null,
+          messageId: singleId ?? idList[0] ?? null,
+          messageIds: idList,
+          cost: data.cost ?? null,
         };
       }
       throw new Error(response.data.message);
@@ -153,7 +161,7 @@ class SmsService {
 
     return {
       success: result.success,
-      messageId: result.messageIds?.[0],
+      messageId: result.messageId ?? result.messageIds?.[0] ?? null,
       cost: result.cost,
       error: result.error,
       code: result.code,
@@ -312,12 +320,13 @@ class SmsService {
   // ============================================
   getDeliveryStateText(deliveryState) {
     const statusMap = {
+      0: "در صف ارسال",
       1: "رسیده به گوشی",
       2: "نرسیده به گوشی",
-      3: "رسیده به مخابرات",
+      3: "پردازش در مخابرات",
       4: "نرسیده به مخابرات",
-      5: "رسیده به اپراتور",
-      6: "ناموفق",
+      5: "رسیده به مخابرات",
+      6: "خطا",
       7: "لیست سیاه",
       8: "نامشخص",
     };

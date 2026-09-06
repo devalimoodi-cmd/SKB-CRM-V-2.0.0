@@ -1,5 +1,57 @@
 const SmsService = require("../services/smsService"); // ✅ این درست است
 const { successResponse, errorResponse } = require("../utils/response");
+
+// ================================================================
+// نگاشت وضعیت تحویل — طبق جدول کدهای سرویس‌دهنده (sms.ir):
+// 1 رسیده به گوشی | 2 نرسیده به گوشی | 3 پردازش در مخابرات
+// 4 نرسیده به مخابرات | 5 رسیده به مخابرات | 6 خطا | 7 لیست سیاه
+// ================================================================
+function resolveDeliveryStatus(deliveryState, fallbackStatus = "pending") {
+  const s = Number(deliveryState);
+  if (s === 1) return "delivered";
+  if (s === 2 || s === 4 || s === 6 || s === 7) return "failed";
+  if (s === 3 || s === 5) return "sent";
+  if (s === 0 || s === 8) return "pending";
+  return fallbackStatus;
+}
+
+function deliveryDateTimeFrom(statusResult) {
+  if (!statusResult) return null;
+  const raw =
+    statusResult.deliveryDateTime ??
+    statusResult.deliveryDate ??
+    statusResult.deliveryTime ??
+    null;
+  if (raw === null || raw === undefined || raw === "") return null;
+  try {
+    let d;
+    if (typeof raw === "number" || /^\d+$/.test(String(raw))) {
+      const num = Number(raw);
+      d = new Date(num < 1e12 ? num * 1000 : num);
+    } else {
+      d = new Date(raw);
+    }
+    return isNaN(d.getTime()) ? null : d;
+  } catch (e) {
+    return null;
+  }
+}
+
+const deliveryTextByState = (state) => {
+  const s = Number(state);
+  const map = {
+    0: "در صف ارسال",
+    1: "رسیده به گوشی",
+    2: "نرسیده به گوشی",
+    3: "پردازش در مخابرات",
+    4: "نرسیده به مخابرات",
+    5: "رسیده به مخابرات",
+    6: "خطا",
+    7: "لیست سیاه",
+    8: "نامشخص",
+  };
+  return map[s] || "نامشخص";
+};
 const CustomerPersonalInfo = require("../models/CustomerPersonalInfo");
 const User = require("../models/User");
 const SmsLog = require("../models/SmsLog");
@@ -125,15 +177,14 @@ const sendCustomSms = async (req, res) => {
                 messageIds[i],
               );
               if (statusResult && statusResult.deliveryState !== undefined) {
-                logData.delivery_state = statusResult.deliveryState;
-                logData.status =
-                  statusResult.deliveryState === 1
-                    ? "delivered"
-                    : statusResult.deliveryState === 6
-                      ? "failed"
-                      : "sent";
-                if (statusResult.deliveryState === 1) {
-                  logData.delivered_at = new Date();
+                logData.delivery_state = Number(statusResult.deliveryState);
+                logData.status = resolveDeliveryStatus(
+                  statusResult.deliveryState,
+                  "sent",
+                );
+                if (Number(statusResult.deliveryState) === 1) {
+                  logData.delivered_at =
+                    deliveryDateTimeFrom(statusResult) || new Date();
                 }
               }
             } catch (statusError) {
@@ -351,7 +402,19 @@ const sendFlockReminder = async (req, res) => {
 // ============================================
 const sendToRecipient = async (req, res) => {
   try {
-    const { mobile, message } = req.body;
+    const {
+      mobile,
+      message,
+      customerId = null,
+      flockPeriodId = null,
+      hallId = null,
+      scope = null,
+      flockNumber = null,
+      hallName = null,
+      weekNumber = null,
+      recipientRole = null,
+      recipientName = null,
+    } = req.body;
     if (!mobile || !message) {
       return errorResponse(
         res,
@@ -366,6 +429,68 @@ const sendToRecipient = async (req, res) => {
     }
     const result = await SmsService.sendSingle(lineNumber, message, mobile);
     if (result.success) {
+      // ذخیره لاگ با زمینه‌ی ارسال (گله/سالن + نقش گیرنده)
+      try {
+        const isHall = scope === "hall";
+        const hallTxt = String(hallName || "")
+          .trim()
+          .replace(/^سالن\s*/i, "");
+        const target_title = isHall
+          ? `گله ${flockNumber || ""}${hallTxt ? ` - سالن ${hallTxt}` : ""}`.trim()
+          : `گله ${flockNumber || ""} (کل گله)`.trim();
+
+        const createdLog = await SmsLog.create({
+          customer_id: customerId ? parseInt(customerId) : null,
+          flock_id: isHall && hallId ? parseInt(hallId) : null,
+          flock_period_id: flockPeriodId
+            ? parseInt(flockPeriodId)
+            : null,
+          hall_id: isHall && hallId ? parseInt(hallId) : null,
+          scope: scope || null,
+          target_title,
+          week_number: weekNumber ? parseInt(weekNumber) : null,
+          flock_number: flockNumber ? parseInt(flockNumber) : null,
+          recipient_role: recipientRole || null,
+          recipient_name: recipientName || null,
+          mobile,
+          message,
+          message_id: result.messageId || null,
+          status: "sent",
+          sent_at: new Date(),
+          sent_by: req.user?.id || null,
+        });
+
+        // ✅ استعلام وضعیت اولیه و ذخیره در همان رکورد (اگر messageId موجود است)
+        if (createdLog && result.messageId) {
+          try {
+            const statusResult = await SmsService.checkSmsStatus(
+              result.messageId,
+            );
+            if (
+              statusResult &&
+              statusResult.deliveryState !== undefined
+            ) {
+              const st = Number(statusResult.deliveryState);
+              await createdLog.update({
+                delivery_state: st,
+                status: resolveDeliveryStatus(st, "sent"),
+                delivered_at:
+                  st === 1
+                    ? deliveryDateTimeFrom(statusResult) || new Date()
+                    : null,
+              });
+            }
+          } catch (checkErr) {
+            console.warn(
+              `⚠️ خطا در استعلام وضعیت اولیه پیامک ${result.messageId}:`,
+              checkErr.message,
+            );
+          }
+        }
+      } catch (logErr) {
+        console.warn("⚠️ خطا در ذخیره لاگ پیامک گیرنده:", logErr.message);
+      }
+
       successResponse(
         res,
         { ...result, mobile },
@@ -395,12 +520,13 @@ const getMessageStatus = async (req, res) => {
 
     if (status) {
       const deliveryStatus = {
+        0: "در صف ارسال",
         1: "رسیده به گوشی",
         2: "نرسیده به گوشی",
-        3: "رسیده به مخابرات",
+        3: "پردازش در مخابرات",
         4: "نرسیده به مخابرات",
-        5: "رسیده به اپراتور",
-        6: "ناموفق",
+        5: "رسیده به مخابرات",
+        6: "خطا",
         7: "لیست سیاه",
         8: "نامشخص",
       };
@@ -494,15 +620,15 @@ const sendToCustomer = async (req, res) => {
           );
           if (statusResult && statusResult.deliveryState !== undefined) {
             await smsLog.update({
-              delivery_state: statusResult.deliveryState,
-              status:
-                statusResult.deliveryState === 1
-                  ? "delivered"
-                  : statusResult.deliveryState === 6
-                    ? "failed"
-                    : "sent",
+              delivery_state: Number(statusResult.deliveryState),
+              status: resolveDeliveryStatus(
+                statusResult.deliveryState,
+                "sent",
+              ),
               delivered_at:
-                statusResult.deliveryState === 1 ? new Date() : null,
+                Number(statusResult.deliveryState) === 1
+                  ? deliveryDateTimeFrom(statusResult) || new Date()
+                  : null,
             });
             console.log(
               `📊 وضعیت تحویل پیامک ${result.messageId}: state=${statusResult.deliveryState}`,
@@ -641,15 +767,14 @@ const sendBulkToCustomers = async (req, res) => {
                 messageIds[i],
               );
               if (statusResult && statusResult.deliveryState !== undefined) {
-                logData.delivery_state = statusResult.deliveryState;
-                logData.status =
-                  statusResult.deliveryState === 1
-                    ? "delivered"
-                    : statusResult.deliveryState === 6
-                      ? "failed"
-                      : "sent";
-                if (statusResult.deliveryState === 1) {
-                  logData.delivered_at = new Date();
+                logData.delivery_state = Number(statusResult.deliveryState);
+                logData.status = resolveDeliveryStatus(
+                  statusResult.deliveryState,
+                  "sent",
+                );
+                if (Number(statusResult.deliveryState) === 1) {
+                  logData.delivered_at =
+                    deliveryDateTimeFrom(statusResult) || new Date();
                 }
               }
             } catch (statusError) {
@@ -805,7 +930,7 @@ const getRecentSmsLogs = async (req, res) => {
 const getCustomerSmsLogs = async (req, res) => {
   try {
     const { customerId } = req.params;
-    const { flock_id } = req.query;
+    const { flock_id, flock_period_id } = req.query;
 
     if (!customerId) {
       return errorResponse(res, "شناسه مشتری الزامی است", 400);
@@ -814,6 +939,22 @@ const getCustomerSmsLogs = async (req, res) => {
     const where = { customer_id: customerId };
     if (flock_id) {
       where.flock_id = parseInt(flock_id);
+    }
+    if (flock_period_id) {
+      const groupId = parseInt(flock_period_id);
+      const ChickPlacement = require("../models/ChickPlacement");
+      const placements = await ChickPlacement.findAll({
+        where: { flock_id: groupId },
+        attributes: ["id"],
+        raw: true,
+      });
+      const placementIds = placements.map((p) => p.id);
+      where[Op.or] = [
+        { flock_period_id: groupId },
+        ...(placementIds.length
+          ? [{ flock_id: { [Op.in]: placementIds } }]
+          : []),
+      ];
     }
 
     const logs = await SmsLog.findAll({
@@ -834,7 +975,27 @@ const getCustomerSmsLogs = async (req, res) => {
       ],
     });
 
-    successResponse(res, logs, "لاگ‌های پیامک مشتری دریافت شد");
+    // افزودن فیلدهای نمایشی (گله/سالن + نقش) برای تاریخچه
+    const data = logs.map((l) => {
+      const j = l.toJSON();
+      const scope = j.scope || (j.flock_period_id ? "flock" : j.flock_id ? "hall" : null);
+      const targetLabel =
+        j.target_title ||
+        (scope === "hall"
+          ? `سالن (${j.flock_id || j.hall_id || ""})`
+          : scope === "flock"
+            ? `گله (${j.flock_period_id || ""})`
+            : "نامشخص");
+      return {
+        ...j,
+        scope,
+        targetLabel,
+        roleLabel:
+          j.recipient_role || j.recipient_name || "نامشخص",
+      };
+    });
+
+    successResponse(res, data, "لاگ‌های پیامک مشتری دریافت شد");
   } catch (error) {
     console.error("خطا در دریافت لاگ‌ها:", error);
     errorResponse(res, error.message, 500);
@@ -892,22 +1053,12 @@ const checkAndUpdateSmsStatus = async (req, res) => {
     // بروزرسانی لاگ
     const log = await SmsLog.findOne({ where: { message_id: messageId } });
     if (log) {
-      const deliveryStatusMap = {
-        1: "delivered",
-        2: "failed",
-        3: "sent",
-        4: "failed",
-        5: "sent",
-        6: "failed",
-        7: "failed",
-        8: "pending",
-      };
-
+      const state = Number(status.deliveryState);
       await log.update({
-        status: deliveryStatusMap[status.deliveryState] || "pending",
-        delivery_state: status.deliveryState,
+        status: resolveDeliveryStatus(state, "pending"),
+        delivery_state: state,
         delivered_at:
-          status.deliveryState === 1 ? new Date() : log.delivered_at,
+          state === 1 ? deliveryDateTimeFrom(status) || new Date() : null,
       });
     }
 
@@ -931,17 +1082,7 @@ const checkAndUpdateSmsStatus = async (req, res) => {
 // تابع کمکی برای دریافت متن وضعیت تحویل
 // ============================================
 function getDeliveryStatusText(deliveryState) {
-  const statusMap = {
-    1: "رسیده به گوشی",
-    2: "نرسیده به گوشی",
-    3: "رسیده به مخابرات",
-    4: "نرسیده به مخابرات",
-    5: "رسیده به اپراتور",
-    6: "ناموفق",
-    7: "لیست سیاه",
-    8: "نامشخص",
-  };
-  return statusMap[deliveryState] || "نامشخص";
+  return deliveryTextByState(deliveryState);
 }
 
 // ============================================
@@ -981,22 +1122,16 @@ const updateSmsStatusFromProvider = async (req, res) => {
 
     // 3. بروزرسانی لاگ
     const updateData = {
-      delivery_state: statusResult.deliveryState,
-      status:
-        statusResult.deliveryState === 1
-          ? "delivered"
-          : statusResult.deliveryState === 6
-            ? "failed"
-            : statusResult.deliveryState === 3
-              ? "sent"
-              : "pending",
+      delivery_state: Number(statusResult.deliveryState),
+      status: resolveDeliveryStatus(statusResult.deliveryState, "pending"),
     };
 
-    if (statusResult.deliveryDateTime) {
-      updateData.delivered_at = new Date(statusResult.deliveryDateTime * 1000);
-    } else if (statusResult.deliveryState === 1) {
-      // اگر تحویل شده ولی زمان ندارد، زمان فعلی را ثبت کن
-      updateData.delivered_at = new Date();
+    if (Number(statusResult.deliveryState) === 1) {
+      // زمان واقعی تحویل (اگر سرویس بدهد) وگرنه زمان فعلی
+      updateData.delivered_at =
+        deliveryDateTimeFrom(statusResult) || new Date();
+    } else {
+      updateData.delivered_at = null;
     }
 
     await smsLog.update(updateData);
@@ -1022,20 +1157,39 @@ const updateSmsStatusFromProvider = async (req, res) => {
 const updateAllSmsStatusForFlock = async (req, res) => {
   try {
     const { customerId, flockId } = req.params;
+    const { flock_period_id } = req.query;
 
     console.log(
-      `🔄 بروزرسانی وضعیت پیامک‌های مشتری ${customerId}, گله ${flockId}`,
+      `🔄 بروزرسانی وضعیت پیامک‌های مشتری ${customerId}, گله ${flockId}${flock_period_id ? `, دوره گله ${flock_period_id}` : ""}`,
     );
 
     // 1. پیدا کردن لاگ‌های مرتبط (فقط پیامک‌هایی که message_id دارند و تحویل نشده‌اند)
     const where = { customer_id: parseInt(customerId) };
-    if (flockId && flockId !== "null" && flockId !== "undefined") {
+
+    // اگر «دوره گله» (flock_period_id) داده شده باشد: کل گله + همه سالن‌های عضو آن
+    if (flock_period_id && flock_period_id !== "null" && flock_period_id !== "undefined") {
+      const groupId = parseInt(flock_period_id);
+      const ChickPlacement = require("../models/ChickPlacement");
+      const placements = await ChickPlacement.findAll({
+        where: { flock_id: groupId },
+        attributes: ["id"],
+        raw: true,
+      });
+      const placementIds = placements.map((p) => p.id);
+      where[Op.or] = [
+        { flock_period_id: groupId },
+        ...(placementIds.length
+          ? [{ flock_id: { [Op.in]: placementIds } }]
+          : []),
+      ];
+    } else if (flockId && flockId !== "null" && flockId !== "undefined") {
       where.flock_id = parseInt(flockId);
     }
 
-    // فقط پیامک‌هایی که message_id دارند و هنوز تحویل نشده‌اند (delivery_state != 1)
+    // فقط پیامک‌های غیرنهایی که هنوز قابلیت بروزرسانی دارند:
+    // خالی/در صف (null,0)، پردازش در مخابرات (3)، نرسیده به مخابرات (4)، رسیده به مخابرات (5)
     where.message_id = { [Op.ne]: null };
-    where.delivery_state = { [Op.or]: [null, 0, 2, 3, 4, 5, 6, 7, 8] };
+    where.delivery_state = { [Op.or]: [null, 0, 3, 4, 5] };
 
     const logs = await SmsLog.findAll({
       where,
@@ -1044,7 +1198,15 @@ const updateAllSmsStatusForFlock = async (req, res) => {
     });
 
     if (logs.length === 0) {
-      return errorResponse(res, "هیچ پیامکی برای این مشتری/گله یافت نشد", 404);
+      return successResponse(
+        res,
+        {
+          updated: 0,
+          total: 0,
+          message: "هیچ پیامکی برای بروزرسانی وضعیت وجود ندارد",
+        },
+        "هیچ پیامکی برای بروزرسانی وضعیت وجود ندارد",
+      );
     }
 
     console.log(`📋 ${logs.length} پیامک یافت شد`);
@@ -1073,23 +1235,18 @@ const updateAllSmsStatusForFlock = async (req, res) => {
 
         if (statusResult && statusResult.deliveryState !== undefined) {
           const updateData = {
-            delivery_state: statusResult.deliveryState,
-            status:
-              statusResult.deliveryState === 1
-                ? "delivered"
-                : statusResult.deliveryState === 6
-                  ? "failed"
-                  : statusResult.deliveryState === 3
-                    ? "sent"
-                    : "pending",
+            delivery_state: Number(statusResult.deliveryState),
+            status: resolveDeliveryStatus(
+              statusResult.deliveryState,
+              "pending",
+            ),
           };
 
-          if (statusResult.deliveryDateTime) {
-            updateData.delivered_at = new Date(
-              statusResult.deliveryDateTime * 1000,
-            );
-          } else if (statusResult.deliveryState === 1) {
-            updateData.delivered_at = new Date();
+          if (Number(statusResult.deliveryState) === 1) {
+            updateData.delivered_at =
+              deliveryDateTimeFrom(statusResult) || new Date();
+          } else {
+            updateData.delivered_at = null;
           }
 
           await log.update(updateData);

@@ -24,7 +24,42 @@ const SmsLog = sequelize.define(
     flock_id: {
       type: DataTypes.INTEGER,
       allowNull: true,
-      comment: "شناسه گله",
+      comment: "شناسه گله (برای سازگاری: در حالت سالن، شناسه جوجه‌ریزی/سالن)",
+    },
+    flock_period_id: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      comment: "شناسه گله/دوره پرورش (Flock)",
+    },
+    hall_id: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      comment: "شناسه جوجه‌ریزی/سالن هنگام ارسال برای یک سالن خاص",
+    },
+    scope: {
+      type: DataTypes.STRING(10),
+      allowNull: true,
+      comment: "محدوده ارسال: flock = کل گله | hall = سالن",
+    },
+    target_title: {
+      type: DataTypes.STRING(200),
+      allowNull: true,
+      comment: "عنوان نمایشی هدف (مثلاً: گله ۱۲ یا گله ۱۲ - سالن B)",
+    },
+    recipient_role: {
+      type: DataTypes.STRING(100),
+      allowNull: true,
+      comment: "نقش گیرنده: کارشناس فارم / مدیر فارم / مرغدار",
+    },
+    recipient_name: {
+      type: DataTypes.STRING(150),
+      allowNull: true,
+      comment: "نام گیرنده",
+    },
+    flock_number: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      comment: "شماره گله (Flock.flock_number) برای ارسال‌های سطح گله",
     },
     week_number: {
       type: DataTypes.INTEGER,
@@ -102,6 +137,7 @@ const SmsLog = sequelize.define(
     indexes: [
       { fields: ["customer_id"] },
       { fields: ["flock_id"] },
+      { fields: ["flock_period_id"] },
       { fields: ["mobile"] },
       { fields: ["status"] },
       { fields: ["sent_by"] },
