@@ -44,6 +44,8 @@ class HallsService {
 
   async loadData() {
     try {
+      // پس از هر بار ذخیره/تغییر سالن، خلاصه ظرفیت از سرور دوباره گرفته شود
+      this.capacitySummary = null;
       await this.loadDictionaries();
       await this.loadUnits();
       await this.loadHalls();
@@ -52,6 +54,7 @@ class HallsService {
       this.lockBasicHallNumberField();
       this.applyDefaultExpertSelection();
       this.refreshUnitCapacityBadge();
+      this.hideLegacySystemFields();
     } catch (error) {
       console.error("❌ Error loading hall data:", error);
       notificationService.error("خطا در دریافت اطلاعات سالن‌ها");
@@ -204,6 +207,29 @@ class HallsService {
     }
   }
 
+  // پنهان‌سازی فیلدهای تکراری بالای فرم سیستم‌ها (فقط ویرایشگر افزودنی مرجع است)
+  hideLegacySystemFields() {
+    const legacyIds = [
+      "fanCount",
+      "fanSize",
+      "fanCapacity",
+      "heaterCount",
+      "heatingType",
+      "coolingType",
+      "ventilationType",
+      "sanitarySystem",
+      "lighthingSystem",
+    ];
+    legacyIds.forEach((id) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const wrap = el.closest(".form-group");
+      if (wrap) wrap.style.display = "none";
+      else el.style.display = "none";
+      el.removeAttribute("required");
+    });
+  }
+
   fmtCap(n) {
     try {
       return Number(n || 0).toLocaleString("fa-IR");
@@ -237,11 +263,94 @@ class HallsService {
         badge.style.display = "none";
         return;
       }
-      badge.textContent = `ظرفیت مانده واحد: ${this.fmtCap(row.remainingCapacity)} از ${this.fmtCap(row.totalCapacity)} قطعه${
-        row.activePlacementCount
-          ? ` | ${row.occupiedHallCount} سالن در جوجه‌ریزی`
-          : ""
-      }`;
+      // محاسبه زنده: کل ظرفیت واحد، مجموع ظرفیت سالن‌های همان واحد و مانده
+      const capInput = document.getElementById("capacity");
+      const typed =
+        capInput && capInput.value !== ""
+          ? parseInt(capInput.value) || 0
+          : 0;
+      const unitCap = Number(row.unitCapacity) || 0;
+      const savedHallsTotal = Number(row.totalCapacity) || 0;
+      const occNote = row.activePlacementCount
+        ? ` | ${row.occupiedHallCount} سالن در جوجه‌ریزی`
+        : "";
+
+      badge.style.background = "";
+      badge.style.borderColor = "";
+      badge.style.color = "";
+
+      if (unitCap <= 0) {
+        // واحد هنوز «ظرفیت کل» ندارد؛ فقط اطلاعات سالن‌ها را نشان بده
+        badge.textContent = `ظرفیت کل واحد تعریف نشده — مجموع ظرفیت سالن‌های فعال: ${this.fmtCap(
+          savedHallsTotal,
+        )} قطعه`;
+        this._capOverflowNotified = false;
+        if (this._capOverflowDebounce) {
+          clearTimeout(this._capOverflowDebounce);
+          this._capOverflowDebounce = null;
+        }
+        badge.style.display = "block";
+        return;
+      }
+
+      // مجموع ظرفیت سالن‌های ذخیره‌شدهٔ همین واحد
+      let savedOthers = savedHallsTotal;
+      if (this.editingHallId) {
+        const eh = this.halls.find((h) => h.id == this.editingHallId);
+        savedOthers = Math.max(
+          0,
+          savedOthers - (Number(eh?.nominal_capacity) || 0),
+        );
+      }
+
+      const occupied = savedOthers + typed;
+      const remaining = unitCap - occupied;
+
+      if (remaining < 0) {
+        badge.style.background = "#fef2f2";
+        badge.style.borderColor = "#fecaca";
+        badge.style.color = "#b91c1c";
+        badge.textContent = `⚠️ مجموع ظرفیت سالن‌ها (${this.fmtCap(
+          occupied,
+        )}) از ظرفیت کل واحد (${this.fmtCap(unitCap)}) بیشتر است — مازاد: ${this.fmtCap(
+          Math.abs(remaining),
+        )} قطعه`;
+
+        // الارم فقط یک‌بار برای هر رویداد تجاوز (با دیباس برای تایپ پیوسته)
+        if (typed > 0) {
+          if (this._capOverflowDebounce) clearTimeout(this._capOverflowDebounce);
+          this._capOverflowDebounce = setTimeout(() => {
+            this._capOverflowDebounce = null;
+            if (this._capOverflowNotified) return;
+            this._capOverflowNotified = true;
+            try {
+              notificationService.warning(
+                `⚠️ مجموع ظرفیت سالن‌ها (${this.fmtCap(occupied)}) از ظرفیت کل واحد (${this.fmtCap(
+                  unitCap,
+                )}) بیشتر شد — مازاد ${this.fmtCap(Math.abs(remaining))} قطعه`,
+              );
+            } catch (e) {
+              // ignore
+            }
+          }, 500);
+        }
+      } else {
+        if (remaining <= unitCap * 0.1) {
+          // نزدیک به ظرفیت: هشدار ملایم
+          badge.style.background = "#fffbeb";
+          badge.style.borderColor = "#fde68a";
+          badge.style.color = "#b45309";
+        }
+        badge.textContent = `ظرفیت کل واحد: ${this.fmtCap(unitCap)} قطعه | مجموع سالن‌ها: ${this.fmtCap(
+          occupied,
+        )} قطعه | مانده: ${this.fmtCap(remaining)} قطعه${occNote}`;
+        this._capOverflowNotified = false;
+        if (this._capOverflowDebounce) {
+          clearTimeout(this._capOverflowDebounce);
+          this._capOverflowDebounce = null;
+        }
+      }
+
       badge.style.display = "block";
     } catch (err) {
       console.warn("⚠️ خطا در دریافت ظرفیت واحد:", err);
@@ -351,27 +460,20 @@ class HallsService {
       }),
     );
 
-    const filteredHalls = hallStatuses
-      .filter((hs) => !hs.hasInfo)
-      .map((hs) => hs.hall);
     const typeLabel =
       infoType === "physical"
         ? "فیزیکی"
         : infoType === "system"
-          ? "سیستم"
-          : "آبخوری";
-    select.innerHTML = `<option value="">انتخاب سالن (بدون اطلاعات ${typeLabel})...</option>`;
-    if (filteredHalls.length === 0) {
-      select.innerHTML +=
-        '<option value="" disabled>همه سالن‌ها اطلاعات دارند</option>';
-    } else {
-      filteredHalls.forEach((hall) => {
-        const option = document.createElement("option");
-        option.value = hall.id;
-        option.textContent = `${hall.hall_name} (شماره ${hall.hall_number || hall.id})`;
-        select.appendChild(option);
-      });
-    }
+          ? "سیستم‌ها"
+          : "آبخوری و دانخوری";
+    select.innerHTML = `<option value="">انتخاب سالن (${typeLabel})...</option>`;
+    hallStatuses.forEach((hs) => {
+      const hall = hs.hall;
+      const option = document.createElement("option");
+      option.value = hall.id;
+      option.textContent = `${hall.hall_name} (شماره ${hall.hall_number || hall.id})${hs.hasInfo ? " — ثبت‌شده ✓" : ""}`;
+      select.appendChild(option);
+    });
     if (
       currentValue &&
       Array.from(select.options).some((opt) => opt.value == currentValue)
@@ -448,7 +550,15 @@ class HallsService {
       if (hall && hall.value) this.loadPhysicalInfo(hall.value);
     } else if (contentId === "systemsTab") {
       const hall = document.getElementById("systemsHallNumber");
-      if (hall && hall.value) this.loadSystemInfo(hall.value);
+      if (hall && hall.value) {
+        if (String(hall.value) !== String(this._loadedSystemsHallId || "")) {
+          this._loadedSystemsHallId = hall.value;
+          this.loadSystemInfo(hall.value);
+        }
+      } else {
+        this._loadedSystemsHallId = null;
+        this.renderSystemItemsEditor([], {});
+      }
     } else if (contentId === "waterFoodTab") {
       const hall = document.getElementById("wfHallNumber");
       if (hall && hall.value) this.loadWaterFeedInfo(hall.value);
@@ -475,6 +585,15 @@ class HallsService {
     if (unitNumSelect) {
       unitNumSelect.addEventListener("change", () => {
         this.autoGenerateHallName();
+        this.refreshUnitCapacityBadge();
+      });
+    }
+    const capacityInput = document.getElementById("capacity");
+    if (capacityInput) {
+      capacityInput.addEventListener("input", () => {
+        this.refreshUnitCapacityBadge();
+      });
+      capacityInput.addEventListener("change", () => {
         this.refreshUnitCapacityBadge();
       });
     }
@@ -1166,23 +1285,38 @@ class HallsService {
     const finalHallId = hallId || this.editingHallId;
     const selectedHall = this.halls.find((h) => h.id == finalHallId);
     const unitId = selectedHall?.unit_id || null;
+
+    // ویرایشگر افزودنی (نوع + تعداد) تنها مرجع ثبت سیستم‌هاست
+    const items = this.collectSystemItems();
+    const catTotal = (c) =>
+      items
+        .filter((i) => i.category === c)
+        .reduce((s, i) => s + (Number(i.quantity) || 1), 0);
+    const catFirst = (c) => {
+      const it = items.find((i) => i.category === c);
+      return it?.type_id ? String(it.type_id) : null;
+    };
+    const fanRows = items.filter((i) => i.category === "fan");
+    const firstFan = fanRows[0] || null;
+
     const data = {
       hall_id: parseInt(finalHallId),
       unit_id: unitId,
-      fan_count: document.getElementById("fanCount")?.value || null,
-      fan_size: document.getElementById("fanSize")?.value || null,
-      fan_capacity: document.getElementById("fanCapacity")?.value || null,
-      heater_count: document.getElementById("heaterCount")?.value || null,
-      heating_system_id: document.getElementById("heatingType")?.value || null,
-      cooling_system_id: document.getElementById("coolingType")?.value || null,
-      ventilation_system_id:
-        document.getElementById("ventilationType")?.value || null,
-      water_inlet_system_id:
-        document.getElementById("sanitarySystem")?.value || null,
-      lighting_system_id:
-        document.getElementById("lighthingSystem")?.value || null,
-      notes: document.getElementById("Hall-System-Description")?.value || null,
-      items: this.collectSystemItems(),
+      fan_count: catTotal("fan") || null,
+      fan_size: (firstFan?.size || firstFan?.spec || null),
+      fan_capacity:
+        (firstFan?.capacity || null) ||
+        document.getElementById("fanCapacity")?.value ||
+        null,
+      heater_count: catTotal("heating") || null,
+      heating_system_id: catFirst("heating"),
+      cooling_system_id: catFirst("cooling"),
+      ventilation_system_id: catFirst("ventilation"),
+      water_inlet_system_id: catFirst("sanitary"),
+      lighting_system_id: catFirst("lighting"),
+      notes:
+        document.getElementById("Hall-System-Description")?.value || null,
+      items,
     };
     const errors = hallsValidation.validateSystemInfo(data);
     if (errors.length > 0) {
@@ -1382,7 +1516,10 @@ class HallsService {
     return {
       heating: { title: "🔥 سیستم‌های گرمایش", dict: "heatingSystems", typePlaceholder: "انتخاب نوع گرمایش..." },
       cooling: { title: "❄️ سیستم‌های سرمایش", dict: "coolingSystems", typePlaceholder: "انتخاب نوع سرمایش..." },
-      fan: { title: "🌀 فن‌ها (سایز هر فن)", dict: null, typePlaceholder: "" },
+      ventilation: { title: "🌀 سیستم‌های تهویه", dict: "ventilationTypes", typePlaceholder: "انتخاب نوع تهویه..." },
+      sanitary: { title: "💧 سیستم‌های ورودی بهداشتی", dict: "waterInletTypes", typePlaceholder: "انتخاب نوع ورودی بهداشتی..." },
+      lighting: { title: "💡 سیستم‌های روشنایی", dict: "lightingSystems", typePlaceholder: "انتخاب نوع روشنایی..." },
+      fan: { title: "🌀 فن‌ها (اندازه + ظرفیت + تعداد)", dict: null, typePlaceholder: "" },
     };
   }
 
@@ -1399,9 +1536,12 @@ class HallsService {
     const qty = parseInt(item.quantity) || 1;
     const spec = item.spec || "";
     if (cat === "fan") {
+      const size = item.size || item.spec || "";
+      const capacity = item.capacity || "";
       return `
         <div class="sys-item-row" data-cat="fan" style="display:flex; align-items:center; gap:6px; margin:4px 0; flex-wrap:wrap;">
-          <input type="text" class="sys-item-spec" value="${spec}" placeholder="سایز فن (مثلاً ۳۶ اینچ)" style="width:160px; padding:5px 8px; border:1px solid #e2e8f0; border-radius:6px; font-size:12px;">
+          <input type="text" class="sys-item-size" value="${size}" placeholder="اندازه/قطر فن (اینچ)" style="width:130px; padding:5px 8px; border:1px solid #e2e8f0; border-radius:6px; font-size:12px;">
+          <input type="text" class="sys-item-capacity" value="${capacity}" placeholder="ظرفیت (مترمکعب/ساعت)" style="width:140px; padding:5px 8px; border:1px solid #e2e8f0; border-radius:6px; font-size:12px;">
           <input type="number" min="1" class="sys-item-qty" value="${qty}" placeholder="تعداد" style="width:80px; padding:5px 8px; border:1px solid #e2e8f0; border-radius:6px; font-size:12px;">
           <button type="button" class="sys-item-del" onclick="removeSystemItemRow(this)" title="حذف"
             style="background:#fee2e2; color:#b91c1c; border:none; border-radius:6px; width:26px; height:26px; cursor:pointer;"><i class="fas fa-times"></i></button>
@@ -1423,48 +1563,101 @@ class HallsService {
   renderSystemItemsEditor(items = [], legacy = {}) {
     const container = document.getElementById("systemItemsEditor");
     if (!container) return;
+    this.hideLegacySystemFields();
 
     const list = Array.isArray(items) ? items : [];
-    const heating = list.filter((i) => i.category === "heating");
-    const cooling = list.filter((i) => i.category === "cooling");
-    const fans = list.filter((i) => i.category === "fan");
 
-    if (heating.length === 0 && legacy.heating_system_id) {
-      heating.push({ category: "heating", type_id: legacy.heating_system_id, quantity: legacy.heater_count || 1, spec: null });
-    }
-    if (cooling.length === 0 && legacy.cooling_system_id) {
-      cooling.push({ category: "cooling", type_id: legacy.cooling_system_id, quantity: 1, spec: null });
-    }
-    if (fans.length === 0 && (legacy.fan_count || legacy.fan_size)) {
-      fans.push({ category: "fan", type_id: null, quantity: legacy.fan_count || 1, spec: legacy.fan_size || "" });
-    }
+    // نگاشت فیلدهای قدیمی بالای فرم به ردیف‌های افزودنی (تا فیلدهای بالا و پایین یکی شوند)
+    const legacyMap = {
+      heating: { id: legacy.heating_system_id, qty: legacy.heater_count },
+      cooling: { id: legacy.cooling_system_id, qty: 1 },
+      ventilation: { id: legacy.ventilation_system_id, qty: 1 },
+      sanitary: { id: legacy.water_inlet_system_id, qty: 1 },
+      lighting: { id: legacy.lighting_system_id, qty: 1 },
+    };
 
-    const group = (cat, rows) => {
+    const categoryOrder = [
+      "heating",
+      "cooling",
+      "ventilation",
+      "sanitary",
+      "lighting",
+      "fan",
+    ];
+
+    const group = (cat) => {
       const meta = this.sysCatMeta()[cat];
+      let rows = list.filter((i) => i.category === cat);
+      if (cat === "fan") {
+        if (rows.length === 0 && (legacy.fan_count || legacy.fan_size || legacy.fan_capacity)) {
+          rows.push({
+            category: "fan",
+            type_id: null,
+            quantity: legacy.fan_count || 1,
+            spec: legacy.fan_size || "",
+            size: legacy.fan_size || "",
+            capacity: legacy.fan_capacity || "",
+          });
+        }
+      } else {
+        const lm = legacyMap[cat];
+        if (rows.length === 0 && lm && lm.id) {
+          rows.push({
+            category: cat,
+            type_id: lm.id,
+            quantity: lm.qty || 1,
+            spec: null,
+          });
+        }
+      }
       return `
         <div style="margin:8px 0 4px; padding:8px 10px; border:1px solid #e8edf3; border-radius:8px; background:#fbfdff;">
-          <div style="font-weight:700; font-size:12px; color:#334155; margin-bottom:4px;">${meta.title}</div>
-          <div class="sys-rows" id="sysRows-${cat}">${rows.map((r) => this.createSysRowHtml(cat, r)).join("")}</div>
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap;">
+            <div style="font-weight:700; font-size:12px; color:#334155;">${meta.title}</div>
+            <span class="sys-cat-total" style="font-size:10.5px; color:#2c7a6e; background:#ecfdf5; border:1px solid #a7f3d0; padding:1px 10px; border-radius:999px; font-weight:600;">مجموع: ۰</span>
+          </div>
+          <div class="sys-rows" id="sysRows-${cat}">${rows
+            .map((r) => this.createSysRowHtml(cat, r))
+            .join("")}</div>
           <button type="button" class="btn btn-secondary" style="margin-top:4px; font-size:11px; padding:3px 10px;"
             onclick="addSystemItemRow('${cat}')"><i class="fas fa-plus"></i> افزودن</button>
         </div>`;
     };
 
-    container.innerHTML =
-      group("heating", heating) +
-      group("cooling", cooling) +
-      group("fan", fans);
+    container.innerHTML = categoryOrder.map((c) => group(c)).join("");
+    if (!container.dataset.totalBound) {
+      container.addEventListener("input", () => this.updateCategoryTotals());
+      container.dataset.totalBound = "1";
+    }
+    this.updateCategoryTotals();
+  }
+
+  // محاسبه و نمایش خودکار «مجموع تعداد» هر دسته
+  updateCategoryTotals() {
+    const container = document.getElementById("systemItemsEditor");
+    if (!container) return;
+    container.querySelectorAll(".sys-rows").forEach((rowsEl) => {
+      const cat = rowsEl.id.replace("sysRows-", "");
+      const total = Array.from(rowsEl.querySelectorAll(".sys-item-qty")).reduce(
+        (s, inp) => s + (parseInt(inp.value) || 0),
+        0,
+      );
+      const badge = rowsEl.parentElement?.querySelector(".sys-cat-total");
+      if (badge) badge.textContent = `مجموع: ${total}`;
+    });
   }
 
   addSystemItemRow(cat) {
     const rowsEl = document.getElementById(`sysRows-${cat}`);
     if (!rowsEl) return;
     rowsEl.insertAdjacentHTML("beforeend", this.createSysRowHtml(cat, {}));
+    this.updateCategoryTotals();
   }
 
   removeSystemItemRow(btn) {
     const row = btn?.closest(".sys-item-row");
     if (row) row.remove();
+    this.updateCategoryTotals();
   }
 
   collectSystemItems() {
@@ -1475,8 +1668,18 @@ class HallsService {
       const qtyVal = parseInt(row.querySelector(".sys-item-qty")?.value) || 1;
       const specVal = (row.querySelector(".sys-item-spec")?.value || "").trim();
       if (cat === "fan") {
-        const spec = specVal || row.querySelector(".sys-item-qty")?.value ? specVal : "";
-        if (spec || qtyVal) items.push({ category: "fan", type_id: null, quantity: qtyVal, spec: spec || null });
+        const size = (row.querySelector(".sys-item-size")?.value || specVal || "").trim();
+        const capacity = (row.querySelector(".sys-item-capacity")?.value || "").trim();
+        if (size || capacity || qtyVal > 1) {
+          items.push({
+            category: "fan",
+            type_id: null,
+            quantity: qtyVal,
+            spec: size || specVal || null,
+            size: size || null,
+            capacity: capacity || null,
+          });
+        }
       } else {
         const tid = typeSel?.value;
         if (tid) items.push({ category: cat, type_id: tid, quantity: qtyVal, spec: specVal || null });
@@ -1584,7 +1787,10 @@ class HallsService {
       this.applyDefaultExpertSelection();
       this.refreshUnitCapacityBadge();
     }
-    if (tabId === "systemsTab") this.renderSystemItemsEditor([], {});
+    if (tabId === "systemsTab") {
+      this._loadedSystemsHallId = null;
+      this.renderSystemItemsEditor([], {});
+    }
     if (tabId === "waterFoodTab")
       document
         .querySelectorAll('input[name="autoFood"]')
@@ -1925,6 +2131,27 @@ class HallsService {
   // رندر پنل جزئیات واحد (برای renderer)
   renderUnitDetailsPanel(unit) {
     if (!unit) return "";
+
+    // محاسبه زنده بر اساس رکوردهای واقعی سالن‌های همین واحد
+    const unitHalls = (this.halls || []).filter((h) => h.unit_id == unit.id);
+    const activeHalls = unitHalls.filter((h) => h.is_active !== false);
+    const realHallCount = unitHalls.length;
+    const unitCapacity = Number(unit.capacity) || 0;
+    const usedCapacity = activeHalls.reduce(
+      (sum, h) => sum + (Number(h.nominal_capacity) || 0),
+      0,
+    );
+    const freeCapacity = unitCapacity - usedCapacity;
+
+    const freeHtml =
+      unitCapacity > 0
+        ? freeCapacity >= 0
+          ? `<span class="value">${freeCapacity.toLocaleString()} قطعه</span>`
+          : `<span class="value" style="color:#dc2626;font-weight:700;">مازاد ${Math.abs(
+              freeCapacity,
+            ).toLocaleString()} قطعه</span>`
+        : `<span class="value">—</span>`;
+
     const experts = unit.experts || [];
     const expertListHtml = experts.length
       ? experts
@@ -1955,7 +2182,7 @@ class HallsService {
               <div class="detail-icon"><i class="fas fa-hashtag"></i></div>
               <div class="detail-content">
                 <span class="label">تعداد سالن‌ها</span>
-                <span class="value">${unit.hall_count || "-"}</span>
+                <span class="value">${realHallCount}</span>
               </div>
             </div>
             <div class="unit-detail-item">
@@ -1977,6 +2204,13 @@ class HallsService {
               <div class="detail-content">
                 <span class="label">ظرفیت واحد</span>
                 <span class="value">${(unit.capacity ?? 0).toLocaleString()} قطعه</span>
+              </div>
+            </div>
+            <div class="unit-detail-item">
+              <div class="detail-icon"><i class="fas fa-chart-pie"></i></div>
+              <div class="detail-content">
+                <span class="label">ظرفیت خالی واحد</span>
+                ${freeHtml}
               </div>
             </div>
             <div class="unit-detail-item">
@@ -2011,7 +2245,7 @@ class HallsService {
               <div class="form-group"><label>آدرس واحد</label><input type="text" id="editUnitAddress" value="${unit.address || ""}"></div>
               <div class="form-group"><label>طول جغرافیایی</label><input type="text" id="editUnitLongitude" value="${unit.longitude || ""}"></div>
               <div class="form-group"><label>عرض جغرافیایی</label><input type="text" id="editUnitLatitude" value="${unit.latitude || ""}"></div>
-              <div class="form-group"><label>تعداد سالن‌ها <span class="required">*</span></label><input type="number" id="editUnitHallCount" value="${unit.hall_count || ""}"></div>
+              <div class="form-group"><label>تعداد سالن‌ها <span class="required">*</span></label><input type="number" id="editUnitHallCount" min="1" max="99" value="${realHallCount || unit.hall_count || ""}"></div>
               <div class="form-group"><label>ظرفیت واحد (قطعه) <span class="required">*</span></label><input type="number" id="editUnitCapacity" min="0" max="1000000" value="${unit.capacity ?? ""}"></div>
               <div class="form-group"><label>نام مدیر واحد <span class="required">*</span></label><input type="text" id="editUnitManagerName" value="${unit.manager_name || ""}"></div>
               <div class="form-group"><label>شماره تماس مدیر <span class="required">*</span></label><input type="text" id="editUnitManagerPhone" value="${unit.manager_phone || ""}"></div>

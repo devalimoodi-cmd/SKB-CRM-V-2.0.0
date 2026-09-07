@@ -8,6 +8,7 @@ import {
   convertPersianToGregorian,
   convertGregorianToPersian,
 } from "../../core/utils/date.utils.js";
+import { SMS_TEMPLATES } from "../sms/sms.templates.js";
 
 class CustomerListService {
   constructor() {
@@ -22,6 +23,7 @@ class CustomerListService {
     this.isEditing = false;
     this.editingCustomerId = null;
     this.initialized = false;
+    this.autoWelcomeSms = false; // وضعیت سراسری ارسال خودکار پیامک خوش‌آمدگویی
     this.dictionaries = {
       provinces: [],
       educationLevels: [],
@@ -35,6 +37,7 @@ class CustomerListService {
     if (!hasAccess) return;
 
     await this.loadData();
+    await this.loadAutoWelcomeSms();
     this.setupSearch();
     // this.setupPagination(); // ✅ این خط رو کامنت کن (یا حذف کن)
     this.setupEvents();
@@ -534,6 +537,66 @@ class CustomerListService {
 
   // ===== ثبت/ویرایش مشتری =====
 
+  // خواندن وضعیت ارسال خودکار پیامک خوش‌آمدگویی (سراسری از تنظیمات)
+  async loadAutoWelcomeSms() {
+    try {
+      const res = await customerListApi.getSettings();
+      this.autoWelcomeSms = res?.success
+        ? res.data?.auto_welcome_sms === true
+        : false;
+    } catch (error) {
+      console.warn("⚠️ خطا در دریافت تنظیم پیامک خوش‌آمدگویی:", error.message);
+      this.autoWelcomeSms = false;
+    }
+    this.updateAutoWelcomeSmsNote();
+  }
+
+  // نمایش متن کمرنگ وضعیت کنار دکمه ثبت‌نام
+  updateAutoWelcomeSmsNote() {
+    const note = document.getElementById("autoWelcomeSmsNote");
+    if (!note) return;
+    if (this.autoWelcomeSms) {
+      note.innerHTML =
+        '<i class="fas fa-circle" style="font-size:6px;color:#10b981;"></i> ارسال خودکار پیامک خوش‌آمدگویی پس از ثبت مشتری فعال است';
+      note.title =
+        "این قابلیت فقط از بخش «تنظیمات سیستم» پنل مدیریت قابل تغییر است";
+    } else {
+      note.innerHTML =
+        '<i class="fas fa-circle" style="font-size:6px;color:#cbd5e1;"></i> ارسال خودکار پیامک خوش‌آمدگویی پس از ثبت مشتری غیرفعال است';
+      note.title =
+        "برای فعال‌سازی به «تنظیمات سیستم» در پنل مدیریت مراجعه کنید";
+    }
+  }
+
+  // ارسال پیامک خوش‌آمدگویی برای مشتری تازه ثبت‌شده
+  async sendWelcomeSms(customer) {
+    const fullName = (customer.full_name || "").trim() || "مشتری";
+    const message = SMS_TEMPLATES.welcome.template.replace(
+      /#FULLNAME#/g,
+      fullName,
+    );
+    try {
+      const res = await customerListApi.sendSmsToCustomer(
+        customer.id,
+        message,
+      );
+      if (res?.success) {
+        notificationService.success(
+          `✅ پیامک خوش‌آمدگویی برای ${fullName} ارسال شد`,
+        );
+      } else {
+        notificationService.error(
+          res?.message || "خطا در ارسال پیامک خوش‌آمدگویی",
+        );
+      }
+    } catch (error) {
+      console.error("❌ Error sending welcome SMS:", error);
+      notificationService.error(
+        "خطا در ارسال پیامک خوش‌آمدگویی؛ ثبت مشتری با موفقیت انجام شد",
+      );
+    }
+  }
+
   async registerCustomer(data) {
     const errors = customerListValidation.validate(data);
     if (errors.length > 0) {
@@ -578,6 +641,16 @@ class CustomerListService {
             ? "✅ مشتری با موفقیت بروزرسانی شد"
             : "✅ مشتری با موفقیت ثبت شد",
         );
+
+        // ✅ ارسال خودکار پیامک خوش‌آمدگویی (فقط ثبت جدید و در صورت فعال بودن)
+        if (
+          !this.isEditing &&
+          this.autoWelcomeSms &&
+          response.data?.id &&
+          response.data?.mobile_number
+        ) {
+          await this.sendWelcomeSms(response.data);
+        }
 
         // ✅ ترتیب درست: اول رفرش جدول، بعد ریست فرم و بستن مودال
         await this.loadCustomers();

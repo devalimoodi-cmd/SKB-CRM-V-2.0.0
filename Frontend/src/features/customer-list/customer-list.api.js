@@ -23,6 +23,19 @@ export const customerListApi = {
     return apiService.post(API_CONSTANTS.ENDPOINTS.CUSTOMERS.REGISTER, data);
   },
 
+  // دریافت تنظیمات سراسری (وضعیت ارسال خودکار پیامک خوش‌آمدگویی)
+  async getSettings() {
+    return apiService.get("/settings");
+  },
+
+  // ارسال پیامک ساده به مشتری (برای خوش‌آمدگویی بعد از ثبت)
+  async sendSmsToCustomer(customerId, message) {
+    return apiService.post("/sms/send-to-customer", {
+      customerId,
+      message,
+    });
+  },
+
   // بروزرسانی مشتری
   async updateCustomer(id, data) {
     const endpoint = API_CONSTANTS.ENDPOINTS.CUSTOMERS.UPDATE.replace(

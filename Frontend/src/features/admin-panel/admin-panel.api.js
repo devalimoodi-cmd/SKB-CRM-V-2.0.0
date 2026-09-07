@@ -2,8 +2,19 @@ import { apiService } from "../../core/services/api.service.js";
 import { API_CONSTANTS } from "../../core/constants/api.const.js";
 
 export const adminPanelApi = {
-  // ===== مدیریت کاربران =====
+  // ===== تنظیمات سیستم =====
 
+  // دریافت همه تنظیمات سراسری
+  async getSettings() {
+    return apiService.get("/settings");
+  },
+
+  // بروزرسانی یک تنظیم (فقط مدیر میانی/اصلی)
+  async updateSetting(key, value) {
+    return apiService.put(`/settings/${key}`, { value });
+  },
+
+  // ===== مدیریت کاربران =====
   // دریافت لیست کاربران
   async getUsers(params = {}) {
     return apiService.get(API_CONSTANTS.ENDPOINTS.USERS.LIST, params);

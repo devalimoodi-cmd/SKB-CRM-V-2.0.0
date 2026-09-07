@@ -29,6 +29,7 @@ class AdminPanelService {
     this.setupSidebar();
     this.setupEvents();
     this.setupChat();
+    this.loadSystemSettings();
     this.initialized = true;
     console.log("✅ AdminPanelService initialized");
   }
@@ -77,6 +78,65 @@ class AdminPanelService {
     const adminContent = document.getElementById("adminContent");
     if (setupForm) setupForm.style.display = "none";
     if (adminContent) adminContent.style.display = "block";
+  }
+
+  // ===== تنظیمات سیستم =====
+
+  async loadSystemSettings() {
+    const toggle = document.getElementById("autoWelcomeSmsToggle");
+    const stateEl = document.getElementById("autoWelcomeSmsState");
+    try {
+      const res = await adminPanelApi.getSettings();
+      const enabled = res?.success
+        ? res.data?.auto_welcome_sms === true
+        : true;
+      if (toggle) {
+        toggle.checked = enabled;
+        // فقط یک‌بار لیسنر بسته شود
+        if (!toggle.dataset.bound) {
+          toggle.addEventListener("change", () =>
+            this.saveAutoWelcomeSms(toggle),
+          );
+          toggle.dataset.bound = "1";
+        }
+      }
+      if (stateEl) stateEl.textContent = enabled ? "فعال" : "غیرفعال";
+    } catch (error) {
+      console.warn("⚠️ خطا در دریافت تنظیمات سیستم:", error.message);
+      if (stateEl) stateEl.textContent = "نامشخص";
+    }
+  }
+
+  async saveAutoWelcomeSms(toggle) {
+    const stateEl = document.getElementById("autoWelcomeSmsState");
+    const newValue = toggle.checked;
+    const previous = !newValue;
+    toggle.disabled = true;
+    try {
+      const res = await adminPanelApi.updateSetting(
+        "auto_welcome_sms",
+        newValue,
+      );
+      if (res?.success) {
+        if (stateEl) stateEl.textContent = newValue ? "فعال" : "غیرفعال";
+        notificationService.success(
+          newValue
+            ? "✅ ارسال خودکار پیامک خوش‌آمدگویی فعال شد"
+            : "ارسال خودکار پیامک خوش‌آمدگویی غیرفعال شد",
+        );
+      } else {
+        toggle.checked = previous;
+        notificationService.error(
+          res?.message || "خطا در ذخیره تنظیمات سیستم",
+        );
+      }
+    } catch (error) {
+      console.error("❌ Error saving system settings:", error);
+      toggle.checked = previous;
+      notificationService.error(error.message || "خطا در ذخیره تنظیمات سیستم");
+    } finally {
+      toggle.disabled = false;
+    }
   }
 
   // ===== بارگذاری کاربران =====

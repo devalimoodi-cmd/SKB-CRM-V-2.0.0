@@ -114,6 +114,14 @@
   opacity: 0;
 }
 
+/* شماره همراه و شماره پیام‌رسان: اعداد وسط فیلد و خوانا */
+#mobile.float-input,
+#messenger.float-input {
+  direction: ltr;
+  text-align: center;
+  letter-spacing: 0.5px;
+}
+
 .float-label {
   position: absolute;
   right: 36px;

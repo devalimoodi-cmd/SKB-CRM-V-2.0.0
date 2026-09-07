@@ -28,6 +28,7 @@ const dashboardRoutes = require("./routes/dashboardRoutes");
 const bookmarkRoutes = require("./routes/bookmarkRoutes");
 const customerHeaderRoutes = require("./routes/customerHeaderRoutes");
 const flockCompletionRoutes = require("./routes/flockCompletionRoutes");
+const settingsRoutes = require("./routes/settingsRoutes");
 
 // ================== ###==========
 
@@ -86,6 +87,9 @@ app.get("/", (req, res) => {
 app.get("/health", (req, res) => {
   res.json({ status: "OK", timestamp: new Date().toISOString() });
 });
+
+// تنظیمات سراسری برنامه
+app.use("/api/settings", settingsRoutes);
 
 // =================
 // مسیرهای جداول دیکشنری

@@ -1,6 +1,7 @@
 // BackEnd/sync-db.js
 const { sequelize } = require("./config/database");
 require("./models/associations");
+require("./models/AppSetting"); // اطمینان از ساخت جدول app_settings در sync
 
 async function syncDatabase() {
   try {

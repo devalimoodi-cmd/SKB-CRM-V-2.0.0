@@ -14,6 +14,20 @@ const HallWaterFeed = require("../models/HallWaterFeed");
 const HallHygiene = require("../models/HallHygiene");
 
 // ============================================
+// همگام‌سازی تعداد واقعی سالن‌های یک واحد (units.hall_count)
+// ============================================
+const syncUnitHallCount = async (unitId) => {
+  if (!unitId) return;
+  try {
+    // paranoid=true => سالن‌های حذف‌شده (deletedAt) شمرده نمی‌شوند
+    const count = await Hall.count({ where: { unit_id: unitId } });
+    await Unit.update({ hall_count: count }, { where: { id: unitId } });
+  } catch (err) {
+    console.warn("⚠️ خطا در همگام‌سازی تعداد سالن‌های واحد:", err.message);
+  }
+};
+
+// ============================================
 // ایجاد سالن جدید
 // ============================================
 
@@ -87,6 +101,8 @@ const createHall = async (req, res) => {
       operator_name,
       is_active: true,
     });
+
+    await syncUnitHallCount(unit_id);
 
     successResponse(res, hall, "سالن با موفقیت ایجاد شد", 201);
   } catch (error) {
@@ -165,7 +181,14 @@ const updateHall = async (req, res) => {
       return errorResponse(res, "سالن یافت نشد", 404);
     }
 
+    const prevUnitId = hall.unit_id;
     await hall.update(req.body);
+
+    // اگر سالن به واحد دیگری منتقل شده، تعداد هر دو واحد به‌روز شود
+    await syncUnitHallCount(prevUnitId);
+    if (hall.unit_id && hall.unit_id !== prevUnitId) {
+      await syncUnitHallCount(hall.unit_id);
+    }
 
     successResponse(res, hall, "اطلاعات سالن با موفقیت بروزرسانی شد");
   } catch (error) {
@@ -184,7 +207,10 @@ const deleteHall = async (req, res) => {
 
     if (!hall) return errorResponse(res, "سالن یافت نشد", 404);
 
+    const unitId = hall.unit_id;
     await hall.destroy(); // حذف منطقی (deletedAt پر می‌شود)
+
+    await syncUnitHallCount(unitId);
 
     successResponse(res, null, "سالن با موفقیت حذف شد (حذف منطقی)");
   } catch (error) {
@@ -212,7 +238,9 @@ const toggleHallStatus = async (req, res) => {
 
 // ============================================
 // خلاصه ظرفیت واحدهای مرغداری مشتری
-// «ظرفیت مانده واحد» = مجموع ظرفیت سالن‌های فعال واحد − ظرفیت سالن‌های دارای جوجه‌ریزی فعال
+//  unitCapacity       = ظرفیت کل تعریف‌شده واحد (فیلد capacity)
+//  totalCapacity      = مجموع ظرفیت اسمی سالن‌های فعال واحد
+//  remainingCapacity  = مجموع ظرفیت سالن‌های فعال − ظرفیت سالن‌های دارای جوجه‌ریزی فعال
 // ============================================
 const getUnitCapacitySummary = async (req, res) => {
   try {
@@ -223,7 +251,7 @@ const getUnitCapacitySummary = async (req, res) => {
 
     const units = await Unit.findAll({
       where: { customer_personal_information_id: customerId },
-      attributes: ["id", "unit_name"],
+      attributes: ["id", "unit_name", "capacity"],
       order: [["id", "ASC"]],
     });
     const halls = await Hall.findAll({
@@ -262,6 +290,7 @@ const getUnitCapacitySummary = async (req, res) => {
       return {
         unitId: unit.id,
         unitName: unit.unit_name,
+        unitCapacity: Number(unit.capacity) || 0,
         totalCapacity,
         occupiedCapacity,
         remainingCapacity: Math.max(totalCapacity - occupiedCapacity, 0),
@@ -319,7 +348,7 @@ const getHallFullInfo = async (req, res) => {
           include: [
             {
               model: HallSystemItem,
-              attributes: ["id", "category", "type_id", "quantity", "spec"],
+              attributes: ["id", "category", "type_id", "quantity", "spec", "size", "capacity"],
               required: false,
             },
           ],

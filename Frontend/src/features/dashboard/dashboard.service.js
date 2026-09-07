@@ -103,6 +103,7 @@ SKB-CRM.IR`,
 
     this.setupEvents();
     this.setupAccordion();
+    this.setupChartLayoutToggle();
     this.startAutoRefresh();
     this.initialized = true;
     console.log("✅ DashboardService initialized");
@@ -387,6 +388,56 @@ SKB-CRM.IR`,
         ? ` <span class="cs-sep">-</span> ${info.hallName}`
         : ""
     } <span class="cs-sep">|</span> ${info.customerName || ""}`;
+  }
+
+  // ===== تولبار چیدمان نمودارها (تمام‌عرض / کنار هم) =====
+  setupChartLayoutToggle() {
+    const header = document.getElementById("chartSelectionHeader");
+    if (!header || header.querySelector(".dashboard-layout-toolbar")) return;
+
+    const makeBtn = (mode, icon, label) => `
+      <button type="button" class="db-layout-btn" data-layout="${mode}" aria-pressed="false"
+        title="${label}" onclick="window.setDashboardChartLayout('${mode}')">
+        <i class="fas ${icon}"></i> ${label}
+      </button>`;
+
+    header.insertAdjacentHTML(
+      "beforeend",
+      `<div class="dashboard-layout-toolbar">${makeBtn(
+        "full",
+        "fa-align-justify",
+        "تمام‌عرض",
+      )}${makeBtn("grid", "fa-th-large", "کنار هم")}</div>`,
+    );
+
+    window.setDashboardChartLayout = (mode) => {
+      const root = document.querySelector(".dashboard-container");
+      if (root) {
+        root.classList.toggle("db-chart-full", mode === "full");
+      }
+      header.querySelectorAll(".db-layout-btn").forEach((btn) => {
+        const active = btn.dataset.layout === mode;
+        btn.classList.toggle("active", active);
+        btn.setAttribute("aria-pressed", active ? "true" : "false");
+      });
+      try {
+        localStorage.setItem("skb_dashboard_chart_layout", mode);
+      } catch (e) {
+        // ignore
+      }
+      // نمودارها پس از تغییر عرض، اندازه خود را به‌روز کنند
+      requestAnimationFrame(() => {
+        window.dispatchEvent(new Event("resize"));
+      });
+    };
+
+    let saved = "full";
+    try {
+      saved = localStorage.getItem("skb_dashboard_chart_layout") || "full";
+    } catch (e) {
+      // ignore
+    }
+    window.setDashboardChartLayout(saved);
   }
 
   // ===== رندر تسک‌ها (کارت گله-سطح در سررسید گذشته/نزدیک) =====

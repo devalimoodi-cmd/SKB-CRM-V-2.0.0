@@ -212,6 +212,53 @@ export const hallsValidation = {
       errors.push("لطفاً یک سالن انتخاب کنید");
     }
 
+    // حالت جدید: ذخیره از ویرایشگر افزودنی (نوع + تعداد)
+    if (Array.isArray(data.items)) {
+      const items = data.items;
+      if (items.length === 0) {
+        errors.push("حداقل یک ردیف سیستم (نوع و تعداد) تعریف کنید");
+      }
+      const catLabels = {
+        heating: "گرمایش",
+        cooling: "سرمایش",
+        ventilation: "تهویه",
+        sanitary: "ورودی بهداشتی",
+        lighting: "روشنایی",
+        fan: "فن",
+      };
+      items.forEach((it, idx) => {
+        const n = idx + 1;
+        const cat = String(it.category || "");
+        if (!catLabels[cat]) {
+          errors.push(`ردیف ${n}: دسته سیستم نامعتبر است`);
+          return;
+        }
+        const qty = parseInt(it.quantity);
+        if (isNaN(qty) || qty < 1 || qty > 100000) {
+          errors.push(`ردیف ${n} (${catLabels[cat]}): تعداد باید بین ۱ تا ۱۰۰,۰۰۰ باشد`);
+        }
+        if (cat !== "fan" && !it.type_id) {
+          errors.push(`ردیف ${n} (${catLabels[cat]}): نوع سیستم را انتخاب کنید`);
+        }
+        if (cat === "fan" && it.spec && String(it.spec).trim().length > 100) {
+          errors.push(`ردیف ${n} (فن): مشخصه/سایز نباید بیشتر از ۱۰۰ کاراکتر باشد`);
+        }
+      });
+      // ظرفیت فن‌ها (اگر پر شده باشد باید در بازه منطقی باشد)
+      if (
+        data.fan_capacity !== null &&
+        data.fan_capacity !== undefined &&
+        data.fan_capacity !== ""
+      ) {
+        const fc = parseFloat(data.fan_capacity);
+        if (isNaN(fc) || fc < 100 || fc > 100000000) {
+          errors.push("ظرفیت فن‌ها باید بین 100 تا 100,000,000 باشد");
+        }
+      }
+      return errors;
+    }
+
+    // حالت قدیمی (سازگاری): فیلدهای تکی فرم قدیمی
     if (!data.fan_count && data.fan_count !== 0) {
       errors.push("تعداد فن‌ها الزامی است");
     } else {

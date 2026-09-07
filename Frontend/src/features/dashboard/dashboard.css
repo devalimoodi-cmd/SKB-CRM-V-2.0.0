@@ -2184,3 +2184,80 @@
     padding-inline-start: 0;
   }
 }
+
+/* ===== چیدمان نمودارها و جایگاه لیست گله‌ها (داشبورد کارشناس) ===== */
+.dashboard-main {
+  position: relative;
+}
+
+/* نمودارها در بالا و آکاردئون‌های تسک پایین قرار بگیرند */
+.dashboard-main .dashboard-left {
+  order: 1;
+}
+.dashboard-main .dashboard-center {
+  order: 2;
+}
+
+/* کادر خط‌چین جداکننده دور بخش نمودارها */
+.dashboard-main .dashboard-left {
+  border: 2px dashed #c7d5e5;
+  border-radius: 18px;
+  padding: 16px;
+  background: linear-gradient(180deg, #ffffff 0%, #f6f9fc 100%);
+  box-sizing: border-box;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.04);
+}
+
+/* نوار انتخاب چیدمان در هدر نمودارها */
+.dashboard-layout-toolbar {
+  margin-inline-start: auto;
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+}
+.db-layout-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  color: #64748b;
+  font-size: 10.5px;
+  font-weight: 600;
+  font-family: inherit;
+  padding: 3px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.db-layout-btn:hover {
+  border-color: #2c7a6e;
+  color: #2c7a6e;
+}
+.db-layout-btn.active {
+  background: #2c7a6e;
+  border-color: #2c7a6e;
+  color: #ffffff;
+}
+
+/* حالت تمام‌عرض/افقی: هر نمودار به‌صورت تمام‌عرض زیر هم */
+.dashboard-container.db-chart-full .dashboard-left {
+  flex-direction: column;
+  align-items: stretch;
+}
+.dashboard-container.db-chart-full .dashboard-left .chart-card {
+  width: 100%;
+  min-width: 100%;
+  flex: 1 1 auto;
+}
+.dashboard-container.db-chart-full .dashboard-left .chart-selection-header {
+  width: 100%;
+}
+
+/* هدر انتخاب نمودار همیشه در یک ردیف کامل بالای کارت‌ها */
+.dashboard-main .dashboard-left > .chart-selection-header {
+  width: 100%;
+}
+.dashboard-main .dashboard-left > .dashboard-chart-loading {
+  width: 100%;
+}

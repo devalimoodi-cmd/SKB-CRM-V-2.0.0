@@ -2441,7 +2441,7 @@ class HatcheryService {
         ).toLocaleString("fa-IR")} قطعه)</span>
       </div>
       <div class="pc-grid">
-        ${this._pcRow("تعداد ارسالی (اختیاری)", `pc_hsent_${hid}`, "", {
+        ${this._pcRow("تعداد ارسالی به کشتارگاه (اختیاری)", `pc_hsent_${hid}`, "", {
           placeholder: "مثلاً ۹۵۰۰",
         })}
         ${this._pcRow("وزن زنده سالن (کیلوگرم)", `pc_hlive_${hid}`, "", {
@@ -2526,7 +2526,7 @@ class HatcheryService {
       <div class="pc-sec">
         <div class="pc-sec-title"><i class="fas fa-coins"></i> ۵) اطلاعات اقتصادی</div>
         <div class="pc-grid">
-          ${this._pcRow("قیمت هر کیلو (تومان)", "pc_price", "", { type: "text", placeholder: "مثلاً ۸۵,۰۰۰", onblur: "hatcheryFormatToman(this)" })}
+          ${this._pcRow("قیمت هر کیلو گوشت مرغ زنده (تومان)", "pc_price", "", { type: "text", placeholder: "مثلاً ۸۵,۰۰۰", onblur: "hatcheryFormatToman(this)" })}
           ${this._pcRead("درآمد کل", "pc_out_income", "تومان")}
           ${this._pcRow("هزینه جوجه (تومان)", "pc_cost_chick", "", { type: "text", onblur: "hatcheryFormatToman(this)" })}
           ${this._pcRow("هزینه خوراک (تومان)", "pc_cost_feed", "", { type: "text", onblur: "hatcheryFormatToman(this)" })}
@@ -2569,7 +2569,7 @@ class HatcheryService {
       </div>
 
       <div class="pc-sec">
-        <div class="pc-sec-title"><i class="fas fa-warehouse"></i> ریز سالن‌ها (اختیاری)</div>
+        <div class="pc-sec-title"><i class="fas fa-warehouse"></i> اطلاعات تفکیکی سالن‌ها (اختیاری)</div>
         ${hallBlocks}
       </div>
 
@@ -3104,7 +3104,7 @@ class HatcheryService {
                 <input type="number" id="cfTransportMortality" class="cf-field" placeholder="0" value="0" min="0">
               </div>
               <div>
-                <label class="cf-label">تعداد ارسالی</label>
+                <label class="cf-label">تعداد ارسالی به کشتارگاه</label>
                 <input type="number" id="cfTotalSent" class="cf-field" placeholder="تعداد...">
               </div>
               <div>
@@ -3544,7 +3544,7 @@ class HatcheryService {
                 <input type="number" id="ueTransportMortality" class="ue-field" value="${c.transport_mortality ?? 0}">
               </div>
               <div>
-                <label class="ue-label">تعداد ارسالی</label>
+                <label class="ue-label">تعداد ارسالی به کشتارگاه</label>
                 <input type="number" id="ueTotalSent" class="ue-field" value="${c.total_sent ?? ""}">
               </div>
               <div>

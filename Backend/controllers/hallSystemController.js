@@ -86,7 +86,13 @@ const createOrUpdateSystem = async (req, res) => {
             category,
             type_id: it.type_id ? parseInt(it.type_id) : null,
             quantity: Math.max(1, parseInt(it.quantity) || 1),
-            spec: it.spec ? String(it.spec).trim() : null,
+            spec: it.spec
+              ? String(it.spec).trim()
+              : it.size
+                ? String(it.size).trim()
+                : null,
+            size: it.size ? String(it.size).trim() : null,
+            capacity: it.capacity ? String(it.capacity).trim() : null,
           };
         })
         .filter(Boolean);
@@ -98,7 +104,7 @@ const createOrUpdateSystem = async (req, res) => {
       include: [
         {
           model: HallSystemItem,
-          attributes: ["id", "category", "type_id", "quantity", "spec"],
+          attributes: ["id", "category", "type_id", "quantity", "spec", "size", "capacity"],
           required: false,
         },
       ],
@@ -134,7 +140,7 @@ const getSystemByHallId = async (req, res) => {
       include: [
         {
           model: HallSystemItem,
-          attributes: ["id", "category", "type_id", "quantity", "spec"],
+          attributes: ["id", "category", "type_id", "quantity", "spec", "size", "capacity"],
           required: false,
         },
       ],

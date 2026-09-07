@@ -34,7 +34,17 @@ const HallSystemItem = sequelize.define(
     spec: {
       type: DataTypes.STRING(100),
       allowNull: true,
-      comment: "مشخصه/سایز (مثلاً فن ۳۶ اینچ یا ظرفیت)",
+      comment: "مشخصه/سایز (مثلاً فن ۳۶ اینچ یا ظرفیت) — برای سازگاری داده‌های قدیمی",
+    },
+    size: {
+      type: DataTypes.STRING(50),
+      allowNull: true,
+      comment: "اندازه/قطر فن (مثلاً ۳۶ اینچ)",
+    },
+    capacity: {
+      type: DataTypes.STRING(50),
+      allowNull: true,
+      comment: "ظرفیت هوادهی فن (مترمکعب بر ساعت)",
     },
   },
   {
