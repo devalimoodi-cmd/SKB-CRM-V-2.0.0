@@ -1214,6 +1214,38 @@ const getChartsData = async (req, res) => {
       const maxWeight = totalWeeks > 0 ? Math.max(...weighting) : 0;
       const avgLoss = totalWeeks > 0 ? totalLoss / totalWeeks : 0;
 
+      // ── سری هفتگی هر سالن عضو (برای نمایش هم‌زمان روی نمودار) ──
+      const hallsSeries = placements.map((p) => {
+        const hByWeek = {};
+        (p.weeklyManagements || []).forEach((w) => {
+          const wk = parseInt(w.week_number) || 0;
+          if (!wk) return;
+          if (!hByWeek[wk]) hByWeek[wk] = { weight: null, loss: 0, feed: 0 };
+          const val = w.weekly_weight;
+          if (
+            val !== null &&
+            val !== undefined &&
+            val !== "" &&
+            !isNaN(parseFloat(val))
+          ) {
+            hByWeek[wk].weight = parseFloat(val);
+          }
+          hByWeek[wk].loss += parseInt(w.weekly_mortality) || 0;
+          hByWeek[wk].feed += parseFloat(w.weekly_feed_intake) || 0;
+        });
+        return {
+          id: p.id,
+          hallId: p.hall_id,
+          name: p.Hall?.hall_name || `سالن ${p.hall_id}`,
+          flockNumber: flockRow.flock_number,
+          weighting: weekNums.map((wk) => hByWeek[wk]?.weight ?? 0),
+          loss: weekNums.map((wk) => hByWeek[wk]?.loss ?? 0),
+          feed: weekNums.map((wk) =>
+            hByWeek[wk] ? parseFloat(hByWeek[wk].feed.toFixed(1)) : 0,
+          ),
+        };
+      });
+
       return successResponse(
         res,
         {
@@ -1221,6 +1253,7 @@ const getChartsData = async (req, res) => {
           flockGroupId: groupId,
           totalFlocks: activeHalls,
           scope: "flock",
+          halls: hallsSeries,
           flocks: [
             {
               flockInfo: {
@@ -1462,6 +1495,9 @@ const getAnalysisData = async (req, res) => {
       return {
         flock: {
           id: flock.id,
+          placementId: flock.id,
+          hallId: flock.hall_id ?? flock.Hall?.id ?? null,
+          groupId: flock.flock_id ?? null,
           flockNumber: flock.flock_number,
           customerName: flock.CustomerPersonalInfo?.full_name || "نامشخص",
           farmName: flock.CustomerPersonalInfo?.farm_name || "نامشخص",

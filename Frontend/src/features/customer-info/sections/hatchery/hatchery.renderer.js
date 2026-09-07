@@ -208,6 +208,11 @@ export const hatcheryRenderer = {
           <button type="button" class="flock-end-btn" onclick="window.endActiveFlockOf(${flock.id})">
             <i class="fas fa-ban"></i> پایان گله
           </button>
+          <button type="button" class="flock-bookmark-btn"
+            style="background:#fef2f2; color:#b91c1c;"
+            onclick="window.deleteFlockGroup(${flock.id})" title="حذف کامل گله">
+            <i class="fas fa-trash-alt"></i> حذف گله
+          </button>
         </div>
         <div class="flock-halls">
           ${hallRows || '<div class="flock-halls-empty">هنوز سالنی به این گله اضافه نشده است</div>'}
@@ -343,6 +348,83 @@ export const hatcheryRenderer = {
     });
 
     return html;
+  },
+
+  // ===== رندر جدول گله‌ها به‌صورت «سطح گله/دوره» (چند سالن = یک رکورد) =====
+
+  renderFlockGroupsTable(groups) {
+    if (!groups || groups.length === 0) {
+      return '<tr><td colspan="8" style="text-align:center;">هیچ گله‌ای ثبت نشده است</td></tr>';
+    }
+
+    return groups
+      .map((g) => {
+        const statusText = g.is_active ? "فعال" : "غیرفعال";
+        const statusClass = g.is_active ? "active" : "inactive";
+        const primaryId = g.primaryId || g.id || 0;
+        const groupId = g.flockId || null;
+        const deleteFn = groupId
+          ? `window.deleteFlockGroup(${groupId}, ${primaryId})`
+          : `window.deleteFlock(${primaryId})`;
+        const hasGroup = Boolean(groupId);
+        const viewFn = hasGroup
+          ? `viewFlockGroup(${groupId})`
+          : `viewFlockDetails(${primaryId})`;
+        const editFn = hasGroup
+          ? `editFlockGroup(${groupId})`
+          : `editFlock(${primaryId})`;
+        const toggleFn = hasGroup
+          ? `toggleFlockGroupStatus(${groupId})`
+          : `toggleFlockStatus(${primaryId})`;
+        const hallsText = g.hallNames || g.hall_name || "—";
+
+        return `
+                <tr>
+                    <td>${g.period_number || "—"}</td>
+                    <td title="${hallsText}">${hallsText}${
+                      g.hallCount > 1
+                        ? ` <small style="color:#94a3b8;">(${g.hallCount} سالن)</small>`
+                        : ""
+                    }</td>
+                    <td>${g.placement_date ? convertToPersianDate(g.placement_date) : "—"}</td>
+                    <td><strong>${g.flock_number ?? "—"}</strong></td>
+                    <td>${g.breed_names || g.breed_name || "—"}</td>
+                    <td>${(Number(g.total_chicks_count) || 0).toLocaleString()}</td>
+                    <td>
+                        <span class="status-badge ${statusClass}">${statusText}</span>
+                    </td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="action-btn view" onclick="window.${viewFn}" title="جزئیات کامل گله">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button class="action-btn ${g.is_active ? "disable" : "enable"}"
+                                    onclick="window.${toggleFn}"
+                                    title="${g.is_active ? "غیرفعال کردن کل گله" : "فعال کردن کل گله"}">
+                                <i class="fas ${g.is_active ? "fa-toggle-on" : "fa-toggle-off"}"></i>
+                            </button>
+                            ${
+                              hasGroup
+                                ? `<button class="action-btn" onclick="window.printFlockCompletionReport(${groupId})" title="دریافت گزارش پایان دوره گله (چاپ)"><i class="fas fa-file-export"></i></button>`
+                                : ""
+                            }
+                            ${
+                              hasGroup && g.is_active
+                                ? `<button class="action-btn complete" onclick="window.completeFlockOf(${groupId})" title="ثبت پایان گله / اطلاعات کشتار و محاسبات اقتصادی"><i class="fas fa-flag-checkered"></i></button>`
+                                : ""
+                            }
+                            <button class="action-btn edit" onclick="window.${editFn}" title="ویرایش کامل گله">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="action-btn delete" onclick="${deleteFn}" title="حذف گله (همه سالن‌های عضو)">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+      })
+      .join("");
   },
 
   // ===== رندر تاریخچه بهداشت =====

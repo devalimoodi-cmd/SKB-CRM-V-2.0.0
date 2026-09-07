@@ -111,6 +111,14 @@ class CustomerInfoService {
             },
           });
           input.setAttribute("data-datepicker-initialized", "true");
+          if (id === "skb-chick-date") {
+            const syncDates = () => {
+              if (typeof window.syncExtraHallDates === "function")
+                window.syncExtraHallDates();
+            };
+            input.addEventListener("change", syncDates);
+            input.addEventListener("input", syncDates);
+          }
         } else {
           input.placeholder = "۱۴۰۴/۰۱/۰۱";
           input.setAttribute("data-datepicker-initialized", "true");

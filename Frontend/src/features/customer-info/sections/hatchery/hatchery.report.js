@@ -164,7 +164,18 @@ class HatcheryReport {
                   <tr><td>جوجه اولیه</td><td>${(parseInt(completion.initial_chicks_count) || 0).toLocaleString()}</td></tr>
                   <tr><td>جوجه نهایی</td><td>${(parseInt(completion.final_chicks_count) || 0).toLocaleString()}</td></tr>
                   <tr><td>تلفات کل</td><td>${parseInt(completion.total_mortality) || 0}</td></tr>
-                  <tr><td>FCR</td><td><strong>${completion.system_fcr ?? completion.farmer_fcr ?? "-"}</strong></td></tr>
+                  <tr><td>FCR نهایی</td><td><strong>${completion.final_fcr ?? completion.system_fcr ?? completion.farmer_fcr ?? "-"}</strong></td></tr>
+                  <tr><td>FCR (سیستمی)</td><td>${completion.system_fcr ?? "-"}</td></tr>
+                  <tr><td>FCR (اعلامی مرغدار)</td><td>${completion.farmer_fcr ?? "-"}</td></tr>
+                  <tr><td>EPI (سیستمی / اعلامی)</td><td>${completion.system_epi ?? "-"} / ${completion.farmer_epi ?? "-"}</td></tr>
+                  <tr><td>ADG (سیستمی / اعلامی)</td><td>${completion.system_adg_grams ?? "-"} / ${completion.farmer_adg_grams ?? "-"}</td></tr>
+                  <tr><td>EPI</td><td><strong>${completion.epi ?? "-"}</strong></td></tr>
+                  <tr><td>ADG (گرم/روز)</td><td>${completion.adg_grams ?? "-"}</td></tr>
+                  <tr><td>تعداد ارسالی به کشتارگاه</td><td>${completion.total_sent != null ? Number(completion.total_sent).toLocaleString("fa-IR") : "-"}</td></tr>
+                  <tr><td>درآمد کل</td><td>${completion.income_total != null ? `${Number(completion.income_total).toLocaleString("fa-IR")} تومان` : "-"}</td></tr>
+                  <tr><td>جمع هزینه‌ها</td><td>${completion.total_cost != null ? `${Number(completion.total_cost).toLocaleString("fa-IR")} تومان` : "-"}</td></tr>
+                  <tr><td>سود خالص</td><td><strong style="color:${Number(completion.net_profit) >= 0 ? "#16a34a" : "#dc2626"};">${completion.net_profit != null ? `${Number(completion.net_profit).toLocaleString("fa-IR")} تومان` : "-"}</strong></td></tr>
+                  <tr><td>درصد سود</td><td>${completion.profit_percent != null ? `${completion.profit_percent}٪` : "-"}</td></tr>
                   <tr><td>سن کشتار</td><td>${completion.slaughter_age_days ? completion.slaughter_age_days + " روز" : "-"}</td></tr>
                   <tr><td>هفته آخر</td><td>${completion.final_week_number ?? "-"}</td></tr>
                 </table>
@@ -352,6 +363,61 @@ class HatcheryReport {
       </body>
       </html>
     `;
+  }
+
+  async generateFlockReport(flockId) {
+    try {
+      await this.init();
+      await this.loadDictionaries();
+
+      const flockRes = await apiService.get(`/flocks/${flockId}`);
+      if (!flockRes?.success || !flockRes.data) {
+        alert("گله یافت نشد");
+        return;
+      }
+      const flock = flockRes.data;
+
+      if (flock.status !== "completed") {
+        alert("برای این گله هنوز اطلاعات پایان دوره ثبت نشده است");
+        return;
+      }
+
+      let completionData = null;
+      try {
+        const compRes = await hatcheryApi.getFlockCompletionByFlock(flockId);
+        if (compRes?.success && compRes.data) completionData = compRes.data;
+      } catch (e) {
+        completionData = null;
+      }
+      if (!completionData) {
+        alert("برای این گله هنوز اطلاعات پایان دوره ثبت نشده است");
+        return;
+      }
+
+      const customerRes = await apiService
+        .get(`/customers/${this.customerId}`)
+        .catch(() => null);
+
+      const reportData = {
+        mode: "history",
+        customer: customerRes?.data || null,
+        flocks: [flock],
+        completionsMap: { [flockId]: completionData },
+        generatedAt: new Date().toISOString(),
+      };
+
+      const html = this.generateHTML(reportData);
+      const printWindow = window.open("", "_blank", "width=1100,height=800");
+      if (!printWindow) {
+        alert("لطفاً باز شدن پنجره popup را مجاز کنید");
+        return;
+      }
+      printWindow.document.write(html);
+      printWindow.document.close();
+    } catch (error) {
+      console.error("Error generating flock report:", error);
+      alert("خطا در تولید گزارش گله: " + error.message);
+    }
   }
 
   async generateAndPrint(mode = "active") {

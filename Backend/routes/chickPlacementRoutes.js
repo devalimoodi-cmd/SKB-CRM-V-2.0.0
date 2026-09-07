@@ -12,6 +12,7 @@ const {
   activateChickPlacement,
   deactivateChickPlacement,
   toggleChickPlacementStatus,
+  deleteFlockGroup,
 } = require("../controllers/chickPlacementController");
 
 router.use(protect);
@@ -31,6 +32,13 @@ router.put(
   "/deactivate/:id",
   authorize("expert", "admin", "sub_admin", "super_admin"),
   deactivateChickPlacement,
+);
+
+// =========== حذف کل «گله/دوره» به همراه سالن‌های عضو ===========
+router.delete(
+  "/group/:flockId",
+  authorize("admin", "super_admin", "sub_admin"),
+  deleteFlockGroup,
 );
 
 // =========== روت‌های عمومی با پارامتر :id (آخر) ===========

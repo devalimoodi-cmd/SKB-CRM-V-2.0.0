@@ -91,7 +91,7 @@ const FlockCompletion = sequelize.define(
       comment: "🐣 تعداد جوجه مانده تا آخرین هفته (قطعه)",
     },
     initial_avg_weight: {
-      type: DataTypes.DECIMAL(6, 3),
+      type: DataTypes.DECIMAL(10, 4),
       defaultValue: 0.04,
       comment:
         "🐣 وزن اولیه هر جوجه در جوجه‌ریزی (کیلوگرم) - معمولاً ۰.۰۴۰ (۴۰ گرم)",
@@ -135,7 +135,7 @@ const FlockCompletion = sequelize.define(
       comment: "🏭 وزن کل زنده گله در کشتارگاه (کیلوگرم)",
     },
     avg_live_weight: {
-      type: DataTypes.DECIMAL(8, 2),
+      type: DataTypes.DECIMAL(12, 3),
       allowNull: true,
       comment: "🏭 میانگین وزن زنده هر قطعه (کیلوگرم) - از کشتارگاه",
     },
@@ -149,7 +149,7 @@ const FlockCompletion = sequelize.define(
       comment: "📊 شماره هفته آخر پرورش",
     },
     total_feed_intake: {
-      type: DataTypes.DECIMAL(12, 2),
+      type: DataTypes.DECIMAL(16, 2),
       allowNull: true,
       comment: "📊 کل خوراک مصرفی (از داده‌های سیستم)",
     },
@@ -164,7 +164,7 @@ const FlockCompletion = sequelize.define(
       comment: "📊 تلفات کل (تلفات سیستم + تلفات حمل)",
     },
     mortality_rate: {
-      type: DataTypes.DECIMAL(5, 2),
+      type: DataTypes.DECIMAL(8, 2),
       allowNull: true,
       comment: "📊 درصد تلفات: (تلفات کل / تعداد اولیه) × ۱۰۰",
     },
@@ -173,7 +173,7 @@ const FlockCompletion = sequelize.define(
     // 👨‍🌾 اطلاعات اعلامی مرغدار (4 فیلد)
     // ==========================================================
     farmer_fcr: {
-      type: DataTypes.DECIMAL(5, 2),
+      type: DataTypes.DECIMAL(10, 3),
       allowNull: true,
       comment: "👨‍🌾 ضریب تبدیل نهایی اعلامی مرغدار",
     },
@@ -203,13 +203,13 @@ const FlockCompletion = sequelize.define(
         "💻 آخرین وزن گله در آخرین هفته (کیلوگرم) - محاسبه‌شده از داده‌های هفتگی",
     },
     system_total_feed: {
-      type: DataTypes.DECIMAL(12, 2),
+      type: DataTypes.DECIMAL(16, 2),
       allowNull: true,
       comment:
         "💻 مجموع مصرفی خوراک در طول دوره (کیلوگرم) - جمع داده‌های هفتگی",
     },
     system_fcr: {
-      type: DataTypes.DECIMAL(5, 2),
+      type: DataTypes.DECIMAL(10, 3),
       allowNull: true,
       comment:
         "💻 ضریب تبدیل سیستمی: (کل خوراک / افزایش وزن کل) - بر اساس داده‌های ثبت شده",
@@ -222,6 +222,160 @@ const FlockCompletion = sequelize.define(
       type: DataTypes.TEXT,
       allowNull: true,
       comment: "📝 توضیحات تکمیلی",
+    },
+    // ==========================================================
+    // 💰 اطلاعات اقتصادی پایان دوره
+    // ==========================================================
+    price_per_kg: {
+      type: DataTypes.DECIMAL(18, 2),
+      allowNull: true,
+      comment: "💰 قیمت هر کیلوگرم وزن زنده فروش به کشتارگاه",
+    },
+    income_total: {
+      type: DataTypes.DECIMAL(20, 2),
+      allowNull: true,
+      comment: "💰 درآمد کل = وزن کل زنده × قیمت هر کیلو",
+    },
+    chick_cost: {
+      type: DataTypes.DECIMAL(20, 2),
+      allowNull: true,
+      comment: "💰 هزینه جوجه (قیمت هر جوجه × تعداد اولیه)",
+    },
+    feed_cost: {
+      type: DataTypes.DECIMAL(20, 2),
+      allowNull: true,
+      comment: "💰 هزینه خوراک (کل خوراک × قیمت هر کیلو)",
+    },
+    medication_cost: {
+      type: DataTypes.DECIMAL(20, 2),
+      allowNull: true,
+      comment: "💰 هزینه دارو و واکسن",
+    },
+    fuel_cost: {
+      type: DataTypes.DECIMAL(20, 2),
+      allowNull: true,
+      comment: "💰 هزینه سوخت (گاز، برق، آب)",
+    },
+    labor_cost: {
+      type: DataTypes.DECIMAL(20, 2),
+      allowNull: true,
+      comment: "💰 هزینه نیروی انسانی",
+    },
+    other_cost: {
+      type: DataTypes.DECIMAL(20, 2),
+      allowNull: true,
+      comment: "💰 سایر هزینه‌ها (بستر، حمل، تعمیرات)",
+    },
+    total_cost: {
+      type: DataTypes.DECIMAL(20, 2),
+      allowNull: true,
+      comment: "💰 جمع کل هزینه‌ها",
+    },
+    net_profit: {
+      type: DataTypes.DECIMAL(20, 2),
+      allowNull: true,
+      comment: "💰 سود خالص = درآمد کل − جمع کل هزینه‌ها",
+    },
+    profit_percent: {
+      type: DataTypes.DECIMAL(8, 2),
+      allowNull: true,
+      comment: "💰 درصد سود = (سود خالص ÷ درآمد کل) × ۱۰۰",
+    },
+
+    // ==========================================================
+    // 🍗 اطلاعات لاشه
+    // ==========================================================
+    carcass_weight_kg: {
+      type: DataTypes.DECIMAL(18, 2),
+      allowNull: true,
+      comment: "🍗 وزن لاشه بعد از پرکنی (کیلوگرم)",
+    },
+    carcass_yield_percent: {
+      type: DataTypes.DECIMAL(8, 2),
+      allowNull: true,
+      comment: "🍗 درصد راندمان لاشه = (وزن لاشه ÷ وزن زنده) × ۱۰۰",
+    },
+
+    // ==========================================================
+    // 📈 شاخص‌های عملکردی محاسبه‌شده
+    // ==========================================================
+    feed_basis: {
+      type: DataTypes.STRING(20),
+      defaultValue: "system",
+      allowNull: false,
+      comment: "📈 مبنای محاسبه خوراک در FCR نهایی: system | declared",
+    },
+    epi: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: true,
+      comment: "📈 شاخص اروپایی EPI",
+    },
+    adg_grams: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: true,
+      comment: "📈 نرخ رشد روزانه (گرم در روز)",
+    },
+    total_weight_gain_kg: {
+      type: DataTypes.DECIMAL(18, 2),
+      allowNull: true,
+      comment: "📈 افزایش وزن کل گله (کیلوگرم)",
+    },
+    survival_percent: {
+      type: DataTypes.DECIMAL(8, 2),
+      allowNull: true,
+      comment: "📈 درصد زنده‌مانی گله",
+    },
+    final_fcr: {
+      type: DataTypes.DECIMAL(10, 3),
+      allowNull: true,
+      comment: "📈 ضریب تبدیل نهایی (بر اساس مبنای خوراک انتخابی)",
+    },
+    // ==========================================================
+    // 🖥 شاخص‌های محاسبه‌شده از داده‌های سیستم (هفتگی)
+    // ==========================================================
+    system_epi: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: true,
+      comment: "EPI بر اساس داده‌های سیستم",
+    },
+    system_adg_grams: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: true,
+      comment: "ADG (گرم/روز) بر اساس داده‌های سیستم",
+    },
+    system_weight_gain_kg: {
+      type: DataTypes.DECIMAL(18, 2),
+      allowNull: true,
+      comment: "افزایش وزن کل بر اساس داده‌های سیستم",
+    },
+    system_survival_percent: {
+      type: DataTypes.DECIMAL(8, 2),
+      allowNull: true,
+      comment: "درصد زنده‌مانی بر اساس داده‌های سیستم",
+    },
+
+    // ==========================================================
+    // 👨‍🌾 شاخص‌های محاسبه‌شده از اطلاعات اعلامی مرغدار
+    // ==========================================================
+    farmer_epi: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: true,
+      comment: "EPI بر اساس اطلاعات اعلامی مرغدار",
+    },
+    farmer_adg_grams: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: true,
+      comment: "ADG (گرم/روز) بر اساس اطلاعات اعلامی مرغدار",
+    },
+    farmer_weight_gain_kg: {
+      type: DataTypes.DECIMAL(18, 2),
+      allowNull: true,
+      comment: "افزایش وزن کل بر اساس اطلاعات اعلامی مرغدار",
+    },
+    farmer_survival_percent: {
+      type: DataTypes.DECIMAL(8, 2),
+      allowNull: true,
+      comment: "درصد زنده‌مانی بر اساس اطلاعات اعلامی مرغدار",
     },
   },
   {

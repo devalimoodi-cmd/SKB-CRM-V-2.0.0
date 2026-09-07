@@ -166,6 +166,30 @@ class HallsReport {
     return item ? item.name || "-" : "-";
   }
 
+  sysItemsText(system, cat, isFan = false) {
+    const items =
+      (system && (system.HallSystemItems || system.items)) || [];
+    const catItems = items.filter((i) => i.category === cat);
+    if (!catItems.length) return "";
+    return catItems
+      .map((i) => {
+        const qty = `×${i.quantity ?? 1}`;
+        if (isFan) return `${i.spec || "فن بدون سایز"} ${qty}`;
+        const name =
+          cat === "heating"
+            ? this.getDictName(
+                i.type_id,
+                this.dictionaries.heatingSystems || [],
+              )
+            : this.getDictName(
+                i.type_id,
+                this.dictionaries.coolingSystems || [],
+              );
+        return `${name} ${qty}`;
+      })
+      .join("، ");
+  }
+
   getExpertName(id) {
     if (!id) return "-";
     const expert = this.expertsData.find((e) => e.id == id);
@@ -268,6 +292,9 @@ class HallsReport {
                 this.dictionaries.coolingSystems,
               )
             : "-",
+          heatingItemsText: this.sysItemsText(system, "heating"),
+          coolingItemsText: this.sysItemsText(system, "cooling"),
+          fanItemsText: this.sysItemsText(system, "fan", true),
           ventilationName: system
             ? this.getDictName(
                 system.ventilation_system_id,
@@ -449,10 +476,13 @@ class HallsReport {
                 <h4>سیستم‌ها</h4>
                 <table class="report-table compact">
                   <tr><td>فن‌ها</td><td>${hall.system.fan_count || "-"} عدد (${hall.system.fan_size || "-"} اینچ)</td></tr>
+                  ${hall.fanItemsText ? `<tr><td>فن‌ها (جزئیات سایز)</td><td>${hall.fanItemsText}</td></tr>` : ""}
                   <tr><td>ظرفیت فن‌ها</td><td>${hall.system.fan_capacity || "-"}</td></tr>
                   <tr><td>هیتر</td><td>${hall.system.heater_count || "-"} عدد</td></tr>
                   <tr><td>گرمایش</td><td>${hall.heatingName}</td></tr>
+                  ${hall.heatingItemsText ? `<tr><td>گرمایش (جزئیات)</td><td>${hall.heatingItemsText}</td></tr>` : ""}
                   <tr><td>سرمایش</td><td>${hall.coolingName}</td></tr>
+                  ${hall.coolingItemsText ? `<tr><td>سرمایش (جزئیات)</td><td>${hall.coolingItemsText}</td></tr>` : ""}
                   <tr><td>تهویه</td><td>${hall.ventilationName}</td></tr>
                   <tr><td>روشنایی</td><td>${hall.lightingName}</td></tr>
                 </table>

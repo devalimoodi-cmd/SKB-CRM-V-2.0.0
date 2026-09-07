@@ -18,6 +18,11 @@ export const chartDashboardApi = {
     return apiService.get(API_CONSTANTS.ENDPOINTS.DASHBOARD.ANALYSIS, params);
   },
 
+  // دریافت لیست مشتریان (برای مقایسه گله/سالن سایر مشتریان)
+  async getCustomers(params = {}) {
+    return apiService.get(API_CONSTANTS.ENDPOINTS.CUSTOMERS.LIST, params);
+  },
+
   // دریافت اطلاعات گله‌ها
   async getFlocks(customerId) {
     const params = { customer_id: customerId, is_active: true };

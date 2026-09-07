@@ -212,24 +212,56 @@ class HatcheryService {
       return;
     }
 
-    const flocksWithData = await Promise.all(
-      this.flocks.map(async (flock) => {
-        const hall = this.halls.find((h) => h.id === flock.hall_id);
-        const period = this.periods.find((p) => p.id === flock.period_id);
-        const breed = this.dictionaries.breeds.find(
-          (b) => b.id === flock.breed_id,
-        );
+    // گروه‌بندی بر اساس «گله/دوره» (چند سالن عضو = یک رکورد)
+    const groupMap = new Map();
+    this.flocks.forEach((flock) => {
+      const hall = this.halls.find((h) => h.id === flock.hall_id);
+      const period = this.periods.find((p) => p.id === flock.period_id);
+      const breed = this.dictionaries.breeds.find(
+        (b) => b.id === flock.breed_id,
+      );
 
-        return {
-          ...flock,
-          hall_name: hall?.hall_name || "-",
-          period_number: period?.period_number || "-",
-          breed_name: breed?.name || "-",
-        };
-      }),
-    );
+      const key = flock.flock_id ? `f${flock.flock_id}` : `p${flock.id}`;
+      if (!groupMap.has(key)) {
+        groupMap.set(key, {
+          flockId: flock.flock_id || null,
+          primaryId: flock.id,
+          flock_number: flock.flock_number,
+          period_number: period?.period_number || "—",
+          placement_date: flock.placement_date || null,
+          is_active: !!flock.is_active,
+          total: 0,
+          hallNames: [],
+          breeds: new Set(),
+          hallCount: 0,
+        });
+      }
+      const g = groupMap.get(key);
+      const hallName =
+        hall?.hall_name || (flock.hall_id ? `سالن ${flock.hall_id}` : "");
+      if (hallName && !g.hallNames.includes(hallName)) {
+        g.hallNames.push(hallName);
+      }
+      if (breed?.name) g.breeds.add(breed.name);
+      g.total += Number(flock.total_chicks_count) || 0;
+      g.hallCount++;
+      if (flock.is_active) g.is_active = true;
+      if (
+        flock.placement_date &&
+        (!g.placement_date || flock.placement_date < g.placement_date)
+      ) {
+        g.placement_date = flock.placement_date;
+      }
+    });
 
-    const html = hatcheryRenderer.renderFlocksTable(flocksWithData);
+    const groups = Array.from(groupMap.values()).map((g) => ({
+      ...g,
+      hallNames: g.hallNames.join("، "),
+      breed_names: Array.from(g.breeds).join("، ") || "—",
+      total_chicks_count: g.total,
+    }));
+
+    const html = hatcheryRenderer.renderFlockGroupsTable(groups);
     tbody.innerHTML = html;
   }
 
@@ -947,10 +979,56 @@ class HatcheryService {
         document.getElementById("skb-chick-date")?.value || "",
       );
       section.style.display = "block";
+      this.initExtraHallDatepickers();
+      this.syncExtraHallDates();
     } catch (error) {
       console.error("❌ Error building extra halls:", error);
       section.style.display = "none";
     }
+  }
+
+  // تقویم شمسی برای فیلدهای تاریخ سالن‌های اضافه
+  initExtraHallDatepickers() {
+    try {
+      const mainVal = document.getElementById("skb-chick-date")?.value || "";
+      document
+        .querySelectorAll("#extraHallsList .extra-hall-date")
+        .forEach((input) => {
+          if (typeof $.fn.persianDatepicker !== "undefined") {
+            try {
+              if (!input.dataset.dpInited) {
+                $(input).persianDatepicker({
+                  format: "YYYY/MM/DD",
+                  autoClose: true,
+                  initialValue: false,
+                  observer: true,
+                });
+                input.dataset.dpInited = "1";
+              }
+            } catch (e) {
+              /* ignore */
+            }
+          }
+          input.dataset.prevMain = mainVal;
+        });
+    } catch (err) {
+      console.warn("⚠️ خطا در ساخت تقویم سالن‌های اضافه:", err);
+    }
+  }
+
+  // همگام‌سازی تاریخ سالن‌های اضافه با تاریخ سالن اول
+  syncExtraHallDates() {
+    const main = document.getElementById("skb-chick-date");
+    if (!main) return;
+    const val = (main.value || "").trim();
+    document
+      .querySelectorAll("#extraHallsList .extra-hall-date")
+      .forEach((el) => {
+        const cur = (el.value || "").trim();
+        const prev = el.dataset.prevMain || "";
+        if (!cur || cur === prev) el.value = val;
+        el.dataset.prevMain = val;
+      });
   }
 
   // جمع‌آوری سالن‌های اضافه انتخاب‌شده
@@ -1642,6 +1720,37 @@ class HatcheryService {
     }
   }
 
+  async deleteFlockGroup(flockId, fallbackId = null) {
+    if (!flockId) {
+      if (fallbackId) return this.deleteFlock(fallbackId);
+      notificationService.warning("شناسه گله مشخص نیست");
+      return;
+    }
+    const confirmed = await notificationService.confirm({
+      title: "🗑️ حذف گله (کل دوره)",
+      text: "آیا از حذف کامل این گله به‌همراه همه جوجه‌ریزی‌های سالن‌های عضو اطمینان دارید؟ این عمل قابل بازگشت نیست.",
+      confirmText: "بله، حذف شود",
+      cancelText: "انصراف",
+    });
+    if (!confirmed) return;
+
+    try {
+      const response = await hatcheryApi.deleteFlockGroup(flockId);
+      if (response.success) {
+        notificationService.success("گله و سالن‌های عضو با موفقیت حذف شد");
+        await this.loadData();
+        if (typeof window.refreshWeeksDisplay === "function") {
+          await window.refreshWeeksDisplay();
+        }
+      } else {
+        notificationService.error(response.message || "خطا در حذف گله");
+      }
+    } catch (error) {
+      console.error("❌ Error deleting flock group:", error);
+      notificationService.error("خطا در ارتباط با سرور");
+    }
+  }
+
   async toggleFlockStatus(id) {
     try {
       const flock = this.flocks.find((f) => f.id === id);
@@ -1773,6 +1882,1142 @@ class HatcheryService {
   }
 
   // ===== رفرش =====
+
+  // ===== عملیات «کل گله» (ردیف‌های تب لیست گله‌ها) =====
+
+  async _refreshFlockViews() {
+    await this.loadData();
+    if (typeof this.refreshFlockPanel === "function") this.refreshFlockPanel();
+    if (typeof this.refreshExtraHalls === "function") this.refreshExtraHalls();
+    if (typeof window.refreshWeeksDisplay === "function") {
+      await window.refreshWeeksDisplay();
+    }
+  }
+
+  _flockHallName(p) {
+    if (!p) return "-";
+    return (
+      p.hall?.hall_name ||
+      p.Hall?.hall_name ||
+      (p.hall_id ? `سالن ${p.hall_id}` : "-")
+    );
+  }
+
+  _flockSourceName(sourceId) {
+    const s = (this.dictionaries.sources || []).find(
+      (x) => Number(x.id) === Number(sourceId),
+    );
+    return s ? s.name || s.title || "-" : "-";
+  }
+
+  _flockCompletionDetailsHtml(c) {
+    const fmt = (v, d = 0) =>
+      v === null || v === undefined || v === ""
+        ? "-"
+        : Number(v).toLocaleString("fa-IR", { maximumFractionDigits: d });
+    const toman = (v) =>
+      v === null || v === undefined || v === "" ? "-" : `${fmt(v)} تومان`;
+    if (!c) {
+      return `
+        <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:12px;padding:10px 14px;margin-top:14px;font-size:12px;color:#92400e;">
+          <i class="fas fa-info-circle"></i> برای این گله هنوز اطلاعات پایان دوره/کشتار ثبت نشده است.
+        </div>`;
+    }
+    const profit = Number(c.net_profit || 0);
+    const profitColor = profit >= 0 ? "#16a34a" : "#dc2626";
+    return `
+      <div style="margin-top:16px;">
+        <h4 style="color:#0d9488;font-size:14px;margin:0 0 8px;border-bottom:2px solid #ccfbf1;padding-bottom:5px;"><i class="fas fa-flag-checkered"></i> اطلاعات پایان دوره و کشتار</h4>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:10px;">
+          <div style="background:#f8fafc;border-radius:10px;padding:7px 10px;font-size:11px;color:#64748b;">تاریخ کشتار<br><b style="color:#0f172a;">${c.slaughter_date ? convertToPersianDate(c.slaughter_date) : "-"}</b></div>
+          <div style="background:#f8fafc;border-radius:10px;padding:7px 10px;font-size:11px;color:#64748b;">کشتارگاه<br><b style="color:#0f172a;">${c.slaughterhouse_name || "-"}</b></div>
+          <div style="background:#f8fafc;border-radius:10px;padding:7px 10px;font-size:11px;color:#64748b;">ارسالی به کشتارگاه<br><b style="color:#0f172a;">${fmt(c.total_sent)} قطعه</b></div>
+          <div style="background:#f8fafc;border-radius:10px;padding:7px 10px;font-size:11px;color:#64748b;">وزن کل زنده<br><b style="color:#0f172a;">${fmt(c.total_live_weight)} کیلوگرم</b></div>
+          <div style="background:#f8fafc;border-radius:10px;padding:7px 10px;font-size:11px;color:#64748b;">میانگین وزن<br><b style="color:#0f172a;">${fmt(c.avg_live_weight, 3)} کیلوگرم</b></div>
+          <div style="background:#f8fafc;border-radius:10px;padding:7px 10px;font-size:11px;color:#64748b;">سن کشتار<br><b style="color:#0f172a;">${c.slaughter_age_days ? `${c.slaughter_age_days} روز` : "-"}</b></div>
+        </div>
+        <div style="background:#f8fafc;border:1px solid #eef2f6;border-radius:12px;padding:10px 14px;margin-bottom:10px;">
+          <div style="font-size:12px;font-weight:800;color:#0f172a;margin-bottom:6px;">شاخصها (سیستمی / اعلامی مرغدار)</div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:6px;font-size:11.5px;">
+            <div><b>FCR:</b> ${fmt(c.system_fcr, 3)} / ${fmt(c.farmer_fcr, 3)}</div>
+            <div><b>EPI:</b> ${fmt(c.system_epi)} / ${fmt(c.farmer_epi)}</div>
+            <div><b>ADG (گرم/روز):</b> ${fmt(c.system_adg_grams)} / ${fmt(c.farmer_adg_grams)}</div>
+            <div><b>زنده‌مانی:</b> ${fmt(c.system_survival_percent)}٪ / ${fmt(c.farmer_survival_percent)}٪</div>
+          </div>
+        </div>
+        <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;padding:10px 14px;">
+          <div style="font-size:12px;font-weight:800;color:#0f172a;margin-bottom:6px;">گزارش اقتصادی (تومان)</div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:6px;font-size:11.5px;">
+            <div>درآمد کل:<br><b style="color:#1d4ed8;">${toman(c.income_total)}</b></div>
+            <div>جمع هزینه‌ها:<br><b style="color:#c2410c;">${toman(c.total_cost)}</b></div>
+            <div>سود خالص:<br><b style="color:${profitColor};">${toman(c.net_profit)}</b></div>
+            <div>درصد سود:<br><b>${c.profit_percent != null ? `${c.profit_percent}٪` : "-"}</b></div>
+            <div>راندمان لاشه:<br><b>${fmt(c.carcass_yield_percent)}٪</b></div>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  async viewFlockGroup(flockId) {
+    try {
+      const response = await hatcheryApi.getFlockDetails(flockId);
+      if (!response.success) {
+        notificationService.error(response.message || "خطا در دریافت جزئیات گله");
+        return;
+      }
+      const flock = response.data || {};
+      const placements = Array.isArray(flock.placements) ? flock.placements : [];
+      const unit = flock.unit || {};
+      const summary = flock.summary || {};
+      let completion = null;
+      try {
+        const cRes = await hatcheryApi.getFlockCompletionByFlock(flockId);
+        if (cRes.success && cRes.data) completion = cRes.data;
+      } catch (e) {
+        completion = null;
+      }
+      const statusFa =
+        flock.status === "active"
+          ? "فعال"
+          : flock.status === "inactive"
+            ? "غیرفعال"
+            : "تکمیل‌شده";
+
+      const hallRows = placements
+        .map(
+          (p) =>
+            `<tr>
+              <td style="padding:6px 8px;border-bottom:1px solid #eef2f6;">${this._flockHallName(p)}</td>
+              <td style="padding:6px 8px;border-bottom:1px solid #eef2f6;">${p.placement_date ? convertToPersianDate(p.placement_date) : "-"}</td>
+              <td style="padding:6px 8px;border-bottom:1px solid #eef2f6;">${this._flockSourceName(p.chick_source_id)}</td>
+              <td style="padding:6px 8px;border-bottom:1px solid #eef2f6;">${p.breed?.name || "-"}</td>
+              <td style="padding:6px 8px;border-bottom:1px solid #eef2f6;">${p.chick_age_on_arrival ?? "-"}</td>
+              <td style="padding:6px 8px;border-bottom:1px solid #eef2f6;">${p.avg_initial_weight ?? "-"}</td>
+              <td style="padding:6px 8px;border-bottom:1px solid #eef2f6;">${Number(p.total_chicks_count || 0).toLocaleString("fa-IR")}</td>
+              <td style="padding:6px 8px;border-bottom:1px solid #eef2f6;"><span style="background:${p.is_active ? "#dcfce7" : "#fee2e2"};color:${p.is_active ? "#16a34a" : "#dc2626"};padding:2px 10px;border-radius:10px;font-size:11px;">${p.is_active ? "فعال" : "غیرفعال"}</span></td>
+            </tr>`,
+        )
+        .join("");
+
+      const html = `
+        <div style="text-align:right;direction:rtl;font-family:Vazir,sans-serif;">
+          <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
+            <div style="background:#f0fdfa;border-radius:8px;padding:6px 10px;flex:1;min-width:140px;"><div style="font-size:11px;color:#64748b;">شماره گله</div><div style="font-weight:700;">${flock.flock_number ?? "-"}</div></div>
+            <div style="background:#f8fafc;border-radius:8px;padding:6px 10px;flex:1;min-width:140px;"><div style="font-size:11px;color:#64748b;">واحد</div><div style="font-weight:600;">${unit.unit_name || "-"}</div></div>
+            <div style="background:#f8fafc;border-radius:8px;padding:6px 10px;flex:1;min-width:140px;"><div style="font-size:11px;color:#64748b;">تاریخ شروع</div><div style="font-weight:600;">${flock.placement_date ? convertToPersianDate(flock.placement_date) : "-"}</div></div>
+            <div style="background:${flock.status === "active" ? "#dcfce7" : "#fee2e2"};border-radius:8px;padding:6px 10px;flex:1;min-width:140px;"><div style="font-size:11px;color:#64748b;">وضعیت گله</div><div style="font-weight:700;color:${flock.status === "active" ? "#16a34a" : "#dc2626"};">${statusFa}</div></div>
+          </div>
+          <div style="background:#f8fafc;border:1px solid #eef2f6;border-radius:8px;padding:8px 12px;margin-bottom:12px;font-size:12px;">
+            <b>مجموع جوجه‌ها:</b> ${Number(summary.totalChicks || 0).toLocaleString("fa-IR")} قطعه
+            &nbsp;•&nbsp; <b>سالن‌های عضو:</b> ${summary.totalHalls ?? placements.length}
+            &nbsp;•&nbsp; <b>سالن‌های فعال:</b> ${summary.activeHalls ?? 0}
+          </div>
+          ${flock.notes ? `<div style="background:#fffbeb;border:1px solid #fef3c7;border-radius:8px;padding:8px 12px;margin-bottom:12px;font-size:12px;color:#92400e;"><b>یادداشت:</b> ${flock.notes}</div>` : ""}
+          <h4 style="color:#2c7a6e;font-size:13px;margin:0 0 8px;border-bottom:2px solid #e8f5f0;padding-bottom:5px;">جزئیات سالن‌های عضو گله</h4>
+          <div style="max-height:300px;overflow:auto;border:1px solid #eef2f6;border-radius:10px;">
+            ${placements.length ? `<table style="width:100%;border-collapse:collapse;font-size:11px;min-width:820px;">
+              <thead><tr style="background:#f8fafc;color:#475569;"><th style="padding:8px;text-align:right;">سالن</th><th style="padding:8px;text-align:right;">تاریخ جوجه‌ریزی</th><th style="padding:8px;text-align:right;">مبدا</th><th style="padding:8px;text-align:right;">نژاد</th><th style="padding:8px;text-align:right;">سن (روز)</th><th style="padding:8px;text-align:right;">وزن اولیه (گرم)</th><th style="padding:8px;text-align:right;">تعداد جوجه</th><th style="padding:8px;text-align:right;">وضعیت</th></tr></thead>
+              <tbody>${hallRows}</tbody>
+            </table>` : `<div style="padding:16px;text-align:center;color:#94a3b8;">سالنی برای این گله ثبت نشده است</div>`}
+          </div>
+        </div>`;
+
+      if (typeof Swal !== "undefined") {
+        Swal.fire({
+          title: `جزئیات کامل گله ${flock.flock_number ?? ""}`,
+          html: html + this._flockCompletionDetailsHtml(completion),
+          width: "960px",
+          showConfirmButton: true,
+          confirmButtonText: "بستن",
+          confirmButtonColor: "#2c7a6e",
+          showCloseButton: true,
+        });
+      }
+    } catch (error) {
+      console.error("Error viewing flock group:", error);
+      notificationService.error("خطا در دریافت جزئیات گله");
+    }
+  }
+
+  async toggleFlockGroupStatus(flockId) {
+    try {
+      const response = await hatcheryApi.getFlockDetails(flockId);
+      if (!response.success) {
+        notificationService.error(response.message || "خطا در دریافت وضعیت گله");
+        return;
+      }
+      const flock = response.data || {};
+      const isActive = flock.status === "active";
+      const target = isActive ? "inactive" : "active";
+      const label = isActive ? "غیرفعال کردن" : "فعال کردن";
+      const hallCount = Array.isArray(flock.placements)
+        ? flock.placements.length
+        : 0;
+
+      const confirmed = await notificationService.confirm({
+        title: `${label} گله ${flock.flock_number ?? ""}`,
+        text: isActive
+          ? `گله شماره ${flock.flock_number ?? ""} همراه ${hallCount} سالن غیرفعال می‌شود و از فهرست گله‌های فعال این مشتری حذف می‌گردد.`
+          : `گله شماره ${flock.flock_number ?? ""} فعال می‌شود و در فهرست گله‌های فعال این مشتری (و سالن‌های قابل انتخاب) قرار می‌گیرد.`,
+        confirmText: `بله، ${isActive ? "غیرفعال" : "فعال"} کن`,
+        cancelText: "انصراف",
+      });
+      if (!confirmed) return;
+
+      const res = await hatcheryApi.setFlockStatus(flockId, {
+        status: target,
+      });
+      if (res.success) {
+        notificationService.success(
+          res.message || `گله با موفقیت ${isActive ? "غیرفعال" : "فعال"} شد`,
+        );
+        await this._refreshFlockViews();
+      } else {
+        notificationService.error(res.message || "خطا در تغییر وضعیت گله");
+      }
+    } catch (error) {
+      console.error("Error toggling flock group status:", error);
+      notificationService.error("خطا در تغییر وضعیت گله");
+    }
+  }
+
+  _flockSourceOptions(selected) {
+    const items = this.dictionaries.sources || [];
+    return [
+      '<option value="">انتخاب مبدا...</option>',
+      ...items.map(
+        (s) =>
+          `<option value="${s.id}" ${Number(s.id) === Number(selected) ? "selected" : ""}>${s.name || s.title || s.id}</option>`,
+      ),
+    ].join("");
+  }
+
+  _flockBreedOptions(selected) {
+    const items = this.dictionaries.breeds || [];
+    return [
+      '<option value="">انتخاب نژاد...</option>',
+      ...items.map(
+        (b) =>
+          `<option value="${b.id}" ${Number(b.id) === Number(selected) ? "selected" : ""}>${b.name || b.title || b.id}</option>`,
+      ),
+    ].join("");
+  }
+
+  _flockEditHallRows(placements) {
+    const inputStyle =
+      "width:100%;padding:5px 8px;border:1px solid #d1d5db;border-radius:8px;font-size:12px;font-family:inherit;";
+    return placements
+      .map(
+        (p) => `
+          <fieldset style="border:1px solid #e2e8f0;border-radius:10px;padding:8px 12px;margin:8px 0;">
+            <legend style="font-size:12px;font-weight:700;color:#2c7a6e;">${this._flockHallName(p)}</legend>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;">
+              <label style="font-size:11px;color:#475569;">تاریخ جوجه‌ریزی سالن<input type="text" id="ge_date_${p.id}" class="hatch-edit-date" value="${p.placement_date ? convertToPersianDate(p.placement_date) : ""}" style="${inputStyle}"></label>
+              <label style="font-size:11px;color:#475569;">مبدا جوجه<select id="ge_source_${p.id}" style="${inputStyle}">${this._flockSourceOptions(p.chick_source_id)}</select></label>
+              <label style="font-size:11px;color:#475569;">نژاد جوجه<select id="ge_breed_${p.id}" style="${inputStyle}">${this._flockBreedOptions(p.breed_id)}</select></label>
+              <label style="font-size:11px;color:#475569;">سن در بدو ورود (روز)<input type="number" min="0" id="ge_age_${p.id}" value="${p.chick_age_on_arrival ?? ""}" style="${inputStyle}"></label>
+              <label style="font-size:11px;color:#475569;">وزن اولیه (گرم)<input type="number" step="0.01" min="0" id="ge_weight_${p.id}" value="${p.avg_initial_weight ?? ""}" style="${inputStyle}"></label>
+              <label style="font-size:11px;color:#475569;">تعداد جوجه (قطعه) *<input type="number" min="1" id="ge_count_${p.id}" value="${p.total_chicks_count ?? ""}" style="${inputStyle}"></label>
+            </div>
+          </fieldset>`,
+      )
+      .join("");
+  }
+
+  async editFlockGroup(flockId) {
+    try {
+      const response = await hatcheryApi.getFlockDetails(flockId);
+      if (!response.success) {
+        notificationService.error(response.message || "خطا در دریافت اطلاعات گله");
+        return;
+      }
+      const flock = response.data || {};
+      const placements = Array.isArray(flock.placements)
+        ? flock.placements
+        : [];
+      if (!placements.length) {
+        notificationService.warning("این گله سالنی برای ویرایش ندارد");
+        return;
+      }
+
+      const flockDate = flock.placement_date
+        ? convertToPersianDate(flock.placement_date)
+        : "";
+      const sharedStyle =
+        "width:100%;padding:6px 8px;border:1px solid #d1d5db;border-radius:8px;font-size:13px;font-family:inherit;";
+
+      const html = `
+        <div style="text-align:right;direction:rtl;font-family:Vazir,sans-serif;max-height:62vh;overflow-y:auto;padding:4px;">
+          <div style="background:#f0fdfa;border:1px solid #99f6e4;border-radius:10px;padding:10px 12px;margin-bottom:10px;">
+            <div style="font-size:12px;font-weight:700;color:#0f172a;margin-bottom:8px;"><i class="fas fa-layer-group"></i> اطلاعات مشترک گله</div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;">
+              <label style="font-size:11px;color:#475569;">شماره گله *<input type="number" min="1" id="ge_fnum" value="${flock.flock_number ?? ""}" style="${sharedStyle}"></label>
+              <label style="font-size:11px;color:#475569;">تاریخ شروع گله<input type="text" id="ge_flock_date" class="hatch-edit-date" value="${flockDate}" style="${sharedStyle}"></label>
+            </div>
+            <label style="font-size:11px;color:#475569;display:block;margin-top:8px;">یادداشت گله<textarea id="ge_notes" rows="2" style="${sharedStyle}">${flock.notes || ""}</textarea></label>
+          </div>
+          <div style="font-size:12px;font-weight:700;color:#0f172a;margin:6px 0;"><i class="fas fa-warehouse"></i> سالن‌های عضو (ویرایش هر سالن به تفکیک)</div>
+          ${this._flockEditHallRows(placements)}
+          <p style="font-size:11px;color:#94a3b8;margin-top:6px;">تغییر شماره گله روی همه سالن‌ها اعمال می‌شود؛ سایر فیلدها به‌صورت جداگانه برای هر سالن ذخیره می‌شوند.</p>
+        </div>`;
+
+      const result = await Swal.fire({
+        title: `ویرایش گله ${flock.flock_number ?? ""}`,
+        html,
+        width: "880px",
+        showCancelButton: true,
+        confirmButtonText: "💾 ذخیره تغییرات گله",
+        cancelButtonText: "انصراف",
+        confirmButtonColor: "#2c7a6e",
+        reverseButtons: true,
+        showCloseButton: true,
+        didOpen: () => {
+          try {
+            if (
+              typeof window.$ !== "undefined" &&
+              window.$.fn &&
+              window.$.fn.persianDatepicker
+            ) {
+              document.querySelectorAll(".hatch-edit-date").forEach((el) => {
+                if (el.dataset.dp) return;
+                window.$(el).persianDatepicker({
+                  format: "YYYY/MM/DD",
+                  autoClose: true,
+                  initialValue: false,
+                });
+                el.dataset.dp = "1";
+              });
+            }
+          } catch (e) {
+            /* ignore */
+          }
+        },
+        preConfirm: async () => {
+          const ok = await this._saveFlockGroupEdit(
+            flockId,
+            flock,
+            placements,
+          );
+          if (!ok) return false;
+          return true;
+        },
+      });
+
+      if (result.isConfirmed) {
+        notificationService.success("تغییرات گله با موفقیت ذخیره شد");
+        await this._refreshFlockViews();
+      }
+    } catch (error) {
+      console.error("Error editing flock group:", error);
+      notificationService.error("خطا در باز کردن پنجره ویرایش گله");
+    }
+  }
+
+  async _saveFlockGroupEdit(flockId, flock, placements) {
+    const fnum = parseInt(document.getElementById("ge_fnum")?.value);
+    if (isNaN(fnum) || fnum < 1) {
+      Swal.showValidationMessage("شماره گله باید عددی مثبت باشد");
+      return false;
+    }
+    const dateVal = String(
+      document.getElementById("ge_flock_date")?.value || "",
+    ).trim();
+    const flockDate = dateVal
+      ? convertPersianToGregorian(dateVal) || null
+      : null;
+    const notes = String(
+      document.getElementById("ge_notes")?.value || "",
+    ).trim();
+
+    const flockRes = await hatcheryApi.updateFlockInfo(flockId, {
+      flock_number: fnum,
+      ...(flockDate ? { placement_date: flockDate } : {}),
+      notes: notes || null,
+    });
+    if (!flockRes.success) {
+      Swal.showValidationMessage(
+        flockRes.message || "خطا در ذخیره اطلاعات مشترک گله",
+      );
+      return false;
+    }
+
+    for (const p of placements) {
+      const count = parseInt(
+        document.getElementById(`ge_count_${p.id}`)?.value,
+      );
+      if (isNaN(count) || count < 1) {
+        Swal.showValidationMessage(
+          `تعداد جوجه سالن «${this._flockHallName(p)}» معتبر نیست`,
+        );
+        return false;
+      }
+      const hallDateRaw = String(
+        document.getElementById(`ge_date_${p.id}`)?.value || "",
+      ).trim();
+      const hallDate = hallDateRaw
+        ? convertPersianToGregorian(hallDateRaw) || null
+        : flockDate;
+      const sourceId =
+        parseInt(document.getElementById(`ge_source_${p.id}`)?.value) || null;
+      const breedId =
+        parseInt(document.getElementById(`ge_breed_${p.id}`)?.value) || null;
+      const ageRaw = parseInt(
+        document.getElementById(`ge_age_${p.id}`)?.value,
+      );
+      const weightRaw = parseFloat(
+        document.getElementById(`ge_weight_${p.id}`)?.value,
+      );
+      const age = isNaN(ageRaw) ? null : ageRaw;
+      const weight = isNaN(weightRaw) ? null : weightRaw;
+
+      const hallPayload = {
+        ...(hallDate ? { placement_date: hallDate } : {}),
+        ...(sourceId ? { chick_source_id: sourceId } : {}),
+        ...(breedId ? { breed_id: breedId } : {}),
+        ...(age !== null ? { chick_age_on_arrival: age } : {}),
+        ...(weight !== null ? { avg_initial_weight: weight } : {}),
+        total_chicks_count: count,
+      };
+
+      const hallRes = await hatcheryApi.updateFlock(p.id, hallPayload);
+      if (!hallRes.success) {
+        Swal.showValidationMessage(
+          `خطا در ذخیره سالن «${this._flockHallName(p)}»: ${
+            hallRes.message || ""
+          }`,
+        );
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  // ===== مودال جامع «پایان گله» =====
+
+  _toNum(value) {
+    if (
+      value === undefined ||
+      value === null ||
+      String(value).trim() === ""
+    )
+      return null;
+    let s = String(value).trim();
+    const faDigits = "۰۱۲۳۴۵۶۷۸۹";
+    const arDigits = "٠١٢٣٤٥٦٧٨٩";
+    for (let i = 0; i < 10; i++) {
+      s = s
+        .split(faDigits[i])
+        .join(String(i))
+        .split(arDigits[i])
+        .join(String(i));
+    }
+    s = s.replace(/[٬,،\s]/g, "");
+    const n = parseFloat(s);
+    return Number.isNaN(n) ? null : n;
+  }
+
+  _pcSlaughterAge() {
+    const sdateRaw = String(
+      document.getElementById("pc_sdate")?.value || "",
+    ).trim();
+    const flockIso = String(
+      document.getElementById("pc_flock_iso")?.value || "",
+    ).trim();
+    if (!sdateRaw || !flockIso) return 0;
+    const greg = convertPersianToGregorian(sdateRaw);
+    if (!greg) return 0;
+    const isoSlaughter = String(greg).replace(/\//g, "-").slice(0, 10);
+    const isoFlock = String(flockIso).replace(/\//g, "-").slice(0, 10);
+    const d1 = new Date(isoSlaughter);
+    const d0 = new Date(isoFlock);
+    if (Number.isNaN(d1.getTime()) || Number.isNaN(d0.getTime())) return 0;
+    return Math.max(0, Math.round((d1 - d0) / 86400000));
+  }
+
+  formatTomanInput(el) {
+    if (!el) return;
+    const n = this._toNum(el.value);
+    if (el.type === "number") {
+      el.value = n === null ? "" : String(n);
+      return;
+    }
+    el.value =
+      n === null
+        ? ""
+        : n.toLocaleString("fa-IR", { maximumFractionDigits: 0 });
+  }
+
+  _pcNormKg(value) {
+    const n = parseFloat(value);
+    if (Number.isNaN(n) || n <= 0) return 0.04;
+    // اگر مقدار برحسب گرم ذخیره شده (مثلاً 42.5) به کیلوگرم تبدیل می‌شود
+    return n < 1 ? n : n / 1000;
+  }
+
+  async completeFlockOf(flockId) {
+    try {
+      const res = await hatcheryApi.getFlockCompletionPreview(flockId);
+      if (!res.success) {
+        notificationService.error(res.message || "خطا در دریافت پیش‌نمایش گله");
+        return;
+      }
+      const data = res.data || {};
+      const halls = Array.isArray(data.halls) ? data.halls : [];
+      const flock = data.flock || {};
+
+      if (flock.status && flock.status !== "active") {
+        notificationService.warning(
+          `گله شماره ${flock.flock_number} در وضعیت «${flock.status}» است و قابل پایان‌دادن مجدد نیست.`,
+        );
+        return;
+      }
+
+      if (!halls.length) {
+        // گله بدون سالن: فقط بستن وضعیت
+        const confirmed = await notificationService.confirm({
+          title: "پایان گله بدون سالن",
+          text: `گله شماره ${flock.flock_number} سالن فعالی ندارد. فقط وضعیت آن به «پایان‌یافته» تغییر کند؟`,
+          confirmText: "بله، پایان گله",
+          cancelText: "انصراف",
+        });
+        if (!confirmed) return;
+        const endRes = await hatcheryApi.endFlock(flockId, {
+          status: "completed",
+        });
+        if (endRes.success) {
+          notificationService.success("گله با موفقیت پایان یافت");
+          await this._refreshFlockViews();
+        } else {
+          notificationService.error(endRes.message || "خطا در پایان گله");
+        }
+        return;
+      }
+
+      await this._openFlockCompletionModal(data);
+    } catch (error) {
+      console.error("Error opening completion modal:", error);
+      notificationService.error("خطا در باز کردن مودال پایان گله");
+    }
+  }
+
+  _pcRow(label, id, value, opts = {}) {
+    const type = opts.type || "number";
+    const readOnly = !!opts.readOnly;
+    const unit = opts.unit || "";
+    const step = opts.step !== undefined ? opts.step : "any";
+    const min = opts.min !== undefined ? opts.min : "";
+    const ph = opts.placeholder || "";
+    const blurAttr = opts.onblur ? ` onblur="${opts.onblur}"` : "";
+    const extraAttrs = readOnly
+      ? 'readonly style="background:#f1f5f9;color:#334155;cursor:not-allowed;"'
+      : `oninput="hatcheryRecalcCompletion()"${blurAttr}`;
+    return `<div style="margin-bottom:7px;">
+      <label class="pc-label" for="${id}">${label}${
+        unit ? ` <small style="color:#94a3b8;">(${unit})</small>` : ""
+      }</label>
+      <input type="${type}" id="${id}" class="pc-in" value="${
+        value ?? ""
+      }" ${min !== "" ? `min="${min}"` : ""} step="${step}" placeholder="${ph}" ${extraAttrs}>
+    </div>`;
+  }
+
+  _pcRead(label, id, unit = "") {
+    return `<div style="margin-bottom:7px;">
+      <label class="pc-label">${label}${
+        unit ? ` <small style="color:#94a3b8;">(${unit})</small>` : ""
+      }</label>
+      <div id="${id}" class="pc-read">۰</div>
+    </div>`;
+  }
+
+  _pcHallBlock(hall) {
+    const hid = hall.chick_placement_id;
+    return `<div class="pc-hall">
+      <div style="font-weight:700;font-size:12px;color:#2c7a6e;margin-bottom:6px;display:flex;align-items:center;gap:6px;">
+        <i class="fas fa-warehouse"></i> ${hall.hall_name || `سالن ${hall.hall_id}`}
+        <span style="font-weight:500;font-size:10.5px;color:#64748b;">(اولیه: ${Number(
+          hall.initial_chicks_count || 0,
+        ).toLocaleString("fa-IR")} قطعه)</span>
+      </div>
+      <div class="pc-grid">
+        ${this._pcRow("تعداد ارسالی (اختیاری)", `pc_hsent_${hid}`, "", {
+          placeholder: "مثلاً ۹۵۰۰",
+        })}
+        ${this._pcRow("وزن زنده سالن (کیلوگرم)", `pc_hlive_${hid}`, "", {
+          placeholder: "مثلاً ۲۳۵۰۰",
+        })}
+        ${this._pcRow("خوراک اعلامی سالن (کیلوگرم)", `pc_hfeed_${hid}`, "", {
+          placeholder: "اختیاری",
+        })}
+      </div>
+    </div>`;
+  }
+
+  _pcFormTop(data) {
+    const flock = data.flock || {};
+    const halls = Array.isArray(data.halls) ? data.halls : [];
+    const s = data.summary || {};
+    const today = new Date().toISOString().slice(0, 10);
+    return `
+      <div class="pc-sec">
+        <div class="pc-sec-title"><i class="fas fa-id-card"></i> ۱) اطلاعات هویتی گله</div>
+        <div class="pc-grid">
+          ${this._pcRow("شماره گله", "pc_fnum", flock.flock_number ?? "", { type: "text", readOnly: true })}
+          ${this._pcRow("نام مرغدار", "pc_customer", flock.customer_name ?? "", { type: "text", readOnly: true })}
+          ${this._pcRow("واحد مرغداری", "pc_unit", flock.unit_name ?? "", { type: "text", readOnly: true })}
+          ${this._pcRow("تعداد سالن‌ها", "pc_halls", halls.length, { type: "number", readOnly: true })}
+          ${this._pcRow("تاریخ جوجه‌ریزی", "pc_pdate", flock.placement_date ? convertToPersianDate(flock.placement_date) : "", { type: "text", readOnly: true })}
+          <div style="margin-bottom:7px;">
+            <label class="pc-label">تاریخ کشتار <small style="color:#b45309;">* اعلامی مرغدار</small></label>
+            <input type="text" id="pc_sdate" class="pc-in pc-date" value="${convertToPersianDate(today)}" onchange="hatcheryRecalcCompletion()" oninput="hatcheryRecalcCompletion()">
+          </div>
+          ${this._pcRead("سن کشتار (روز)", "pc_out_age")}
+          ${this._pcRow("نام کشتارگاه", "pc_slaughterhouse", "", { type: "text", placeholder: "اختیاری" })}
+          <input type="hidden" id="pc_flock_iso" value="${flock.placement_date ?? ""}">
+        </div>
+      </div>
+
+      <div class="pc-sec">
+        <div class="pc-sec-title"><i class="fas fa-users"></i> ۲) اطلاعات جمعیتی (تعداد)</div>
+        <div class="pc-grid">
+          ${this._pcRow("تعداد اولیه جوجه‌ها", "pc_initial", s.initial_chicks_count ?? 0, { readOnly: true })}
+          ${this._pcRow("تعداد ارسالی به کشتارگاه", "pc_sent", "", { min: 1, placeholder: "مثلاً ۹۵۰۰" })}
+          ${this._pcRead("تلفات کل (خودکار)", "pc_out_mortality", "قطعه")}
+          ${this._pcRead("درصد تلفات (خودکار)", "pc_out_mortality_pct", "٪")}
+        </div>
+      </div>
+
+      <div class="pc-sec">
+        <div class="pc-sec-title"><i class="fas fa-weight-scale"></i> ۳) اطلاعات وزنی</div>
+        <div class="pc-grid">
+          ${this._pcRow("وزن کل زنده گله", "pc_live", "", { min: 1, placeholder: "مثلاً ۲۴۰۰۰", unit: "کیلوگرم" })}
+          ${this._pcRow("وزن لاشه (اختیاری)", "pc_carcass", "", { min: 0, unit: "کیلوگرم" })}
+          ${this._pcRead("میانگین وزن هر قطعه", "pc_out_avg", "کیلوگرم")}
+          ${this._pcRead("درصد راندمان لاشه", "pc_out_yield", "٪")}
+        </div>
+      </div>
+
+      <div class="pc-sec">
+        <div class="pc-sec-title"><i class="fas fa-wheat-awn"></i> ۴) اطلاعات خوراک</div>
+        <div class="pc-grid">
+          ${this._pcRow("کل خوراک سیستم", "pc_feed_sys", s.system_total_feed ?? 0, { readOnly: true, unit: "کیلوگرم" })}
+          ${this._pcRow("خوراک اعلامی مرغدار", "pc_feed_decl", "", { min: 0, unit: "کیلوگرم", placeholder: "اختیاری" })}
+          <div style="margin-bottom:7px;">
+            <label class="pc-label">مبنای محاسبه FCR</label>
+            <select id="pc_feed_basis" class="pc-in" onchange="hatcheryRecalcCompletion()">
+              <option value="system">سیستم</option>
+              <option value="declared">اعلامی مرغدار</option>
+            </select>
+          </div>
+          ${this._pcRead("خوراک مبنای محاسبه", "pc_out_feed_used", "کیلوگرم")}
+        </div>
+      </div>`;
+  }
+
+  _pcFormBottom(data) {
+    const s = data.summary || {};
+    const halls = Array.isArray(data.halls) ? data.halls : [];
+    const initWeight = this._pcNormKg(s.initial_avg_weight);
+    const hallBlocks = halls
+      .map((h) => this._pcHallBlock(h))
+      .join('<div style="height:6px;"></div>');
+    return `
+      <div class="pc-sec">
+        <div class="pc-sec-title"><i class="fas fa-coins"></i> ۵) اطلاعات اقتصادی</div>
+        <div class="pc-grid">
+          ${this._pcRow("قیمت هر کیلو (تومان)", "pc_price", "", { type: "text", placeholder: "مثلاً ۸۵,۰۰۰", onblur: "hatcheryFormatToman(this)" })}
+          ${this._pcRead("درآمد کل", "pc_out_income", "تومان")}
+          ${this._pcRow("هزینه جوجه (تومان)", "pc_cost_chick", "", { type: "text", onblur: "hatcheryFormatToman(this)" })}
+          ${this._pcRow("هزینه خوراک (تومان)", "pc_cost_feed", "", { type: "text", onblur: "hatcheryFormatToman(this)" })}
+          ${this._pcRow("هزینه دارو و واکسن (تومان)", "pc_cost_med", "", { type: "text", onblur: "hatcheryFormatToman(this)" })}
+          ${this._pcRow("هزینه سوخت (تومان)", "pc_cost_fuel", "", { type: "text", onblur: "hatcheryFormatToman(this)" })}
+          ${this._pcRow("هزینه نیروی انسانی (تومان)", "pc_cost_labor", "", { type: "text", onblur: "hatcheryFormatToman(this)" })}
+          ${this._pcRow("سایر هزینه‌ها (تومان)", "pc_cost_other", "", { type: "text", onblur: "hatcheryFormatToman(this)" })}
+          ${this._pcRead("جمع کل هزینه‌ها", "pc_out_total_cost", "تومان")}
+          ${this._pcRead("سود خالص", "pc_out_profit", "تومان")}
+          ${this._pcRead("درصد سود", "pc_out_profit_pct", "٪")}
+        </div>
+      </div>
+
+      <div class="pc-sec">
+        <div class="pc-sec-title"><i class="fas fa-chart-line"></i> ۶) شاخص‌های عملکردی (محاسبه خودکار)</div>
+        <div class="pc-dual">
+          <div class="pc-dual-col pc-dual-sys">
+            <div class="pc-dual-title"><i class="fas fa-database"></i> سیستمی (از داده‌های هفتگی)</div>
+            <div class="pc-out">
+              ${this._pcRead("FCR", "pc_out_sys_fcr")}
+              ${this._pcRead("EPI", "pc_out_sys_epi")}
+              ${this._pcRead("ADG", "pc_out_sys_adg", "گرم/روز")}
+              ${this._pcRead("افزایش وزن کل", "pc_out_sys_gain", "کیلوگرم")}
+              ${this._pcRead("زنده‌مانی", "pc_out_sys_survival", "٪")}
+            </div>
+          </div>
+          <div class="pc-dual-col pc-dual-far">
+            <div class="pc-dual-title"><i class="fas fa-user"></i> اعلامی مرغدار</div>
+            <div class="pc-out">
+              ${this._pcRead("FCR", "pc_out_far_fcr")}
+              ${this._pcRead("EPI", "pc_out_far_epi")}
+              ${this._pcRead("ADG", "pc_out_far_adg", "گرم/روز")}
+              ${this._pcRead("افزایش وزن کل", "pc_out_far_gain", "کیلوگرم")}
+              ${this._pcRead("زنده‌مانی", "pc_out_far_survival", "٪")}
+            </div>
+          </div>
+        </div>
+        <input type="hidden" id="pc_sys_weight" value="${s.final_avg_weight ?? s.system_last_weight ?? ""}">
+        <input type="hidden" id="pc_sys_sent" value="${s.final_chicks_count ?? ""}">
+      </div>
+
+      <div class="pc-sec">
+        <div class="pc-sec-title"><i class="fas fa-warehouse"></i> ریز سالن‌ها (اختیاری)</div>
+        ${hallBlocks}
+      </div>
+
+      <div class="pc-sec">
+        <div class="pc-sec-title"><i class="fas fa-sticky-note"></i> توضیحات و تأیید</div>
+        <textarea id="pc_notes" class="pc-note" rows="2" placeholder="توضیحات تکمیلی (اختیاری)..."></textarea>
+        <label style="display:flex;align-items:center;gap:6px;font-size:11.5px;color:#475569;margin-top:8px;cursor:pointer;">
+          <input type="checkbox" id="pc_confirmed"> اطلاعات پایان دوره توسط مرغدار تأیید شده است
+        </label>
+        <input type="hidden" id="pc_init_weight" value="${initWeight.toFixed(4)}">
+      </div>`;
+  }
+
+  _pcSummary(data) {
+    const flock = data.flock || {};
+    const halls = Array.isArray(data.halls) ? data.halls : [];
+    const s = data.summary || {};
+    const initial = Number(s.initial_chicks_count || 0);
+    return `
+      <div class="pc-summary">
+        <div class="pc-sum-item" data-c="1">
+          <span class="pc-sum-ico"><i class="fas fa-hashtag"></i></span>
+          <span><span class="pc-sum-lbl">شماره گله</span><b>${flock.flock_number ?? "-"}</b></span>
+        </div>
+        <div class="pc-sum-item" data-c="2">
+          <span class="pc-sum-ico"><i class="fas fa-user"></i></span>
+          <span><span class="pc-sum-lbl">نام مرغدار</span><b>${flock.customer_name || "-"}</b></span>
+        </div>
+        <div class="pc-sum-item" data-c="3">
+          <span class="pc-sum-ico"><i class="fas fa-warehouse"></i></span>
+          <span><span class="pc-sum-lbl">تعداد سالن‌ها</span><b>${halls.length}</b></span>
+        </div>
+        <div class="pc-sum-item" data-c="4">
+          <span class="pc-sum-ico"><i class="fas fa-egg"></i></span>
+          <span><span class="pc-sum-lbl">جوجه اولیه</span><b>${initial.toLocaleString("fa-IR")} قطعه</b></span>
+        </div>
+        <div class="pc-sum-item" data-c="5">
+          <span class="pc-sum-ico"><i class="fas fa-flag-checkered"></i></span>
+          <span><span class="pc-sum-lbl">وضعیت</span><b>در حال پایان</b></span>
+        </div>
+      </div>`;
+  }
+
+  _pcForm(data) {
+    return `
+      <style>
+        .pc-wrap{direction:rtl;text-align:right;font-family:Vazir,sans-serif;max-height:76vh;overflow-y:auto;padding:8px 14px 16px;}
+        .pc-wrap::-webkit-scrollbar{width:8px;} .pc-wrap::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:8px;}
+        .pc-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:10px;margin-bottom:14px;}
+        .pc-sum-item{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:10px 12px;box-shadow:0 2px 8px rgba(15,23,42,.05);}
+        .pc-sum-item[data-c="1"]{background:linear-gradient(135deg,#f0fdfa,#ffffff);border-color:#99f6e4;}
+        .pc-sum-item[data-c="2"]{background:linear-gradient(135deg,#eff6ff,#ffffff);border-color:#bfdbfe;}
+        .pc-sum-item[data-c="3"]{background:linear-gradient(135deg,#fff7ed,#ffffff);border-color:#fed7aa;}
+        .pc-sum-item[data-c="4"]{background:linear-gradient(135deg,#fef2f2,#ffffff);border-color:#fecaca;}
+        .pc-sum-item[data-c="5"]{background:linear-gradient(135deg,#f5f3ff,#ffffff);border-color:#ddd6fe;}
+        .pc-sum-ico{width:34px;height:34px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;background:#0d9488;color:#fff;font-size:14px;flex-shrink:0;}
+        .pc-sum-item[data-c="2"] .pc-sum-ico{background:#2563eb;}
+        .pc-sum-item[data-c="3"] .pc-sum-ico{background:#ea580c;}
+        .pc-sum-item[data-c="4"] .pc-sum-ico{background:#dc2626;}
+        .pc-sum-item[data-c="5"] .pc-sum-ico{background:#7c3aed;}
+        .pc-sum-item > span:last-child{display:flex;flex-direction:column;line-height:1.5;min-width:0;}
+        .pc-sum-lbl{font-size:10px;color:#64748b;}
+        .pc-sum-item b{font-size:13.5px;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+        .pc-sec{background:#f8fafc;border:1px solid #eef2f6;border-radius:14px;padding:14px 16px;margin-bottom:14px;box-shadow:0 1px 4px rgba(15,23,42,.03);}
+        .pc-sec-title{font-size:14px;font-weight:800;color:#0f172a;margin:0 0 10px;display:flex;align-items:center;gap:8px;border-bottom:2px solid #d9f3ec;padding-bottom:8px;}
+        .pc-sec-title i{color:#0d9488;font-size:14px;}
+        .pc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px 16px;}
+        .pc-out{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px 14px;}
+        .pc-dual{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;margin-bottom:10px;}
+        .pc-dual-col{background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:12px 14px;box-shadow:0 1px 4px rgba(15,23,42,.03);}
+        .pc-dual-sys{border-top:4px solid #0d9488;}
+        .pc-dual-far{border-top:4px solid #2563eb;}
+        .pc-dual-title{display:flex;align-items:center;gap:6px;font-size:13.5px;font-weight:800;color:#0f172a;margin-bottom:10px;}
+        .pc-dual-sys .pc-dual-title i{color:#0d9488;}
+        .pc-dual-far .pc-dual-title i{color:#2563eb;}
+        .pc-dual-sys .pc-read{background:#ecfdf5;border-color:#a7f3d0;color:#047857;}
+        .pc-dual-far .pc-read{background:#eff6ff;border-color:#bfdbfe;color:#1d4ed8;}
+        .pc-label{display:block;font-size:11.5px;font-weight:500;color:#334155;margin-bottom:5px;}
+        .pc-label small{color:#94a3b8;}
+        .pc-in{width:100%;padding:9px 12px;border:1.5px solid #cbd5e1;border-radius:10px;font-family:inherit;font-size:13px;box-sizing:border-box;background:#fff;transition:all .15s ease;}
+        .pc-in:hover{border-color:#94a3b8;}
+        .pc-in:focus{outline:none;border-color:#0d9488;box-shadow:0 0 0 3px rgba(13,148,136,.12);}
+        .pc-read{background:#fff;border:1.5px solid #ccfbf1;border-radius:10px;padding:9px 10px;font-weight:800;color:#0d9488;font-size:15px;box-shadow:inset 0 1px 0 rgba(255,255,255,.6);}
+        .pc-hall{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:10px 12px;box-shadow:0 1px 3px rgba(15,23,42,.03);}
+        .pc-note{width:100%;border:1.5px solid #cbd5e1;border-radius:10px;padding:9px 12px;font-family:inherit;font-size:13px;box-sizing:border-box;}
+        .pc-note:focus{outline:none;border-color:#0d9488;box-shadow:0 0 0 3px rgba(13,148,136,.12);}
+        #pc_out_age{background:#faf5ff;border-color:#e9d5ff;color:#7c3aed;}
+        #pc_out_mortality,#pc_out_mortality_pct{background:#fef2f2;border-color:#fecaca;color:#b91c1c;}
+        #pc_out_avg{background:#eff6ff;border-color:#bfdbfe;color:#1d4ed8;}
+        #pc_out_yield{background:#f0fdf4;border-color:#bbf7d0;color:#15803d;}
+        #pc_out_feed_used{background:#f8fafc;border-color:#e2e8f0;color:#475569;}
+        #pc_out_income{background:#eff6ff;border-color:#bfdbfe;color:#1d4ed8;}
+        #pc_out_total_cost{background:#fff7ed;border-color:#fed7aa;color:#c2410c;}
+        #pc_out_profit{background:#f0fdf4;border-color:#bbf7d0;color:#15803d;}
+        #pc_out_profit_pct{background:#f0fdf4;border-color:#bbf7d0;color:#15803d;}
+        #pc_out_fcr{background:#fffbeb;border-color:#fde68a;color:#b45309;}
+        #pc_out_epi{background:#f5f3ff;border-color:#ddd6fe;color:#6d28d9;}
+        #pc_out_adg{background:#ecfeff;border-color:#a5f3fc;color:#0e7490;}
+        #pc_out_gain,#pc_out_survival{background:#f0fdf4;border-color:#bbf7d0;color:#15803d;}
+      </style>
+      <div class="pc-wrap">
+        ${this._pcSummary(data)}
+        ${this._pcFormTop(data)}
+        ${this._pcFormBottom(data)}
+      </div>`;
+  }
+
+  recalcCompletionInputs() {
+    const val = (id) => this._toNum(document.getElementById(id)?.value);
+    const setOut = (id, value, suffix = "") => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const num = value === null || value === undefined ? 0 : Number(value);
+      const txt = num.toLocaleString("fa-IR", { maximumFractionDigits: 2 });
+      el.textContent = `${txt}${suffix}`.trim();
+    };
+    const initial = val("pc_initial") || 0;
+    const sent = val("pc_sent") || 0;
+    const live = val("pc_live") || 0;
+    const carcass = val("pc_carcass") || 0;
+    const price = val("pc_price") || 0;
+    const feedSys = val("pc_feed_sys") || 0;
+    const feedDecl = val("pc_feed_decl");
+    const feed = feedSys;
+    const sysSent = val("pc_sys_sent") || 0;
+    const sysAvg = val("pc_sys_weight") || 0;
+    const initWeight =
+      val("pc_init_weight") || 0.04;
+    const age = this._pcSlaughterAge();
+
+    const mortality = initial > 0 ? Math.max(0, initial - sent) : 0;
+    const mortalityPct = initial > 0 ? (mortality / initial) * 100 : 0;
+    const survival = initial > 0 ? (sent / initial) * 100 : 0;
+    const avgWeight = sent > 0 ? live / sent : 0;
+    const carcassPct = carcass > 0 && live > 0 ? (carcass / live) * 100 : 0;
+    const income = live * price;
+    const costs = [
+      "pc_cost_chick",
+      "pc_cost_feed",
+      "pc_cost_med",
+      "pc_cost_fuel",
+      "pc_cost_labor",
+      "pc_cost_other",
+    ].reduce((s, id) => s + (val(id) || 0), 0);
+    const profit = income - costs;
+    const profitPct = income > 0 ? (profit / income) * 100 : 0;
+    const gainKg = sent > 0 && avgWeight > 0 ? (avgWeight - initWeight) * sent : 0;
+    const adg = age > 0 && avgWeight > 0 ? ((avgWeight - initWeight) * 1000) / age : 0;
+    const fcr = gainKg > 0 && feed > 0 ? feed / gainKg : 0;
+    const epi = age > 0 && fcr > 0 && survival > 0 ? (avgWeight * survival * 100) / (age * fcr) : 0;
+
+    // ===== شاخص‌های سیستم (از داده‌های هفتگی) =====
+    const sysGainKg =
+      sysSent > 0 && sysAvg > 0 ? (sysAvg - initWeight) * sysSent : 0;
+    const sysSurvivalPct =
+      initial > 0 ? (sysSent / initial) * 100 : 0;
+    const sysFcr = sysGainKg > 0 && feed > 0 ? feed / sysGainKg : 0;
+    const sysAdg =
+      age > 0 && sysAvg > 0
+        ? ((sysAvg - initWeight) * 1000) / age
+        : 0;
+    const sysEpi =
+      age > 0 && sysFcr > 0 && sysSurvivalPct > 0
+        ? (sysAvg * sysSurvivalPct * 100) / (age * sysFcr)
+        : 0;
+
+    // ===== شاخص‌های اعلامی مرغدار =====
+    const hasFarmerFeed = feedDecl !== null && feedDecl !== undefined;
+    const farFeed = feedDecl || 0;
+    const farFcr =
+      gainKg > 0 && farFeed > 0 ? farFeed / gainKg : 0;
+    const farEpi =
+      age > 0 && farFcr > 0 && survival > 0
+        ? (avgWeight * survival * 100) / (age * farFcr)
+        : 0;
+
+    setOut("pc_out_sys_fcr", sysFcr);
+    setOut("pc_out_sys_epi", sysEpi);
+    setOut("pc_out_sys_adg", sysAdg);
+    setOut("pc_out_sys_gain", sysGainKg);
+    setOut("pc_out_sys_survival", sysSurvivalPct, "٪");
+    setOut("pc_out_far_fcr", hasFarmerFeed ? farFcr : 0);
+    setOut("pc_out_far_epi", hasFarmerFeed ? farEpi : 0);
+    setOut("pc_out_far_adg", adg);
+    setOut("pc_out_far_gain", gainKg);
+    setOut("pc_out_far_survival", survival, "٪");
+
+    setOut("pc_out_age", age);
+    setOut("pc_out_mortality", mortality);
+    setOut("pc_out_mortality_pct", mortalityPct, "٪");
+    setOut("pc_out_avg", avgWeight);
+    setOut("pc_out_yield", carcassPct, "٪");
+    setOut("pc_out_feed_used", feed);
+    setOut("pc_out_income", income);
+    setOut("pc_out_total_cost", costs);
+    setOut("pc_out_profit", profit);
+    const profitEl = document.getElementById("pc_out_profit");
+    if (profitEl) {
+      profitEl.style.background =
+        profit > 0 ? "#f0fdf4" : profit < 0 ? "#fef2f2" : "#f8fafc";
+      profitEl.style.color =
+        profit > 0 ? "#15803d" : profit < 0 ? "#b91c1c" : "#64748b";
+      profitEl.style.borderColor =
+        profit > 0 ? "#bbf7d0" : profit < 0 ? "#fecaca" : "#e2e8f0";
+    }
+    setOut("pc_out_profit_pct", profitPct, "٪");
+    setOut("pc_out_fcr", fcr);
+    setOut("pc_out_epi", epi);
+    setOut("pc_out_adg", adg, "گرم/روز");
+    setOut("pc_out_gain", gainKg);
+    setOut("pc_out_survival", survival, "٪");
+  }
+
+  async _collectCompletionSave(flockId, halls) {
+    const val = (id) => this._toNum(document.getElementById(id)?.value);
+    const txt = (id) =>
+      String(document.getElementById(id)?.value || "").trim();
+    const round = (n) =>
+      n === null || n === undefined || !Number.isFinite(Number(n))
+        ? null
+        : Math.round(Number(n) * 100) / 100;
+
+    const initial = val("pc_initial") || 0;
+    const sent = val("pc_sent") || 0;
+    const live = val("pc_live") || 0;
+    const carcass = val("pc_carcass") || 0;
+    const price = val("pc_price") || 0;
+    const feedSys = val("pc_feed_sys") || 0;
+    const feedDecl = val("pc_feed_decl");
+    const feed = feedSys;
+    const sysSent = val("pc_sys_sent") || 0;
+    const sysAvg = val("pc_sys_weight") || 0;
+    const initWeight = val("pc_init_weight") || 0.04;
+    const age = this._pcSlaughterAge();
+
+    const sdateRaw = txt("pc_sdate");
+    const sdate = sdateRaw
+      ? convertPersianToGregorian(sdateRaw) || null
+      : null;
+
+    if (!sent || sent <= 0) {
+      Swal.showValidationMessage(
+        "تعداد ارسالی به کشتارگاه را وارد کنید (عدد مثبت)",
+      );
+      return false;
+    }
+    if (sent > initial) {
+      Swal.showValidationMessage(
+        "تعداد ارسالی به کشتارگاه نمی‌تواند از تعداد اولیه بیشتر باشد",
+      );
+      return false;
+    }
+    if (!live || live <= 0) {
+      Swal.showValidationMessage("وزن کل زنده گله را وارد کنید");
+      return false;
+    }
+    if (!sdate) {
+      Swal.showValidationMessage("تاریخ کشتار معتبر نیست");
+      return false;
+    }
+
+    const mortality = initial > 0 ? Math.max(0, initial - sent) : 0;
+    const mortalityPct = initial > 0 ? (mortality / initial) * 100 : 0;
+    const survival = initial > 0 ? (sent / initial) * 100 : 0;
+    const avgWeight = sent > 0 ? live / sent : 0;
+    const carcassPct =
+      carcass > 0 && live > 0 ? (carcass / live) * 100 : 0;
+    const income = live * price;
+    const costs = [
+      "pc_cost_chick",
+      "pc_cost_feed",
+      "pc_cost_med",
+      "pc_cost_fuel",
+      "pc_cost_labor",
+      "pc_cost_other",
+    ].reduce((s, id) => s + (val(id) || 0), 0);
+    const profit = income - costs;
+    const profitPct = income > 0 ? (profit / income) * 100 : 0;
+    const gainKg =
+      sent > 0 && avgWeight > 0 ? (avgWeight - initWeight) * sent : 0;
+    const adg =
+      age > 0 && avgWeight > 0
+        ? ((avgWeight - initWeight) * 1000) / age
+        : 0;
+    const fcr = gainKg > 0 && feed > 0 ? feed / gainKg : 0;
+    const epi =
+      age > 0 && fcr > 0 && survival > 0
+        ? (avgWeight * survival * 100) / (age * fcr)
+        : 0;
+
+    // ===== شاخص‌های سیستم =====
+    const sysGainKg =
+      sysSent > 0 && sysAvg > 0 ? (sysAvg - initWeight) * sysSent : 0;
+    const sysSurvivalPct =
+      initial > 0 ? (sysSent / initial) * 100 : 0;
+    const sysFcr = sysGainKg > 0 && feed > 0 ? feed / sysGainKg : 0;
+    const sysAdg =
+      age > 0 && sysAvg > 0
+        ? ((sysAvg - initWeight) * 1000) / age
+        : 0;
+    const sysEpi =
+      age > 0 && sysFcr > 0 && sysSurvivalPct > 0
+        ? (sysAvg * sysSurvivalPct * 100) / (age * sysFcr)
+        : 0;
+
+    // ===== شاخص‌های اعلامی مرغدار =====
+    const hasFarmerFeed = feedDecl !== null && feedDecl !== undefined;
+    const farFeed = feedDecl || 0;
+    const farFcr =
+      gainKg > 0 && farFeed > 0 ? farFeed / gainKg : 0;
+    const farEpi =
+      age > 0 && farFcr > 0 && survival > 0
+        ? (avgWeight * survival * 100) / (age * farFcr)
+        : 0;
+
+    const sharedData = {
+      completion_type: "completed",
+      completion_date: new Date().toISOString().slice(0, 10),
+      slaughter_age_days: age > 0 ? age : null,
+      slaughter_date: sdate,
+      slaughterhouse_name: txt("pc_slaughterhouse") || null,
+      total_sent: sent,
+      total_live_weight: round(live),
+      avg_live_weight: round(avgWeight),
+      total_mortality: mortality,
+      mortality_rate: round(mortalityPct),
+      farmer_total_feed: round(feedDecl),
+      farmer_total_weight: round(live),
+      carcass_weight_kg: round(carcass),
+      carcass_yield_percent: round(carcassPct),
+      price_per_kg: round(price),
+      income_total: round(income),
+      chick_cost: round(val("pc_cost_chick")),
+      feed_cost: round(val("pc_cost_feed")),
+      medication_cost: round(val("pc_cost_med")),
+      fuel_cost: round(val("pc_cost_fuel")),
+      labor_cost: round(val("pc_cost_labor")),
+      other_cost: round(val("pc_cost_other")),
+      total_cost: round(costs),
+      net_profit: round(profit),
+      profit_percent: round(profitPct),
+      feed_basis: "system",
+      final_fcr: round(fcr),
+      epi: round(epi),
+      adg_grams: round(adg),
+      total_weight_gain_kg: round(gainKg),
+      survival_percent: round(survival),
+      system_epi: round(sysEpi),
+      system_adg_grams: round(sysAdg),
+      system_weight_gain_kg: round(sysGainKg),
+      system_survival_percent: round(sysSurvivalPct),
+      farmer_epi: round(hasFarmerFeed ? farEpi : null),
+      farmer_adg_grams: round(adg),
+      farmer_weight_gain_kg: round(gainKg),
+      farmer_survival_percent: round(survival),
+      farmer_fcr: round(hasFarmerFeed ? farFcr : null),
+      confirmed_by_customer:
+        !!document.getElementById("pc_confirmed")?.checked,
+      notes: txt("pc_notes") || null,
+    };
+
+    const hallData = {};
+    (Array.isArray(halls) ? halls : []).forEach((h) => {
+      const pid = String(h.chick_placement_id);
+      const sCount = val(`pc_hsent_${pid}`);
+      const lw = val(`pc_hlive_${pid}`);
+      const df = val(`pc_hfeed_${pid}`);
+      if (sCount !== null || lw !== null || df !== null) {
+        hallData[pid] = {
+          sent_count: sCount,
+          live_weight_kg: lw,
+          declared_feed: df,
+        };
+      }
+    });
+
+    const response = await hatcheryApi.completeFlock(
+      flockId,
+      sharedData,
+      hallData,
+    );
+    if (!response.success) {
+      Swal.showValidationMessage(
+        response.message || "خطا در ثبت پایان گله",
+      );
+      return false;
+    }
+    return true;
+  }
+
+  async _openFlockCompletionModal(data) {
+    const flockId = data.flock?.id;
+    const halls = Array.isArray(data.halls) ? data.halls : [];
+    if (!flockId) return;
+
+    const result = await Swal.fire({
+      title: `ثبت پایان گله ${data.flock?.flock_number ?? ""} و اطلاعات کشتار`,
+      html: this._pcForm(data),
+      width: "1080px",
+      showCancelButton: true,
+      confirmButtonText: "🏁 ثبت و پایان گله",
+      cancelButtonText: "انصراف",
+      confirmButtonColor: "#0d9488",
+      reverseButtons: true,
+      showCloseButton: true,
+      didOpen: () => {
+        try {
+          if (
+            typeof window.$ !== "undefined" &&
+            window.$.fn &&
+            window.$.fn.persianDatepicker
+          ) {
+            document.querySelectorAll(".pc-date").forEach((el) => {
+              if (el.dataset.dp) return;
+              window.$(el).persianDatepicker({
+                format: "YYYY/MM/DD",
+                autoClose: true,
+                initialValue: false,
+              });
+              el.dataset.dp = "1";
+            });
+          }
+        } catch (e) {
+          /* ignore */
+        }
+        // سلکت قدیمی «مبنای محاسبه» حذف شد؛ شاخص‌ها حالا دوگانه محاسبه می‌شوند
+        ["pc_feed_basis", "pc_out_feed_used"].forEach((id) => {
+          const el = document.getElementById(id);
+          if (!el) return;
+          const box = el.closest("div");
+          if (box) box.style.display = "none";
+        });
+        this.recalcCompletionInputs();
+      },
+      preConfirm: async () => {
+        const ok = await this._collectCompletionSave(flockId, halls);
+        if (!ok) return false;
+        return true;
+      },
+    });
+
+    if (result.isConfirmed) {
+      notificationService.success(
+        "پایان دوره گله با موفقیت ثبت شد و گله بسته شد",
+      );
+      await this._refreshFlockViews();
+    }
+  }
 
   refreshFlocks() {
     this.loadFlocks();
@@ -2068,6 +3313,22 @@ class HatcheryService {
             initialChicks > 0
               ? ((totalMortality / initialChicks) * 100).toFixed(2)
               : "-";
+          const fmtNum = (v) =>
+            v === null || v === undefined || v === ""
+              ? "-"
+              : Number(v).toLocaleString("fa-IR", {
+                  maximumFractionDigits: 2,
+                });
+          const incomeValue =
+            c.income_total ??
+            (c.price_per_kg != null && c.total_live_weight != null
+              ? Number(c.price_per_kg) * Number(c.total_live_weight)
+              : null);
+          const profitValue =
+            c.net_profit ??
+            (incomeValue !== null && c.total_cost != null
+              ? Number(incomeValue) - Number(c.total_cost)
+              : null);
           return `
             <tr style="border-bottom:1px solid #eef2f6;">
               <td style="padding:8px; text-align:center;">${i + 1}</td>
@@ -2082,7 +3343,13 @@ class HatcheryService {
               <td style="padding:8px; text-align:center;">${mortalityRate}٪</td>
               <td style="padding:8px; text-align:center;">${c.system_total_feed ?? "-"}</td>
               <td style="padding:8px; text-align:center;">${c.system_last_weight ?? "-"}</td>
-              <td style="padding:8px; text-align:center;"><strong style="color:#d97706;">${c.system_fcr ?? c.farmer_fcr ?? "-"}</strong></td>
+              <td style="padding:8px; text-align:center;"><strong style="color:#d97706;">${c.final_fcr ?? c.system_fcr ?? "-"} / ${c.farmer_fcr ?? "-"}</strong></td>
+              <td style="padding:8px; text-align:center;">${c.system_epi ?? c.epi ?? "-"} / ${c.farmer_epi ?? "-"}</td>
+              <td style="padding:8px; text-align:center;">${c.system_adg_grams ?? c.adg_grams ?? "-"} / ${c.farmer_adg_grams ?? "-"}</td>
+              <td style="padding:8px; text-align:center;">${fmtNum(incomeValue)}</td>
+              <td style="padding:8px; text-align:center;">${fmtNum(c.total_cost)}</td>
+              <td style="padding:8px; text-align:center;"><strong style="color:${profitValue !== null && Number(profitValue) >= 0 ? "#16a34a" : "#dc2626"};">${fmtNum(profitValue)}</strong></td>
+              <td style="padding:8px; text-align:center;">${c.profit_percent != null ? `${c.profit_percent}٪` : "-"}</td>
               <td style="padding:8px; text-align:center;">${c.slaughter_age_days ? c.slaughter_age_days + " روز" : "-"}</td>
               <td style="padding:8px; text-align:center;">${c.total_live_weight ?? "-"}</td>
               <td style="padding:8px; text-align:center;">${c.avg_live_weight ?? "-"}</td>
@@ -2122,7 +3389,13 @@ class HatcheryService {
                     <th style="padding:8px;">٪ تلفات</th>
                     <th style="padding:8px;">خوراک</th>
                     <th style="padding:8px;">وزن</th>
-                    <th style="padding:8px;">FCR</th>
+                    <th style="padding:8px;">FCR (سیست/اعلام)</th>
+                    <th style="padding:8px;">EPI (سیست/اعلام)</th>
+                    <th style="padding:8px;">ADG (سیست/اعلام، گرم/روز)</th>
+                    <th style="padding:8px;">درآمد کل</th>
+                    <th style="padding:8px;">جمع هزینه‌ها</th>
+                    <th style="padding:8px;">سود خالص</th>
+                    <th style="padding:8px;">٪ سود</th>
                     <th style="padding:8px;">سن کشتار</th>
                     <th style="padding:8px;">وزن کشتار</th>
                     <th style="padding:8px;">میانگین</th>
@@ -2568,13 +3841,27 @@ if (typeof window !== "undefined") {
   window.editPeriodCompletion = (id) =>
     hatcheryService.editPeriodCompletion(id);
   window.editFlock = (id) => hatcheryService.editFlock(id);
+  window.editFlockGroup = (flockId) =>
+    hatcheryService.editFlockGroup(flockId);
   window.deleteFlock = (id) => hatcheryService.deleteFlock(id);
+  window.deleteFlockGroup = (flockId, fallbackId = null) =>
+    hatcheryService.deleteFlockGroup(flockId, fallbackId);
+  window.syncExtraHallDates = () => hatcheryService.syncExtraHallDates?.();
   window.toggleFlockStatus = (id) => hatcheryService.toggleFlockStatus(id);
+  window.toggleFlockGroupStatus = (flockId) =>
+    hatcheryService.toggleFlockGroupStatus(flockId);
   window.loadHallAreaForChick = (id) =>
     hatcheryService.loadHallAreaForFlock(id);
   window.calculateDensity = () => hatcheryService.calculateDensity();
   window.endActiveFlock = (flockId) => hatcheryService.endActiveFlock(flockId);
-  window.endActiveFlockOf = (flockId) => hatcheryService.endActiveFlock(flockId);
+  window.endActiveFlockOf = (flockId) =>
+    hatcheryService.completeFlockOf(flockId);
+  window.completeFlockOf = (flockId) =>
+    hatcheryService.completeFlockOf(flockId);
+  window.hatcheryFormatToman = (el) =>
+    hatcheryService.formatTomanInput(el);
+  window.hatcheryRecalcCompletion = () =>
+    hatcheryService.recalcCompletionInputs();
   window.addFlockBookmark = (flockId) => hatcheryService.addFlockBookmark(flockId);
   window.addFlockBookmarkOf = (flockId) =>
     hatcheryService.addFlockBookmark(flockId);
@@ -2583,6 +3870,15 @@ if (typeof window !== "undefined") {
     hatcheryService.sendFlockSms(null, flockId);
   window.sendFlockSmsHall = (hallId) => hatcheryService.sendFlockSms(hallId, null);
   window.refreshFlockPanel = () => hatcheryService.refreshFlockPanel();
+  window.printFlockCompletionReport = async (flockId) => {
+    try {
+      const { hatcheryReport } = await import("./hatchery.report.js");
+      await hatcheryReport.generateFlockReport(flockId);
+    } catch (error) {
+      console.error("Error printing flock completion report:", error);
+      notificationService.error("خطا در تولید گزارش پایان دوره گله");
+    }
+  };
   window.generateChickReport = async () => {
     try {
       const { hatcheryReport } = await import("./hatchery.report.js");
@@ -2602,6 +3898,8 @@ if (typeof window !== "undefined") {
     }
   };
   window.viewFlockDetails = (id) => hatcheryService.viewFlockDetails(id);
+  window.viewFlockGroup = (flockId) =>
+    hatcheryService.viewFlockGroup(flockId);
   window.viewHygieneRecord = (id, hallId) =>
     hatcheryService.viewHygiene(id, hallId);
   window.editHygieneRecord = (id, hallId) =>

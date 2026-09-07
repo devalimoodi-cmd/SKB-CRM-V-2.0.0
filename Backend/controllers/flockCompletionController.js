@@ -196,11 +196,105 @@ const finalizeFlockCompletion = async (
       where: { chick_placement_id: pl.id },
       transaction,
     });
-    details.push(buildHallDetail(pl, weeks));
+    const detail = buildHallDetail(pl, weeks);
+    const optional =
+      (shared_data.hall_data || {})[String(pl.id)] || {};
+    if (
+      optional.sent_count !== undefined ||
+      optional.live_weight_kg !== undefined ||
+      optional.declared_feed !== undefined
+    ) {
+      detail.sent_to_slaughter_count =
+        optional.sent_count !== undefined
+          ? parseInt(optional.sent_count) || 0
+          : null;
+      detail.live_weight_kg =
+        optional.live_weight_kg !== undefined
+          ? parseFloat(optional.live_weight_kg) || 0
+          : null;
+      detail.declared_feed_intake =
+        optional.declared_feed !== undefined
+          ? parseFloat(optional.declared_feed) || 0
+          : null;
+    }
+    details.push(detail);
   }
 
   const agg = aggregateHallDetails(details);
   const repPlacement = placements[0];
+
+  const num = (v) => {
+    if (v === undefined || v === null || v === "") return null;
+    const n = Number(v);
+    return Number.isNaN(n) ? null : n;
+  };
+
+  // نرمال‌سازی وزن اولیه (اگر گرم ذخیره شده باشد → کیلوگرم)
+  const normKg = (v) => {
+    const n = Number(v);
+    if (!Number.isFinite(n) || n <= 0) return 0.04;
+    return n < 1 ? n : n / 1000;
+  };
+  const r2 = (v) => {
+    const n = Number(v);
+    return Number.isFinite(n) && n > 0
+      ? Math.round(n * 100) / 100
+      : n === 0
+        ? 0
+        : null;
+  };
+
+  // ===== شاخص‌ها از داده‌های سیستم =====
+  const initialTotal = parseInt(agg.initial_chicks_count) || 0;
+  const systemSent = parseInt(agg.final_chicks_count) || 0;
+  const systemAge =
+    shared_data.slaughter_age_days ?? agg.slaughter_age_days ?? null;
+  const systemInitKg = normKg(agg.initial_avg_weight);
+  const systemAvgKg =
+    parseFloat(agg.final_avg_weight ?? agg.system_last_weight) || 0;
+  const systemFeed =
+    parseFloat(agg.system_total_feed ?? agg.total_feed_intake) || 0;
+  const systemSurvivalPct =
+    initialTotal > 0 ? (systemSent / initialTotal) * 100 : 0;
+  const systemGainKg =
+    systemSent > 0 && systemAvgKg > 0
+      ? (systemAvgKg - systemInitKg) * systemSent
+      : null;
+  const systemFcr =
+    systemGainKg > 0 && systemFeed > 0 ? systemFeed / systemGainKg : null;
+  const systemAdg =
+    systemAge > 0 && systemAvgKg > 0
+      ? ((systemAvgKg - systemInitKg) * 1000) / systemAge
+      : null;
+  const systemEpi =
+    systemAge > 0 && systemFcr && systemSurvivalPct > 0
+      ? (systemAvgKg * systemSurvivalPct * 100) / (systemAge * systemFcr)
+      : null;
+
+  // ===== شاخص‌ها از اطلاعات اعلامی مرغدار =====
+  const farmerSent = parseInt(shared_data.total_sent) || 0;
+  const farmerLive = parseFloat(shared_data.total_live_weight) || 0;
+  const farmerFeed = num(shared_data.farmer_total_feed);
+  const farmerAvgKg = farmerSent > 0 ? farmerLive / farmerSent : 0;
+  const farmerSurvivalPct =
+    initialTotal > 0 && farmerSent > 0
+      ? (farmerSent / initialTotal) * 100
+      : null;
+  const farmerGainKg =
+    farmerSent > 0 && farmerAvgKg > 0
+      ? (farmerAvgKg - systemInitKg) * farmerSent
+      : null;
+  const farmerFcrVal =
+    farmerGainKg > 0 && farmerFeed > 0 ? farmerFeed / farmerGainKg : null;
+  const farmerAdg =
+    systemAge > 0 && farmerAvgKg > 0
+      ? ((farmerAvgKg - systemInitKg) * 1000) / systemAge
+      : null;
+  const farmerEpi =
+    systemAge > 0 && farmerFcrVal && farmerSurvivalPct
+      ? (farmerAvgKg * farmerSurvivalPct * 100) /
+        (systemAge * farmerFcrVal)
+      : null;
 
   const header = {
     flock_id: flock.id,
@@ -213,7 +307,21 @@ const finalizeFlockCompletion = async (
     completion_type: shared_data.completion_type || "completed",
     confirmed_by_customer: shared_data.confirmed_by_customer || false,
     ...agg,
-    farmer_fcr: shared_data.farmer_fcr || null,
+    slaughter_age_days:
+      shared_data.slaughter_age_days ?? agg.slaughter_age_days ?? null,
+    system_fcr: r2(systemFcr) ?? agg.system_fcr,
+    system_epi: r2(systemEpi),
+    system_adg_grams: r2(systemAdg),
+    system_weight_gain_kg: r2(systemGainKg),
+    system_survival_percent: r2(systemSurvivalPct),
+    farmer_fcr: r2(farmerFcrVal) ?? num(shared_data.farmer_fcr),
+    farmer_epi: r2(farmerEpi) ?? num(shared_data.farmer_epi),
+    farmer_adg_grams:
+      r2(farmerAdg) ?? num(shared_data.farmer_adg_grams),
+    farmer_weight_gain_kg:
+      r2(farmerGainKg) ?? num(shared_data.farmer_weight_gain_kg),
+    farmer_survival_percent:
+      r2(farmerSurvivalPct) ?? num(shared_data.farmer_survival_percent),
     farmer_total_meat: shared_data.farmer_total_meat || null,
     farmer_total_feed: shared_data.farmer_total_feed || null,
     farmer_total_weight: shared_data.farmer_total_weight || null,
@@ -224,6 +332,31 @@ const finalizeFlockCompletion = async (
     total_live_weight: shared_data.total_live_weight || null,
     avg_live_weight: shared_data.avg_live_weight || null,
     notes: shared_data.notes || null,
+
+    // 💰 اقتصادی
+    price_per_kg: num(shared_data.price_per_kg),
+    income_total: num(shared_data.income_total),
+    chick_cost: num(shared_data.chick_cost),
+    feed_cost: num(shared_data.feed_cost),
+    medication_cost: num(shared_data.medication_cost),
+    fuel_cost: num(shared_data.fuel_cost),
+    labor_cost: num(shared_data.labor_cost),
+    other_cost: num(shared_data.other_cost),
+    total_cost: num(shared_data.total_cost),
+    net_profit: num(shared_data.net_profit),
+    profit_percent: num(shared_data.profit_percent),
+
+    // 🍗 لاشه
+    carcass_weight_kg: num(shared_data.carcass_weight_kg),
+    carcass_yield_percent: num(shared_data.carcass_yield_percent),
+
+    // 📈 شاخص‌ها
+    feed_basis: shared_data.feed_basis === "declared" ? "declared" : "system",
+    epi: num(shared_data.epi),
+    adg_grams: num(shared_data.adg_grams),
+    total_weight_gain_kg: num(shared_data.total_weight_gain_kg),
+    survival_percent: num(shared_data.survival_percent),
+    final_fcr: num(shared_data.final_fcr),
   };
 
   let completion = await FlockCompletion.findOne({
@@ -268,6 +401,7 @@ const completePeriods = async (req, res) => {
   try {
     const { unit_ids = [], flock_ids = [] } = req.body;
     const shared_data = req.body.shared_data || {};
+    shared_data.hall_data = req.body.hall_data || shared_data.hall_data || {};
     const completedBy = req.user?.id || null;
 
     if (
@@ -365,6 +499,7 @@ const completeFlockPeriods = async (req, res) => {
   try {
     const { flock_ids = [] } = req.body;
     const shared_data = req.body.shared_data || {};
+    shared_data.hall_data = req.body.hall_data || shared_data.hall_data || {};
     const completedBy = req.user?.id || null;
 
     if (!Array.isArray(flock_ids) || flock_ids.length === 0) {
@@ -642,9 +777,81 @@ const deleteFlockCompletion = async (req, res) => {
   }
 };
 
+// ============================================================
+// @desc    پیش‌نمایش اطلاعات سیستمی پایان گله (قبل از ثبت)
+// ============================================================
+const getFlockCompletionPreview = async (req, res) => {
+  try {
+    const flockId = parseInt(req.params.flockId);
+    const flock = await Flock.findByPk(flockId, {
+      include: [
+        { model: CustomerPersonalInfo, as: "customer" },
+        { model: Unit, as: "unit" },
+      ],
+    });
+    if (!flock) {
+      return errorResponse(res, "گله یافت نشد", 404);
+    }
+
+    const placements = await ChickPlacement.findAll({
+      where: { flock_id: flock.id },
+      order: [["placement_date", "ASC"]],
+    });
+
+    const details = [];
+    for (const pl of placements) {
+      const weeks = await WeeklyManagement.findAll({
+        where: { chick_placement_id: pl.id },
+      });
+      details.push(buildHallDetail(pl, weeks));
+    }
+
+    const summary = aggregateHallDetails(details);
+    const hallIds = details.map((d) => d.hall_id).filter(Boolean);
+    const halls = hallIds.length
+      ? await Hall.findAll({
+          where: { id: hallIds },
+          attributes: ["id", "hall_name"],
+        })
+      : [];
+    const hallMap = {};
+    halls.forEach((h) => {
+      hallMap[h.id] = h.hall_name;
+    });
+
+    const customer = flock.customer || {};
+    const unit = flock.unit || {};
+
+    successResponse(
+      res,
+      {
+        flock: {
+          id: flock.id,
+          flock_number: flock.flock_number,
+          placement_date: flock.placement_date,
+          status: flock.status,
+          customer_name:
+            customer.full_name || customer.farm_name || "نامشخص",
+          unit_name: unit.unit_name || null,
+        },
+        summary,
+        halls: details.map((d) => ({
+          ...d,
+          hall_name: hallMap[d.hall_id] || `سالن ${d.hall_id}`,
+        })),
+      },
+      "پیش‌نمایش اطلاعات پایان گله دریافت شد",
+    );
+  } catch (error) {
+    console.error("خطا در پیش‌نمایش پایان گله:", error);
+    errorResponse(res, error.message, 500);
+  }
+};
+
 module.exports = {
   completePeriods,
   completeFlockPeriods,
+  getFlockCompletionPreview,
   getFlockCompletionByFlockId,
   getFlockCompletions,
   getCompletionsByUnit,

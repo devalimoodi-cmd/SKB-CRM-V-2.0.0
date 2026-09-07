@@ -26,4 +26,20 @@ router.put(
   flockController.endFlock,
 );
 
+// تغییر وضعیت کل گله (فعال / غیرفعال)
+router.put(
+  "/:id/status",
+  protect,
+  authorize("expert", "admin", "super_admin", "sub_admin"),
+  flockController.setFlockStatus,
+);
+
+// بروزرسانی اطلاعات مشترک گله
+router.put(
+  "/:id",
+  protect,
+  authorize("expert", "admin", "super_admin", "sub_admin"),
+  flockController.updateFlock,
+);
+
 module.exports = router;

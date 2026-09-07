@@ -26,6 +26,13 @@ router.post(
 // دریافت لیست اطلاعات پایان دوره
 router.get("/", protect, flockCompletionController.getFlockCompletions);
 
+// پیش‌نمایش اطلاعات سیستمی پایان یک گله
+router.get(
+  "/preview/:flockId",
+  protect,
+  flockCompletionController.getFlockCompletionPreview,
+);
+
 // دریافت اطلاعات پایان دوره های یک واحد
 router.get(
   "/unit/:unitId",

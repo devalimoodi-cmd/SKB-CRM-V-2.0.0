@@ -8,6 +8,7 @@ const {
   deleteHall,
   toggleHallStatus,
   getHallFullInfo,
+  getUnitCapacitySummary,
 } = require("../controllers/hallController");
 
 const { protect, authorize } = require("../middleware/auth");
@@ -30,6 +31,14 @@ router.get(
   protect,
   authorize("admin", "super_admin", "sub_admin", "expert"),
   getHallsByCustomer,
+);
+
+// خلاصه ظرفیت واحدهای مرغداری مشتری (باید قبل از GET /:id باشد)
+router.get(
+  "/capacity-summary/:customerId",
+  protect,
+  authorize("admin", "super_admin", "sub_admin", "expert"),
+  getUnitCapacitySummary,
 );
 
 // دریافت یک سالن با ID

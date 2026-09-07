@@ -115,6 +115,11 @@ export const hatcheryApi = {
     return apiService.delete(endpoint);
   },
 
+  // حذف یک «گله/دوره» کامل (همه سالن‌های عضو)
+  async deleteFlockGroup(flockId) {
+    return apiService.delete(`/chick-placements/group/${flockId}`);
+  },
+
   // تغییر وضعیت گله (فعال/غیرفعال)
   async toggleFlockStatus(id, data = {}) {
     const endpoint = API_CONSTANTS.ENDPOINTS.CHICK_PLACEMENTS.TOGGLE.replace(
@@ -139,17 +144,36 @@ export const hatcheryApi = {
     return apiService.get(`/flocks/${id}`);
   },
 
+  // بروزرسانی اطلاعات مشترک گله (Flock)
+  async updateFlockInfo(flockId, data) {
+    return apiService.put(`/flocks/${flockId}`, data);
+  },
+
+  // تغییر وضعیت کل گله (active / inactive)
+  async setFlockStatus(flockId, data) {
+    return apiService.put(`/flocks/${flockId}/status`, data);
+  },
+
   // پایان دادن به گله (completed / cancelled)
   async endFlock(id, data = {}) {
     return apiService.put(`/flocks/${id}/end`, data);
   },
 
   // ثبت پایان دوره گله (سرگروه + ریز تفکیکی per سالن)
-  async completeFlock(flockId, sharedData = {}) {
-    return apiService.post("/flock-completions/complete-flock", {
+  async completeFlock(flockId, sharedData = {}, hallData = null) {
+    const body = {
       flock_ids: [flockId],
       shared_data: sharedData,
-    });
+    };
+    if (hallData && Object.keys(hallData).length) {
+      body.hall_data = hallData;
+    }
+    return apiService.post("/flock-completions/complete-flock", body);
+  },
+
+  // دریافت پیش‌نمایش محاسبات سیستمی پایان گله (قبل از ثبت)
+  async getFlockCompletionPreview(flockId) {
+    return apiService.get(`/flock-completions/preview/${flockId}`);
   },
 
   // دریافت پایان دوره ثبت‌شده یک گله

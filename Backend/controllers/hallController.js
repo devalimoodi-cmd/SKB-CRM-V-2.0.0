@@ -1,6 +1,7 @@
 const Hall = require("../models/Hall");
 const CustomerPersonalInfo = require("../models/CustomerPersonalInfo");
 const Unit = require("../models/Unit");
+const ChickPlacement = require("../models/ChickPlacement");
 const { successResponse, errorResponse } = require("../utils/response");
 const User = require("../models/User");
 const { Op } = require("sequelize");
@@ -8,6 +9,7 @@ const { Op } = require("sequelize");
 // ===== ایمپورت متغیر های دریافت  تمام  اطلاعات سالن
 const HallPhysicalInfo = require("../models/HallPhysicalInfo");
 const HallSystem = require("../models/HallSystem");
+const HallSystemItem = require("../models/HallSystemItem");
 const HallWaterFeed = require("../models/HallWaterFeed");
 const HallHygiene = require("../models/HallHygiene");
 
@@ -209,6 +211,76 @@ const toggleHallStatus = async (req, res) => {
 };
 
 // ============================================
+// خلاصه ظرفیت واحدهای مرغداری مشتری
+// «ظرفیت مانده واحد» = مجموع ظرفیت سالن‌های فعال واحد − ظرفیت سالن‌های دارای جوجه‌ریزی فعال
+// ============================================
+const getUnitCapacitySummary = async (req, res) => {
+  try {
+    const customerId = parseInt(req.params.customerId);
+    if (!customerId) {
+      return errorResponse(res, "شناسه مشتری الزامی است", 400);
+    }
+
+    const units = await Unit.findAll({
+      where: { customer_personal_information_id: customerId },
+      attributes: ["id", "unit_name"],
+      order: [["id", "ASC"]],
+    });
+    const halls = await Hall.findAll({
+      where: { customer_id: customerId },
+      attributes: [
+        "id",
+        "unit_id",
+        "hall_name",
+        "nominal_capacity",
+        "is_active",
+      ],
+    });
+    const placements = await ChickPlacement.findAll({
+      where: { customer_id: customerId, is_active: true },
+      attributes: ["id", "hall_id"],
+    });
+    const activeHallIds = new Set(
+      placements.map((p) => p.hall_id).filter((v) => v !== null),
+    );
+
+    const summary = (units || []).map((unit) => {
+      const unitHalls = (halls || []).filter(
+        (h) => h.unit_id === unit.id && h.is_active !== false,
+      );
+      const totalCapacity = unitHalls.reduce(
+        (sum, h) => sum + (Number(h.nominal_capacity) || 0),
+        0,
+      );
+      const occupiedHalls = unitHalls.filter((h) =>
+        activeHallIds.has(h.id),
+      );
+      const occupiedCapacity = occupiedHalls.reduce(
+        (sum, h) => sum + (Number(h.nominal_capacity) || 0),
+        0,
+      );
+      return {
+        unitId: unit.id,
+        unitName: unit.unit_name,
+        totalCapacity,
+        occupiedCapacity,
+        remainingCapacity: Math.max(totalCapacity - occupiedCapacity, 0),
+        hallCount: unitHalls.length,
+        occupiedHallCount: occupiedHalls.length,
+        activePlacementCount: placements.filter((p) =>
+          unitHalls.some((h) => h.id === p.hall_id),
+        ).length,
+      };
+    });
+
+    successResponse(res, summary, "خلاصه ظرفیت واحدها دریافت شد");
+  } catch (error) {
+    console.error("خطا در دریافت خلاصه ظرفیت:", error);
+    errorResponse(res, error.message, 500);
+  }
+};
+
+// ============================================
 // دریافت اطلاعات کامل سالن (همراه با فیزیکی، سیستم‌ها، آبخوری، بهداشت)
 // ============================================
 const getHallFullInfo = async (req, res) => {
@@ -243,6 +315,13 @@ const getHallFullInfo = async (req, res) => {
             "water_inlet_system_id",
             "lighting_system_id",
             "notes",
+          ],
+          include: [
+            {
+              model: HallSystemItem,
+              attributes: ["id", "category", "type_id", "quantity", "spec"],
+              required: false,
+            },
           ],
         },
         {
@@ -302,4 +381,5 @@ module.exports = {
   deleteHall,
   toggleHallStatus,
   getHallFullInfo,
+  getUnitCapacitySummary,
 };

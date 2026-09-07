@@ -20,30 +20,69 @@ export const chartDashboardRenderer = {
       return;
     }
 
-    const flockChecks = flocks
-      .map(
-        (f) => `
+    const viewMode = options.viewMode === "hall" ? "hall" : "flock";
+    const layoutMode = options.layoutMode || "stacked";
+    const hallFlocks = options.hallFlocks || [];
+    const groupMeta = options.groupMeta || [];
+    const selSet = new Set(selectedFlockIds.map((x) => String(x)));
+    const isChecked = (uid) => selSet.has(String(uid));
+
+    const chip = (u) => `
             <label class="analysis-flock-check">
-              <input type="checkbox" value="${f.flock.id}" ${
-                selectedFlockIds.includes(f.flock.id) ? "checked" : ""
+              <input type="checkbox" value="${u._uid || u.flock.id}" ${
+                isChecked(u._uid) ? "checked" : ""
               }
-                     onchange="chartDashboardService.toggleFlock(${f.flock.id}, this.checked)">
-              <span class="flock-check-color" style="background: ${f.color}"></span>
-              گله ${f.flock.flockNumber} - ${f.flock.customerName}
-              <small>(${f.flock.hallName})</small>
-            </label>
-          `,
-      )
-      .join("");
+                     onchange="chartDashboardService.toggleFlock('${u._uid || u.flock.id}', this.checked)">
+              <span class="flock-check-color" style="background: ${u.color}"></span>
+              ${u._chipLabel || `گله ${u.flock.flockNumber}`}
+            </label>`;
+
+    let flockChecks = "";
+    if (viewMode === "hall") {
+      flockChecks = groupMeta
+        .map((g) => {
+          const members = (g.members || []).map((m) =>
+            hallFlocks.find((h) => h._uid === m._uid),
+          );
+          const memberChips = members.filter(Boolean).map(chip).join("");
+          if ((g.members || []).length > 1) {
+            return `
+            <div class="analysis-group-block">
+              <div class="analysis-group-head">
+                <i class="fas fa-layer-group"></i> گله ${g.flockNumber}
+                <span class="analysis-group-count">${g.members.length} سالن</span>
+                <button type="button" class="analysis-btn-mini"
+                  onclick="chartDashboardService.selectGroupMembers('${g._groupKey}', true)">همه</button>
+                <button type="button" class="analysis-btn-mini"
+                  onclick="chartDashboardService.selectGroupMembers('${g._groupKey}', false)">هیچ</button>
+              </div>
+              <div class="analysis-flock-list">${memberChips}</div>
+            </div>`;
+          }
+          return `<div class="analysis-group-block analysis-group-single">${memberChips}</div>`;
+        })
+        .join("");
+    } else {
+      flockChecks = flocks.map(chip).join("");
+    }
 
     container.innerHTML = `
             <div class="analysis-module">
 
                 <!-- ===== کنترل‌های بالا ===== -->
                 <div class="analysis-controls">
+                    <div class="analysis-control-group analysis-view-group">
+                        <label class="analysis-control-label"><i class="fas fa-arrows-split-up-and-left"></i> نمایش بر اساس:</label>
+                        <div class="analysis-seg" id="analysisViewSeg">
+                            <button type="button" class="analysis-seg-btn ${viewMode === "flock" ? "active" : ""}" data-view="flock"
+                                    onclick="chartDashboardService.setViewMode('flock')"><i class="fas fa-warehouse"></i> کل گله</button>
+                            <button type="button" class="analysis-seg-btn ${viewMode === "hall" ? "active" : ""}" data-view="hall"
+                                    onclick="chartDashboardService.setViewMode('hall')"><i class="fas fa-door-open"></i> سالن‌ها</button>
+                        </div>
+                    </div>
                     <div class="analysis-control-group analysis-flock-group">
-                        <label class="analysis-control-label"><i class="fas fa-warehouse"></i> گله‌ها:</label>
-                        <div class="analysis-flock-list">${flockChecks}</div>
+                        <label class="analysis-control-label"><i class="fas ${viewMode === "hall" ? "fa-door-open" : "fa-warehouse"}"></i> ${viewMode === "hall" ? "سالن‌ها (گروه‌بندی گله):" : "گله‌ها:"}</label>
+                        <div class="${viewMode === "hall" ? "analysis-flock-groups" : "analysis-flock-list"}">${flockChecks}</div>
                         <button class="analysis-btn-mini" onclick="chartDashboardService.selectAllFlocks(true)">همه</button>
                         <button class="analysis-btn-mini" onclick="chartDashboardService.selectAllFlocks(false)">هیچ</button>
                     </div>
@@ -55,7 +94,20 @@ export const chartDashboardRenderer = {
                         <button class="analysis-btn-toggle" onclick="chartDashboardService.changeWeekRange(1)">+</button>
                         <span class="analysis-hint">هفته</span>
                     </div>
+                    <div class="analysis-control-group analysis-layout-group" id="chartLayoutGroup">
+                        <label class="analysis-control-label"><i class="fas fa-table-cells-large"></i> چیدمان:</label>
+                        <div class="analysis-seg">
+                            <button type="button" class="analysis-seg-btn ${layoutMode === "stacked" ? "active" : ""}" data-layout="stacked" title="عمودی (پیش‌فرض)"
+                                    onclick="chartDashboardService.setChartLayout('stacked')"><i class="fas fa-bars-staggered"></i> عمودی</button>
+                            <button type="button" class="analysis-seg-btn ${layoutMode === "duo" ? "active" : ""}" data-layout="duo" title="دو ستونه"
+                                    onclick="chartDashboardService.setChartLayout('duo')"><i class="fas fa-table-columns"></i> دو ستونه</button>
+                            <button type="button" class="analysis-seg-btn ${layoutMode === "side" ? "active" : ""}" data-layout="side" title="داشبوردی"
+                                    onclick="chartDashboardService.setChartLayout('side')"><i class="fas fa-grip"></i> داشبوردی</button>
+                        </div>
+                    </div>
                 </div>
+
+                <div class="analysis-cards" id="analysisCards" data-layout="${layoutMode}">
 
                 <!-- ===== نمودار داینامیک اصلی ===== -->
                 <div class="analysis-chart-card analysis-main-card">
@@ -66,6 +118,8 @@ export const chartDashboardRenderer = {
                             <button class="analysis-action-btn" onclick="chartDashboardService.downloadChart('mainChart','jpg')" title="دانلود JPG"><i class="fas fa-file-image"></i> JPG</button>
                             <button class="analysis-action-btn" onclick="chartDashboardService.resetZoom('mainChart')" title="ریست زوم"><i class="fas fa-search-minus"></i></button>
                             <button class="analysis-action-btn" onclick="window.print()" title="چاپ"><i class="fas fa-print"></i></button>
+                            <button class="analysis-action-btn analysis-cmp-btn" onclick="chartDashboardService.openChartComparePicker()"
+                                    title="مقایسه با گله/سالن سایر مشتریان"><i class="fas fa-people-arrows"></i> مقایسه</button>
                         </div>
                     </div>
 
@@ -157,6 +211,8 @@ export const chartDashboardRenderer = {
                     ${this.renderSimpleCard("blackoutChart", "fa-moon", "میزان خاموشی (ساعت)")}
                 </div>
 
+                </div>
+
             </div>
         `;
   },
@@ -188,6 +244,10 @@ export const chartDashboardRenderer = {
                             <option value="dotted" ${it.lineType === "dotted" ? "selected" : ""}>نقطه‌چین</option>
                         </select>
                         <span class="series-label">${it.label}</span>
+                        ${it.key && String(it.key).indexOf("cmp:") === 0
+                          ? `<button type="button" class="series-remove-btn" title="حذف سری مقایسه"
+                               onclick="chartDashboardService.removeCompareSeries('${it.key.slice(4, -7)}')">&times;</button>`
+                          : ""}
                     </div>
                 `,
                   )
@@ -204,6 +264,8 @@ export const chartDashboardRenderer = {
                     <div class="analysis-chart-actions">
                         <button class="analysis-action-btn" onclick="chartDashboardService.downloadChart('${canvasId}','png')" title="دانلود PNG"><i class="fas fa-download"></i></button>
                         <button class="analysis-action-btn" onclick="chartDashboardService.resetZoom('${canvasId}')" title="ریست زوم"><i class="fas fa-search-minus"></i></button>
+                        <button class="analysis-action-btn analysis-cmp-btn" onclick="chartDashboardService.openChartComparePicker()"
+                                title="مقایسه با گله/سالن سایر مشتریان"><i class="fas fa-people-arrows"></i></button>
                     </div>
                 </div>
                 <div class="analysis-chart-body">
@@ -224,6 +286,8 @@ export const chartDashboardRenderer = {
                     <div class="analysis-chart-actions">
                         <button class="analysis-action-btn" onclick="chartDashboardService.downloadChart('${canvasId}','png')" title="دانلود PNG"><i class="fas fa-download"></i></button>
                         <button class="analysis-action-btn" onclick="chartDashboardService.resetZoom('${canvasId}')" title="ریست زوم"><i class="fas fa-search-minus"></i></button>
+                        <button class="analysis-action-btn analysis-cmp-btn" onclick="chartDashboardService.openChartComparePicker()"
+                                title="مقایسه با گله/سالن سایر مشتریان"><i class="fas fa-people-arrows"></i></button>
                     </div>
                 </div>
                 <div class="analysis-indicator-tabs mini" id="${canvasId}Tabs">

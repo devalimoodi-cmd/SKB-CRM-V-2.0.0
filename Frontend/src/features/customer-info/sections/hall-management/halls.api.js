@@ -11,6 +11,11 @@ export const hallsApi = {
     return apiService.get(API_CONSTANTS.ENDPOINTS.HALLS.LIST, params);
   },
 
+  // خلاصه ظرفیت واحدهای مرغداری (برای بج «ظرفیت مانده واحد»)
+  async getUnitCapacitySummary(customerId) {
+    return apiService.get(`/halls/capacity-summary/${customerId}`);
+  },
+
   // دریافت اطلاعات یک سالن
   async getHall(id) {
     const endpoint = API_CONSTANTS.ENDPOINTS.HALLS.UPDATE.replace(":id", id);

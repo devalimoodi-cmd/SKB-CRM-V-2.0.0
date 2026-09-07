@@ -64,10 +64,623 @@ const MAIN_INDICATORS = {
 };
 
 class ChartDashboardService {
+  // ===== ابزارهای هویت واحد نمایش (گله کل / سالن) =====
+  flockUid(f) {
+    if (!f) return "";
+    if (f._uid) return String(f._uid);
+    return f.flock && f.flock.id != null ? `h${f.flock.id}` : "";
+  }
+
+  _displayOf(u) {
+    const fi = (u && u.flock) || {};
+    const num = fi.flockNumber ?? "";
+    if (u && u._isGroup) {
+      const cnt = (u._memberUids && u._memberUids.length) || 1;
+      return `گله ${num} (کل، ${cnt} سالن)`;
+    }
+    const hall =
+      fi.hallName && fi.hallName !== "نامشخص"
+        ? fi.hallName
+        : fi.hallId
+          ? `سالن ${fi.hallId}`
+          : "";
+    return `گله ${num}${hall ? ` • ${hall}` : ""}`;
+  }
+
+  rerenderCharts() {
+    this.destroyCharts();
+    this.flocks = this.activeUnits;
+    chartDashboardRenderer.renderContainer(
+      this.activeUnits,
+      this.selectedFlockIds,
+      this.weekCount,
+      {
+        mainIndicator: this.mainIndicator,
+        viewMode: this.viewMode,
+        layoutMode: this.layoutMode,
+        hallFlocks: this.hallFlocks,
+        groupMeta: this.groupMeta,
+        compareCount: this.compareUnits.length,
+      },
+    );
+
+    // بازگردانی وضعیت تنظیمات بعد از بازسازی DOM
+    const setChk = (id, val) => {
+      const el = document.getElementById(id);
+      if (el) el.checked = !!val;
+    };
+    const setSel = (id, val) => {
+      const el = document.getElementById(id);
+      if (el && val != null) el.value = String(val);
+    };
+    setChk("showStandards", this.showStandards);
+    setChk("showDataLabels", this.showDataLabels);
+    setChk("showTooltip", this.showTooltip);
+    setSel("mainLineWidth", this.lineWidth);
+    setSel("mainPointSize", this.pointSize);
+
+    this.renderAllCharts();
+  }
+
+  // ===== ساخت گروههای «کل گله» از سالنهای عضو =====
+  _initGroupViews() {
+    this.hallFlocks = this.flocks;
+    this.hallFlocks.forEach((u) => {
+      u._uid = `h${u.flock.id}`;
+      u._isHall = true;
+      u._chipLabel = this._displayOf(u);
+    });
+
+    const byKey = new Map();
+    this.hallFlocks.forEach((u) => {
+      const gk = u.flock.groupId ? `g${u.flock.groupId}` : `h${u.flock.id}`;
+      u._groupKey = gk;
+      if (!byKey.has(gk)) {
+        byKey.set(gk, {
+          _groupKey: gk,
+          flockNumber: u.flock.flockNumber,
+          customerName: u.flock.customerName,
+          farmName: u.flock.farmName,
+          breedId: u.flock.breedId,
+          breedName: u.flock.breedName,
+          members: [],
+        });
+      }
+      byKey.get(gk).members.push(u);
+    });
+    this.groupMeta = [...byKey.values()];
+
+    this.groupFlocks = this.groupMeta.map((meta) => this._buildGroupUnit(meta));
+    this.groupFlocks.forEach((g) => {
+      g._chipLabel = `گله ${g.flock.flockNumber} (کل، ${g._memberUids.length} سالن)`;
+    });
+
+    // برگرداندن چیدمان ذخیرهشده
+    try {
+      const saved = localStorage.getItem("skb-analysis-layout");
+      if (saved && ["stacked", "duo", "side"].includes(saved)) {
+        this.layoutMode = saved;
+      }
+    } catch (e) {}
+
+    // حالت پیشفرض: نمایش کل گلهها
+    this.viewMode = "flock";
+    this.activeUnits = this.groupFlocks;
+    this.selectedFlockIds = this.activeUnits.map((u) => u._uid);
+  }
+
+  _buildGroupUnit(meta) {
+    const members = meta.members || [];
+    const first = members[0];
+    const wTotal = members.reduce(
+      (s, m) => s + (parseFloat(m.flock.totalChicks) || 0),
+      0,
+    );
+    const wSum = members.reduce(
+      (s, m) =>
+        s +
+        (parseFloat(m.flock.totalChicks) || 0) *
+          (parseFloat(m.flock.avgInitialWeightGrams) || 0),
+      0,
+    );
+    const avgInit =
+      wTotal > 0
+        ? wSum / wTotal
+        : first
+          ? parseFloat(first.flock.avgInitialWeightGrams) || null
+          : null;
+
+    const weeks = this._mergeMemberWeeks(members);
+    const flockInfo = {
+      id: members.length > 1 ? -1 : first.flock.id,
+      flockNumber: meta.flockNumber,
+      customerName: meta.customerName || "",
+      farmName: meta.farmName || "",
+      hallName: `کل گله (${members.length} سالن)`,
+      hallId: null,
+      breedId: meta.breedId,
+      breedName: meta.breedName || "",
+      placementDate: first ? first.flock.placementDate : null,
+      totalChicks: wTotal,
+      avgInitialWeightGrams: avgInit,
+    };
+    const unit = {
+      flock: flockInfo,
+      weeks,
+      standards: first ? first.standards || [] : [],
+      color: first ? first.color : PALETTE[0],
+      _uid: `agg:${meta._groupKey}`,
+      _isGroup: true,
+      _groupKey: meta._groupKey,
+      _memberUids: members.map((m) => m._uid),
+    };
+    unit.series = this.computeSeries({
+      flock: flockInfo,
+      weeks,
+      standards: unit.standards,
+    });
+    return unit;
+  }
+
+  _mergeMemberWeeks(members) {
+    const byWeek = new Map();
+    members.forEach((m) => {
+      (m.weeks || []).forEach((w) => {
+        const wn = parseInt(w.week_number) || 0;
+        if (!wn) return;
+        if (!byWeek.has(wn)) {
+          byWeek.set(wn, {
+            dates: [],
+            age: null,
+            weights: [],
+            mort: 0,
+            feeds: [],
+            blackouts: [],
+          });
+        }
+        const rec = byWeek.get(wn);
+        if (w.week_start_date) rec.dates.push(w.week_start_date);
+        if (w.week_end_date) rec.dates.push(w.week_end_date);
+        if (rec.age == null && w.flock_age_days != null) {
+          rec.age = w.flock_age_days;
+        }
+        const wt = parseFloat(w.weekly_weight);
+        if (!isNaN(wt)) rec.weights.push(wt);
+        rec.mort += parseInt(w.weekly_mortality) || 0;
+        const fd = parseFloat(w.weekly_feed_intake);
+        if (!isNaN(fd)) rec.feeds.push(fd);
+        const bk = parseFloat(w.blackout_hours);
+        if (!isNaN(bk)) rec.blackouts.push(bk);
+      });
+    });
+    const sum = (arr) => arr.reduce((a, b) => a + b, 0);
+    return [...byWeek.keys()]
+      .sort((a, b) => a - b)
+      .map((wn) => {
+        const r = byWeek.get(wn);
+        return {
+          week_number: wn,
+          week_start_date: r.dates[0] || null,
+          week_end_date: r.dates[r.dates.length - 1] || null,
+          flock_age_days: r.age ?? null,
+          weekly_weight: r.weights.length
+            ? sum(r.weights) / r.weights.length
+            : null,
+          weekly_mortality: r.mort,
+          weekly_feed_intake: r.feeds.length
+            ? parseFloat(sum(r.feeds).toFixed(2))
+            : null,
+          daily_feed_intake: null,
+          blackout_hours: r.blackouts.length
+            ? sum(r.blackouts) / r.blackouts.length
+            : 0,
+        };
+      });
+  }
+
+  // ===== سوییچ «نمای کل گله» / «نمای سالنها» =====
+  setViewMode(mode) {
+    if (!["flock", "hall"].includes(mode) || mode === this.viewMode) return;
+
+    const prevSelected = new Set(
+      this.selectedFlockIds.map((u) => String(u)),
+    );
+    let keep = null;
+
+    if (mode === "hall") {
+      const memberSet = new Set();
+      const pushAggMembers = (aggUid) => {
+        const meta = this.groupMeta.find(
+          (m) => `agg:${m._groupKey}` === aggUid,
+        );
+        if (meta) meta.members.forEach((u) => memberSet.add(u._uid));
+      };
+      prevSelected.forEach((uid) => {
+        if (uid.startsWith("agg:")) pushAggMembers(uid);
+        else {
+          const u = this.hallFlocks.find((x) => x._uid === uid);
+          if (u) memberSet.add(u._uid);
+        }
+      });
+      keep = memberSet;
+      this.activeUnits = this.hallFlocks;
+    } else {
+      const aggSet = new Set();
+      prevSelected.forEach((uid) => {
+        if (uid.startsWith("agg:")) {
+          aggSet.add(uid);
+        } else {
+          const u = this.hallFlocks.find((x) => x._uid === uid);
+          if (u) aggSet.add(`agg:${u._groupKey}`);
+        }
+      });
+      keep = aggSet;
+      this.activeUnits = this.groupFlocks;
+    }
+
+    this.viewMode = mode;
+    this.selectedFlockIds = this.activeUnits
+      .filter((u) => keep.has(u._uid))
+      .map((u) => u._uid);
+    this.rerenderCharts();
+  }
+
+  // انتخاب همزمان همه سالنهای یک گله در نمای سالنها
+  selectGroupMembers(groupKey, checked) {
+    if (this.viewMode !== "hall") return;
+    const meta = this.groupMeta.find((m) => m._groupKey === groupKey);
+    if (!meta) return;
+    const set = new Set(this.selectedFlockIds.map((u) => String(u)));
+    meta.members.forEach((u) => {
+      if (checked) set.add(u._uid);
+      else set.delete(u._uid);
+    });
+    this.selectedFlockIds = this.hallFlocks
+      .filter((u) => set.has(u._uid))
+      .map((u) => u._uid);
+
+    meta.members.forEach((u) => {
+      const cb = document.querySelector(
+        `.analysis-flock-check input[value="${u._uid}"]`,
+      );
+      if (cb) cb.checked = checked;
+    });
+    this.renderAllCharts();
+  }
+
+  // ===== تغییر چیدمان کارتها =====
+  setChartLayout(mode) {
+    if (!["stacked", "duo", "side"].includes(mode)) return;
+    this.layoutMode = mode;
+    try {
+      localStorage.setItem("skb-analysis-layout", mode);
+    } catch (e) {}
+    const wrap = document.getElementById("analysisCards");
+    if (wrap) wrap.dataset.layout = mode;
+    document
+      .querySelectorAll("#chartLayoutGroup .analysis-seg-btn")
+      .forEach((b) =>
+        b.classList.toggle("active", b.dataset.layout === mode),
+      );
+
+    // بازسازی نمودارها در چیدمان جدید تا عرض کانواسها بهدرستی اعمال شود
+    this.renderAllCharts();
+  }
+
+  // ===== مقایسه گله/سالن سایر مشتریان (روی همه نمودارهای صفحه) =====
+  buildCompareDatasets(indKey) {
+    const datasets = [];
+    this.compareUnits.forEach((cu) => {
+      const sKey = `cmp:${cu._uid}:actual`;
+      const s = this.seriesSettings[sKey];
+      if (s && s.visible === false) return;
+      const color = (s && s.color) || cu.color;
+      datasets.push({
+        label: cu.label || cu._chipLabel || "مقایسه",
+        data: this.getFlockDataByWeek(cu, indKey),
+        borderColor: color,
+        borderDash: this.getLineDash(s && s.lineType, [2, 2]),
+        backgroundColor: `${color}22`,
+        fill: false,
+        tension: 0.3,
+        borderWidth: this.lineWidth,
+        pointRadius: this.pointSize,
+      });
+    });
+    return datasets;
+  }
+
+  withCompare(datasets, key) {
+    datasets.push(...this.buildCompareDatasets(key));
+    return datasets;
+  }
+
+  async _loadCustomerList() {
+    const res = await chartDashboardApi.getCustomers({ pageSize: 1000 });
+    if (!res.success) throw new Error(res.message || "خطا در دریافت مشتریان");
+    const rows =
+      res.data?.customers ||
+      res.data?.rows ||
+      res.data?.list ||
+      (Array.isArray(res.data) ? res.data : []) ||
+      [];
+    return rows
+      .map((r) => ({
+        id: r.id ?? r.customer_id,
+        name: r.full_name || r.fullName || `مشتری ${r.id}`,
+        farm: r.farm_name || r.farmName || "",
+      }))
+      .filter((c) => c.id != null);
+  }
+
+  _externalHallUnit(raw, paletteIndex) {
+    const f = { ...raw, color: PALETTE[paletteIndex % PALETTE.length] };
+    f.series = this.computeSeries(f);
+    f._uid = `h${f.flock.id}`;
+    f._isHall = true;
+    f._chipLabel = this._displayOf(f);
+    return f;
+  }
+
+  _externalGroups(halls, customerId) {
+    const byKey = new Map();
+    halls.forEach((u) => {
+      const gk = u.flock.groupId ? `g${u.flock.groupId}` : `h${u.flock.id}`;
+      u._groupKey = gk;
+      if (!byKey.has(gk)) {
+        byKey.set(gk, {
+          _groupKey: gk,
+          flockNumber: u.flock.flockNumber,
+          customerName: u.flock.customerName || `مشتری ${customerId}`,
+          farmName: u.flock.farmName || "",
+          breedId: u.flock.breedId,
+          breedName: u.flock.breedName || "",
+          members: [],
+        });
+      }
+      byKey.get(gk).members.push(u);
+    });
+    const groups = [...byKey.values()].map((meta) => this._buildGroupUnit(meta));
+    groups.forEach((g) => {
+      g._chipLabel = `گله ${g.flock.flockNumber} (کل، ${g._memberUids.length} سالن)`;
+    });
+    return groups;
+  }
+
+  async _ensureExternalCustomer(customerId) {
+    if (this.externalCache[customerId]) return this.externalCache[customerId];
+    const res = await chartDashboardApi.getAnalysis(customerId);
+    if (!res.success) throw new Error(res.message || "خطا در دریافت داده مشتری");
+    const rawHalls = res.data?.flocks || [];
+    const customerName =
+      rawHalls[0]?.flock?.customerName ||
+      rawHalls[0]?.flock?.farmName ||
+      `مشتری ${customerId}`;
+    const halls = rawHalls.map((f, i) => this._externalHallUnit(f, i));
+    const groups = this._externalGroups(halls, customerId);
+    const cached = {
+      customerId,
+      customerName,
+      halls,
+      groups,
+    };
+    this.externalCache[customerId] = cached;
+    return cached;
+  }
+
+  _makeCompareUnit(unit, customerId, label) {
+    const used = new Set(
+      [...this.activeUnits, ...this.compareUnits]
+        .map((u) => u.color)
+        .filter(Boolean),
+    );
+    let color = PALETTE[this._cmpColorIndex % PALETTE.length];
+    for (let off = 0; off < PALETTE.length; off++) {
+      const c = PALETTE[(this._cmpColorIndex + off) % PALETTE.length];
+      if (!used.has(c) || off === PALETTE.length - 1) {
+        color = c;
+        this._cmpColorIndex = (this._cmpColorIndex + off + 1) % PALETTE.length;
+        break;
+      }
+    }
+    return {
+      ...unit,
+      color,
+      _uid: `${customerId}:${unit._uid}`,
+      label: label || unit._chipLabel || "سری مقایسه",
+    };
+  }
+
+  async openChartComparePicker() {
+    if (typeof Swal === "undefined") return;
+    try {
+      const list = await this._loadCustomerList();
+      if (!list.length) {
+        notificationService.warning("مشتری دیگری برای مقایسه در دسترس نیست");
+        return;
+      }
+      const opts = list
+        .map(
+          (c) =>
+            `<option value="${c.id}">${c.name}${c.farm ? ` (${c.farm})` : ""}</option>`,
+        )
+        .join("");
+      const result = await Swal.fire({
+        title: "مقایسه با گله/سالن سایر مشتریان",
+        html: `<div style="text-align:right;direction:rtl;font-family:Vazir,sans-serif;">
+                 <label style="display:block;font-size:12px;color:#334155;margin-bottom:6px;">مشتری:</label>
+                 <select id="cmpCustomer" style="width:100%;padding:8px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;">
+                   <option value="">انتخاب مشتری...</option>${opts}
+                 </select>
+                 <p style="font-size:11px;color:#94a3b8;margin-top:8px;">سریهای انتخابی روی همه نمودارهای این صفحه نمایش داده میشوند.</p>
+               </div>`,
+        showCancelButton: true,
+        confirmButtonText: "ادامه",
+        cancelButtonText: "انصراف",
+        confirmButtonColor: "#2c7a6e",
+        preConfirm: () => {
+          const v = document.getElementById("cmpCustomer")?.value;
+          if (!v) {
+            Swal.showValidationMessage("یک مشتری انتخاب کنید");
+            return false;
+          }
+          return parseInt(v);
+        },
+      });
+      if (result.isConfirmed && result.value) {
+        await this._showExternalUnits(result.value);
+      }
+    } catch (error) {
+      console.error("❌ Error loading customer list:", error);
+      notificationService.error("خطا در دریافت لیست مشتریان");
+    }
+  }
+
+  async _showExternalUnits(customerId) {
+    let data;
+    try {
+      data = await this._ensureExternalCustomer(customerId);
+    } catch (error) {
+      console.error("❌ Error loading external flock:", error);
+      notificationService.error("خطا در دریافت گله‌های مشتری");
+      return;
+    }
+    if (!data || !data.halls.length) {
+      notificationService.warning("این مشتری گله فعالی برای مقایسه ندارد");
+      return;
+    }
+    const draft = { customerId, map: new Map(), order: [] };
+    const addOpt = (unit, label) => {
+      const uid = unit._uid;
+      if (!draft.map.has(uid)) {
+        draft.map.set(uid, { uid, unit, label });
+        draft.order.push(uid);
+      }
+    };
+    data.groups.forEach((g) => {
+      const gnum = g.flock.flockNumber;
+      const cname = data.customerName || `مشتری ${customerId}`;
+      if (g._memberUids.length > 1) {
+        addOpt(
+          g,
+          `گله ${gnum} — کل (${g._memberUids.length} سالن) از ${cname}`,
+        );
+        g._memberUids.forEach((mid) => {
+          const hall = data.halls.find((h) => h._uid === mid);
+          if (hall) {
+            addOpt(
+              hall,
+              `گله ${gnum} • ${hall.flock.hallName || "سالن"} از ${cname}`,
+            );
+          }
+        });
+      } else {
+        const hall = data.halls.find((h) => h._uid === g._memberUids[0]);
+        if (hall) {
+          addOpt(
+            hall,
+            `گله ${gnum} • ${hall.flock.hallName || "سالن"} از ${cname}`,
+          );
+        }
+      }
+    });
+
+    const rows = draft.order
+      .map((uid) => {
+        const it = draft.map.get(uid);
+        return `<label class="cmp-option-row">
+            <input type="checkbox" class="cmp-candidate" value="${uid}">
+            <span class="cmp-option-label">${it.label}</span>
+          </label>`;
+      })
+      .join("");
+    this._cmpDraft = draft;
+
+    const res = await Swal.fire({
+      title: "انتخاب گله/سالن برای مقایسه",
+      html: `<div style="text-align:right;direction:rtl;font-family:Vazir,sans-serif;">
+               <p style="font-size:11px;color:#64748b;margin-bottom:8px;">میتوانید چند گله یا سالن را همزمان انتخاب کنید (حداکثر ۸ سری).</p>
+               <div class="cmp-option-list">${rows}</div>
+             </div>`,
+      showCancelButton: true,
+      confirmButtonText: "➕ افزودن به همه نمودارها",
+      cancelButtonText: "انصراف",
+      confirmButtonColor: "#2c7a6e",
+      preConfirm: () => {
+        const picked = [
+          ...document.querySelectorAll(".cmp-candidate:checked"),
+        ].map((i) => i.value);
+        if (!picked.length) {
+          Swal.showValidationMessage("حداقل یک گله یا سالن انتخاب کنید");
+          return false;
+        }
+        return picked;
+      },
+    });
+    if (res.isConfirmed && res.value) {
+      this._commitCompareUnits(res.value);
+    }
+  }
+
+  _commitCompareUnits(uids) {
+    const draft = this._cmpDraft;
+    this._cmpDraft = null;
+    if (!draft) return;
+    let added = 0;
+    let existed = 0;
+    uids.forEach((uid) => {
+      const item = draft.map.get(uid);
+      if (!item) return;
+      const finalUid = `${draft.customerId}:${item.unit._uid}`;
+      if (this.compareUnits.some((c) => c._uid === finalUid)) {
+        existed++;
+        return;
+      }
+      if (this.compareUnits.length >= 8) {
+        notificationService.info("حداکثر ۸ سری مقایسه مجاز است");
+        return;
+      }
+      this.compareUnits.push(
+        this._makeCompareUnit(item.unit, draft.customerId, item.label),
+      );
+      added++;
+    });
+    if (added > 0) {
+      this.rerenderCharts();
+      notificationService.success(
+        `${added} سری مقایسه به همه نمودارها اضافه شد`,
+      );
+    } else if (existed > 0) {
+      notificationService.info("سری انتخاب‌شده از قبل اضافه شده است");
+    }
+  }
+
+  removeCompareSeries(uidStr) {
+    const uid = String(uidStr || "");
+    if (!uid) return;
+    this.compareUnits = this.compareUnits.filter(
+      (c) => String(c._uid) !== uid,
+    );
+    Object.keys(this.seriesSettings).forEach((k) => {
+      if (k.startsWith(`cmp:${uid}:`)) delete this.seriesSettings[k];
+    });
+    this.rerenderCharts();
+    notificationService.success("سری مقایسه حذف شد");
+  }
+
   constructor() {
     this.customerId = null;
     this.flocks = []; // هر گله: { flock, weeks, standards, series, color }
     this.selectedFlockIds = [];
+    this.viewMode = "flock"; // "flock" => کل گله | "hall" => سالنها
+    this.layoutMode = "stacked"; // stacked | duo | side
+    this.hallFlocks = [];
+    this.groupFlocks = [];
+    this.groupMeta = [];
+    this.activeUnits = [];
+    this.compareUnits = [];
+    this.externalCache = {};
+    this._cmpColorIndex = 0;
     this.weekCount = 8;
     this.mainIndicator = "weight";
     this.mortalityMode = "weekly";
@@ -126,11 +739,10 @@ class ChartDashboardService {
       // تنظیمات سری‌ها با هر بار لود داده ریست می‌شوند
       this.seriesSettings = {};
 
+      this._initGroupViews();
+
       this.destroyCharts();
-      chartDashboardRenderer.renderContainer(this.flocks, this.selectedFlockIds, this.weekCount, {
-        mainIndicator: this.mainIndicator,
-      });
-      this.renderAllCharts();
+      this.rerenderCharts();
     } catch (error) {
       console.error("❌ Error loading analysis data:", error);
       notificationService.error("خطا در دریافت داده‌های تحلیلی");
@@ -240,13 +852,13 @@ class ChartDashboardService {
   }
 
   getSelectedFlocks() {
-    return this.flocks.filter((f) =>
-      this.selectedFlockIds.includes(f.flock.id),
+    return this.activeUnits.filter((f) =>
+      this.selectedFlockIds.includes(this.flockUid(f)),
     );
   }
 
   flockLabel(f) {
-    return `گله ${f.flock.flockNumber}`;
+    return this._displayOf(f);
   }
 
   // ===== تنظیمات سری‌های نمودار اصلی =====
@@ -278,19 +890,15 @@ class ChartDashboardService {
   collectMainSeries() {
     const items = [];
     this.getSelectedFlocks().forEach((f) => {
+      const uid = this.flockUid(f);
       const label = this.flockLabel(f);
       items.push(
-        this.ensureSeriesItem(
-          `flock:${f.flock.id}:actual`,
-          label,
-          f.color,
-          "solid",
-        ),
+        this.ensureSeriesItem(`flock:${uid}:actual`, label, f.color, "solid"),
       );
       if (this.showStandards) {
         items.push(
           this.ensureSeriesItem(
-            `flock:${f.flock.id}:max`,
+            `flock:${uid}:max`,
             `${label} (حداکثر)`,
             f.color,
             "dashed",
@@ -298,13 +906,24 @@ class ChartDashboardService {
         );
         items.push(
           this.ensureSeriesItem(
-            `flock:${f.flock.id}:min`,
+            `flock:${uid}:min`,
             `${label} (حداقل)`,
             f.color,
             "dashed",
           ),
         );
       }
+    });
+    // سریهای مقایسه سایر مشتریان
+    this.compareUnits.forEach((cu) => {
+      items.push(
+        this.ensureSeriesItem(
+          `cmp:${cu._uid}:actual`,
+          cu.label || cu._chipLabel || "سری مقایسه",
+          cu.color,
+          "dotted",
+        ),
+      );
     });
     return items;
   }
@@ -340,7 +959,8 @@ class ChartDashboardService {
       const useSettings = opts.useSeriesSettings === true;
 
       // سری اصلی (مقدار واقعی)
-      const actualKey = `flock:${f.flock.id}:actual`;
+      const uid = this.flockUid(f);
+      const actualKey = `flock:${uid}:actual`;
       const sActual = useSettings ? this.seriesSettings[actualKey] : null;
       if (useSettings && sActual && sActual.visible === false) return;
 
@@ -364,7 +984,7 @@ class ChartDashboardService {
       if (opts.stdKey && this.showStandards) {
         // خط میانگین استاندارد (اختیاری — در نمودار اصلی حذف شده است)
         if (opts.showMeanLine !== false) {
-          const stdKey = `flock:${f.flock.id}:std`;
+          const stdKey = `flock:${uid}:std`;
           const sStd = useSettings ? this.seriesSettings[stdKey] : null;
           if (!(useSettings && sStd && sStd.visible === false)) {
             const stdColor = (useSettings && sStd?.color) || color;
@@ -384,8 +1004,8 @@ class ChartDashboardService {
 
         if (opts.bandKey) {
           // هاله‌ی بازه استاندارد (حداکثر ← حداقل)
-          const maxKey = `flock:${f.flock.id}:max`;
-          const minKey = `flock:${f.flock.id}:min`;
+          const maxKey = `flock:${uid}:max`;
+          const minKey = `flock:${uid}:min`;
           const sMax = useSettings ? this.seriesSettings[maxKey] : null;
           const sMin = useSettings ? this.seriesSettings[minKey] : null;
           const maxVisible = !(useSettings && sMax && sMax.visible === false);
@@ -555,6 +1175,8 @@ class ChartDashboardService {
       useSeriesSettings: true,
       showMeanLine: false, // خط میانگین استاندارد از نمودار اصلی حذف شده است
     });
+    // سریهای مقایسه سایر مشتریان روی همه نمودارهای صفحه
+    mainDatasets.push(...this.buildCompareDatasets(main.key));
     this.renderChart(
       "mainChart",
       mainDatasets,
@@ -628,7 +1250,10 @@ class ChartDashboardService {
     // نمودارهای جداگانه
     this.renderChart(
       "totalWeightGainChart",
-      this.buildFlockDatasets(selected, "totalWeightGain"),
+      this.withCompare(
+        this.buildFlockDatasets(selected, "totalWeightGain"),
+        "totalWeightGain",
+      ),
       labels,
       "کیلوگرم",
       "line",
@@ -636,7 +1261,10 @@ class ChartDashboardService {
     );
     this.renderChart(
       "totalLiveWeightChart",
-      this.buildFlockDatasets(selected, "totalLiveWeight"),
+      this.withCompare(
+        this.buildFlockDatasets(selected, "totalLiveWeight"),
+        "totalLiveWeight",
+      ),
       labels,
       "کیلوگرم",
       "line",
@@ -644,7 +1272,10 @@ class ChartDashboardService {
     );
     this.renderChart(
       "fcrChart",
-      this.buildFlockDatasets(selected, "fcr", { stdKey: "stdFcr" }),
+      this.withCompare(
+        this.buildFlockDatasets(selected, "fcr", { stdKey: "stdFcr" }),
+        "fcr",
+      ),
       labels,
       "FCR",
       "line",
@@ -679,7 +1310,10 @@ class ChartDashboardService {
     );
     this.renderChart(
       "mortalityCountChart",
-      this.buildFlockDatasets(selected, "mortalityCount", { fill: true }),
+      this.withCompare(
+        this.buildFlockDatasets(selected, "mortalityCount", { fill: true }),
+        "mortalityCount",
+      ),
       labels,
       "قطعه",
       "line",
@@ -692,7 +1326,7 @@ class ChartDashboardService {
         : "mortalityPctWeekly";
     this.renderChart(
       "mortalityPctChart",
-      this.buildFlockDatasets(selected, mortKey),
+      this.withCompare(this.buildFlockDatasets(selected, mortKey), mortKey),
       labels,
       "درصد",
       "line",
@@ -705,7 +1339,10 @@ class ChartDashboardService {
         : "survivalPctWeekly";
     this.renderChart(
       "survivalPctChart",
-      this.buildFlockDatasets(selected, survKey),
+      this.withCompare(
+        this.buildFlockDatasets(selected, survKey),
+        survKey,
+      ),
       labels,
       "درصد",
       "line",
@@ -714,7 +1351,10 @@ class ChartDashboardService {
 
     this.renderChart(
       "blackoutChart",
-      this.buildFlockDatasets(selected, "blackoutHours", { fill: true }),
+      this.withCompare(
+        this.buildFlockDatasets(selected, "blackoutHours", { fill: true }),
+        "blackoutHours",
+      ),
       labels,
       "ساعت",
       "line",
@@ -727,14 +1367,14 @@ class ChartDashboardService {
 
   // ===== کنترل‌ها =====
   toggleFlock(id, checked) {
-    const flockId = parseInt(id);
+    const flockId = String(id);
     if (checked) {
       if (!this.selectedFlockIds.includes(flockId)) {
         this.selectedFlockIds.push(flockId);
       }
     } else {
       this.selectedFlockIds = this.selectedFlockIds.filter(
-        (x) => x !== flockId,
+        (x) => String(x) !== flockId,
       );
     }
     this.renderAllCharts();
@@ -742,11 +1382,11 @@ class ChartDashboardService {
 
   selectAllFlocks(select) {
     this.selectedFlockIds = select
-      ? this.flocks.map((f) => f.flock.id)
+      ? this.activeUnits.map((f) => this.flockUid(f))
       : [];
-    this.flocks.forEach((f) => {
+    this.activeUnits.forEach((f) => {
       const cb = document.querySelector(
-        `.analysis-flock-check input[value="${f.flock.id}"]`,
+        `.analysis-flock-check input[value="${this.flockUid(f)}"]`,
       );
       if (cb) cb.checked = select;
     });

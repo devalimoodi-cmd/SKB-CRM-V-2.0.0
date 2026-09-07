@@ -26,6 +26,17 @@ class DashboardService {
     this.isLoading = false;
     this.initialized = false;
     this.chartInstances = {};
+    this.chartStack = []; // سری‌های اضافه برای مقایسه: [{scope,id,label}]
+    this.chartPalette = [
+      "#f59e0b",
+      "#8b5cf6",
+      "#0ea5e9",
+      "#ec4899",
+      "#84cc16",
+      "#f97316",
+      "#06b6d4",
+      "#e11d48",
+    ];
     this.smsTemplates = {
       weekly_reminder: {
         id: 491456,
@@ -325,6 +336,7 @@ SKB-CRM.IR`,
       );
       if (seq !== this._chartRequestSeq) return;
       if (response.success && response.data) {
+        this.resetCompareSeries();
         this.updateCharts(response.data);
       }
     } catch (error) {
@@ -824,7 +836,9 @@ SKB-CRM.IR`,
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          plugins: { legend: { display: false } },
+          plugins: {
+            legend: { display: true, labels: { color: "#475569", font: { family: "Vazir", size: 11 } } },
+          },
           scales: { y: { beginAtZero: true } },
         },
       });
@@ -882,6 +896,8 @@ SKB-CRM.IR`,
         },
       });
     }
+
+    this.ensureChartCompareUi();
 
     console.log("✅ Charts initialized (empty)");
   }
@@ -948,6 +964,199 @@ SKB-CRM.IR`,
       .forEach((el) => el.remove());
   }
 
+  // ===== مقایسه گله/سالن دیگر روی نمودارها =====
+
+  ensureChartCompareUi() {
+    const header = document.getElementById("chartSelectionHeader");
+    if (!header) return;
+    if (header.querySelector("#addCompareBtn")) return;
+    const wrap = document.createElement("div");
+    wrap.style.cssText =
+      "display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin-top:6px; width:100%;";
+    wrap.innerHTML = `
+      <button type="button" id="addCompareBtn"
+        style="padding:4px 12px; border:1px dashed #2c7a6e; background:#ecfdf5; color:#047857; border-radius:999px; font-size:11px; font-weight:600; cursor:pointer;"
+        onclick="window.openChartComparePicker()"><i class="fas fa-plus"></i> مقایسه با گله/سالن دیگر</button>
+      <span id="compareChips" style="display:inline-flex; flex-wrap:wrap; gap:4px;"></span>`;
+    header.appendChild(wrap);
+  }
+
+  renderCompareChips() {
+    const chipsEl = document.getElementById("compareChips");
+    if (!chipsEl) return;
+    chipsEl.innerHTML = this.chartStack
+      .map((s) => {
+        const i = this.chartStack.indexOf(s);
+        const color =
+          this.chartPalette[i % this.chartPalette.length] || "#64748b";
+        return `<span style="display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:999px; font-size:10px; color:${color}; background:${color}18; border:1px solid ${color}55;">
+          <i class="fas fa-circle" style="font-size:6px;"></i> ${s.label}
+          <a href="javascript:void(0)" onclick="window.removeChartCompare('${s.scope}',${s.id})" style="color:inherit; text-decoration:none;">&times;</a></span>`;
+      })
+      .join("");
+  }
+
+  _mkSeriesDataset(kind, label, data, color) {
+    if (kind === "loss") {
+      return { label, data, backgroundColor: color, borderRadius: 4 };
+    }
+    return {
+      label,
+      data,
+      borderColor: color,
+      backgroundColor: `${color}22`,
+      fill: false,
+      tension: 0.4,
+      pointRadius: 3,
+      borderWidth: 2,
+    };
+  }
+
+  async addChartComparison(scope, id, label) {
+    const weight = this.chartInstances.weighting;
+    if (!weight || !(weight.data.labels || []).length) {
+      notificationService.warning(
+        "ابتدا یک گله را به‌عنوان سری اصلی انتخاب کنید",
+      );
+      return;
+    }
+    if (
+      this.chartStack.some(
+        (s) => s.scope === scope && String(s.id) === String(id),
+      )
+    ) {
+      notificationService.info("این سری از قبل اضافه شده است");
+      return;
+    }
+    this.setChartsLoading(true);
+    try {
+      const flockId = scope === "hall" ? id : null;
+      const flockGroupId = scope === "flock" ? id : null;
+      const response = await dashboardApi.getChartsData(
+        null,
+        flockId,
+        flockGroupId,
+      );
+      const flock = response?.success && response.data?.flocks?.[0];
+      const d = flock?.data;
+      if (!d || !Array.isArray(d.weighting)) {
+        notificationService.warning("داده‌ای برای این گله/سالن یافت نشد");
+        return;
+      }
+      const color =
+        this.chartPalette[this.chartStack.length % this.chartPalette.length];
+      const labelFinal =
+        label ||
+        (scope === "flock"
+          ? `گله ${flock.flock_number || id}`
+          : flock.hallName || `سالن ${id}`);
+      const mapKind = {
+        weighting: d.weighting || [],
+        loss: d.loss || [],
+        feed: d.feed || [],
+      };
+      ["weighting", "loss", "feed"].forEach((kind) => {
+        const chart = this.chartInstances[kind];
+        if (!chart) return;
+        chart.data.datasets.push(
+          this._mkSeriesDataset(kind, labelFinal, mapKind[kind] || [], color),
+        );
+      });
+      this.chartStack.push({ scope, id, label: labelFinal });
+      ["weighting", "loss", "feed"].forEach((k) =>
+        this.chartInstances[k]?.update(),
+      );
+      this.renderCompareChips();
+      notificationService.success(`سری «${labelFinal}» به نمودارها اضافه شد`);
+    } catch (error) {
+      console.error("❌ Error adding compare series:", error);
+      notificationService.error("خطا در افزودن سری مقایسه");
+    } finally {
+      this.setChartsLoading(false);
+    }
+  }
+
+  removeChartCompare(scope, id) {
+    const idx = this.chartStack.findIndex(
+      (s) => s.scope === scope && String(s.id) === String(id),
+    );
+    if (idx < 0) return;
+    ["weighting", "loss", "feed"].forEach((kind) => {
+      const chart = this.chartInstances[kind];
+      if (!chart || !chart.data.datasets) return;
+      if (chart.data.datasets.length > 1) {
+        chart.data.datasets.splice(1 + idx, 1);
+        chart.update();
+      }
+    });
+    this.chartStack.splice(idx, 1);
+    this.renderCompareChips();
+  }
+
+  resetCompareSeries() {
+    ["weighting", "loss", "feed"].forEach((kind) => {
+      const chart = this.chartInstances[kind];
+      if (!chart || !chart.data.datasets) return;
+      if (chart.data.datasets.length > 1) chart.data.datasets.length = 1;
+    });
+    this.chartStack = [];
+    this.renderCompareChips();
+  }
+
+  openChartComparePicker() {
+    if (!this.flockCards || !this.flockCards.length) {
+      notificationService.warning("گله‌ای برای مقایسه در دسترس نیست");
+      return;
+    }
+    let optionsHtml = "";
+    this.flockCards.forEach((card) => {
+      const fl = card.flock || {};
+      const gNum = fl.flockNumber || fl.id || "";
+      optionsHtml += `<optgroup label="گله ${gNum}">
+        <option value="flock:${fl.id}|گله ${gNum} (کل)">کل گله ${gNum}</option>`;
+      (fl.halls || [])
+        .filter((h) => h.isActive)
+        .forEach((h) => {
+          const hn = h.hallName || `سالن ${h.hallId}`;
+          optionsHtml += `<option value="hall:${h.id}|${hn} (گله ${gNum})">${hn} — گله ${gNum}</option>`;
+        });
+      optionsHtml += "</optgroup>";
+    });
+    if (typeof Swal === "undefined") return;
+    Swal.fire({
+      title: "مقایسه با گله/سالن دیگر",
+      html: `
+        <div style="text-align:right; direction:rtl; font-family:Vazir,sans-serif;">
+          <select id="compareTarget" style="width:100%; padding:8px; border:1px solid #e2e8f0; border-radius:8px; font-size:13px;">
+            <option value="">انتخاب کنید...</option>${optionsHtml}
+          </select>
+          <p style="font-size:11px; color:#94a3b8; margin-top:8px;">سری اضافه‌شده با رنگ جداگانه روی هر سه نمودار (وزن/تلفات/خوراک) نمایش داده می‌شود.</p>
+        </div>`,
+      showCancelButton: true,
+      confirmButtonText: "➕ افزودن به نمودار",
+      cancelButtonText: "انصراف",
+      confirmButtonColor: "#2c7a6e",
+      preConfirm: () => {
+        const raw = document.getElementById("compareTarget")?.value || "";
+        if (!raw) {
+          Swal.showValidationMessage("یک گله یا سالن انتخاب کنید");
+          return false;
+        }
+        const parts = raw.split("|");
+        const [scope, id] = (parts[0] || "").split(":");
+        return { scope, id, label: parts[1] || "" };
+      },
+    }).then((result) => {
+      if (result.isConfirmed && result.value) {
+        this.addChartComparison(
+          result.value.scope,
+          result.value.id,
+          result.value.label,
+        );
+      }
+    });
+  }
+
   updateCharts(data) {
     // وقتی داده واقعی وجود دارد، پیام «گله‌ای انتخاب نشده» را مخفی کن
     if (data && data.flocks && data.flocks.length > 0) {
@@ -1004,6 +1213,20 @@ SKB-CRM.IR`,
       this.chartInstances.feed?.data?.datasets?.[0]?.data,
     );
 
+    // نام سری اصلی در legend (کل گله یا سالن)
+    const mainLabel = flock.hallName
+      ? flock.hallName
+      : `گله ${flock.flock_number || ""}`;
+    [
+      ["weighting", this.chartInstances.weighting],
+      ["loss", this.chartInstances.loss],
+      ["feed", this.chartInstances.feed],
+    ].forEach(([, chart]) => {
+      if (chart && chart.data.datasets && chart.data.datasets[0]) {
+        chart.data.datasets[0].label = mainLabel;
+      }
+    });
+
     // بروزرسانی نمودار وزن
     if (this.chartInstances.weighting && sortedWeighting) {
       this.chartInstances.weighting.data.labels = sortedLabels;
@@ -1023,6 +1246,35 @@ SKB-CRM.IR`,
       this.chartInstances.feed.data.labels = sortedLabels;
       this.chartInstances.feed.data.datasets[0].data = sortedFeed;
       this.chartInstances.feed.update();
+    }
+
+    // ===== نمایش هم‌زمان سالن‌های عضو یک گله (پاسخ scope:flock) =====
+    const hallSeries = Array.isArray(data.halls) ? data.halls : [];
+    if (hallSeries.length > 0) {
+      const ensureBaseOnly = () => {
+        ["weighting", "loss", "feed"].forEach((kind) => {
+          const chart = this.chartInstances[kind];
+          if (chart && chart.data.datasets && chart.data.datasets.length > 1) {
+            chart.data.datasets.length = 1;
+          }
+        });
+      };
+      ensureBaseOnly();
+      hallSeries.forEach((h, i) => {
+        const color =
+          this.chartPalette[(i + 1) % this.chartPalette.length] || "#94a3b8";
+        const hallLabel = h.name || `سالن ${h.hallId || ""}`;
+        ["weighting", "loss", "feed"].forEach((kind) => {
+          const chart = this.chartInstances[kind];
+          if (!chart || !chart.data.datasets) return;
+          chart.data.datasets.push(
+            this._mkSeriesDataset(kind, hallLabel, h[kind] || [], color),
+          );
+        });
+      });
+      ["weighting", "loss", "feed"].forEach((k) =>
+        this.chartInstances[k]?.update(),
+      );
     }
 
     // بروزرسانی آمار
@@ -3252,6 +3504,9 @@ if (typeof window !== "undefined") {
     );
   window.refreshSmsHistoryFromModal = () =>
     dashboardService.refreshSmsHistoryFromModal();
+  window.openChartComparePicker = () => dashboardService.openChartComparePicker();
+  window.removeChartCompare = (scope, id) =>
+    dashboardService.removeChartCompare(scope, id);
   window.toggleTaskCardHalls = (flockGroupId) => {
     const card = document.querySelector(
       `.task-card[data-flock-group-id="${flockGroupId}"]`,

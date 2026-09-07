@@ -248,9 +248,157 @@ const endFlock = async (req, res) => {
 // ============================================
 // صادرات
 // ============================================
+// ============================================
+// بروزرسانی اطلاعات مشترک گله (Flock)
+// ============================================
+const updateFlock = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const flock = await Flock.findByPk(id);
+    if (!flock) {
+      return errorResponse(res, "گله یافت نشد", 404);
+    }
+
+    const updateData = {};
+    let flockNumberChanged = false;
+
+    if (req.body.flock_number !== undefined) {
+      const fn = parseInt(req.body.flock_number);
+      if (isNaN(fn) || fn < 1) {
+        return errorResponse(res, "شماره گله باید عددی مثبت باشد", 400);
+      }
+      flockNumberChanged = fn !== parseInt(flock.flock_number);
+      if (flockNumberChanged) {
+        const duplicate = await Flock.findOne({
+          where: {
+            customer_id: flock.customer_id,
+            unit_id: flock.unit_id,
+            flock_number: fn,
+            id: { [Op.ne]: flock.id },
+          },
+        });
+        if (duplicate) {
+          return errorResponse(
+            res,
+            `شماره گله ${fn} قبلاً برای این واحد ثبت شده است`,
+            400,
+          );
+        }
+      }
+      updateData.flock_number = fn;
+    }
+
+    if (req.body.placement_date !== undefined) {
+      updateData.placement_date = req.body.placement_date || null;
+    }
+    if (req.body.notes !== undefined) {
+      updateData.notes = req.body.notes || null;
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      return errorResponse(res, "فیلدی برای بروزرسانی ارسال نشده است", 400);
+    }
+
+    await flock.update(updateData);
+
+    // همگام‌سازی شماره گله روی جوجه‌ریزی‌های سالن‌های عضو
+    if (flockNumberChanged) {
+      await ChickPlacement.update(
+        { flock_number: updateData.flock_number },
+        { where: { flock_id: flock.id } },
+      );
+    }
+
+    successResponse(res, flock, "اطلاعات گله با موفقیت بروزرسانی شد");
+  } catch (error) {
+    console.error("خطا در بروزرسانی گله:", error);
+    errorResponse(res, error.message, 500);
+  }
+};
+
+// ============================================
+// تغییر وضعیت کل گله (فعال / غیرفعال)
+// ============================================
+const setFlockStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    if (!["active", "inactive"].includes(status)) {
+      return errorResponse(res, "وضعیت باید active یا inactive باشد", 400);
+    }
+
+    const flock = await Flock.findByPk(id);
+    if (!flock) {
+      return errorResponse(res, "گله یافت نشد", 404);
+    }
+
+    if (flock.status === status) {
+      const statusText = status === "active" ? "فعال" : "غیرفعال";
+      return errorResponse(res, `گله در حال حاضر ${statusText} است`, 400);
+    }
+
+    if (status === "inactive") {
+      await flock.update({ status: "inactive" });
+      await ChickPlacement.update(
+        { is_active: false },
+        { where: { flock_id: flock.id, is_active: true } },
+      );
+      return successResponse(
+        res,
+        { flock, activatedHalls: 0, skippedHalls: [] },
+        "گله با موفقیت غیرفعال شد و از فهرست گله‌های فعال حذف گردید",
+      );
+    }
+
+    // فعال‌سازی: وضعیت گله فعال + فعال‌کردن سالن‌هایی که گله/جوجه‌ریزی فعال دیگری ندارند
+    await flock.update({ status: "active", ended_at: null });
+
+    const placements = await ChickPlacement.findAll({
+      where: { flock_id: flock.id },
+    });
+    let activatedHalls = 0;
+    const skippedHalls = [];
+
+    for (const p of placements) {
+      const occupier = await ChickPlacement.findOne({
+        where: {
+          hall_id: p.hall_id,
+          is_active: true,
+          id: { [Op.ne]: p.id },
+        },
+      });
+      if (occupier) {
+        skippedHalls.push(p.hall_id);
+        continue;
+      }
+      if (!p.is_active) {
+        await p.update({ is_active: true });
+      }
+      activatedHalls++;
+    }
+
+    const message =
+      skippedHalls.length > 0
+        ? `گله فعال شد؛ ${skippedHalls.length} سالن به دلیل جوجه‌ریزی فعال دیگری در آن سالن غیرفعال ماند`
+        : "گله با موفقیت فعال شد";
+
+    successResponse(
+      res,
+      { flock, activatedHalls, skippedHalls },
+      message,
+    );
+  } catch (error) {
+    console.error("خطا در تغییر وضعیت گله:", error);
+    errorResponse(res, error.message, 500);
+  }
+};
+
 module.exports = {
   createFlock,
   getFlocks,
   getFlockById,
   endFlock,
+  updateFlock,
+  setFlockStatus,
 };

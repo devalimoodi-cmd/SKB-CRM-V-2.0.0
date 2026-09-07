@@ -339,6 +339,44 @@ const updateChickPlacement = async (req, res) => {
 };
 
 // ============================================
+// حذف یک «گله/دوره» کامل به همراه همه جوجه‌ریزی‌های سالن‌های عضو
+// ============================================
+const deleteFlockGroup = async (req, res) => {
+  try {
+    const flockId = parseInt(req.params.flockId);
+    if (!flockId) {
+      return errorResponse(res, "شناسه گله الزامی است", 400);
+    }
+
+    const flock = await Flock.findByPk(flockId);
+    if (!flock) {
+      return errorResponse(res, "گله یافت نشد", 404);
+    }
+
+    const placements = await ChickPlacement.findAll({
+      where: { flock_id: flockId },
+      attributes: ["id"],
+    });
+
+    // حذف جوجه‌ریزی‌های سالن‌های عضو (با cascade به رکوردهای هفتگی/وابسته)
+    for (const p of placements) {
+      await p.destroy();
+    }
+
+    await flock.destroy();
+
+    successResponse(
+      res,
+      { removedPlacements: placements.length },
+      `گله شماره ${flock.flock_number} و ${placements.length} جوجه‌ریزی آن حذف شد`,
+    );
+  } catch (error) {
+    console.error("خطا در حذف گله:", error);
+    errorResponse(res, error.message, 500);
+  }
+};
+
+// ============================================
 // حذف جوجه‌ریزی
 // ============================================
 const deleteChickPlacement = async (req, res) => {
@@ -472,6 +510,7 @@ module.exports = {
   getChickPlacementByHallId,
   updateChickPlacement,
   deleteChickPlacement,
+  deleteFlockGroup,
   activateChickPlacement,
   deactivateChickPlacement,
   getActiveChickPlacementByHallId,

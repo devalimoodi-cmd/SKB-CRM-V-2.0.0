@@ -6,6 +6,7 @@ const UnitExpert = require("./UnitExpert");
 const Hall = require("./Hall");
 const HallPhysicalInfo = require("./HallPhysicalInfo");
 const HallSystem = require("./HallSystem");
+const HallSystemItem = require("./HallSystemItem");
 const HallWaterFeed = require("./HallWaterFeed");
 const HallHygiene = require("./HallHygiene");
 const ChickPlacement = require("./ChickPlacement");
@@ -305,6 +306,16 @@ Hall.hasOne(HallSystem, {
 });
 HallSystem.belongsTo(Hall, {
   foreignKey: "hall_id",
+});
+
+// HallSystem → HallSystemItem (جزئیات چندنوعی گرمایش/سرمایش/فن)
+HallSystem.hasMany(HallSystemItem, {
+  foreignKey: "system_id",
+  onDelete: "CASCADE",
+  hooks: true,
+});
+HallSystemItem.belongsTo(HallSystem, {
+  foreignKey: "system_id",
 });
 
 // Hall → HallWaterFeed

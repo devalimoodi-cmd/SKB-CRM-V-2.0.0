@@ -3,6 +3,7 @@ import { hallsRenderer } from "./halls.renderer.js";
 import { hallsValidation } from "./halls.validation.js";
 import { notificationService } from "../../../../core/services/notification.service.js";
 import { stateService } from "../../../../core/services/state.service.js";
+import { authService } from "../../../../core/services/auth.service.js";
 import {
   convertPersianToGregorian,
   convertGregorianToPersian,
@@ -48,6 +49,9 @@ class HallsService {
       await this.loadHalls();
       this.autoPopulateHallNumber();
       this.autoGenerateHallName();
+      this.lockBasicHallNumberField();
+      this.applyDefaultExpertSelection();
+      this.refreshUnitCapacityBadge();
     } catch (error) {
       console.error("❌ Error loading hall data:", error);
       notificationService.error("خطا در دریافت اطلاعات سالن‌ها");
@@ -120,6 +124,7 @@ class HallsService {
         await this.renderHallsList();
         this.updateHallsDropdowns();
         this.autoPopulateHallNumber();
+        this.lockBasicHallNumberField();
       }
     } catch (error) {
       console.error("❌ Error loading halls:", error);
@@ -154,6 +159,93 @@ class HallsService {
         hallNumberSelect.appendChild(option);
       }
       hallNumberSelect.value = nextNumber.toString();
+      this.lockBasicHallNumberField();
+    }
+  }
+
+  // قفل فیلد «شماره سالن» فقط در تب اطلاعات پایه سالن
+  lockBasicHallNumberField() {
+    const sel = document.getElementById("hallNumber");
+    if (!sel) return;
+    const hasValue = Boolean(String(sel.value || "").trim());
+    sel.disabled = hasValue;
+    sel.style.opacity = hasValue ? "0.85" : "";
+    sel.style.background = hasValue ? "#f1f5f9" : "";
+    sel.title = hasValue
+      ? "شماره سالن فقط در همین تب قفل است؛ برای تغییر، «ریست فرم» را بزنید"
+      : "";
+  }
+
+  // کارشناس خدمات: اگر کاربرِ لاگین‌شده «کارشناس» است، به‌صورت پیش‌فرض انتخاب شود
+  applyDefaultExpertSelection() {
+    try {
+      if (!authService) return;
+      const role =
+        typeof authService.getUserRole === "function"
+          ? authService.getUserRole()
+          : "";
+      if (role !== "expert") return;
+      const uid =
+        typeof authService.getUserId === "function"
+          ? authService.getUserId()
+          : null;
+      const sel = document.getElementById("expert");
+      if (sel && uid && !String(sel.value || "")) {
+        if (
+          Array.from(sel.options).some(
+            (o) => String(o.value) === String(uid),
+          )
+        ) {
+          sel.value = uid;
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  fmtCap(n) {
+    try {
+      return Number(n || 0).toLocaleString("fa-IR");
+    } catch {
+      return String(Number(n || 0).toLocaleString());
+    }
+  }
+
+  // به‌روزرسانی بج «ظرفیت مانده واحد» زیر فیلد ظرفیت اسمی
+  async refreshUnitCapacityBadge() {
+    const badge = document.getElementById("unitCapacityBadge");
+    if (!badge) return;
+    const unitId = document.getElementById("UnitNumber")?.value;
+    if (!unitId) {
+      badge.style.display = "none";
+      return;
+    }
+    try {
+      if (
+        !this.capacitySummary ||
+        Date.now() - (this.capacitySummary.ts || 0) > 45000
+      ) {
+        const res = await hallsApi.getUnitCapacitySummary(this.customerId);
+        const list = res?.success ? res.data || [] : [];
+        this.capacitySummary = { list, ts: Date.now() };
+      }
+      const row = (this.capacitySummary.list || []).find(
+        (u) => String(u.unitId) === String(unitId),
+      );
+      if (!row) {
+        badge.style.display = "none";
+        return;
+      }
+      badge.textContent = `ظرفیت مانده واحد: ${this.fmtCap(row.remainingCapacity)} از ${this.fmtCap(row.totalCapacity)} قطعه${
+        row.activePlacementCount
+          ? ` | ${row.occupiedHallCount} سالن در جوجه‌ریزی`
+          : ""
+      }`;
+      badge.style.display = "block";
+    } catch (err) {
+      console.warn("⚠️ خطا در دریافت ظرفیت واحد:", err);
+      badge.style.display = "none";
     }
   }
 
@@ -224,6 +316,7 @@ class HallsService {
     this.updateFilteredHallDropdown("physicalHallNumber", "physical");
     this.updateFilteredHallDropdown("systemsHallNumber", "system");
     this.updateFilteredHallDropdown("wfHallNumber", "waterFeed");
+    this.lockBasicHallNumberField();
   }
 
   async updateFilteredHallDropdown(dropdownId, infoType) {
@@ -359,6 +452,9 @@ class HallsService {
     } else if (contentId === "waterFoodTab") {
       const hall = document.getElementById("wfHallNumber");
       if (hall && hall.value) this.loadWaterFeedInfo(hall.value);
+    } else if (contentId === "basicTab") {
+      this.lockBasicHallNumberField();
+      this.refreshUnitCapacityBadge();
     }
   }
 
@@ -377,9 +473,10 @@ class HallsService {
     }
     const unitNumSelect = document.getElementById("UnitNumber");
     if (unitNumSelect) {
-      unitNumSelect.addEventListener("change", () =>
-        this.autoGenerateHallName(),
-      );
+      unitNumSelect.addEventListener("change", () => {
+        this.autoGenerateHallName();
+        this.refreshUnitCapacityBadge();
+      });
     }
     this.setupSaveButtons();
   }
@@ -487,6 +584,7 @@ class HallsService {
           hallNumSelect.appendChild(opt);
         }
         hallNumSelect.value = hall.hall_number.toString();
+        this.lockBasicHallNumberField();
       }
       const unitSelect = document.getElementById("UnitNumber");
       if (unitSelect && hall.unit_id) unitSelect.value = hall.unit_id;
@@ -495,7 +593,11 @@ class HallsService {
       document.getElementById("hallType").value = hall.hall_type_id || "";
       document.getElementById("buildYear").value = hall.construction_year || "";
       document.getElementById("expert").value = hall.service_expert_id || "";
+      if (!document.getElementById("expert")?.value) {
+        this.applyDefaultExpertSelection();
+      }
       document.getElementById("operator").value = hall.operator_name || "";
+      this.refreshUnitCapacityBadge();
 
       // 2. Physical info
       const physicalRes = await hallsApi
@@ -534,6 +636,10 @@ class HallsService {
           s.lighting_system_id || "";
         document.getElementById("Hall-System-Description").value =
           s.notes || "";
+        this.renderSystemItemsEditor(
+          s.HallSystemItems || s.items || [],
+          s,
+        );
       }
 
       // 4. Water/feed info
@@ -1076,6 +1182,7 @@ class HallsService {
       lighting_system_id:
         document.getElementById("lighthingSystem")?.value || null,
       notes: document.getElementById("Hall-System-Description")?.value || null,
+      items: this.collectSystemItems(),
     };
     const errors = hallsValidation.validateSystemInfo(data);
     if (errors.length > 0) {
@@ -1262,10 +1369,120 @@ class HallsService {
           d.lighting_system_id || "";
         document.getElementById("Hall-System-Description").value =
           d.notes || "";
+        this.renderSystemItemsEditor(d.HallSystemItems || d.items || [], d);
       } else this.resetTab("systemsTab");
     } catch (error) {
       this.resetTab("systemsTab");
     }
+  }
+
+  // ===== جزئیات انواع سیستم‌ها (گرمایش/سرمایش/فن) — جدول hall_system_items =====
+
+  sysCatMeta() {
+    return {
+      heating: { title: "🔥 سیستم‌های گرمایش", dict: "heatingSystems", typePlaceholder: "انتخاب نوع گرمایش..." },
+      cooling: { title: "❄️ سیستم‌های سرمایش", dict: "coolingSystems", typePlaceholder: "انتخاب نوع سرمایش..." },
+      fan: { title: "🌀 فن‌ها (سایز هر فن)", dict: null, typePlaceholder: "" },
+    };
+  }
+
+  sysOptionsHtml(dictKey, selected) {
+    const list = (this.dictionaries || {})[dictKey] || [];
+    let html = `<option value="">انتخاب کنید...</option>`;
+    list.forEach((d) => {
+      html += `<option value="${d.id}" ${String(d.id) === String(selected || "") ? "selected" : ""}>${d.name}</option>`;
+    });
+    return html;
+  }
+
+  createSysRowHtml(cat, item = {}) {
+    const qty = parseInt(item.quantity) || 1;
+    const spec = item.spec || "";
+    if (cat === "fan") {
+      return `
+        <div class="sys-item-row" data-cat="fan" style="display:flex; align-items:center; gap:6px; margin:4px 0; flex-wrap:wrap;">
+          <input type="text" class="sys-item-spec" value="${spec}" placeholder="سایز فن (مثلاً ۳۶ اینچ)" style="width:160px; padding:5px 8px; border:1px solid #e2e8f0; border-radius:6px; font-size:12px;">
+          <input type="number" min="1" class="sys-item-qty" value="${qty}" placeholder="تعداد" style="width:80px; padding:5px 8px; border:1px solid #e2e8f0; border-radius:6px; font-size:12px;">
+          <button type="button" class="sys-item-del" onclick="removeSystemItemRow(this)" title="حذف"
+            style="background:#fee2e2; color:#b91c1c; border:none; border-radius:6px; width:26px; height:26px; cursor:pointer;"><i class="fas fa-times"></i></button>
+        </div>`;
+    }
+    const meta = this.sysCatMeta()[cat];
+    const dictKey = meta?.dict;
+    return `
+      <div class="sys-item-row" data-cat="${cat}" style="display:flex; align-items:center; gap:6px; margin:4px 0; flex-wrap:wrap;">
+        <select class="sys-item-type" style="min-width:190px; padding:5px 8px; border:1px solid #e2e8f0; border-radius:6px; font-size:12px;">
+          ${this.sysOptionsHtml(dictKey, item.type_id)}
+        </select>
+        <input type="number" min="1" class="sys-item-qty" value="${qty}" placeholder="تعداد" style="width:80px; padding:5px 8px; border:1px solid #e2e8f0; border-radius:6px; font-size:12px;">
+        <button type="button" class="sys-item-del" onclick="removeSystemItemRow(this)" title="حذف"
+          style="background:#fee2e2; color:#b91c1c; border:none; border-radius:6px; width:26px; height:26px; cursor:pointer;"><i class="fas fa-times"></i></button>
+      </div>`;
+  }
+
+  renderSystemItemsEditor(items = [], legacy = {}) {
+    const container = document.getElementById("systemItemsEditor");
+    if (!container) return;
+
+    const list = Array.isArray(items) ? items : [];
+    const heating = list.filter((i) => i.category === "heating");
+    const cooling = list.filter((i) => i.category === "cooling");
+    const fans = list.filter((i) => i.category === "fan");
+
+    if (heating.length === 0 && legacy.heating_system_id) {
+      heating.push({ category: "heating", type_id: legacy.heating_system_id, quantity: legacy.heater_count || 1, spec: null });
+    }
+    if (cooling.length === 0 && legacy.cooling_system_id) {
+      cooling.push({ category: "cooling", type_id: legacy.cooling_system_id, quantity: 1, spec: null });
+    }
+    if (fans.length === 0 && (legacy.fan_count || legacy.fan_size)) {
+      fans.push({ category: "fan", type_id: null, quantity: legacy.fan_count || 1, spec: legacy.fan_size || "" });
+    }
+
+    const group = (cat, rows) => {
+      const meta = this.sysCatMeta()[cat];
+      return `
+        <div style="margin:8px 0 4px; padding:8px 10px; border:1px solid #e8edf3; border-radius:8px; background:#fbfdff;">
+          <div style="font-weight:700; font-size:12px; color:#334155; margin-bottom:4px;">${meta.title}</div>
+          <div class="sys-rows" id="sysRows-${cat}">${rows.map((r) => this.createSysRowHtml(cat, r)).join("")}</div>
+          <button type="button" class="btn btn-secondary" style="margin-top:4px; font-size:11px; padding:3px 10px;"
+            onclick="addSystemItemRow('${cat}')"><i class="fas fa-plus"></i> افزودن</button>
+        </div>`;
+    };
+
+    container.innerHTML =
+      group("heating", heating) +
+      group("cooling", cooling) +
+      group("fan", fans);
+  }
+
+  addSystemItemRow(cat) {
+    const rowsEl = document.getElementById(`sysRows-${cat}`);
+    if (!rowsEl) return;
+    rowsEl.insertAdjacentHTML("beforeend", this.createSysRowHtml(cat, {}));
+  }
+
+  removeSystemItemRow(btn) {
+    const row = btn?.closest(".sys-item-row");
+    if (row) row.remove();
+  }
+
+  collectSystemItems() {
+    const items = [];
+    document.querySelectorAll("#systemItemsEditor .sys-item-row").forEach((row) => {
+      const cat = row.dataset.cat;
+      const typeSel = row.querySelector(".sys-item-type");
+      const qtyVal = parseInt(row.querySelector(".sys-item-qty")?.value) || 1;
+      const specVal = (row.querySelector(".sys-item-spec")?.value || "").trim();
+      if (cat === "fan") {
+        const spec = specVal || row.querySelector(".sys-item-qty")?.value ? specVal : "";
+        if (spec || qtyVal) items.push({ category: "fan", type_id: null, quantity: qtyVal, spec: spec || null });
+      } else {
+        const tid = typeSel?.value;
+        if (tid) items.push({ category: cat, type_id: tid, quantity: qtyVal, spec: specVal || null });
+      }
+    });
+    return items;
   }
 
   async loadWaterFeedInfo(hallId) {
@@ -1356,6 +1573,18 @@ class HallsService {
         else el.value = "";
       }
     });
+    if (tabId === "basicTab") {
+      const sel = document.getElementById("hallNumber");
+      if (sel) {
+        sel.disabled = false;
+        sel.style.opacity = "";
+        sel.style.background = "";
+        sel.title = "";
+      }
+      this.applyDefaultExpertSelection();
+      this.refreshUnitCapacityBadge();
+    }
+    if (tabId === "systemsTab") this.renderSystemItemsEditor([], {});
     if (tabId === "waterFoodTab")
       document
         .querySelectorAll('input[name="autoFood"]')
@@ -1929,6 +2158,8 @@ if (typeof window !== "undefined") {
   window.resetTab = (t) => hallsService.resetTab(t + "Tab");
   window.savePhysicalInfo = () => hallsService.savePhysicalInfo();
   window.saveSystemsInfo = () => hallsService.saveSystemsInfo();
+  window.addSystemItemRow = (cat) => hallsService.addSystemItemRow(cat);
+  window.removeSystemItemRow = (btn) => hallsService.removeSystemItemRow(btn);
   window.saveWaterFoodInfo = () => hallsService.saveWaterFeedInfo();
   window.generateHallsReport = async () => {
     try {

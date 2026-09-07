@@ -65,7 +65,7 @@ const FlockCompletionHall = sequelize.define(
       allowNull: true,
     },
     initial_avg_weight: {
-      type: DataTypes.DECIMAL(6, 3),
+      type: DataTypes.DECIMAL(10, 4),
       allowNull: true,
     },
     slaughter_age_days: {
@@ -77,7 +77,7 @@ const FlockCompletionHall = sequelize.define(
       allowNull: true,
     },
     total_feed_intake: {
-      type: DataTypes.DECIMAL(12, 2),
+      type: DataTypes.DECIMAL(16, 2),
       allowNull: true,
     },
     final_avg_weight: {
@@ -89,11 +89,11 @@ const FlockCompletionHall = sequelize.define(
       allowNull: true,
     },
     mortality_rate: {
-      type: DataTypes.DECIMAL(5, 2),
+      type: DataTypes.DECIMAL(8, 2),
       allowNull: true,
     },
     system_fcr: {
-      type: DataTypes.DECIMAL(5, 2),
+      type: DataTypes.DECIMAL(10, 3),
       allowNull: true,
     },
     system_last_weight: {
@@ -103,6 +103,22 @@ const FlockCompletionHall = sequelize.define(
     system_total_feed: {
       type: DataTypes.DECIMAL(12, 2),
       allowNull: true,
+    },
+    // ===== مقادیر اعلامی اختیاری per سالن (از مرغدار) =====
+    sent_to_slaughter_count: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      comment: "تعداد ارسالی به کشتارگاه (اعلامی مرغدار، اختیاری)",
+    },
+    live_weight_kg: {
+      type: DataTypes.DECIMAL(18, 2),
+      allowNull: true,
+      comment: "وزن کل زنده این سالن در کشتارگاه (اختیاری)",
+    },
+    declared_feed_intake: {
+      type: DataTypes.DECIMAL(12, 2),
+      allowNull: true,
+      comment: "خوراک مصرفی اعلامی مرغدار برای این سالن (اختیاری)",
     },
   },
   {

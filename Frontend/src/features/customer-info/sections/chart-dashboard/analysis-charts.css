@@ -563,10 +563,13 @@
 }
 
 .legend-label {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 140px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  line-height: 1.7;
+  max-width: 100%;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 @media (max-width: 992px) {
@@ -587,6 +590,237 @@
     overflow-y: auto;
   }
   .legend-label {
-    max-width: 120px;
+    max-width: none;
+    flex: 0 1 auto;
   }
+}
+
+/* ============================================================
+   افزونه: نمایش گله/سالن + چیدمان + مقایسه بینمشتری
+   ============================================================ */
+
+.analysis-seg {
+  display: inline-flex;
+  gap: 4px;
+  background: #eef2f6;
+  border-radius: 10px;
+  padding: 3px;
+  flex-wrap: wrap;
+}
+
+.analysis-seg-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.analysis-seg-btn:hover {
+  color: #0f172a;
+}
+
+.analysis-seg-btn.active {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  color: #2c7a6e;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+.analysis-group-block {
+  width: 100%;
+}
+
+.analysis-group-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #0f172a;
+  padding: 6px 10px;
+  margin: 6px 0 4px;
+  background: linear-gradient(135deg, #f0fdfa, #eef2f6);
+  border-right: 3px solid #2c7a6e;
+  border-radius: 8px;
+}
+
+.analysis-group-count {
+  background: #2c7a6e;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 600;
+  border-radius: 20px;
+  padding: 1px 10px;
+}
+
+.analysis-group-single {
+  margin-bottom: 2px;
+}
+
+.analysis-flock-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  min-width: 100%;
+}
+
+.analysis-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.analysis-cards[data-layout="duo"] {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: stretch;
+  gap: 18px;
+}
+
+.analysis-cards[data-layout="duo"] .analysis-main-card {
+  grid-column: 1 / -1;
+}
+
+.analysis-cards[data-layout="duo"] .analysis-chart-grid {
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.analysis-cards[data-layout="side"] {
+  display: grid;
+  grid-template-columns: minmax(0, 2.1fr) minmax(0, 1fr);
+  grid-template-rows: auto;
+  align-items: start;
+  gap: 18px;
+}
+
+.analysis-cards[data-layout="side"] .analysis-main-card {
+  grid-column: 1;
+}
+
+.analysis-cards[data-layout="side"] .analysis-chart-grid {
+  grid-column: 2;
+  grid-template-columns: 1fr;
+  align-self: start;
+}
+
+/* جلوگیری از سرریز شدن محتوای کارتها در گرید */
+.analysis-cards > *,
+.analysis-chart-grid > * {
+  min-width: 0;
+}
+
+.series-remove-btn {
+  border: none;
+  background: #fee2e2;
+  color: #dc2626;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.series-remove-btn:hover {
+  background: #dc2626;
+  color: #fff;
+}
+
+.analysis-cmp-btn {
+  border-color: #8b5cf6 !important;
+  color: #6d28d9 !important;
+}
+
+.analysis-cmp-btn:hover {
+  background: #8b5cf6 !important;
+  color: #fff !important;
+}
+
+.cmp-option-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 300px;
+  overflow-y: auto;
+  margin-top: 6px;
+}
+
+.cmp-option-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 12px;
+  color: #334155;
+  cursor: pointer;
+}
+
+.cmp-option-row input {
+  accent-color: #2c7a6e;
+  margin-top: 2px;
+}
+
+.cmp-option-label {
+  line-height: 1.7;
+}
+
+@media (max-width: 992px) {
+  .analysis-cards[data-layout="side"] {
+    grid-template-columns: 1fr;
+  }
+  .analysis-cards[data-layout="side"] .analysis-main-card {
+    grid-column: 1;
+    grid-row: auto;
+  }
+  .analysis-cards[data-layout="side"] .analysis-chart-grid {
+    grid-column: 1;
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .analysis-cards[data-layout="duo"] {
+    grid-template-columns: 1fr;
+  }
+  .analysis-cards[data-layout="duo"] .analysis-chart-grid {
+    grid-column: 1 / -1;
+    grid-template-columns: 1fr;
+  }
+}
+
+/* قواعد چیدمان duo/side در بلوک بالای همین فایل تعریف شدهاند */
+
+/* در حالت داشبوردی، لِجند نمودارهای کوچک بالای نمودار میرود و نمودار جمعوجورتر است */
+.analysis-cards[data-layout="side"] .analysis-chart-grid .analysis-chart-body {
+  flex-direction: column;
+}
+
+.analysis-cards[data-layout="side"] .analysis-chart-grid .analysis-legend-side {
+  width: 100%;
+  max-height: 90px;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-content: flex-start;
+}
+
+.analysis-cards[data-layout="side"] .analysis-chart-wrapper.small {
+  height: 280px;
 }
