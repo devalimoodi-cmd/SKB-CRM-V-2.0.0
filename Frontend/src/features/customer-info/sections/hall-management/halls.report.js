@@ -423,31 +423,6 @@ class HallsReport {
                 </table>
               </div>
             </div>
-            <div class="report-col">
-              <div class="report-section">
-                <h4>دوره و گله</h4>
-                <table class="report-table compact">
-                  <tr><td>واحد (گله فعال)</td><td>${hall.activeFlockUnitName || "-"}</td></tr>
-                  <tr><td>کارشناس خدمات</td><td><strong>${hall.expertName}</strong></td></tr>
-                  ${
-                    hall.chickInfo
-                      ? `
-                  <tr><td>نژاد جوجه</td><td>${this.getBreedName(hall.chickInfo.breed_id)}</td></tr>
-                  <tr><td>مبدا جوجه</td><td>${this.getSourceName(hall.chickInfo.chick_source_id)}</td></tr>
-                  <tr><td>تعداد جوجه</td><td>${parseInt(hall.chickInfo.total_chicks_count || 0).toLocaleString()} قطعه</td></tr>
-                  <tr><td>تاریخ جوجه‌ریزی</td><td>${hall.chickInfo.placement_date ? convertToPersianDate(hall.chickInfo.placement_date) : "-"}</td></tr>
-                  <tr><td>وزن اولیه</td><td>${hall.chickInfo.avg_initial_weight || "-"} گرم</td></tr>
-                  ${
-                    hall.density
-                      ? `<tr><td>تراکم فعلی</td><td><strong>${hall.density}</strong> قطعه/مترمربع</td></tr>`
-                      : ""
-                  }
-                  `
-                      : '<tr><td colspan="2" style="text-align:center; color:#94a3b8;">بدون جوجه‌ریزی</td></tr>'
-                  }
-                </table>
-              </div>
-            </div>
           </div>
 
           <div class="report-two-col">

@@ -4643,21 +4643,27 @@ if (typeof window !== "undefined") {
     }
   };
   window.generateChickReport = async () => {
+    notificationService.showLoading("در حال آماده‌سازی گزارش جوجه‌ریزی...");
     try {
       const { hatcheryReport } = await import("./hatchery.report.js");
       await hatcheryReport.generateAndPrint("active");
     } catch (error) {
       console.error("❌ Error generating chick report:", error);
       notificationService.error("خطا در تولید گزارش");
+    } finally {
+      notificationService.hideLoading();
     }
   };
   window.generateChickHistoryReport = async () => {
+    notificationService.showLoading("در حال آماده‌سازی گزارش تاریخچه جوجه‌ریزی...");
     try {
       const { hatcheryReport } = await import("./hatchery.report.js");
       await hatcheryReport.generateHistoryAndPrint();
     } catch (error) {
       console.error("❌ Error generating chick history report:", error);
       notificationService.error("خطا در تولید گزارش تاریخچه");
+    } finally {
+      notificationService.hideLoading();
     }
   };
   window.viewFlockDetails = (id) => hatcheryService.viewFlockDetails(id);

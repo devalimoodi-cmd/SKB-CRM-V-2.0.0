@@ -137,6 +137,8 @@ export const chartDashboardRenderer = {
                             <button class="analysis-action-btn" onclick="window.print()" title="چاپ"><i class="fas fa-print"></i></button>
                             <button class="analysis-action-btn analysis-cmp-btn" onclick="chartDashboardService.openChartComparePicker()"
                                     title="مقایسه با گله/سالن سایر مشتریان"><i class="fas fa-people-arrows"></i> مقایسه</button>
+                            <button class="analysis-action-btn analysis-breed-btn" onclick="chartDashboardService.openBreedStdPicker()"
+                                    title="افزودن استاندارد وزنی نژاد دلخواه روی نمودار"><i class="fas fa-dna"></i> استاندارد نژاد</button>
                         </div>
                     </div>
 
@@ -174,6 +176,25 @@ export const chartDashboardRenderer = {
                         <label class="analysis-switch"><input type="checkbox" id="showStandards" checked onchange="chartDashboardService.updateMainSettings()"> نمایش استاندارد نژاد</label>
                         <label class="analysis-switch"><input type="checkbox" id="showDataLabels" onchange="chartDashboardService.updateMainSettings()"> نمایش مقادیر</label>
                         <label class="analysis-switch"><input type="checkbox" id="showTooltip" checked onchange="chartDashboardService.updateMainSettings()"> نمایش تولتیپ</label>
+
+                        <span class="analysis-appearance-box">
+                            <label class="analysis-appearance-title"><i class="fas fa-font"></i> اعداد</label>
+                            <input type="color" id="valueColor" value="#1e293b" title="رنگ اعداد روی نمودار"
+                                   onchange="chartDashboardService.updateMainSettings()">
+                            <select id="valueSize" title="اندازه فونت اعداد" onchange="chartDashboardService.updateMainSettings()">
+                                <option value="7">۷</option><option value="8">۸</option><option value="9" selected>۹</option>
+                                <option value="10">۱۰</option><option value="11">۱۱</option><option value="12">۱۲</option><option value="13">۱۳</option>
+                            </select>
+                        </span>
+                        <span class="analysis-appearance-box">
+                            <label class="analysis-appearance-title"><i class="fas fa-weight-hanging"></i> استاندارد</label>
+                            <input type="color" id="stdColor" value="#8b5cf6" title="رنگ اعدادِ استاندارد روی نمودار"
+                                   onchange="chartDashboardService.updateMainSettings()">
+                            <select id="stdSize" title="اندازه فونت استاندارد" onchange="chartDashboardService.updateMainSettings()">
+                                <option value="7">۷</option><option value="8">۸</option><option value="9" selected>۹</option>
+                                <option value="10">۱۰</option><option value="11">۱۱</option><option value="12">۱۲</option><option value="13">۱۳</option>
+                            </select>
+                        </span>
                     </div>
 
                     <!-- ===== پنل نمایش و تنظیم سری‌ها (بالای نمودار اصلی) ===== -->
@@ -264,6 +285,9 @@ export const chartDashboardRenderer = {
                         ${it.key && String(it.key).indexOf("cmp:") === 0
                           ? `<button type="button" class="series-remove-btn" title="حذف سری مقایسه"
                                onclick="chartDashboardService.removeCompareSeries('${it.key.slice(4, -7)}')">&times;</button>`
+                          : it.key && String(it.key).indexOf("breedStd:") === 0
+                            ? `<button type="button" class="series-remove-btn" title="حذف استاندارد نژاد"
+                                 onclick="chartDashboardService.removeBreedStdSeries('${it.key.slice(9, -7)}')">&times;</button>`
                           : ""}
                     </div>
                 `,

@@ -513,19 +513,22 @@
 
 .analysis-chart-body {
   display: flex;
-  gap: 12px;
+  flex-direction: column-reverse; /* نمودار اول تمام‌عرض، لِجند زیر آن */
+  gap: 10px;
   align-items: stretch;
 }
 
 .analysis-legend-side {
-  width: 215px;
+  width: 100%;
   flex-shrink: 0;
-  max-height: 400px;
+  max-height: 110px;
   overflow-y: auto;
   display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 6px;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  gap: 4px 14px;
+  padding: 8px 10px;
   background: #f8fafc;
   border: 1px solid #eef2f6;
   border-radius: 10px;
@@ -572,26 +575,11 @@
   min-width: 0;
 }
 
-@media (max-width: 992px) {
-  .analysis-legend-side {
-    width: 175px;
-  }
-}
+/* لِجند زیر هر نمودار است و تمام‌عرض؛ عرض ثابت کناری لازم نیست */
 
 @media (max-width: 768px) {
-  .analysis-chart-body {
-    flex-direction: column;
-  }
   .analysis-legend-side {
-    width: 100%;
-    max-height: 150px;
-    flex-direction: row;
-    flex-wrap: wrap;
-    overflow-y: auto;
-  }
-  .legend-label {
-    max-width: none;
-    flex: 0 1 auto;
+    max-height: 130px;
   }
 }
 
@@ -809,18 +797,72 @@
 /* قواعد چیدمان duo/side در بلوک بالای همین فایل تعریف شدهاند */
 
 /* در حالت داشبوردی، لِجند نمودارهای کوچک بالای نمودار میرود و نمودار جمعوجورتر است */
-.analysis-cards[data-layout="side"] .analysis-chart-grid .analysis-chart-body {
-  flex-direction: column;
-}
-
-.analysis-cards[data-layout="side"] .analysis-chart-grid .analysis-legend-side {
-  width: 100%;
-  max-height: 90px;
-  flex-direction: row;
-  flex-wrap: wrap;
-  align-content: flex-start;
-}
-
+/* در حالت ساید، لجند نمودارهای کوچک زیر خودِ نمودار قرار دارد */
 .analysis-cards[data-layout="side"] .analysis-chart-wrapper.small {
   height: 280px;
 }
+
+/* ============================================================
+   تنظیم ظاهر اعداد و استاندارد (رنگ/اندازهٔ فونت) روی نمودارها
+   ============================================================ */
+.analysis-appearance-box {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  background: #f8fafc;
+  border: 1px solid #eef2f6;
+  border-radius: 8px;
+}
+
+.analysis-appearance-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #334155;
+  white-space: nowrap;
+}
+
+.analysis-appearance-title i {
+  color: #2c7a6e;
+}
+
+.analysis-appearance-box input[type="color"] {
+  width: 26px;
+  height: 24px;
+  padding: 1px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.analysis-appearance-box select {
+  padding: 3px 4px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 11px;
+  background: #fff;
+  color: #0f172a;
+  cursor: pointer;
+}
+
+.analysis-breed-btn {
+  border-color: #0ea5e9 !important;
+  color: #0369a1 !important;
+}
+
+.analysis-breed-btn:hover {
+  background: #0ea5e9 !important;
+  color: #fff !important;
+}
+
+@media (max-width: 768px) {
+  .analysis-appearance-box {
+    flex-wrap: wrap;
+  }
+}
+

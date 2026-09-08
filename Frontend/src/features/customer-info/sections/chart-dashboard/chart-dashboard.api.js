@@ -49,4 +49,11 @@ export const chartDashboardApi = {
     if (flockId) endpoint += `?flock_id=${flockId}`;
     return apiService.get(endpoint);
   },
+
+  // دریافت استانداردهای وزنی نژادها (برای افزودن استاندارد نژاد دلخواه روی نمودار)
+  async getBreedStandards(breedId = null) {
+    const params = { active: "true" };
+    if (breedId) params.breed_id = breedId;
+    return apiService.get("/breed-standards", params);
+  },
 };

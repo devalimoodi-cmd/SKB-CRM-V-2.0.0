@@ -123,6 +123,14 @@ class ChartDashboardService {
     setChk("showTooltip", this.showTooltip);
     setSel("mainLineWidth", this.lineWidth);
     setSel("mainPointSize", this.pointSize);
+    const setColor = (id, val) => {
+      const el = document.getElementById(id);
+      if (el && val != null) el.value = String(val);
+    };
+    setColor("valueColor", this.labelStyle.valueColor);
+    setColor("stdColor", this.labelStyle.stdColor);
+    setSel("valueSize", this.labelStyle.valueSize);
+    setSel("stdSize", this.labelStyle.stdSize);
 
     this.renderAllCharts();
   }
@@ -697,6 +705,11 @@ class ChartDashboardService {
     this.seriesSettings = {}; // تنظیمات سری‌های نمودار اصلی: { key: {visible,color,lineType} }
     this.lineWidth = 2;
     this.pointSize = 4;
+    this.labelStyle = this._loadLabelStyle(); // رنگ/اندازهٔ فونت اعداد و استاندارد
+    this.breedStdOverlays = []; // استانداردهای وزنی نژاد دلخواه روی نمودار
+    this.breedStdCache = {};
+    this._allBreedStd = null;
+    this._breedColorIndex = 0;
     this.chartInstances = {};
     this.initialized = false;
     this.includePast = false;
@@ -889,6 +902,22 @@ class ChartDashboardService {
     const initialChicks = parseFloat(flock.flock.totalChicks) || 0;
     const initialWeightKg = getInitialWeightKg(flock.flock.avgInitialWeightGrams);
 
+    // بازهٔ رشد استاندارد (min/max) از اختلاف هفتگیِ min_weight/max_weightِ خودِ جدول مشتق می‌شود (kg/هفته)
+    const bandStdGain = (wn, field) => {
+      const cur = findStandard(standards, wn);
+      const curVal = cur && cur[field] != null ? parseFloat(cur[field]) : null;
+      if (curVal === null || isNaN(curVal)) return null;
+      let prevVal;
+      if (parseInt(wn) <= 1) {
+        prevVal = initialWeightKg;
+      } else {
+        const prev = findStandard(standards, parseInt(wn) - 1);
+        prevVal = prev && prev[field] != null ? parseFloat(prev[field]) : null;
+      }
+      if (prevVal === null || isNaN(prevVal)) return null;
+      return curVal - prevVal;
+    };
+
     const weightMap = {};
     const feedMap = {};
     const mortalityMap = {};
@@ -909,6 +938,10 @@ class ChartDashboardService {
       const birdsStart = birdsStartOfWeek(initialChicks, mortalityMap, wn);
       const birdsEnd = birdsEndOfWeek(initialChicks, mortalityMap, wn);
       const stdGain = standardWeeklyGain(standards, wn, initialWeightKg);
+      const sMinG = bandStdGain(wn, "min_weight");
+      const sMaxG = bandStdGain(wn, "max_weight");
+      const sMinDG = sMinG !== null ? (sMinG / 7) * 1000 : null;
+      const sMaxDG = sMaxG !== null ? (sMaxG / 7) * 1000 : null;
 
       return {
         week: wn,
@@ -955,6 +988,10 @@ class ChartDashboardService {
         stdMax: std && std.max_weight != null ? parseFloat(std.max_weight) : null,
         stdGain,
         stdDailyGainGrams: stdGain !== null ? (stdGain / 7) * 1000 : null,
+        stdGainMin: sMinG,
+        stdGainMax: sMaxG,
+        stdDailyGainMinGrams: sMinDG,
+        stdDailyGainMaxGrams: sMaxDG,
         stdFcr:
           std && std.standard_fcr != null
             ? parseFloat(std.standard_fcr)
@@ -1056,6 +1093,17 @@ class ChartDashboardService {
         ),
       );
     });
+    // استانداردهای وزنی نژادهای انتخابی
+    this.breedStdOverlays.forEach((ov) => {
+      items.push(
+        this.ensureSeriesItem(
+          `breedStd:${ov.breedId}:actual`,
+          `استاندارد نژاد ${ov.breedName}`,
+          ov.color,
+          "dashed",
+        ),
+      );
+    });
     return items;
   }
 
@@ -1129,6 +1177,7 @@ class ChartDashboardService {
               borderWidth: 2,
               pointRadius: 0,
               fill: false,
+              _isStd: true,
             });
           }
         }
@@ -1155,6 +1204,7 @@ class ChartDashboardService {
               pointRadius: 0,
               fill: minVisible ? "+1" : false,
               backgroundColor: maxColor + "18",
+              _isStd: true,
             });
           }
           if (minVisible) {
@@ -1169,6 +1219,7 @@ class ChartDashboardService {
               pointRadius: 0,
               fill: false,
               backgroundColor: "transparent",
+              _isStd: true,
             });
           }
         }
@@ -1182,12 +1233,27 @@ class ChartDashboardService {
     return {
       responsive: true,
       maintainAspectRatio: false,
+      // فاصلهٔ محتوای نمودار از لبه‌های بوم (با «نمایش مقادیر» فضای بالایی بیشتر می‌شود)
+      layout: {
+        padding: {
+          top: this.showDataLabels ? 24 : 14,
+          right: 14,
+          bottom: 8,
+          left: 12,
+        },
+      },
       plugins: {
         legend: { display: false },
         tooltip: {
           enabled: this.showTooltip,
           mode: "index",
           intersect: false,
+          // راست‌چین و RTL بودن متن داخل تولتیپ
+          rtl: true,
+          textDirection: "rtl",
+          titleAlign: "right",
+          bodyAlign: "right",
+          footerAlign: "right",
           backgroundColor: "rgba(15,23,42,0.92)",
           titleFont: { family: "Vazir", size: 12 },
           bodyFont: { family: "Vazir", size: 11 },
@@ -1208,7 +1274,22 @@ class ChartDashboardService {
           ...(extra.tooltip || {}),
         },
         datalabels: {
-          display: false,
+          // پیش‌فرض «نمایش مقادیر»: وقتی تیک زده شود، روی همهٔ نمودارهای صفحه اعمال می‌شود
+          display: !!this.showDataLabels,
+          color: this.labelStyle.valueColor,
+          font: {
+            family: "Vazir",
+            size: this.labelStyle.valueSize,
+            weight: "bold",
+          },
+          anchor: "end",
+          align: "top",
+          formatter: (value) =>
+            value === null || value === undefined
+              ? ""
+              : Number(value).toLocaleString("fa-IR", {
+                  maximumFractionDigits: 2,
+                }),
           ...(extra.datalabels || {}),
         },
         zoom: {
@@ -1247,6 +1328,19 @@ class ChartDashboardService {
       } catch (e) {}
     }
     const ctx = canvas.getContext("2d");
+    // رنگ/اندازهٔ اعدادِ سری‌های استاندارد (خط هدف، بازهٔ min/max) از تنظیم «استاندارد» می‌آید
+    (datasets || []).forEach((ds) => {
+      if (ds && ds._isStd) {
+        ds.datalabels = {
+          color: this.labelStyle.stdColor,
+          font: {
+            family: "Vazir",
+            size: this.labelStyle.stdSize,
+            weight: "bold",
+          },
+        };
+      }
+    });
     this.chartInstances[id] = new Chart(ctx, {
       type: chartType,
       data: { labels, datasets },
@@ -1299,15 +1393,30 @@ class ChartDashboardService {
     const chartType =
       document.getElementById("mainChartType")?.value || "line";
 
+    // بازهٔ استاندارد متناسب با واحد شاخص فعلی: وزن=kg | افزایش وزن=kg/هفته | نرخ رشد=g/day
+    const mainBand =
+      main.key === "weightGain"
+        ? { min: "stdGainMin", max: "stdGainMax" }
+        : main.key === "dailyGain"
+          ? { min: "stdDailyGainMinGrams", max: "stdDailyGainMaxGrams" }
+          : { min: "stdMin", max: "stdMax" };
+
     // نمودار داینامیک اصلی (با استاندارد + بازه)
     const mainDatasets = this.buildFlockDatasets(selected, main.key, {
       stdKey: main.stdKey,
-      bandKey: { min: "stdMin", max: "stdMax" },
+      bandKey: mainBand,
       useSeriesSettings: true,
       showMeanLine: false, // خط میانگین استاندارد از نمودار اصلی حذف شده است
     });
     // سریهای مقایسه سایر مشتریان روی همه نمودارهای صفحه
     mainDatasets.push(...this.buildCompareDatasets(main.key));
+    // استانداردهای وزنی نژادهای انتخابی (خط هدف + بازه) روی نمودار اصلی
+    mainDatasets.push(
+      ...this.buildBreedStdDatasets({
+        stdKey: main.stdKey,
+        bandKey: mainBand,
+      }),
+    );
     this.renderChart(
       "mainChart",
       mainDatasets,
@@ -1363,8 +1472,12 @@ class ChartDashboardService {
         datalabels: this.showDataLabels
           ? {
               display: true,
-              color: "#1e293b",
-              font: { family: "Vazir", size: 9, weight: "bold" },
+              color: this.labelStyle.valueColor,
+              font: {
+                family: "Vazir",
+                size: this.labelStyle.valueSize,
+                weight: "bold",
+              },
               anchor: "end",
               align: "top",
               formatter: (value) =>
@@ -1403,10 +1516,7 @@ class ChartDashboardService {
     );
     this.renderChart(
       "fcrChart",
-      this.withCompare(
-        this.buildFlockDatasets(selected, "fcr", { stdKey: "stdFcr" }),
-        "fcr",
-      ),
+      this._buildFcrDatasets(selected),
       labels,
       "FCR",
       "line",
@@ -1582,6 +1692,22 @@ class ChartDashboardService {
       parseInt(document.getElementById("mainLineWidth")?.value) || 2;
     this.pointSize =
       parseInt(document.getElementById("mainPointSize")?.value) || 4;
+
+    // رنگ/اندازهٔ اعداد و استاندارد (ظاهر «نمایش مقادیر» و سری‌های استاندارد)
+    const gv = (id, fallback) => {
+      const el = document.getElementById(id);
+      return el ? el.value : fallback;
+    };
+    const sv = parseInt(gv("valueSize", ""), 10);
+    const ss = parseInt(gv("stdSize", ""), 10);
+    if (!isNaN(sv) && sv >= 7 && sv <= 16) this.labelStyle.valueSize = sv;
+    if (!isNaN(ss) && ss >= 7 && ss <= 16) this.labelStyle.stdSize = ss;
+    const vc = gv("valueColor", "");
+    const sc = gv("stdColor", "");
+    if (/^#[0-9a-fA-F]{6}$/.test(vc)) this.labelStyle.valueColor = vc;
+    if (/^#[0-9a-fA-F]{6}$/.test(sc)) this.labelStyle.stdColor = sc;
+    this._saveLabelStyle();
+
     this.renderAllCharts();
   }
 
@@ -1731,9 +1857,299 @@ class ChartDashboardService {
     this.chartInstances = {};
   }
 
+  // ===== ظاهر لیبل‌ها: رنگ/اندازهٔ اعداد و استاندارد =====
+  _loadLabelStyle() {
+    const d = {
+      valueColor: "#1e293b",
+      valueSize: 9,
+      stdColor: "#8b5cf6",
+      stdSize: 9,
+    };
+    try {
+      const saved = JSON.parse(
+        localStorage.getItem("skb-chart-label-style") || "{}",
+      );
+      if (saved && typeof saved === "object") {
+        if (saved.valueColor) d.valueColor = saved.valueColor;
+        if (saved.stdColor) d.stdColor = saved.stdColor;
+        const vs = parseInt(saved.valueSize, 10);
+        const ss = parseInt(saved.stdSize, 10);
+        if (!isNaN(vs) && vs >= 7 && vs <= 16) d.valueSize = vs;
+        if (!isNaN(ss) && ss >= 7 && ss <= 16) d.stdSize = ss;
+      }
+    } catch (e) {}
+    return d;
+  }
+
+  _saveLabelStyle() {
+    try {
+      localStorage.setItem(
+        "skb-chart-label-style",
+        JSON.stringify(this.labelStyle),
+      );
+    } catch (e) {}
+  }
+
+  // ===== سری‌سازی استاندارد وزنی نژادهای انتخابی =====
+  _overlayValues(ov, fieldKey) {
+    const map = {};
+    (ov && ov.rows ? ov.rows : []).forEach((r) => {
+      if (r && r.week_number != null) map[r.week_number] = r;
+    });
+    const num = (x) =>
+      x === null || x === undefined || x === "" ? null : parseFloat(x);
+    const arr = [];
+    for (let w = 1; w <= this.weekCount; w++) {
+      const row = map[w];
+      const prev = map[w - 1];
+      let v = null;
+      if (fieldKey === "stdWeight") v = row ? num(row.target_weight) : null;
+      else if (fieldKey === "stdMin")
+        v = row ? num(row.min_weight) : null;
+      else if (fieldKey === "stdMax")
+        v = row ? num(row.max_weight) : null;
+      else if (fieldKey === "stdFcr")
+        v = row ? num(row.standard_fcr) : null;
+      else if (fieldKey === "stdGain" || fieldKey === "stdDailyGainGrams") {
+        const cur = row ? num(row.target_weight) : null;
+        const pre = prev ? num(prev.target_weight) : null;
+        if (cur !== null && pre !== null) {
+          v = fieldKey === "stdGain" ? cur - pre : ((cur - pre) / 7) * 1000;
+        }
+      } else if (
+        fieldKey === "stdGainMin" ||
+        fieldKey === "stdGainMax" ||
+        fieldKey === "stdDailyGainMinGrams" ||
+        fieldKey === "stdDailyGainMaxGrams"
+      ) {
+        // بازهٔ رشد از اختلاف هفتگیِ min_weight/max_weightِ خودِ جدول مشتق می‌شود
+        const key =
+          fieldKey.indexOf("Min") !== -1 ? "min_weight" : "max_weight";
+        const isDaily = fieldKey.indexOf("DailyGain") !== -1;
+        const cur = row ? num(row[key]) : null;
+        const pre = prev ? num(prev[key]) : null;
+        if (cur !== null && pre !== null) {
+          const diff = cur - pre;
+          v = isDaily ? (diff / 7) * 1000 : diff;
+        }
+      }
+      arr.push(v);
+    }
+    return arr;
+  }
+
+  buildBreedStdDatasets(opts = {}) {
+    const datasets = [];
+    if (!this.breedStdOverlays || !this.breedStdOverlays.length)
+      return datasets;
+    const stdKey = opts.stdKey || "stdWeight";
+    const bandKey = opts.bandKey || null;
+    this.breedStdOverlays.forEach((ov) => {
+      const sKey = `breedStd:${ov.breedId}:actual`;
+      const s = this.seriesSettings[sKey];
+      if (s && s.visible === false) return;
+      const color = (s && s.color) || ov.color;
+      // خط هدف استاندارد نژاد انتخابی
+      datasets.push({
+        label: `استاندارد نژاد ${ov.breedName}`,
+        data: this._overlayValues(ov, stdKey),
+        borderColor: color,
+        borderDash: this.getLineDash(s && s.lineType, [5, 5]),
+        borderWidth: 2,
+        pointRadius: 0,
+        fill: false,
+        tension: 0,
+        _isStd: true,
+      });
+      // بازهٔ حداقل/حداکثر (فقط وقتی درخواست شود)
+      if (bandKey) {
+        const sMax = this.seriesSettings[`breedStd:${ov.breedId}:max`];
+        const sMin = this.seriesSettings[`breedStd:${ov.breedId}:min`];
+        const maxVisible = !(sMax && sMax.visible === false);
+        const minVisible = !(sMin && sMin.visible === false);
+        if (maxVisible) {
+          datasets.push({
+            label: `استاندارد نژاد ${ov.breedName} (حداکثر)`,
+            data: this._overlayValues(ov, bandKey.max),
+            borderColor: color,
+            borderDash: [3, 3],
+            borderWidth: 1,
+            pointRadius: 0,
+            fill: minVisible ? "+1" : false,
+            backgroundColor: `${color}18`,
+            tension: 0,
+            _isStd: true,
+          });
+        }
+        if (minVisible) {
+          datasets.push({
+            label: `استاندارد نژاد ${ov.breedName} (حداقل)`,
+            data: this._overlayValues(ov, bandKey.min),
+            borderColor: color,
+            borderDash: [3, 3],
+            borderWidth: 1,
+            pointRadius: 0,
+            fill: false,
+            backgroundColor: "transparent",
+            tension: 0,
+            _isStd: true,
+          });
+        }
+      }
+    });
+    return datasets;
+  }
+
   refresh() {
     this.destroyCharts();
     this.loadData();
+  }
+
+  // ===== پیکر انتخاب استاندارد وزنی نژاد (مثل مقایسه مشتریان) =====
+  async openBreedStdPicker() {
+    if (typeof Swal === "undefined") return;
+    try {
+      const all = await this._loadAllBreedStandards();
+      const groups = {};
+      all.forEach((r) => {
+        if (!r) return;
+        const bid = String(r.breed_id);
+        if (!groups[bid]) {
+          const b = r.breed || {};
+          groups[bid] = {
+            id: bid,
+            name: b.name || b.code || `نژاد ${bid}`,
+            count: 0,
+          };
+        }
+        groups[bid].count++;
+      });
+      const list = Object.keys(groups)
+        .map((k) => groups[k])
+        .sort((a, b) => (a.name || "").localeCompare(b.name || "", "fa"));
+      if (!list.length) {
+        notificationService.warning("هیچ استاندارد وزنی نژادی ثبت نشده است");
+        return;
+      }
+      const rows = list
+        .map(
+          (g) => `<label class="cmp-option-row">
+            <input type="checkbox" class="breedStd-candidate" value="${g.id}">
+            <span class="cmp-option-label">${g.name} (${g.count} هفته)</span>
+          </label>`,
+        )
+        .join("");
+      const res = await Swal.fire({
+        title: "افزودن استاندارد وزنی نژاد روی نمودار",
+        html: `<div style="text-align:right;direction:rtl;font-family:Vazir,sans-serif;">
+               <p style="font-size:11px;color:#64748b;margin-bottom:8px;">استانداردهای نژادهای دلخواه مانند خط هدف + بازهٔ حداقل/حداکثر روی نمودار اصلی و FCR نمایش داده می‌شوند (حداکثر ۸ نژاد).</p>
+               <div class="cmp-option-list">${rows}</div>
+             </div>`,
+        showCancelButton: true,
+        confirmButtonText: "افزودن به نمودار",
+        cancelButtonText: "انصراف",
+        confirmButtonColor: "#2c7a6e",
+        preConfirm: () => {
+          const picked = [
+            ...document.querySelectorAll(".breedStd-candidate:checked"),
+          ].map((i) => i.value);
+          if (!picked.length) {
+            Swal.showValidationMessage("حداقل یک نژاد انتخاب کنید");
+            return false;
+          }
+          return picked;
+        },
+      });
+      if (res.isConfirmed && res.value) {
+        this._addBreedStdOverlays(res.value);
+      }
+    } catch (error) {
+      console.error("❌ Error opening breed standard picker:", error);
+      notificationService.error("خطا در دریافت استانداردهای وزنی نژاد");
+    }
+  }
+
+  async _loadAllBreedStandards() {
+    if (this._allBreedStd && Array.isArray(this._allBreedStd))
+      return this._allBreedStd;
+    const res = await chartDashboardApi.getBreedStandards();
+    if (!res.success) throw new Error(res.message || "خطا در دریافت استانداردها");
+    this._allBreedStd = Array.isArray(res.data) ? res.data : [];
+    return this._allBreedStd;
+  }
+
+  _addBreedStdOverlays(breedIds) {
+    const all = this._allBreedStd || [];
+    const usedColors = new Set(
+      [...this.activeUnits, ...this.compareUnits, ...this.breedStdOverlays]
+        .map((u) => u && u.color)
+        .filter(Boolean),
+    );
+    let added = 0;
+    (breedIds || []).forEach((breedIdRaw) => {
+      const breedId = String(breedIdRaw);
+      if (this.breedStdOverlays.some((o) => String(o.breedId) === breedId))
+        return;
+      if (this.breedStdOverlays.length >= 8) {
+        notificationService.info("حداکثر ۸ استاندارد نژاد مجاز است");
+        return;
+      }
+      const rows = all.filter((r) => String(r.breed_id) === breedId);
+      if (!rows.length) return;
+      const breedObj = rows[0].breed || {};
+      const breedName = breedObj.name || breedObj.code || `نژاد ${breedId}`;
+      let color = PALETTE[this._breedColorIndex % PALETTE.length];
+      for (let off = 0; off < PALETTE.length; off++) {
+        const c = PALETTE[(this._breedColorIndex + off) % PALETTE.length];
+        if (!usedColors.has(c) || off === PALETTE.length - 1) {
+          color = c;
+          this._breedColorIndex =
+            (this._breedColorIndex + off + 1) % PALETTE.length;
+          break;
+        }
+      }
+      usedColors.add(color);
+      const sorted = rows
+        .slice()
+        .sort((a, b) => (a.week_number || 0) - (b.week_number || 0));
+      this.breedStdOverlays.push({
+        _uid: `breedStd:${breedId}`,
+        breedId,
+        breedName,
+        color,
+        rows: sorted,
+      });
+      added++;
+    });
+    if (added > 0) {
+      this.rerenderCharts();
+      notificationService.success(
+        `${added} استاندارد نژاد به نمودار اضافه شد`,
+      );
+    }
+  }
+
+  removeBreedStdSeries(breedIdStr) {
+    const breedId = String(breedIdStr || "");
+    if (!breedId) return;
+    this.breedStdOverlays = this.breedStdOverlays.filter(
+      (o) => String(o.breedId) !== breedId,
+    );
+    Object.keys(this.seriesSettings).forEach((k) => {
+      if (k.indexOf(`breedStd:${breedId}:`) === 0)
+        delete this.seriesSettings[k];
+    });
+    this.rerenderCharts();
+    notificationService.success("استاندارد نژاد حذف شد");
+  }
+
+  _buildFcrDatasets(selected) {
+    const datasets = this.buildFlockDatasets(selected, "fcr", {
+      stdKey: "stdFcr",
+    });
+    this.buildCompareDatasets("fcr").forEach((d) => datasets.push(d));
+    datasets.push(...this.buildBreedStdDatasets({ stdKey: "stdFcr" }));
+    return datasets;
   }
 
   destroy() {
