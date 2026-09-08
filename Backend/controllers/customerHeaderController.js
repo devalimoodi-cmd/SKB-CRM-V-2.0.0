@@ -53,6 +53,7 @@ const getCustomerHeaderInfo = async (req, res) => {
     const customer = await CustomerPersonalInfo.findByPk(id, {
       attributes: [
         "id",
+        "customer_code",
         "full_name",
         "farm_name",
         "collection_name",
@@ -234,6 +235,7 @@ const getCustomerHeaderInfo = async (req, res) => {
     const responseData = {
       customer: {
         id: customer.id,
+        customer_code: customer.customer_code,
         full_name: customer.full_name,
         farm_name: customer.farm_name,
         collection_name: customer.collection_name,

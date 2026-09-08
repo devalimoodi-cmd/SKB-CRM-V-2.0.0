@@ -50,6 +50,17 @@ const registerCustomer = async (req, res) => {
       );
     }
 
+    // ✅ دریافت کد پایدار مشتری از سکوئنس اختصاصی (حتی بعد از حذف رکوردها بازاستفاده نمی‌شود)
+    let customerCode = null;
+    try {
+      const [seqRows] = await CustomerPersonalInfo.sequelize.query(
+        "SELECT nextval('customer_code_seq') AS code",
+      );
+      customerCode = Number(seqRows?.[0]?.code);
+    } catch (e) {
+      console.error("❌ خطا در دریافت کد مشتری از سکوئنس:", e.message);
+    }
+
     // ✅ دریافت userId از توکن
     const userId = req.user?.id || null;
     console.log(`👤 کاربر ثبت‌کننده: ${userId}`);
@@ -66,6 +77,7 @@ const registerCustomer = async (req, res) => {
 
     // ایجاد مشتری جدید
     const customer = await CustomerPersonalInfo.create({
+      customer_code: customerCode,
       collection_name: req.body.collection_name || null,
       full_name: req.body.full_name,
       farm_name: req.body.farm_name,
@@ -95,6 +107,7 @@ const registerCustomer = async (req, res) => {
       res,
       {
         id: customer.id,
+        customer_code: customer.customer_code,
         full_name: customer.full_name,
         email: customer.email,
         mobile_number: customer.mobile_number,

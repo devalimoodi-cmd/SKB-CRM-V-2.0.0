@@ -9,7 +9,7 @@ export const DICTIONARY_SCHEMAS = {
   "hall-types": {
     title: "انواع سالن",
     icon: "fa-warehouse",
-    canToggle: false,
+    canToggle: true,
     fields: [
       { key: "name", label: "نام", type: "text", required: true },
       { key: "description", label: "توضیحات", type: "textarea" },
@@ -21,7 +21,7 @@ export const DICTIONARY_SCHEMAS = {
   "chick-sources": {
     title: "مبدا جوجه",
     icon: "fa-truck",
-    canToggle: false,
+    canToggle: true,
     fields: [
       { key: "name", label: "نام", type: "text", required: true },
       { key: "description", label: "توضیحات", type: "textarea" },
@@ -33,7 +33,7 @@ export const DICTIONARY_SCHEMAS = {
   "chicken-breeds": {
     title: "نژاد جوجه",
     icon: "fa-dna",
-    canToggle: false,
+    canToggle: true,
     fields: [
       { key: "code", label: "کد", type: "text", required: true },
       { key: "name", label: "نام", type: "text", required: true },
@@ -249,9 +249,9 @@ export const DICTIONARY_SCHEMAS = {
     ],
   },
 
-  // ==================== وضعیت دوره ====================
-  "period-statuses": {
-    title: "وضعیت دوره‌ها",
+  // ==================== وضعیت واحد ====================
+  "unit-statuses": {
+    title: "وضعیت واحد",
     icon: "fa-flag",
     canToggle: true,
     fields: [
@@ -260,6 +260,69 @@ export const DICTIONARY_SCHEMAS = {
       { key: "color", label: "رنگ", type: "color" },
       { key: "sort_order", label: "ترتیب", type: "number" },
       { key: "active", label: "فعال", type: "boolean" },
+    ],
+  },
+
+  // ==================== استانداردهای وزنی نژاد ====================
+  // این جدول از API مستقل /api/breed-standards استفاده می‌کند (نه /api/dictionary)
+  // توجه: apiBase بدون پیشوند /api نوشته می‌شود چون apiService خودش آن را اضافه می‌کند
+  "breed-standards": {
+    title: "استانداردهای وزنی نژاد",
+    icon: "fa-weight-hanging",
+    apiBase: "/breed-standards",
+    canToggle: true,
+    activeKey: "is_active",
+    fields: [
+      {
+        key: "breed_id",
+        label: "نژاد",
+        type: "select",
+        required: true,
+        optionsSource: {
+          endpoint: "chicken-breeds",
+          valueKey: "id",
+          labelKey: "name",
+          codeKey: "code",
+        },
+      },
+      {
+        key: "week_number",
+        label: "هفته",
+        type: "number",
+        required: true,
+        min: 1,
+        max: 12,
+      },
+      { key: "age_days", label: "سن (روز)", type: "number", required: true, min: 1, max: 100 },
+      {
+        key: "target_weight",
+        label: "وزن هدف (کیلوگرم)",
+        type: "number",
+        required: true,
+        min: 0,
+      },
+      { key: "min_weight", label: "حداقل وزن (کیلوگرم)", type: "number", min: 0 },
+      { key: "max_weight", label: "حداکثر وزن (کیلوگرم)", type: "number", min: 0 },
+      { key: "standard_fcr", label: "FCR استاندارد", type: "number", min: 0 },
+      {
+        key: "standard_feed_intake",
+        label: "مصرف خوراک استاندارد (کیلوگرم)",
+        type: "number",
+        min: 0,
+      },
+      {
+        key: "source_type",
+        label: "منبع استاندارد",
+        type: "select",
+        options: [
+          { value: "system", label: "سیستمی" },
+          { value: "user", label: "کاربر" },
+          { value: "breed_company", label: "شرکت نژاد" },
+          { value: "custom", label: "سفارشی" },
+        ],
+      },
+      { key: "source_description", label: "توضیحات منبع", type: "textarea" },
+      { key: "is_default", label: "استاندارد پیش‌فرض", type: "boolean" },
     ],
   },
 };

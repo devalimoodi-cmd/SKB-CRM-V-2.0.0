@@ -4,10 +4,94 @@
 // ================================================================
 
 import { dictionaryApi } from "./dictionary.api.js";
+import { apiService } from "../../core/services/api.service.js";
 import {
   getAllDictionarySchemas,
   getDictionarySchema,
 } from "./dictionary.schemas.js";
+
+// ایمن‌سازی خروجی HTML در برابر کاراکترهای ویژه (جلوگیری از شکستن مودال/XSS)
+const escapeHtml = (value) => {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+};
+
+// تبدیل خطای خام دیتابیس هنگام حذف (مانند محدودیت کلید خارجی) به پیام فارسی
+const friendlyDeleteError = (msg) => {
+  if (!msg) return null;
+  if (/foreign key|violates|constraint/i.test(msg)) {
+    return "این رکورد در حال استفاده است و قابل حذف نیست؛ ابتدا ارجاع‌های آن را حذف کنید یا رکورد را غیرفعال کنید.";
+  }
+  return msg;
+};
+
+// نرمال‌سازی مسیر apiBase: پیشوند /api خودکار توسط apiService اضافه می‌شود،
+// پس اگر اشتباهاً /api/... نوشته شده باشد حذفش می‌کنیم تا آدرس دوبار /api نشود
+const normalizeApiPath = (path) => {
+  if (!path) return path;
+  const cleaned = path.replace(/^\/api(?=\/|$)/, "");
+  return cleaned || path;
+};
+
+// ===== آیکون‌های فیلدها (فونت‌آوسام — بدون ایموجی) =====
+const FIELD_ICONS = {
+  name: "fa-tag",
+  code: "fa-hashtag",
+  description: "fa-align-left",
+  treatment: "fa-notes-medical",
+  category: "fa-folder-open",
+  sort_order: "fa-sort-amount-down",
+  color: "fa-palette",
+  active: "fa-toggle-on",
+  is_active: "fa-toggle-on",
+  is_default: "fa-star",
+  breed_id: "fa-dna",
+  week_number: "fa-calendar-week",
+  age_days: "fa-calendar-day",
+  target_weight: "fa-weight-hanging",
+  min_weight: "fa-arrow-down",
+  max_weight: "fa-arrow-up",
+  standard_fcr: "fa-calculator",
+  standard_feed_intake: "fa-seedling",
+  source_type: "fa-code-branch",
+  source_description: "fa-file-alt",
+  protein_percentage: "fa-percent",
+  feed_stage: "fa-drumstick-bite",
+  booster_needed: "fa-syringe",
+  booster_days: "fa-hourglass-half",
+  immunity_duration: "fa-shield-alt",
+  storage_temp: "fa-thermometer-half",
+  dilution_ratio: "fa-arrows-alt-h",
+  precautions: "fa-shield-alt",
+  notes: "fa-sticky-note",
+  disease_ids: "fa-virus",
+  vaccine_ids: "fa-syringe",
+  medicine_ids: "fa-pills",
+  feed_type_ids: "fa-seedling",
+  suggestion_ids: "fa-lightbulb",
+  ventilation_method: "fa-wind",
+  fan_type: "fa-fan",
+  air_flow_direction: "fa-compass",
+  automatic_control: "fa-robot",
+  automatic: "fa-robot",
+  waterer_category: "fa-tags",
+  material: "fa-cube",
+  capacity: "fa-tachometer-alt",
+  bird_count: "fa-egg",
+};
+
+const FIELD_TYPE_ICONS = {
+  text: "fa-pen",
+  textarea: "fa-align-left",
+  number: "fa-hashtag",
+  select: "fa-list-alt",
+  boolean: "fa-toggle-on",
+  color: "fa-palette",
+};
 
 class DictionaryManager {
   constructor() {
@@ -16,6 +100,115 @@ class DictionaryManager {
     this.schema = null;
     this.data = [];
     this.container = null;
+    this.selectOptions = {};
+  }
+
+  // کلید ستون وضعیت (پیش‌فرض active؛ برخی جداول مثل استاندارد وزنی is_active دارند)
+  get activeKey() {
+    return (this.schema && this.schema.activeKey) || "active";
+  }
+
+  // ===== گزینه‌های یک فیلد select =====
+  getSelectOptions(field) {
+    return (
+      this.selectOptions[`${this.currentKey}:${field.key}`] || []
+    );
+  }
+
+  // ===== بارگذاری گزینه‌های فیلدهای select (استاتیک یا از دیکشنری دیگر) =====
+  async loadSelectOptions() {
+    if (!this.schema) return;
+    const tasks = this.schema.fields
+      .filter(
+        (f) =>
+          f.type === "select" &&
+          !this.selectOptions[`${this.currentKey}:${f.key}`],
+      )
+      .map(async (field) => {
+        let options = [];
+        if (Array.isArray(field.options)) {
+          options = field.options.map((o) =>
+            typeof o === "object" && o !== null
+              ? { value: o.value, label: o.label }
+              : { value: o, label: String(o) },
+          );
+        } else if (field.optionsSource) {
+          try {
+            const res = await dictionaryApi.getData(
+              field.optionsSource.endpoint,
+              { active: "all" },
+            );
+            const rows = Array.isArray(res.data) ? res.data : [];
+            const {
+              valueKey = "id",
+              labelKey = "name",
+              codeKey = null,
+            } = field.optionsSource;
+            options = rows.map((r) => ({
+              value: r[valueKey],
+              label:
+                codeKey && r[codeKey]
+                  ? `${r[labelKey]} (${r[codeKey]})`
+                  : r[labelKey],
+            }));
+          } catch (err) {
+            console.error("❌ خطا در بارگذاری گزینه‌ها:", err);
+          }
+        }
+        this.selectOptions[`${this.currentKey}:${field.key}`] = options;
+      });
+    await Promise.all(tasks);
+  }
+
+  // برچسب خوانا برای مقدار یک فیلد select (در جدول و پیام حذف)
+  getSelectLabel(field, rawValue) {
+    if (rawValue === null || rawValue === undefined) return "";
+    if (field.type !== "select") return String(rawValue);
+    const opt = this.getSelectOptions(field).find(
+      (o) => String(o.value) === String(rawValue),
+    );
+    return opt ? opt.label : String(rawValue);
+  }
+
+  // آیکون فونت‌آوسام مناسب هر فیلد (اول آیکون صریح، بعد کلید، بعد نوع فیلد)
+  getFieldIcon(field) {
+    if (!field) return "fa-i-cursor";
+    if (field.icon) return field.icon;
+    if (FIELD_ICONS[field.key]) return FIELD_ICONS[field.key];
+    return FIELD_TYPE_ICONS[field.type] || "fa-i-cursor";
+  }
+
+  // ===== لایه درخواست‌ها: جداول مستقل با schema.apiBase مستقیم صدا زده می‌شوند =====
+  apiGet() {
+    const base = normalizeApiPath(this.schema?.apiBase);
+    if (base) {
+      return apiService.get(base, { active: "all" });
+    }
+    return dictionaryApi.getData(this.currentKey, { active: "all" });
+  }
+
+  apiCreate(payload) {
+    const base = normalizeApiPath(this.schema?.apiBase);
+    if (base) {
+      return apiService.post(base, payload);
+    }
+    return dictionaryApi.create(this.currentKey, payload);
+  }
+
+  apiUpdate(id, payload) {
+    const base = normalizeApiPath(this.schema?.apiBase);
+    if (base) {
+      return apiService.put(`${base}/${id}`, payload);
+    }
+    return dictionaryApi.update(this.currentKey, id, payload);
+  }
+
+  apiDelete(id) {
+    const base = normalizeApiPath(this.schema?.apiBase);
+    if (base) {
+      return apiService.delete(`${base}/${id}`);
+    }
+    return dictionaryApi.delete(this.currentKey, id);
   }
 
   // ===== مقداردهی =====
@@ -125,9 +318,9 @@ class DictionaryManager {
     `;
 
     try {
-      const res = await dictionaryApi.getData(this.currentKey, {
-        active: "all",
-      });
+      // ابتدا گزینه‌های فیلدهای select (مثلاً لیست نژادها) بارگذاری می‌شوند
+      await this.loadSelectOptions();
+      const res = await this.apiGet();
       this.data = Array.isArray(res.data) ? res.data : [];
       this.renderTable();
     } catch (error) {
@@ -149,43 +342,59 @@ class DictionaryManager {
 
     const fields = this.schema.fields;
     const canToggle = this.schema.canToggle !== false;
+    // فیلد active برای جدول‌های toggle‌دار در ستون مستقل «وضعیت» نمایش داده می‌شود،
+    // بنابراین از ستون‌های عادی حذف می‌شود تا تکراری نباشد.
+    const displayFields = canToggle
+      ? fields.filter(
+          (f) => f.key !== "active" && f.key !== this.activeKey,
+        )
+      : fields;
+    // تعداد کل ستون‌ها: شناسه + فیلدها + (وضعیت) + عملیات
+    const totalCols = 1 + displayFields.length + (canToggle ? 1 : 0) + 1;
 
-    // سرستون‌ها — دقیقاً نام ستون‌های دیتابیس (کلید) هر جدول
-    const theadCols = fields.map((f) => `<th>${f.key}</th>`).join("");
+    // سرستون‌ها — برچسب فارسی هر فیلد
+    const theadCols = displayFields
+      .map((f) => `<th>${f.label}</th>`)
+      .join("");
     // ستون وضعیت فقط برای جداولی که active دارند
-    const statusCol = canToggle ? `<th>active</th>` : "";
+    const statusCol = canToggle ? `<th>وضعیت</th>` : "";
     const actionCol = `<th>عملیات</th>`;
-
-    // تعداد ستون‌ها برای colspan = 1(id) + fields + (وضعیت) + 1(عملیات)
-    const extraCols = canToggle ? 3 : 2;
 
     let rows = "";
     if (this.data.length === 0) {
       rows = `
         <tr>
-          <td colspan="${fields.length + extraCols}" style="text-align:center; color:#94a3b8; padding:40px;">
+          <td colspan="${totalCols}" style="text-align:center; color:#94a3b8; padding:40px;">
             <i class="fas fa-inbox" style="font-size:28px; display:block; margin-bottom:10px;"></i>
             هیچ رکوردی یافت نشد
           </td>
         </tr>
       `;
     } else {
-      const allActive = (item) => item.active !== false;
+      const allActive = (item) => item[this.activeKey] !== false;
 
       rows = this.data
         .map((item) => {
-          const cells = fields
+          const cells = displayFields
             .map((f) => {
-              let value = item[f.key];
-              if (value === null || value === undefined) value = "-";
+              const raw = item[f.key];
+              if (raw === null || raw === undefined) return `<td>-</td>`;
+
               if (f.type === "boolean") {
-                value = value ? "✅ بله" : "❌ خیر";
-              } else if (f.type === "color" && value) {
-                value = `<span class="dict-color-chip"><span style="background:${value}"></span>${value}</span>`;
-              } else if (String(value).length > 60) {
-                value = String(value).substring(0, 60) + "...";
+                return `<td>${raw ? "✅ بله" : "❌ خیر"}</td>`;
               }
-              return `<td>${value}</td>`;
+
+              if (f.type === "color") {
+                const hex = escapeHtml(raw);
+                return `<td><span class="dict-color-chip"><span style="background:${hex}"></span>${hex}</span></td>`;
+              }
+
+              let text =
+                f.type === "select"
+                  ? escapeHtml(this.getSelectLabel(f, raw) || String(raw))
+                  : escapeHtml(String(raw));
+              if (text.length > 60) text = text.substring(0, 60) + "...";
+              return `<td>${text}</td>`;
             })
             .join("");
 
@@ -227,7 +436,7 @@ class DictionaryManager {
         <table class="dict-table">
           <thead>
             <tr>
-              <th>id</th>
+              <th>شناسه</th>
               ${theadCols}
               ${statusCol}
               ${actionCol}
@@ -249,14 +458,17 @@ class DictionaryManager {
       .map((f) => {
         const value =
           data[f.key] !== undefined && data[f.key] !== null ? data[f.key] : "";
+        const fieldIcon = this.getFieldIcon(f);
+        const isWide = f.type === "textarea" || f.wide === true;
+        const typeClass = `dict-ft-${f.type}`;
         let input = "";
 
         switch (f.type) {
           case "textarea":
-            input = `<textarea id="dict-field-${f.key}" rows="3" placeholder=" ">${value}</textarea>`;
+            input = `<textarea id="dict-field-${f.key}" rows="3" placeholder=" ">${escapeHtml(value)}</textarea>`;
             break;
           case "number":
-            input = `<input type="number" id="dict-field-${f.key}" value="${value}" step="any">`;
+            input = `<input type="number" id="dict-field-${f.key}" value="${escapeHtml(value)}" step="any"${f.min !== undefined ? ` min="${f.min}"` : ""}${f.max !== undefined ? ` max="${f.max}"` : ""}>`;
             break;
           case "boolean":
             input = `
@@ -269,18 +481,51 @@ class DictionaryManager {
               </div>
             `;
             break;
+          case "select": {
+            const options = this.getSelectOptions(f);
+            const hasValue =
+              value !== "" && value !== null && value !== undefined;
+            const optionsHtml = options
+              .map(
+                (o) =>
+                  `<option value="${escapeHtml(o.value)}" ${
+                    hasValue && String(o.value) === String(value)
+                      ? "selected"
+                      : ""
+                  }>${escapeHtml(o.label)}</option>`,
+              )
+              .join("");
+            // اگر هنوز گزینه‌ای بارگذاری نشده اما مقداری وجود دارد، همان مقدار نمایش داده شود
+            const fallbackHtml =
+              !hasValue && options.length === 0
+                ? '<option value="" disabled selected>— گزینه‌ای یافت نشد —</option>'
+                : "";
+            const placeholderHtml =
+              hasValue || options.length === 0
+                ? ""
+                : '<option value="" disabled selected>— انتخاب کنید —</option>';
+            input = `<select id="dict-field-${f.key}" ${f.required ? "required" : ""}>
+              ${placeholderHtml}
+              ${fallbackHtml}
+              ${optionsHtml}
+            </select>`;
+            break;
+          }
           case "color":
-            input = `<input type="color" id="dict-field-${f.key}" value="${value || "#000000"}">`;
+            input = `<input type="color" id="dict-field-${f.key}" value="${escapeHtml(value || "#000000")}">`;
             break;
           default:
-            input = `<input type="text" id="dict-field-${f.key}" value="${value}" placeholder=" ">`;
+            input = `<input type="text" id="dict-field-${f.key}" value="${escapeHtml(value)}" placeholder=" ">`;
         }
 
         return `
-          <div class="dict-form-field ${f.required ? "required" : ""}">
-            <label for="dict-field-${f.key}">${f.label}</label>
+          <div class="dict-form-field ${f.required ? "required" : ""} ${typeClass} ${isWide ? "wide" : ""}">
+            <label for="dict-field-${f.key}">
+              <span class="dict-field-icon"><i class="fas ${fieldIcon}"></i></span>
+              <span class="dict-field-label-text">${f.label}</span>
+              ${f.required ? '<span class="dict-required-star">*</span>' : ""}
+            </label>
             ${input}
-            ${f.required ? '<span class="dict-required-star">*</span>' : ""}
           </div>
         `;
       })
@@ -301,6 +546,15 @@ class DictionaryManager {
         data[f.key] = el.checked;
       } else if (f.type === "color") {
         data[f.key] = rawValue || null;
+      } else if (f.type === "select") {
+        if (rawValue === "") {
+          data[f.key] = null;
+        } else {
+          const opt = this.getSelectOptions(f).find(
+            (o) => String(o.value) === String(rawValue),
+          );
+          data[f.key] = opt ? opt.value : rawValue;
+        }
       } else {
         data[f.key] = rawValue !== "" ? rawValue : null;
       }
@@ -331,9 +585,9 @@ class DictionaryManager {
 
     const formHtml = this.buildFormHtml();
     Swal.fire({
-      title: `<i class="fas ${this.schema.icon}"></i> ایجاد رکورد جدید در «${this.schema.title}»`,
-      html: formHtml,
-      width: "620px",
+      title: `<div class="dict-modal-title"><span class="dict-modal-title-icon"><i class="fas ${this.schema.icon}"></i></span><span class="dict-modal-title-text">ایجاد رکورد جدید در «${this.schema.title}»</span></div>`,
+      html: `<div class="dict-form-grid">${formHtml}</div>`,
+      width: "780px",
       confirmButtonText: "ایجاد",
       cancelButtonText: "انصراف",
       showCancelButton: true,
@@ -349,7 +603,7 @@ class DictionaryManager {
           return false;
         }
         try {
-          const res = await dictionaryApi.create(this.currentKey, data);
+          const res = await this.apiCreate(data);
           if (res.success) return data;
           Swal.showValidationMessage(res.message || "خطا در ایجاد رکورد");
           return false;
@@ -362,7 +616,7 @@ class DictionaryManager {
       if (result.isConfirmed) {
         Swal.fire({
           icon: "success",
-          title: "✅ ایجاد شد",
+          title: '<i class="fas fa-check-circle" style="color:#16a34a"></i> ایجاد شد',
           text: "رکورد جدید با موفقیت ایجاد شد",
           timer: 1500,
           showConfirmButton: false,
@@ -385,9 +639,9 @@ class DictionaryManager {
 
     const formHtml = this.buildFormHtml(item);
     Swal.fire({
-      title: `<i class="fas ${this.schema.icon}"></i> ویرایش رکورد #${id}`,
-      html: formHtml,
-      width: "620px",
+      title: `<div class="dict-modal-title"><span class="dict-modal-title-icon"><i class="fas ${this.schema.icon}"></i></span><span class="dict-modal-title-text">ویرایش رکورد #${id}</span></div>`,
+      html: `<div class="dict-form-grid">${formHtml}</div>`,
+      width: "780px",
       confirmButtonText: "ذخیره",
       cancelButtonText: "انصراف",
       showCancelButton: true,
@@ -403,7 +657,7 @@ class DictionaryManager {
           return false;
         }
         try {
-          const res = await dictionaryApi.update(this.currentKey, id, data);
+          const res = await this.apiUpdate(id, data);
           if (res.success) return data;
           Swal.showValidationMessage(res.message || "خطا در ذخیره");
           return false;
@@ -416,7 +670,7 @@ class DictionaryManager {
       if (result.isConfirmed) {
         Swal.fire({
           icon: "success",
-          title: "✅ ذخیره شد",
+          title: '<i class="fas fa-check-circle" style="color:#16a34a"></i> ذخیره شد',
           timer: 1500,
           showConfirmButton: false,
         });
@@ -432,11 +686,15 @@ class DictionaryManager {
     const item = this.data.find((d) => d.id == id);
     // استفاده از اولین فیلد schema برای نمایش نام رکورد (هماهنگ با هر جدول)
     const firstField = this.schema.fields[0];
-    const displayValue = item?.[firstField.key];
-    const name = displayValue || `#${id}`;
+    const rawValue = item?.[firstField.key];
+    const displayValue =
+      firstField.type === "select"
+        ? this.getSelectLabel(firstField, rawValue)
+        : rawValue;
+    const name = escapeHtml(displayValue || `#${id}`);
 
     const confirmResult = await Swal.fire({
-      title: "⚠️ تأیید حذف",
+      title: '<i class="fas fa-trash-alt" style="color:#dc2626"></i> تأیید حذف',
       html: `آیا از حذف <strong>«${name}»</strong> اطمینان دارید؟`,
       icon: "warning",
       showCancelButton: true,
@@ -450,11 +708,11 @@ class DictionaryManager {
     if (!confirmResult.isConfirmed) return;
 
     try {
-      const res = await dictionaryApi.delete(this.currentKey, id);
+      const res = await this.apiDelete(id);
       if (res.success) {
         Swal.fire({
           icon: "success",
-          title: "✅ حذف شد",
+          title: '<i class="fas fa-check-circle" style="color:#16a34a"></i> حذف شد',
           text: "رکورد با موفقیت حذف شد",
           timer: 1500,
           showConfirmButton: false,
@@ -463,14 +721,14 @@ class DictionaryManager {
       } else {
         Swal.fire({
           icon: "error",
-          title: "❌ خطا",
-          text: res.message || "حذف انجام نشد",
+          title: '<i class="fas fa-times-circle" style="color:#dc2626"></i> خطا',
+          text: friendlyDeleteError(res.message) || "حذف انجام نشد",
         });
       }
     } catch (error) {
       Swal.fire({
         icon: "error",
-        title: "❌ خطا",
+        title: '<i class="fas fa-times-circle" style="color:#dc2626"></i> خطا',
         text: error.message || "خطا در ارتباط با سرور",
       });
     }
@@ -483,16 +741,18 @@ class DictionaryManager {
     const item = this.data.find((d) => d.id == id);
     if (!item) return;
 
-    const newActive = item.active === false;
+    const newActive = item[this.activeKey] === false;
 
     try {
-      const res = await dictionaryApi.update(this.currentKey, id, {
-        active: newActive,
+      const res = await this.apiUpdate(id, {
+        [this.activeKey]: newActive,
       });
       if (res.success) {
         Swal.fire({
           icon: "success",
-          title: newActive ? "✅ فعال شد" : "⏸ غیرفعال شد",
+          title: newActive
+            ? '<i class="fas fa-check-circle" style="color:#16a34a"></i> فعال شد'
+            : '<i class="fas fa-pause-circle" style="color:#d97706"></i> غیرفعال شد',
           timer: 1000,
           showConfirmButton: false,
         });

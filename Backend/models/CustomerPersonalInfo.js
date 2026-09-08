@@ -9,6 +9,11 @@ const CustomerPersonalInfo = sequelize.define(
       primaryKey: true,
       autoIncrement: true,
     },
+    customer_code: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      comment: "کد پایدار مشتری (کسب‌وکاری) - از سکوئنس جداگانه و هرگز بازاستفاده نمی‌شود",
+    },
     collection_name: {
       type: DataTypes.STRING(200),
       allowNull: true,

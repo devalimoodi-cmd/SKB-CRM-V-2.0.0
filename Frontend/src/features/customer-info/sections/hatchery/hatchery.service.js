@@ -10,6 +10,32 @@ import {
   convertToPersianDate,
 } from "../../../../core/utils/date.utils.js";
 
+// نمایش تاریخ کشتار به‌صورت بازه‌ای (شروع/پایان)؛ رکوردهای قدیمی تک‌تاریخی هم پشتیبانی می‌شوند
+const formatSlaughterRange = (completion) => {
+  if (!completion) return "-";
+  const start = completion.slaughter_date || null;
+  const end = completion.slaughter_end_date || null;
+  if (!start && !end) return "-";
+  if (!end || end === start) {
+    return convertToPersianDate(start || end);
+  }
+  return `${convertToPersianDate(start)} تا ${convertToPersianDate(end)}`;
+};
+
+// نمایش سن کشتار به‌صورت بازه‌ای (شروع/پایان)؛ رکوردهای قدیمی تک‌عددی هم پشتیبانی می‌شوند
+const formatAgeRange = (completion) => {
+  if (!completion) return "-";
+  const start = completion.slaughter_age_days;
+  const end = completion.slaughter_age_end_days;
+  const hasStart = start !== null && start !== undefined;
+  const hasEnd = end !== null && end !== undefined;
+  if (!hasStart && !hasEnd) return "-";
+  if (!hasEnd || Number(end) === Number(start)) {
+    return `${hasStart ? start : end} روز`;
+  }
+  return `${start}-${end} روز`;
+};
+
 class HatcheryService {
   constructor() {
     this.customerId = null;
@@ -1929,12 +1955,12 @@ class HatcheryService {
       <div style="margin-top:16px;">
         <h4 style="color:#0d9488;font-size:14px;margin:0 0 8px;border-bottom:2px solid #ccfbf1;padding-bottom:5px;"><i class="fas fa-flag-checkered"></i> اطلاعات پایان دوره و کشتار</h4>
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:10px;">
-          <div style="background:#f8fafc;border-radius:10px;padding:7px 10px;font-size:11px;color:#64748b;">تاریخ کشتار<br><b style="color:#0f172a;">${c.slaughter_date ? convertToPersianDate(c.slaughter_date) : "-"}</b></div>
+          <div style="background:#f8fafc;border-radius:10px;padding:7px 10px;font-size:11px;color:#64748b;">تاریخ کشتار<br><b style="color:#0f172a;">${formatSlaughterRange(c)}</b></div>
           <div style="background:#f8fafc;border-radius:10px;padding:7px 10px;font-size:11px;color:#64748b;">کشتارگاه<br><b style="color:#0f172a;">${c.slaughterhouse_name || "-"}</b></div>
           <div style="background:#f8fafc;border-radius:10px;padding:7px 10px;font-size:11px;color:#64748b;">ارسالی به کشتارگاه<br><b style="color:#0f172a;">${fmt(c.total_sent)} قطعه</b></div>
           <div style="background:#f8fafc;border-radius:10px;padding:7px 10px;font-size:11px;color:#64748b;">وزن کل زنده<br><b style="color:#0f172a;">${fmt(c.total_live_weight)} کیلوگرم</b></div>
           <div style="background:#f8fafc;border-radius:10px;padding:7px 10px;font-size:11px;color:#64748b;">میانگین وزن<br><b style="color:#0f172a;">${fmt(c.avg_live_weight, 3)} کیلوگرم</b></div>
-          <div style="background:#f8fafc;border-radius:10px;padding:7px 10px;font-size:11px;color:#64748b;">سن کشتار<br><b style="color:#0f172a;">${c.slaughter_age_days ? `${c.slaughter_age_days} روز` : "-"}</b></div>
+          <div style="background:#f8fafc;border-radius:10px;padding:7px 10px;font-size:11px;color:#64748b;">سن کشتار<br><b style="color:#0f172a;">${formatAgeRange(c)}</b></div>
         </div>
         <div style="background:#f8fafc;border:1px solid #eef2f6;border-radius:12px;padding:10px 14px;margin-bottom:10px;">
           <div style="font-size:12px;font-weight:800;color:#0f172a;margin-bottom:6px;">شاخصها (سیستمی / اعلامی مرغدار)</div>
@@ -2317,9 +2343,9 @@ class HatcheryService {
     return Number.isNaN(n) ? null : n;
   }
 
-  _pcSlaughterAge() {
+  _pcSlaughterAgeAt(inputId) {
     const sdateRaw = String(
-      document.getElementById("pc_sdate")?.value || "",
+      document.getElementById(inputId)?.value || "",
     ).trim();
     const flockIso = String(
       document.getElementById("pc_flock_iso")?.value || "",
@@ -2333,6 +2359,14 @@ class HatcheryService {
     const d0 = new Date(isoFlock);
     if (Number.isNaN(d1.getTime()) || Number.isNaN(d0.getTime())) return 0;
     return Math.max(0, Math.round((d1 - d0) / 86400000));
+  }
+
+  _pcSlaughterAge() {
+    return this._pcSlaughterAgeAt("pc_sdate");
+  }
+
+  _pcSlaughterEndAge() {
+    return this._pcSlaughterAgeAt("pc_sdate_end");
   }
 
   formatTomanInput(el) {
@@ -2468,18 +2502,28 @@ class HatcheryService {
           ${this._pcRow("واحد مرغداری", "pc_unit", flock.unit_name ?? "", { type: "text", readOnly: true })}
           ${this._pcRow("تعداد سالن‌ها", "pc_halls", halls.length, { type: "number", readOnly: true })}
           ${this._pcRow("تاریخ جوجه‌ریزی", "pc_pdate", flock.placement_date ? convertToPersianDate(flock.placement_date) : "", { type: "text", readOnly: true })}
-          <div style="margin-bottom:7px;">
-            <label class="pc-label">تاریخ کشتار <small style="color:#b45309;">* اعلامی مرغدار</small></label>
-            <input type="text" id="pc_sdate" class="pc-in pc-date" value="${convertToPersianDate(today)}" onchange="hatcheryRecalcCompletion()" oninput="hatcheryRecalcCompletion()">
-          </div>
-          ${this._pcRead("سن کشتار (روز)", "pc_out_age")}
-          ${this._pcRow("نام کشتارگاه", "pc_slaughterhouse", "", { type: "text", placeholder: "اختیاری" })}
           <input type="hidden" id="pc_flock_iso" value="${flock.placement_date ?? ""}">
         </div>
       </div>
 
       <div class="pc-sec">
-        <div class="pc-sec-title"><i class="fas fa-users"></i> ۲) اطلاعات جمعیتی (تعداد)</div>
+        <div class="pc-sec-title"><i class="fas fa-calendar-check"></i> ۲) بازهٔ کشتار و سن کشتار</div>
+        <div class="pc-grid">
+          <div style="margin-bottom:7px;">
+            <label class="pc-label">تاریخ شروع کشتار <small style="color:#b45309;">* اعلامی مرغدار</small></label>
+            <input type="text" id="pc_sdate" class="pc-in pc-date" value="${convertToPersianDate(today)}" onchange="hatcheryRecalcCompletion()" oninput="hatcheryRecalcCompletion()">
+          </div>
+          <div style="margin-bottom:7px;">
+            <label class="pc-label">تاریخ پایان کشتار <small style="color:#94a3b8;">(اختیاری — اگر کشتار چند روز طول بکشد)</small></label>
+            <input type="text" id="pc_sdate_end" class="pc-in pc-date" value="" onchange="hatcheryRecalcCompletion()" oninput="hatcheryRecalcCompletion()">
+          </div>
+          ${this._pcRead("سن کشتار (روز)", "pc_out_age")}
+          ${this._pcRow("نام کشتارگاه", "pc_slaughterhouse", "", { type: "text", placeholder: "اختیاری" })}
+        </div>
+      </div>
+
+      <div class="pc-sec">
+        <div class="pc-sec-title"><i class="fas fa-users"></i> ۳) اطلاعات جمعیتی (تعداد)</div>
         <div class="pc-grid">
           ${this._pcRow("تعداد اولیه جوجه‌ها", "pc_initial", s.initial_chicks_count ?? 0, { readOnly: true })}
           ${this._pcRow("تعداد ارسالی به کشتارگاه", "pc_sent", "", { min: 1, placeholder: "مثلاً ۹۵۰۰" })}
@@ -2489,7 +2533,7 @@ class HatcheryService {
       </div>
 
       <div class="pc-sec">
-        <div class="pc-sec-title"><i class="fas fa-weight-scale"></i> ۳) اطلاعات وزنی</div>
+        <div class="pc-sec-title"><i class="fas fa-weight-scale"></i> ۴) اطلاعات وزنی</div>
         <div class="pc-grid">
           ${this._pcRow("وزن کل زنده گله", "pc_live", "", { min: 1, placeholder: "مثلاً ۲۴۰۰۰", unit: "کیلوگرم" })}
           ${this._pcRow("وزن لاشه (اختیاری)", "pc_carcass", "", { min: 0, unit: "کیلوگرم" })}
@@ -2499,7 +2543,7 @@ class HatcheryService {
       </div>
 
       <div class="pc-sec">
-        <div class="pc-sec-title"><i class="fas fa-wheat-awn"></i> ۴) اطلاعات خوراک</div>
+        <div class="pc-sec-title"><i class="fas fa-wheat-awn"></i> ۵) اطلاعات خوراک</div>
         <div class="pc-grid">
           ${this._pcRow("کل خوراک سیستم", "pc_feed_sys", s.system_total_feed ?? 0, { readOnly: true, unit: "کیلوگرم" })}
           ${this._pcRow("خوراک اعلامی مرغدار", "pc_feed_decl", "", { min: 0, unit: "کیلوگرم", placeholder: "اختیاری" })}
@@ -2524,7 +2568,7 @@ class HatcheryService {
       .join('<div style="height:6px;"></div>');
     return `
       <div class="pc-sec">
-        <div class="pc-sec-title"><i class="fas fa-coins"></i> ۵) اطلاعات اقتصادی</div>
+        <div class="pc-sec-title"><i class="fas fa-coins"></i> ۶) اطلاعات اقتصادی</div>
         <div class="pc-grid">
           ${this._pcRow("قیمت هر کیلو گوشت مرغ زنده (تومان)", "pc_price", "", { type: "text", placeholder: "مثلاً ۸۵,۰۰۰", onblur: "hatcheryFormatToman(this)" })}
           ${this._pcRead("درآمد کل", "pc_out_income", "تومان")}
@@ -2757,7 +2801,14 @@ class HatcheryService {
     setOut("pc_out_far_gain", gainKg);
     setOut("pc_out_far_survival", survival, "٪");
 
-    setOut("pc_out_age", age);
+    const ageEnd = this._pcSlaughterEndAge();
+    const ageOutEl = document.getElementById("pc_out_age");
+    if (ageOutEl) {
+      const faInt = (n) =>
+        (n || 0).toLocaleString("fa-IR", { maximumFractionDigits: 0 });
+      ageOutEl.textContent =
+        age > 0 && ageEnd > age ? `${faInt(age)}-${faInt(ageEnd)}` : faInt(age);
+    }
     setOut("pc_out_mortality", mortality);
     setOut("pc_out_mortality_pct", mortalityPct, "٪");
     setOut("pc_out_avg", avgWeight);
@@ -2809,6 +2860,16 @@ class HatcheryService {
     const sdate = sdateRaw
       ? convertPersianToGregorian(sdateRaw) || null
       : null;
+    const sdateEndRaw = txt("pc_sdate_end");
+    const sdateEnd = sdateEndRaw
+      ? convertPersianToGregorian(sdateEndRaw) || null
+      : null;
+    if (sdate && sdateEnd && String(sdateEnd) < String(sdate)) {
+      Swal.showValidationMessage(
+        "تاریخ پایان کشتار نمی‌تواند قبل از تاریخ شروع باشد",
+      );
+      return false;
+    }
 
     if (!sent || sent <= 0) {
       Swal.showValidationMessage(
@@ -2827,7 +2888,7 @@ class HatcheryService {
       return false;
     }
     if (!sdate) {
-      Swal.showValidationMessage("تاریخ کشتار معتبر نیست");
+      Swal.showValidationMessage("تاریخ شروع کشتار معتبر نیست");
       return false;
     }
 
@@ -2889,7 +2950,12 @@ class HatcheryService {
       completion_type: "completed",
       completion_date: new Date().toISOString().slice(0, 10),
       slaughter_age_days: age > 0 ? age : null,
+      slaughter_age_end_days:
+        age > 0 && this._pcSlaughterEndAge() > age
+          ? this._pcSlaughterEndAge()
+          : null,
       slaughter_date: sdate,
+      slaughter_end_date: sdateEnd,
       slaughterhouse_name: txt("pc_slaughterhouse") || null,
       total_sent: sent,
       total_live_weight: round(live),
@@ -3088,10 +3154,14 @@ class HatcheryService {
           <!-- اطلاعات کشتارگاه -->
           <div class="cf-section">
             <div class="cf-section-title"><i class="fas fa-industry"></i> اطلاعات کشتارگاه</div>
-            <div class="cf-2col">
+            <div class="cf-3col">
               <div>
-                <label class="cf-label">تاریخ کشتار</label>
+                <label class="cf-label">تاریخ شروع کشتار</label>
                 <input type="text" id="cfSlaughterDate" class="cf-field" placeholder="۱۴۰۴/۰۱/۰۱">
+              </div>
+              <div>
+                <label class="cf-label">تاریخ پایان کشتار</label>
+                <input type="text" id="cfSlaughterEndDate" class="cf-field" placeholder="۱۴۰۴/۰۱/۰۱">
               </div>
               <div>
                 <label class="cf-label">نام کشتارگاه</label>
@@ -3173,20 +3243,23 @@ class HatcheryService {
         width: 650,
         padding: "20px 24px",
         didOpen: () => {
-          // تقویم شمسی برای تاریخ کشتار
-          const dateInput = document.getElementById("cfSlaughterDate");
-          if (dateInput && typeof $.fn.persianDatepicker !== "undefined") {
-            try {
-              $(dateInput).persianDatepicker({
-                format: "YYYY/MM/DD",
-                autoClose: true,
-                initialValue: false,
-                observer: true,
-                calendar: { persian: { locale: "fa" } },
-              });
-            } catch (e) {
-              console.warn("⚠️ datepicker init error:", e);
-            }
+          // تقویم شمسی برای بازه کشتار (شروع و پایان)
+          if (typeof $.fn.persianDatepicker !== "undefined") {
+            ["cfSlaughterDate", "cfSlaughterEndDate"].forEach((inputId) => {
+              const dateInput = document.getElementById(inputId);
+              if (!dateInput) return;
+              try {
+                $(dateInput).persianDatepicker({
+                  format: "YYYY/MM/DD",
+                  autoClose: true,
+                  initialValue: false,
+                  observer: true,
+                  calendar: { persian: { locale: "fa" } },
+                });
+              } catch (e) {
+                console.warn("⚠️ datepicker init error:", e);
+              }
+            });
           }
         },
         preConfirm: () => {
@@ -3204,6 +3277,21 @@ class HatcheryService {
           const slaughterDate = dateVal
             ? convertPersianToGregorian(dateVal)
             : null;
+          const endDateVal =
+            document.getElementById("cfSlaughterEndDate")?.value?.trim() || "";
+          const slaughterEndDate = endDateVal
+            ? convertPersianToGregorian(endDateVal)
+            : null;
+          if (
+            slaughterDate &&
+            slaughterEndDate &&
+            String(slaughterEndDate) < String(slaughterDate)
+          ) {
+            Swal.showValidationMessage(
+              "تاریخ پایان کشتار نمی‌تواند قبل از تاریخ شروع باشد",
+            );
+            return false;
+          }
 
           return {
             period_ids: [periodId],
@@ -3211,6 +3299,7 @@ class HatcheryService {
             shared_data: {
               completion_date: new Date().toISOString().slice(0, 10),
               slaughter_date: slaughterDate,
+              slaughter_end_date: slaughterEndDate,
               slaughterhouse_name:
                 document
                   .getElementById("cfSlaughterhouseName")
@@ -3350,11 +3439,11 @@ class HatcheryService {
               <td style="padding:8px; text-align:center;">${fmtNum(c.total_cost)}</td>
               <td style="padding:8px; text-align:center;"><strong style="color:${profitValue !== null && Number(profitValue) >= 0 ? "#16a34a" : "#dc2626"};">${fmtNum(profitValue)}</strong></td>
               <td style="padding:8px; text-align:center;">${c.profit_percent != null ? `${c.profit_percent}٪` : "-"}</td>
-              <td style="padding:8px; text-align:center;">${c.slaughter_age_days ? c.slaughter_age_days + " روز" : "-"}</td>
+              <td style="padding:8px; text-align:center;">${formatAgeRange(c)}</td>
               <td style="padding:8px; text-align:center;">${c.total_live_weight ?? "-"}</td>
               <td style="padding:8px; text-align:center;">${c.avg_live_weight ?? "-"}</td>
               <td style="padding:8px; text-align:center;">${c.slaughterhouse_name || "-"}</td>
-              <td style="padding:8px; text-align:center;">${c.slaughter_date ? convertToPersianDate(c.slaughter_date) : "-"}</td>
+              <td style="padding:8px; text-align:center;">${formatSlaughterRange(c)}</td>
             </tr>
           `;
         })
@@ -3524,6 +3613,10 @@ class HatcheryService {
                 <label class="ue-label">سن کشتار (روز)</label>
                 <input type="number" id="ueSlaughterAge" class="ue-field" value="${c.slaughter_age_days ?? ""}">
               </div>
+              <div>
+                <label class="ue-label">سن پایان کشتار (روز)</label>
+                <input type="number" id="ueSlaughterEndAge" class="ue-field" value="${c.slaughter_age_end_days ?? ""}" placeholder="اختیاری — اگر کشتار چند روز طول بکشد">
+              </div>
             </div>
           </div>
 
@@ -3532,8 +3625,12 @@ class HatcheryService {
             <div class="ue-section-title"><i class="fas fa-industry"></i> اطلاعات کشتارگاه</div>
             <div class="ue-2col">
               <div>
-                <label class="ue-label">تاریخ کشتار</label>
+                <label class="ue-label">تاریخ شروع کشتار</label>
                 <input type="text" id="ueSlaughterDate" class="ue-field" placeholder="۱۴۰۴/۰۱/۰۱" value="${c.slaughter_date ? convertToPersianDate(c.slaughter_date) : ""}">
+              </div>
+              <div>
+                <label class="ue-label">تاریخ پایان کشتار</label>
+                <input type="text" id="ueSlaughterEndDate" class="ue-field" placeholder="۱۴۰۴/۰۱/۰۱" value="${c.slaughter_end_date ? convertToPersianDate(c.slaughter_end_date) : ""}">
               </div>
               <div>
                 <label class="ue-label">نام کشتارگاه</label>
@@ -3637,19 +3734,22 @@ class HatcheryService {
             });
           }
 
-          // تقویم شمسی
-          const dateInput = document.getElementById("ueSlaughterDate");
-          if (dateInput && typeof $.fn.persianDatepicker !== "undefined") {
-            try {
-              $(dateInput).persianDatepicker({
-                format: "YYYY/MM/DD",
-                autoClose: true,
-                initialValue: false,
-                observer: true,
-              });
-            } catch (e) {
-              console.warn("⚠️ datepicker init error:", e);
-            }
+          // تقویم شمسی برای بازه کشتار (شروع و پایان)
+          if (typeof $.fn.persianDatepicker !== "undefined") {
+            ["ueSlaughterDate", "ueSlaughterEndDate"].forEach((inputId) => {
+              const dateInput = document.getElementById(inputId);
+              if (!dateInput) return;
+              try {
+                $(dateInput).persianDatepicker({
+                  format: "YYYY/MM/DD",
+                  autoClose: true,
+                  initialValue: false,
+                  observer: true,
+                });
+              } catch (e) {
+                console.warn("⚠️ datepicker init error:", e);
+              }
+            });
           }
         },
         preConfirm: () => {
@@ -3664,6 +3764,21 @@ class HatcheryService {
           const slaughterDate = dateVal
             ? convertPersianToGregorian(dateVal)
             : null;
+          const endDateVal =
+            document.getElementById("ueSlaughterEndDate")?.value?.trim() || "";
+          const slaughterEndDate = endDateVal
+            ? convertPersianToGregorian(endDateVal)
+            : null;
+          if (
+            slaughterDate &&
+            slaughterEndDate &&
+            String(slaughterEndDate) < String(slaughterDate)
+          ) {
+            Swal.showValidationMessage(
+              "تاریخ پایان کشتار نمی‌تواند قبل از تاریخ شروع باشد",
+            );
+            return false;
+          }
 
           return {
             id: parseInt(completionId),
@@ -3690,7 +3805,10 @@ class HatcheryService {
                 document.getElementById("ueMortalityRate")?.value || null,
               slaughter_age_days:
                 document.getElementById("ueSlaughterAge")?.value || null,
+              slaughter_age_end_days:
+                document.getElementById("ueSlaughterEndAge")?.value || null,
               slaughter_date: slaughterDate,
+              slaughter_end_date: slaughterEndDate,
               slaughterhouse_name:
                 document.getElementById("ueSlaughterhouse")?.value?.trim() ||
                 null,

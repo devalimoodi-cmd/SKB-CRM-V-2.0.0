@@ -25,6 +25,7 @@ class DashboardService {
     this.totalPages = 0;
     this.isLoading = false;
     this.initialized = false;
+    this.showChartValues = false;
     this.chartInstances = {};
     this.chartStack = []; // سری‌های اضافه برای مقایسه: [{scope,id,label}]
     this.chartPalette = [
@@ -617,8 +618,13 @@ SKB-CRM.IR`,
       ? convertToPersianDate(flock.weekEndDate)
       : "-";
 
-    // ساخت تعداد کل هفته‌ها
-    const totalWeeks = flock.totalWeeks || Math.max(flock.weekNumber || 1, 8);
+    // ساخت تعداد کل هفته‌ها (سقف نمایش: ۱۰ هفته)
+    const isOverStandard =
+      (parseInt(flock.weekNumber) || 1) > 10 ||
+      (parseInt(flock.flockAge) || 0) > 70;
+    const rawTotalWeeks =
+      flock.totalWeeks || Math.max(flock.weekNumber || 1, 8);
+    const totalWeeks = Math.min(rawTotalWeeks, 10);
     const completedWeeks = flock.completedWeeks || [];
     const bookmarkCount = flock.bookmarkCount || 0;
 
@@ -645,6 +651,7 @@ SKB-CRM.IR`,
       farmName: customer.farmName,
       location: customer.city,
       className: statusClassName,
+      overStandard: isOverStandard,
       flockId: flock.id,
       flockNumber: flock.flockNumber,
       unitName: flock.unitName,
@@ -859,6 +866,44 @@ SKB-CRM.IR`,
     // پاکسازی آمارها
     this.resetChartStats();
 
+    // پلاگین داخلی «نمایش مقادیر» (بدون وابستگی به chartjs-plugin-datalabels)
+    this._valueLabelPlugin = {
+      id: "dashValueLabels",
+      afterDatasetsDraw(chart) {
+        if (!chart._dashShowValues) return;
+        const chartArea = chart.chartArea;
+        if (!chartArea) return;
+        const ctx = chart.ctx;
+        ctx.save();
+        chart.data.datasets.forEach((dataset, di) => {
+          if (dataset.hidden) return;
+          const meta = chart.getDatasetMeta(di);
+          if (!meta || !meta.data) return;
+          const color = dataset.borderColor || dataset.backgroundColor || "#475569";
+          ctx.font = "700 10px Vazir, sans-serif";
+          ctx.fillStyle = color;
+          ctx.textAlign = "center";
+          const frac = typeof chart._dashFrac === "number" ? chart._dashFrac : 0;
+          (dataset.data || []).forEach((value, idx) => {
+            if (value === null || value === undefined || Number.isNaN(Number(value))) {
+              return;
+            }
+            const el = meta.data[idx];
+            if (!el || typeof el.x !== "number") return;
+            const text = Number(value).toLocaleString("fa-IR", {
+              maximumFractionDigits: frac,
+            });
+            const isBar = chart.config && chart.config.type === "bar";
+            const cx = isBar ? el.x + (el.width || 0) / 2 : el.x;
+            let y = isBar ? el.y - 5 : el.y - 11;
+            if (y < chartArea.top + 4) y = chartArea.top + 4;
+            ctx.fillText(text, cx, y);
+          });
+        });
+        ctx.restore();
+      },
+    };
+
     // نمودار وزن‌گیری
     const weightCtx = document
       .getElementById("weightingCanvas")
@@ -868,89 +913,339 @@ SKB-CRM.IR`,
       weightCtx.clearRect(0, 0, 200, 120);
     }
     if (weightCtx) {
-      this.chartInstances.weighting = new Chart(weightCtx, {
-        type: "line",
-        data: {
-          labels: [],
-          datasets: [
-            {
-              label: "وزن (کیلوگرم)",
-              data: [],
-              borderColor: "#4a90e2",
-              backgroundColor: "rgba(74, 144, 226, 0.1)",
-              fill: true,
-              tension: 0.4,
-              pointRadius: 4,
-            },
-          ],
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: { display: true, labels: { color: "#475569", font: { family: "Vazir", size: 11 } } },
+      this.chartInstances.weighting = new Chart(
+        weightCtx,
+        {
+          type: "line",
+          data: {
+            labels: [],
+            datasets: [
+              {
+                label: "وزن (کیلوگرم)",
+                data: [],
+                borderColor: "#4a90e2",
+                backgroundColor: "rgba(74, 144, 226, 0.1)",
+                fill: true,
+                tension: 0.4,
+                pointRadius: 4,
+                pointHitRadius: 14,
+              },
+            ],
           },
-          scales: { y: { beginAtZero: true } },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: "index", axis: "x", intersect: false },
+            hover: { mode: "index", axis: "x", intersect: false },
+            plugins: {
+              legend: { display: true, labels: { color: "#475569", font: { family: "Vazir", size: 11 } } },
+              tooltip: {
+                enabled: true,
+                intersect: false,
+                mode: "index",
+                position: "nearest",
+                rtl: true,
+                titleAlign: "right",
+                bodyAlign: "right",
+                footerAlign: "right",
+                backgroundColor: "rgba(15,23,42,0.92)",
+                titleFont: { family: "Vazir", size: 12 },
+                bodyFont: { family: "Vazir", size: 11 },
+                padding: 10,
+                cornerRadius: 8,
+              },
+              datalabels: { display: false },
+            },
+            scales: { y: { beginAtZero: true } },
+          },
         },
-      });
+        [this._valueLabelPlugin],
+      );
     }
 
     // نمودار تلفات
     const lossCtx = document.getElementById("lossCanvas")?.getContext("2d");
     if (lossCtx) {
-      this.chartInstances.loss = new Chart(lossCtx, {
-        type: "bar",
-        data: {
-          labels: [],
-          datasets: [
-            {
-              label: "تلفات",
-              data: [],
-              backgroundColor: "#ef4444",
-              borderRadius: 4,
+      this.chartInstances.loss = new Chart(
+        lossCtx,
+        {
+          type: "bar",
+          data: {
+            labels: [],
+            datasets: [
+              {
+                label: "تلفات",
+                data: [],
+                backgroundColor: "#ef4444",
+                hoverBackgroundColor: "#b91c1c",
+                borderRadius: 4,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: "index", axis: "x", intersect: false },
+            hover: { mode: "index", axis: "x", intersect: false },
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                enabled: true,
+                intersect: false,
+                mode: "index",
+                position: "nearest",
+                rtl: true,
+                titleAlign: "right",
+                bodyAlign: "right",
+                footerAlign: "right",
+                backgroundColor: "rgba(15,23,42,0.92)",
+                titleFont: { family: "Vazir", size: 12 },
+                bodyFont: { family: "Vazir", size: 11 },
+                padding: 10,
+                cornerRadius: 8,
+              },
+              datalabels: { display: false },
             },
-          ],
+            scales: { y: { beginAtZero: true } },
+          },
         },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { legend: { display: false } },
-          scales: { y: { beginAtZero: true } },
-        },
-      });
+        [this._valueLabelPlugin],
+      );
     }
 
     // نمودار مصرف خوراک
     const feedCtx = document.getElementById("feedCanvas")?.getContext("2d");
     if (feedCtx) {
-      this.chartInstances.feed = new Chart(feedCtx, {
-        type: "line",
-        data: {
-          labels: [],
-          datasets: [
-            {
-              label: "خوراک (کیلوگرم)",
-              data: [],
-              borderColor: "#10b981",
-              backgroundColor: "rgba(16, 185, 129, 0.1)",
-              fill: true,
-              tension: 0.4,
-              pointRadius: 4,
+      this.chartInstances.feed = new Chart(
+        feedCtx,
+        {
+          type: "line",
+          data: {
+            labels: [],
+            datasets: [
+              {
+                label: "خوراک (کیلوگرم)",
+                data: [],
+                borderColor: "#10b981",
+                backgroundColor: "rgba(16, 185, 129, 0.1)",
+                fill: true,
+                tension: 0.4,
+                pointRadius: 4,
+                pointHitRadius: 14,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: "index", axis: "x", intersect: false },
+            hover: { mode: "index", axis: "x", intersect: false },
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                enabled: true,
+                intersect: false,
+                mode: "index",
+                position: "nearest",
+                rtl: true,
+                titleAlign: "right",
+                bodyAlign: "right",
+                footerAlign: "right",
+                backgroundColor: "rgba(15,23,42,0.92)",
+                titleFont: { family: "Vazir", size: 12 },
+                bodyFont: { family: "Vazir", size: 11 },
+                padding: 10,
+                cornerRadius: 8,
+              },
+              datalabels: { display: false },
             },
-          ],
+            scales: { y: { beginAtZero: true } },
+          },
         },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { legend: { display: false } },
-          scales: { y: { beginAtZero: true } },
-        },
-      });
+        [this._valueLabelPlugin],
+      );
     }
 
     this.ensureChartCompareUi();
+    this.setupChartOptions();
+    this._attachExternalTooltips();
+
+    // چک‌باکس سری‌های هر نمودار (در حالت خالی فقط سری اصلی)
+    this.renderChartSeriesToggles();
 
     console.log("✅ Charts initialized (empty)");
+  }
+
+  // ===== نوار چک‌باکس نمایش سری‌های هر نمودار (مستقل برای هر نمودار) =====
+  renderChartSeriesToggles() {
+    const targets = [
+      ["weighting", "weightingCanvas"],
+      ["loss", "lossCanvas"],
+      ["feed", "feedCanvas"],
+    ];
+    targets.forEach(([key, canvasId]) => {
+      const chart = this.chartInstances[key];
+      const canvas = document.getElementById(canvasId);
+      if (!chart || !canvas) return;
+      const card = canvas.closest(".chart-card");
+      if (!card) return;
+
+      let box = card.querySelector(".chart-series-toggles");
+      if (!box) {
+        box = document.createElement("div");
+        box.className = "chart-series-toggles";
+        const wrapper = card.querySelector(".chart-wrapper");
+        const stats = card.querySelector(".chart-stats");
+        if (wrapper && stats) {
+          card.insertBefore(box, stats);
+        } else {
+          card.appendChild(box);
+        }
+      }
+
+      const items = (chart.data.datasets || [])
+        .map((ds, index) => {
+          const label = ds.label || `سری ${index + 1}`;
+          const color = ds.borderColor || ds.backgroundColor || "#2c7a6e";
+          const checked = ds.hidden ? "" : "checked";
+          return `
+            <label class="chart-series-toggle">
+              <input type="checkbox" data-chart="${key}" data-idx="${index}" ${checked}
+                     onchange="window.toggleChartSeries('${key}', ${index}, this.checked)">
+              <span class="series-dot" style="background:${color}"></span>
+              <span class="series-name">${label}</span>
+            </label>`;
+        })
+        .join("");
+      box.innerHTML = items || "";
+    });
+  }
+
+  // فعال/غیرفعال‌کردن یک سری فقط روی همان نمودار
+  toggleChartSeries(chartKey, index, checked) {
+    const chart = this.chartInstances[chartKey];
+    if (!chart || !chart.data || !chart.data.datasets) return;
+    const ds = chart.data.datasets[index];
+    if (!ds) return;
+    ds.hidden = !checked;
+    chart.update();
+  }
+
+  // ===== گزینهٔ «نمایش مقادیر» روی سه نمودار =====
+  setupChartOptions() {
+    const header = document.getElementById("chartSelectionHeader");
+    if (!header || header.querySelector(".dashboard-chart-options")) return;
+    const row = document.createElement("div");
+    row.className = "dashboard-chart-options";
+    row.innerHTML = `
+      <label class="db-option-toggle">
+        <input type="checkbox" id="showChartValues" ${this.showChartValues ? "checked" : ""}
+               onchange="window.toggleChartValues(this.checked)">
+        <i class="fas fa-percent"></i>
+        <span>نمایش مقادیر</span>
+      </label>`;
+    header.appendChild(row);
+  }
+
+  toggleChartValues(checked) {
+    this.showChartValues = !!checked;
+    [
+      ["weighting", 2],
+      ["loss", 0],
+      ["feed", 0],
+    ].forEach(([key, frac]) => {
+      const chart = this.chartInstances[key];
+      if (!chart) return;
+      chart._dashShowValues = this.showChartValues;
+      chart._dashFrac = frac;
+      chart.update();
+    });
+  }
+
+  // ===== تولتیپ خارجی (HTML) — دیگر در لبهٔ نمودار بریده نمی‌شود =====
+  _attachExternalTooltips() {
+    const targets = [
+      ["weighting", "weightingCanvas"],
+      ["loss", "lossCanvas"],
+      ["feed", "feedCanvas"],
+    ];
+    targets.forEach(([key, canvasId]) => {
+      const chart = this.chartInstances[key];
+      if (!chart) return;
+      chart.options.plugins.tooltip = {
+        enabled: false,
+        external: (context) => this._renderExternalTooltip(context, key),
+      };
+    });
+  }
+
+  _renderExternalTooltip(context, chartKey) {
+    const tooltip = context && context.tooltip;
+    if (!tooltip) return;
+    const canvas = context.chart && context.chart.canvas;
+    const wrapper = canvas ? canvas.closest(".chart-wrapper") : null;
+    if (!wrapper) return;
+
+    let el = wrapper.querySelector(".dash-ext-tooltip");
+    if (!el) {
+      el = document.createElement("div");
+      el.className = "dash-ext-tooltip";
+      wrapper.appendChild(el);
+    }
+
+    if (!tooltip.opacity || tooltip.opacity === 0) {
+      el.style.display = "none";
+      return;
+    }
+
+    el.innerHTML = "";
+    const titleEl = document.createElement("div");
+    titleEl.className = "dash-tt-title";
+    titleEl.textContent = (tooltip.title || []).join(" — ");
+    el.appendChild(titleEl);
+
+    const bodyEl = document.createElement("div");
+    bodyEl.className = "dash-tt-body";
+    (tooltip.dataPoints || []).forEach((dp) => {
+      const ds = dp.dataset || {};
+      const color = ds.borderColor || ds.backgroundColor || "#2c7a6e";
+      const label = ds.label || `سری ${(dp.datasetIndex || 0) + 1}`;
+      let value = dp.formattedValue;
+      if (value === undefined && dp.raw !== undefined && dp.raw !== null) {
+        value = Number(dp.raw).toLocaleString("fa-IR", {
+          maximumFractionDigits: 2,
+        });
+      }
+      const row = document.createElement("div");
+      row.className = "dash-tt-row";
+      const dot = document.createElement("span");
+      dot.className = "dash-tt-dot";
+      dot.style.background = color;
+      const lab = document.createElement("span");
+      lab.className = "dash-tt-label";
+      lab.textContent = label;
+      const val = document.createElement("span");
+      val.className = "dash-tt-value";
+      val.textContent = value !== undefined && value !== null ? value : "—";
+      row.append(dot, lab, val);
+      bodyEl.appendChild(row);
+    });
+    el.appendChild(bodyEl);
+
+    el.style.display = "block";
+    el.style.left = "0px";
+    el.style.top = "0px";
+
+    const wrapperRect = wrapper.getBoundingClientRect();
+    const availW = wrapper.clientWidth || 0;
+    let left = (tooltip.caretX || 0) - (el.offsetWidth || 160) / 2;
+    if (left < 4) left = 4;
+    if (left + (el.offsetWidth || 160) > availW - 4) {
+      left = Math.max(4, availW - (el.offsetWidth || 160) - 4);
+    }
+    let top = (tooltip.caretY || 0) - (el.offsetHeight || 60) - 12;
+    if (top < 4) top = (tooltip.caretY || 0) + 12;
+    el.style.transform = `translate(${left}px, ${top}px)`;
   }
 
   // پاکسازی آمار نمودارها
@@ -1118,6 +1413,7 @@ SKB-CRM.IR`,
         this.chartInstances[k]?.update(),
       );
       this.renderCompareChips();
+      this.renderChartSeriesToggles();
       notificationService.success(`سری «${labelFinal}» به نمودارها اضافه شد`);
     } catch (error) {
       console.error("❌ Error adding compare series:", error);
@@ -1142,6 +1438,7 @@ SKB-CRM.IR`,
     });
     this.chartStack.splice(idx, 1);
     this.renderCompareChips();
+    this.renderChartSeriesToggles();
   }
 
   resetCompareSeries() {
@@ -1152,6 +1449,7 @@ SKB-CRM.IR`,
     });
     this.chartStack = [];
     this.renderCompareChips();
+    this.renderChartSeriesToggles();
   }
 
   openChartComparePicker() {
@@ -1275,6 +1573,7 @@ SKB-CRM.IR`,
     ].forEach(([, chart]) => {
       if (chart && chart.data.datasets && chart.data.datasets[0]) {
         chart.data.datasets[0].label = mainLabel;
+        chart.data.datasets[0].hidden = false;
       }
     });
 
@@ -1344,6 +1643,9 @@ SKB-CRM.IR`,
         totalFeed.textContent =
           (summary.totalFeed || 0).toLocaleString() + " کیلوگرم";
     }
+
+    // به‌روزرسانی چک‌باکس سری‌ها بعد از هر بار داده
+    this.renderChartSeriesToggles();
 
     console.log("✅ Charts updated with data:", data);
   }
@@ -3558,6 +3860,10 @@ if (typeof window !== "undefined") {
   window.openChartComparePicker = () => dashboardService.openChartComparePicker();
   window.removeChartCompare = (scope, id) =>
     dashboardService.removeChartCompare(scope, id);
+  window.toggleChartSeries = (chartKey, index, checked) =>
+    dashboardService.toggleChartSeries(chartKey, index, checked);
+  window.toggleChartValues = (checked) =>
+    dashboardService.toggleChartValues(checked);
   window.toggleTaskCardHalls = (flockGroupId) => {
     const card = document.querySelector(
       `.task-card[data-flock-group-id="${flockGroupId}"]`,

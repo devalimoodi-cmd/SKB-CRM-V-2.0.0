@@ -15,7 +15,6 @@ const AppSetting = sequelize.define(
     key: {
       type: DataTypes.STRING(100),
       allowNull: false,
-      unique: true,
       comment: "کلید تنظیم (مثلاً auto_welcome_sms)",
     },
     value: {

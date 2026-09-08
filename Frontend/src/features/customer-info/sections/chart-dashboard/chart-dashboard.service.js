@@ -90,11 +90,16 @@ class ChartDashboardService {
   rerenderCharts() {
     this.destroyCharts();
     this.flocks = this.activeUnits;
+    const selectedPast = this._hasSelectedPast();
     chartDashboardRenderer.renderContainer(
       this.activeUnits,
       this.selectedFlockIds,
       this.weekCount,
       {
+        includePast: !!this.includePast,
+        hasPastFlocks: !!this.hasPastFlocks,
+        hasActiveFlock: !!this.hasActiveFlock,
+        selectedPast,
         mainIndicator: this.mainIndicator,
         viewMode: this.viewMode,
         layoutMode: this.layoutMode,
@@ -346,6 +351,7 @@ class ChartDashboardService {
       if (cb) cb.checked = checked;
     });
     this.renderAllCharts();
+    this.refreshPastBanner();
   }
 
   // ===== تغییر چیدمان کارتها =====
@@ -693,6 +699,9 @@ class ChartDashboardService {
     this.pointSize = 4;
     this.chartInstances = {};
     this.initialized = false;
+    this.includePast = false;
+    this.hasActiveFlock = false;
+    this.hasPastFlocks = false;
   }
 
   // ===== مقداردهی =====
@@ -717,35 +726,151 @@ class ChartDashboardService {
       const res = await chartDashboardApi.getAnalysis(this.customerId);
       if (!res.success) throw new Error(res.message || "خطا در دریافت داده");
 
-      const rawFlocks = res.data.flocks || [];
-      this.flocks = rawFlocks.map((f, i) => ({
-        ...f,
-        color: PALETTE[i % PALETTE.length],
-        series: this.computeSeries(f),
-      }));
+      let raw = res.data.flocks || [];
 
-      // انتخاب همه گله‌ها به‌صورت پیش‌فرض
-      this.selectedFlockIds = this.flocks.map((f) => f.flock.id);
+      // اگر هیچ گله‌ای فعال نبود اما گلهٔ گذشته وجود داشت، خودکار حالت گذشته فعال می‌شود
+      this.includePast = false;
+      if (raw.length === 0) {
+        const resAll = await chartDashboardApi.getAnalysis(
+          this.customerId,
+          "all",
+        );
+        if (resAll.success) {
+          const allRaw = resAll.data.flocks || [];
+          const pastExists = allRaw.some((f) => f.isActive === false);
+          if (pastExists) {
+            raw = allRaw;
+            this.includePast = true;
+          }
+        }
+      }
 
-      // حداکثر تعداد هفته‌ها
-      let maxWeek = 0;
-      this.flocks.forEach((f) =>
-        f.weeks.forEach((w) => {
-          if (w.week_number > maxWeek) maxWeek = w.week_number;
-        }),
-      );
-      this.weekCount = Math.max(2, Math.min(maxWeek || 2, 16));
-
-      // تنظیمات سری‌ها با هر بار لود داده ریست می‌شوند
-      this.seriesSettings = {};
-
-      this._initGroupViews();
+      this.flocks = this._buildFlocksFromRaw(raw);
+      this._refreshViewMeta();
 
       this.destroyCharts();
       this.rerenderCharts();
     } catch (error) {
       console.error("❌ Error loading analysis data:", error);
       notificationService.error("خطا در دریافت داده‌های تحلیلی");
+    }
+  }
+
+  _buildFlocksFromRaw(rawFlocks) {
+    return (rawFlocks || []).map((f, i) => ({
+      ...f,
+      color: PALETTE[i % PALETTE.length],
+      series: this.computeSeries(f),
+      _isPast: f.isActive === false,
+    }));
+  }
+
+  // ===== بازسازی نماها بعد از هر بار لود/تغییر scope =====
+  _refreshViewMeta() {
+    let maxWeek = 0;
+    this.flocks.forEach((f) =>
+      (f.weeks || []).forEach((w) => {
+        if (w.week_number > maxWeek) maxWeek = w.week_number;
+      }),
+    );
+    this.weekCount = Math.max(2, Math.min(maxWeek || 2, 16));
+    this.seriesSettings = {};
+    this._initGroupViews();
+    this._markPastChips();
+
+    // پیش‌فرض: همهٔ گله‌های فعال؛ اگر فعالی نبود همهٔ گذشته‌ها
+    this.activeUnits = this.groupFlocks;
+    this.viewMode = "flock";
+    const activeUids = this.groupFlocks
+      .filter((g) => !g._isPast)
+      .map((g) => g._uid);
+    this.selectedFlockIds = activeUids.length
+      ? activeUids
+      : this.groupFlocks.map((g) => g._uid);
+  }
+
+  // ===== برچسب «گذشته» + پرچم/آمار حالت گذشته =====
+  _markPastChips() {
+    this.hasActiveFlock = this.hallFlocks.some((u) => !u._isPast);
+    this.hasPastFlocks = this.hallFlocks.some((u) => u._isPast);
+
+    this.hallFlocks.forEach((u) => {
+      if (u._isPast && u._chipLabel && !u._chipLabel.includes("گذشته")) {
+        u._chipLabel += " ⏸ گذشته";
+      }
+    });
+    this.groupFlocks.forEach((g) => {
+      g._isPast =
+        Array.isArray(g._memberUids) &&
+        g._memberUids.length > 0 &&
+        g._memberUids.every((uid) => {
+          const m = this.hallFlocks.find((h) => h._uid === uid);
+          return !!m && !!m._isPast;
+        });
+      if (g._isPast && g._chipLabel && !g._chipLabel.includes("گذشته")) {
+        g._chipLabel += " ⏸ گذشته";
+      }
+    });
+  }
+
+  // ===== آیا سری انتخاب‌شده روی نمودار متعلق به گلهٔ گذشته است؟ =====
+  _hasSelectedPast() {
+    const sel = new Set((this.selectedFlockIds || []).map(String));
+    const units =
+      this.viewMode === "hall" ? this.hallFlocks : this.groupFlocks;
+    return units.some((u) => sel.has(String(u._uid)) && u._isPast);
+  }
+
+  // ===== نمایش/پنهان‌کردن بنر زرد «دادهٔ گذشته» بدون بازسازی کامل صفحه =====
+  refreshPastBanner() {
+    const show = this._hasSelectedPast();
+    document.querySelectorAll(".analysis-past-banner").forEach((el) => {
+      el.style.display = show ? "" : "none";
+    });
+  }
+
+  // ===== تاگل «نمایش گله‌های گذشته» =====
+  async togglePastMode(checked) {
+    this.includePast = !!checked;
+    try {
+      if (this.includePast) {
+        const resAll = await chartDashboardApi.getAnalysis(
+          this.customerId,
+          "all",
+        );
+        if (!resAll.success)
+          throw new Error(resAll.message || "خطا در دریافت گله‌های گذشته");
+
+        const prevSelected = new Set(
+          (this.selectedFlockIds || []).map(String),
+        );
+        this.flocks = this._buildFlocksFromRaw(resAll.data.flocks || []);
+        this._refreshViewMeta();
+
+        // حفظ انتخاب‌های قبلی (معمولاً فعال‌ها)؛ گله‌های جدید گذشته خودبه‌خود انتخاب نمی‌شوند
+        const keep = this.groupFlocks
+          .filter((g) => prevSelected.has(String(g._uid)))
+          .map((g) => g._uid);
+        this.selectedFlockIds =
+          keep.length > 0
+            ? keep
+            : this.groupFlocks
+                .filter((g) => !g._isPast)
+                .map((g) => g._uid);
+        this.activeUnits = this.groupFlocks;
+      } else {
+        // برگشت به حالت عادی (اگر فعالی نبود، loadData خودش حالت گذشته را دوباره فعال می‌کند)
+        await this.loadData();
+        return;
+      }
+      this.destroyCharts();
+      this.rerenderCharts();
+    } catch (error) {
+      this.includePast = false;
+      console.error("❌ Error toggling past mode:", error);
+      notificationService.error("خطا در بارگذاری گله‌های گذشته");
+      this.destroyCharts();
+      this.rerenderCharts();
     }
   }
 
@@ -1378,6 +1503,7 @@ class ChartDashboardService {
       );
     }
     this.renderAllCharts();
+    this.refreshPastBanner();
   }
 
   selectAllFlocks(select) {
@@ -1391,6 +1517,7 @@ class ChartDashboardService {
       if (cb) cb.checked = select;
     });
     this.renderAllCharts();
+    this.refreshPastBanner();
   }
 
   setWeekRange(value) {

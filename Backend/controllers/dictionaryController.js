@@ -56,13 +56,18 @@ const errorResponse = (
 // ============================================
 const getHallTypes = async (req, res) => {
   try {
+    const { active } = req.query;
+    let whereCondition = { active: true };
+    if (active === "false") whereCondition = { active: false };
+    else if (active === "all") whereCondition = {};
+
     const hallTypes = await HallType.findAll({
-      where: { active: true },
+      where: whereCondition,
       order: [
         ["sort_order", "ASC"],
         ["id", "ASC"],
       ],
-      attributes: ["id", "name", "description", "sort_order"],
+      attributes: ["id", "name", "description", "sort_order", "active"],
     });
 
     successResponse(res, hallTypes, "لیست انواع سالن دریافت شد");
@@ -157,13 +162,18 @@ const deleteHallType = async (req, res) => {
 // ============================================
 const getChickSources = async (req, res) => {
   try {
+    const { active } = req.query;
+    let whereCondition = { active: true };
+    if (active === "false") whereCondition = { active: false };
+    else if (active === "all") whereCondition = {};
+
     const sources = await ChickSource.findAll({
-      where: { active: true },
+      where: whereCondition,
       order: [
         ["sort_order", "ASC"],
         ["id", "ASC"],
       ],
-      attributes: ["id", "name", "description", "sort_order"],
+      attributes: ["id", "name", "description", "sort_order", "active"],
     });
     successResponse(res, sources, "لیست مبداهای جوجه دریافت شد");
   } catch (error) {
@@ -254,13 +264,18 @@ const deleteChickSource = async (req, res) => {
 // ============================================
 const getChickenBreeds = async (req, res) => {
   try {
+    const { active } = req.query;
+    let whereCondition = { active: true };
+    if (active === "false") whereCondition = { active: false };
+    else if (active === "all") whereCondition = {};
+
     const breeds = await ChickenBreed.findAll({
-      where: { active: true },
+      where: whereCondition,
       order: [
         ["sort_order", "ASC"],
         ["name", "ASC"],
       ],
-      attributes: ["id", "code", "name", "description", "sort_order"],
+      attributes: ["id", "code", "name", "description", "sort_order", "active"],
     });
     successResponse(res, breeds, "لیست نژادهای جوجه دریافت شد");
   } catch (error) {

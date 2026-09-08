@@ -1410,12 +1410,14 @@ const getChartsData = async (req, res) => {
 // ================================================================
 const getAnalysisData = async (req, res) => {
   try {
-    const { customerId } = req.query;
+    const { customerId, scope } = req.query;
+    const includePast = String(scope || "").toLowerCase() === "all";
 
-    const whereCondition = { is_active: true };
+    const whereCondition = {};
+    if (!includePast) whereCondition.is_active = true;
     if (customerId) whereCondition.customer_id = parseInt(customerId);
 
-    const flocks = await ChickPlacement.findAll({
+    let flocks = await ChickPlacement.findAll({
       where: whereCondition,
       include: [
         {
@@ -1438,6 +1440,13 @@ const getAnalysisData = async (req, res) => {
       ],
       order: [["placement_date", "DESC"]],
     });
+
+    // در حالت «شامل گله‌های گذشته» فقط ردیف‌هایی که دادهٔ هفتگی دارند (یا هنوز فعال‌اند) نگه داشته می‌شوند
+    if (includePast && customerId) {
+      flocks = flocks.filter(
+        (f) => f.is_active === true || (f.weeklyManagements || []).length > 0,
+      );
+    }
 
     if (flocks.length === 0) {
       return successResponse(
@@ -1496,6 +1505,7 @@ const getAnalysisData = async (req, res) => {
         flock: {
           id: flock.id,
           placementId: flock.id,
+          isActive: flock.is_active === true,
           hallId: flock.hall_id ?? flock.Hall?.id ?? null,
           groupId: flock.flock_id ?? null,
           flockNumber: flock.flock_number,

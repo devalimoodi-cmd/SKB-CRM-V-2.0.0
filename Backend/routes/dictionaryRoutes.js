@@ -409,26 +409,4 @@ router.delete(
 );
 // --------------------finish routes Unit Statuses dictionary tables-------------
 
-// --------------------start routes Lighting Systems dictionary tables-------------
-router.get("/lighting-systems", dictionaryController.getLightingSystems);
-router.post(
-  "/lighting-systems",
-  protect,
-  authorize("admin", "super_admin"),
-  dictionaryController.createLightingSystem,
-);
-router.put(
-  "/lighting-systems/:id",
-  protect,
-  authorize("admin", "super_admin"),
-  dictionaryController.updateLightingSystem,
-);
-router.delete(
-  "/lighting-systems/:id",
-  protect,
-  authorize("admin", "super_admin"),
-  dictionaryController.deleteLightingSystem,
-);
-// --------------------finish routes Lighting Systems dictionary tables-------------
-
 module.exports = router;

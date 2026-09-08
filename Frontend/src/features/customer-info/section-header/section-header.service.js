@@ -71,7 +71,7 @@ class SectionHeaderService {
     const farmNameEl = document.getElementById("customerFarmName");
 
     if (fullNameEl) fullNameEl.textContent = customer.full_name || "نامشخص";
-    if (codeEl) codeEl.textContent = customer.id || "....";
+    if (codeEl) codeEl.textContent = customer.customer_code ?? customer.id ?? "....";
     if (farmNameEl) farmNameEl.textContent = customer.farm_name || "نامشخص";
 
     // ===== موقعیت مکانی =====

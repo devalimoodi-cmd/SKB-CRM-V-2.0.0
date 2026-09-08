@@ -44,6 +44,17 @@ async function syncDatabase() {
     // ✅ استفاده از alter: true برای حفظ داده‌ها
     await sequelize.sync({ alter: true });
 
+    // سکوئنس اختصاصی کد پایدار مشتری (هرگز به عقب برنمی‌گردد و کد حذف‌شده بازاستفاده نمی‌شود)
+    await sq.query(`CREATE SEQUENCE IF NOT EXISTS customer_code_seq START WITH 1001`);
+    // اختصاص کد به مشتریان فعلی که هنوز کد ندارند
+    await sq.query(
+      `UPDATE "customer_personal_information" SET "customer_code" = nextval('customer_code_seq') WHERE "customer_code" IS NULL`,
+    );
+    // ایندکس یکتای کد مشتری
+    await sq.query(
+      `CREATE UNIQUE INDEX IF NOT EXISTS uq_customer_code ON "customer_personal_information"("customer_code")`,
+    );
+
     console.log("✅ همگام‌سازی با موفقیت انجام شد!");
     process.exit(0);
   } catch (error) {

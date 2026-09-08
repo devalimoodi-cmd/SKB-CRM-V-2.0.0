@@ -108,6 +108,7 @@ const REPORT_STYLES = `
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: 'Vazir', 'Tahoma', sans-serif; padding: 20px; line-height: 1.7; color: #1e293b; background: #f8fafc; }
     .report-header { text-align: center; margin-bottom: 30px; padding: 25px; background: linear-gradient(135deg, #2c7a6e 0%, #065f46 100%); color: white; border-radius: 12px; }
+    .report-header .report-logo { height: 46px; width: auto; background: #fff; padding: 6px 10px; border-radius: 10px; margin-bottom: 10px; }
     .report-header h1 { font-size: 26px; font-weight: 700; }
     .report-header .sub { font-size: 14px; opacity: 0.9; margin-top: 5px; }
     .report-header .report-info { font-size: 13px; margin-top: 10px; background: rgba(255,255,255,0.15); padding: 8px 20px; border-radius: 8px; display: inline-block; }
@@ -346,7 +347,19 @@ export const weeklyRenderer = {
     const nowTime = new Date().toLocaleTimeString("fa-IR");
 
     const user = JSON.parse(localStorage.getItem("user") || "{}");
-    const userName = user.fullName || user.username || "کاربر ناشناس";
+    const userName =
+      user.fullName ||
+      [user.first_name, user.last_name].filter(Boolean).join(" ") ||
+      user.username ||
+      "کاربر ناشناس";
+    const roleText =
+      {
+        super_admin: "مدیر اصلی",
+        admin: "مدیر",
+        sub_admin: "مدیر میانی",
+        expert: "کارشناس",
+        customer: "مشتری",
+      }[user.role] || "کاربر";
 
     const totalFlocks = flocks.length;
     const totalChicks = flocks.reduce(
@@ -528,6 +541,7 @@ export const weeklyRenderer = {
             </head>
             <body>
                 <div class="report-header">
+                    <img class="report-logo" src="/assets/images/skb-logo.png" alt="لوگوی شرکت" onerror="this.style.display='none'">
                     <h1>📊 گزارش کامل مدیریت هفتگی</h1>
                     <div class="sub">سامانه اطلاعات، خدمات و ارتباطات با مشتریان (سِکاد)</div>
                     <div class="report-info">📅 تاریخ تهیه: ${now} - ساعت: ${nowTime}</div>
@@ -571,7 +585,7 @@ export const weeklyRenderer = {
 
                 <div class="report-footer">
                     <div class="report-by">
-                        📌 گزارش‌گیری توسط: <strong>${userName}</strong> | تاریخ: <strong>${now}</strong> | ساعت: <strong>${nowTime}</strong>
+                        📌 دریافت گزارش توسط: <strong>${userName}</strong> (${roleText}) | تاریخ: <strong>${now}</strong> | ساعت: <strong>${nowTime}</strong>
                     </div>
                     <p style="margin-top: 10px;">این گزارش توسط سامانه مدیریت اطلاعات، خدمات و ارتباطات با مشتریان (سِکاد) تولید شده است.</p>
                 </div>
@@ -586,7 +600,19 @@ export const weeklyRenderer = {
     const now = new Date().toLocaleDateString("fa-IR");
     const nowTime = new Date().toLocaleTimeString("fa-IR");
     const user = JSON.parse(localStorage.getItem("user") || "{}");
-    const userName = user.fullName || user.username || "کاربر ناشناس";
+    const userName =
+      user.fullName ||
+      [user.first_name, user.last_name].filter(Boolean).join(" ") ||
+      user.username ||
+      "کاربر ناشناس";
+    const roleText =
+      {
+        super_admin: "مدیر اصلی",
+        admin: "مدیر",
+        sub_admin: "مدیر میانی",
+        expert: "کارشناس",
+        customer: "مشتری",
+      }[user.role] || "کاربر";
 
     const toPersian = (date) => {
       if (!date) return "-";
@@ -659,6 +685,7 @@ export const weeklyRenderer = {
             </head>
             <body>
                 <div class="report-header">
+                    <img class="report-logo" src="/assets/images/skb-logo.png" alt="لوگوی شرکت" onerror="this.style.display='none'">
                     <h1>🐔 گزارش اختصاصی گله ${flock.flock_number}</h1>
                     <div class="sub">سامانه اطلاعات، خدمات و ارتباطات با مشتریان (سِکاد)</div>
                     <div class="report-info">📅 تاریخ تهیه: ${now} - ساعت: ${nowTime}</div>
@@ -716,7 +743,7 @@ export const weeklyRenderer = {
                 }
 
                 <div class="report-footer">
-                    <div class="report-by">📌 گزارش‌گیری توسط: <strong>${userName}</strong> | تاریخ: <strong>${now}</strong> | ساعت: <strong>${nowTime}</strong></div>
+                    <div class="report-by">📌 دریافت گزارش توسط: <strong>${userName}</strong> (${roleText}) | تاریخ: <strong>${now}</strong> | ساعت: <strong>${nowTime}</strong></div>
                     <p style="margin-top: 10px;">این گزارش توسط سامانه مدیریت اطلاعات، خدمات و ارتباطات با مشتریان (سِکاد) تولید شده است.</p>
                 </div>
             </body>

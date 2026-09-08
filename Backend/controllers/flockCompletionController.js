@@ -296,6 +296,49 @@ const finalizeFlockCompletion = async (
         (systemAge * farmerFcrVal)
       : null;
 
+  const slaughterStart = shared_data.slaughter_date || null;
+  const slaughterEnd = shared_data.slaughter_end_date || null;
+  if (
+    slaughterStart &&
+    slaughterEnd &&
+    String(slaughterEnd) < String(slaughterStart)
+  ) {
+    const err = new Error(
+      "تاریخ پایان کشتار نمی‌تواند قبل از تاریخ شروع باشد",
+    );
+    err.status = 400;
+    throw err;
+  }
+
+  // سن کشتار (شروع/پایان) — اولویت با مقدار صریح کلاینت، وگرنه از تاریخ بازهٔ کشتار و تاریخ جوجه‌ریزی محاسبه می‌شود
+  const ageDaysFrom = (dateStr) => {
+    if (!dateStr || !repPlacement?.placement_date) return null;
+    const p = new Date(repPlacement.placement_date);
+    const d = new Date(dateStr);
+    if (Number.isNaN(p.getTime()) || Number.isNaN(d.getTime())) return null;
+    p.setHours(0, 0, 0, 0);
+    d.setHours(0, 0, 0, 0);
+    const diff = Math.floor((d - p) / (1000 * 60 * 60 * 24)) + 1;
+    return diff > 0 ? diff : null;
+  };
+  const slaughterAgeDays =
+    shared_data.slaughter_age_days != null
+      ? Number(shared_data.slaughter_age_days) || null
+      : ageDaysFrom(slaughterStart) ?? agg.slaughter_age_days ?? null;
+  const slaughterAgeEndDays =
+    shared_data.slaughter_age_end_days != null
+      ? Number(shared_data.slaughter_age_end_days) || null
+      : ageDaysFrom(slaughterEnd);
+  if (
+    slaughterAgeDays &&
+    slaughterAgeEndDays &&
+    slaughterAgeEndDays < slaughterAgeDays
+  ) {
+    const err = new Error("سن پایان کشتار نمی‌تواند کمتر از سن شروع باشد");
+    err.status = 400;
+    throw err;
+  }
+
   const header = {
     flock_id: flock.id,
     chick_placement_id: repPlacement.id,
@@ -307,8 +350,8 @@ const finalizeFlockCompletion = async (
     completion_type: shared_data.completion_type || "completed",
     confirmed_by_customer: shared_data.confirmed_by_customer || false,
     ...agg,
-    slaughter_age_days:
-      shared_data.slaughter_age_days ?? agg.slaughter_age_days ?? null,
+    slaughter_age_days: slaughterAgeDays,
+    slaughter_age_end_days: slaughterAgeEndDays,
     system_fcr: r2(systemFcr) ?? agg.system_fcr,
     system_epi: r2(systemEpi),
     system_adg_grams: r2(systemAdg),
@@ -325,7 +368,8 @@ const finalizeFlockCompletion = async (
     farmer_total_meat: shared_data.farmer_total_meat || null,
     farmer_total_feed: shared_data.farmer_total_feed || null,
     farmer_total_weight: shared_data.farmer_total_weight || null,
-    slaughter_date: shared_data.slaughter_date || null,
+    slaughter_date: slaughterStart,
+    slaughter_end_date: slaughterEnd,
     slaughterhouse_name: shared_data.slaughterhouse_name || null,
     transport_mortality: shared_data.transport_mortality || 0,
     total_sent: shared_data.total_sent || null,
@@ -778,6 +822,119 @@ const deleteFlockCompletion = async (req, res) => {
 };
 
 // ============================================================
+// @desc    ویرایش/بروزرسانی اطلاعات پایان دوره (پشتیبانی از بازه کشتار)
+// ============================================================
+const updateFlockCompletion = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const payload = req.body || {};
+    const completion = await FlockCompletion.findByPk(id);
+    if (!completion) {
+      return errorResponse(res, "اطلاعات پایان دوره یافت نشد", 404);
+    }
+
+    const { slaughter_date, slaughter_end_date } = payload;
+    if (
+      slaughter_date &&
+      slaughter_end_date &&
+      String(slaughter_end_date) < String(slaughter_date)
+    ) {
+      return errorResponse(
+        res,
+        "تاریخ پایان کشتار نمی‌تواند قبل از تاریخ شروع باشد",
+        400,
+      );
+    }
+
+    const ageStart = payload.slaughter_age_days;
+    const ageEnd = payload.slaughter_age_end_days;
+    if (
+      ageStart != null &&
+      ageEnd != null &&
+      Number(ageEnd) < Number(ageStart)
+    ) {
+      return errorResponse(
+        res,
+        "سن پایان کشتار نمی‌تواند کمتر از سن شروع باشد",
+        400,
+      );
+    }
+
+    const allowed = [
+      "recompute",
+      "completion_date",
+      "completion_type",
+      "confirmed_by_customer",
+      "initial_chicks_count",
+      "final_chicks_count",
+      "final_week_number",
+      "slaughter_age_days",
+      "slaughter_age_end_days",
+      "slaughter_date",
+      "slaughter_end_date",
+      "slaughterhouse_name",
+      "transport_mortality",
+      "total_sent",
+      "total_live_weight",
+      "avg_live_weight",
+      "total_feed_intake",
+      "system_total_feed",
+      "system_last_weight",
+      "final_avg_weight",
+      "system_fcr",
+      "system_epi",
+      "system_adg_grams",
+      "system_weight_gain_kg",
+      "system_survival_percent",
+      "total_mortality",
+      "mortality_rate",
+      "farmer_fcr",
+      "farmer_epi",
+      "farmer_adg_grams",
+      "farmer_weight_gain_kg",
+      "farmer_survival_percent",
+      "farmer_total_meat",
+      "farmer_total_feed",
+      "farmer_total_weight",
+      "final_fcr",
+      "epi",
+      "adg_grams",
+      "total_weight_gain_kg",
+      "survival_percent",
+      "feed_basis",
+      "price_per_kg",
+      "income_total",
+      "chick_cost",
+      "feed_cost",
+      "medication_cost",
+      "fuel_cost",
+      "labor_cost",
+      "other_cost",
+      "total_cost",
+      "net_profit",
+      "profit_percent",
+      "carcass_weight_kg",
+      "carcass_yield_percent",
+      "notes",
+    ];
+    const updateData = {};
+    allowed.forEach((key) => {
+      if (payload[key] !== undefined) updateData[key] = payload[key];
+    });
+    delete updateData.recompute; // فقط فلگ عملیات است؛ ذخیره نمی‌شود
+
+    if (Object.keys(updateData).length > 0) {
+      await completion.update(updateData);
+    }
+
+    successResponse(res, completion, "اطلاعات پایان دوره بروزرسانی شد");
+  } catch (error) {
+    console.error("❌ خطا در بروزرسانی پایان دوره:", error);
+    errorResponse(res, error.message, 500);
+  }
+};
+
+// ============================================================
 // @desc    پیش‌نمایش اطلاعات سیستمی پایان گله (قبل از ثبت)
 // ============================================================
 const getFlockCompletionPreview = async (req, res) => {
@@ -856,5 +1013,6 @@ module.exports = {
   getFlockCompletions,
   getCompletionsByUnit,
   getFlockCompletionById,
+  updateFlockCompletion,
   deleteFlockCompletion,
 };

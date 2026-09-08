@@ -103,7 +103,12 @@ const FlockCompletion = sequelize.define(
     slaughter_age_days: {
       type: DataTypes.INTEGER,
       allowNull: true,
-      comment: "📅 سن کشتار (روز)",
+      comment: "📅 سن کشتار (روز) — سن در تاریخ شروع کشتار",
+    },
+    slaughter_age_end_days: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      comment: "📅 سن پایان کشتار (روز) — وقتی کشتار چند روز طول بکشد",
     },
 
     // ==========================================================
@@ -112,7 +117,13 @@ const FlockCompletion = sequelize.define(
     slaughter_date: {
       type: DataTypes.DATEONLY,
       allowNull: true,
-      comment: "🏭 تاریخ کشتار در کشتارگاه",
+      comment: "🏭 تاریخ شروع کشتار در کشتارگاه",
+    },
+    slaughter_end_date: {
+      type: DataTypes.DATEONLY,
+      allowNull: true,
+      comment:
+        "🏭 تاریخ پایان کشتار (برای گله‌های بزرگ که فرایند کشتار چند روز طول می‌کشد)",
     },
     slaughterhouse_name: {
       type: DataTypes.STRING(100),

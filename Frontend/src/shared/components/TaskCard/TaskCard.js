@@ -56,13 +56,16 @@ function TaskCard(props = {}) {
     actions = {},
     smsStatusHTML = "",
     className = "",
+    overStandard = false,
   } = props;
 
   // ===== تابع رندر استپر =====
   function renderStepper() {
     let html = "";
+    // سقف هفته‌های نمایشی: حداکثر ۱۰ هفته (برای گله‌های خارج از سن استاندارد)
+    const maxSteps = Math.min(10, Math.max(1, parseInt(totalWeeks) || 8));
 
-    for (let i = 1; i <= totalWeeks; i++) {
+    for (let i = 1; i <= maxSteps; i++) {
       const isCompleted = completedWeeks.includes(i);
       const isActive = i === currentWeek;
       const isPending = !isCompleted && !isActive;
@@ -169,7 +172,7 @@ function TaskCard(props = {}) {
 
   // ===== رندر نهایی (چیدمان افقی: ۴ ستون در یک ردیف) =====
   return `
-    <div class="task-card ${className}" 
+    <div class="task-card ${className}${overStandard ? " task-card-over-age" : ""}" 
          data-customer-id="${customerId}" 
          data-flock-id="${flockId}"
          data-flock-number="${flockNumber}"
@@ -311,6 +314,13 @@ function TaskCard(props = {}) {
         </div>
 
       </div>
+      ${
+        overStandard
+          ? `<div class="task-overage-banner">
+               <i class="fas fa-exclamation-triangle"></i> این گله از سن استاندارد پرورش (بیش از ۱۰ هفته) خارج است
+             </div>`
+          : ""
+      }
     </div>
   `;
 }

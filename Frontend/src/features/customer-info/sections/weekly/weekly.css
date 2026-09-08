@@ -1024,3 +1024,38 @@
   background: #ffffff;
 }
 
+
+/* ============================================
+   نمایش بیشتر هفته‌ها (سقف پیش‌فرض ۱۰ هفته)
+   ============================================ */
+
+.weeks-more-bar {
+  display: flex;
+  justify-content: center;
+  padding: 6px 0 4px;
+}
+
+.btn-show-more-weeks {
+  background: #ffffff;
+  color: #2c7a6e;
+  border: 2px dashed #99c9c3;
+  border-radius: 10px;
+  padding: 9px 22px;
+  font-family: "Vazir", sans-serif;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  transition: all 0.25s ease;
+}
+
+.btn-show-more-weeks:hover {
+  background: #2c7a6e;
+  color: #ffffff;
+  border-style: solid;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(44, 122, 110, 0.25);
+}
+

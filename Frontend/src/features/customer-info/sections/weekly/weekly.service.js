@@ -26,6 +26,10 @@ class WeeklyService {
     this.initialized = false;
     this.cache = {};
     this.flockWeeks = {};
+    this.weeksShown = {};
+    this._weekItemBuilders = {};
+    this.MAX_DEFAULT_WEEKS = 10;
+    this.WEEKS_PER_REVEAL = 10;
   }
 
   async init(customerId) {
@@ -408,9 +412,16 @@ class WeeklyService {
 
   renderWeeks(flock, weeks) {
     const flockId = flock.id;
-    let html = "";
+    const maxDefault = this.MAX_DEFAULT_WEEKS || 10;
+    const visibleCount = Math.min(maxDefault, weeks.length);
+    const remainingCount = weeks.length - visibleCount;
 
-    weeks.forEach((week) => {
+    this.weeksShown = this.weeksShown || {};
+    this.weeksShown[flockId] = visibleCount;
+
+    // سازندهٔ HTML هر آیتم هفته — برای رندر اولیه و «نمایش بیشتر» مشترک است
+    this._weekItemBuilders = this._weekItemBuilders || {};
+    this._weekItemBuilders[flockId] = (week) => {
       const hasData = week.existsInDb;
       const statusHTML = hasData
         ? '<span class="week-status saved">✅ ثبت شده</span>'
@@ -427,7 +438,7 @@ class WeeklyService {
       const currentExpertId = isExpert ? authService.getUserId() : null;
       const defaultExpertId = week.service_expert_id || currentExpertId || "";
 
-      html += `
+      return `
                 <div class="week-accordion-item" data-week-id="${week.id || ""}" data-flock="${flockId}" data-week-num="${week.week_number}">
                     <div class="week-accordion-header" onclick="window.toggleWeekAccordion(this)">
                         <div class="week-info">
@@ -684,9 +695,62 @@ class WeeklyService {
                     </div>
                 </div>
             `;
-    });
+    };
+
+    let html = weeks
+      .slice(0, visibleCount)
+      .map((week) => this._weekItemBuilders[flockId](week))
+      .join("");
+
+    if (remainingCount > 0) {
+      html += `
+                <div class="weeks-more-bar" data-flock-id="${flockId}">
+                    <button type="button" class="btn-show-more-weeks" onclick="window.weeklyService.showMoreWeeks(this, ${flockId})">
+                        <i class="fas fa-chevron-down"></i> نمایش هفتههای بیشتر (${remainingCount} هفتهٔ باقیمانده)
+                    </button>
+                </div>
+            `;
+    }
 
     return html;
+  }
+
+  // ===== نمایش تدریجی هفتههای بیشتر (سقف پیشفرض ۱۰ هفته) =====
+  showMoreWeeks(btn, flockId) {
+    if (!btn) return;
+    const weeks = (this.flockWeeks || {})[flockId];
+    const builder = (this._weekItemBuilders || {})[flockId];
+    if (!Array.isArray(weeks) || typeof builder !== "function") return;
+
+    this.weeksShown = this.weeksShown || {};
+    const shown = this.weeksShown[flockId] || 0;
+    const step = this.WEEKS_PER_REVEAL || 10;
+    const nextCount = Math.min(shown + step, weeks.length);
+    if (nextCount <= shown) {
+      btn.closest(".weeks-more-bar")?.remove();
+      return;
+    }
+
+    const batchHtml = weeks
+      .slice(shown, nextCount)
+      .map((week) => builder(week))
+      .join("");
+
+    const bar = btn.closest(".weeks-more-bar");
+    if (bar) bar.insertAdjacentHTML("beforebegin", batchHtml);
+
+    this.weeksShown[flockId] = nextCount;
+
+    // مقداردهی selectها و کارتهای متریک هفتههای تازه اضافهشده (مانند رندر اولیه)
+    weeklyRenderer.populateSelects(this.dictionaries);
+    this.updateAllWeekCards();
+
+    const remaining = weeks.length - nextCount;
+    if (remaining <= 0) {
+      bar?.remove();
+    } else if (btn) {
+      btn.innerHTML = `<i class="fas fa-chevron-down"></i> نمایش هفتههای بیشتر (${remaining} هفتهٔ باقیمانده)`;
+    }
   }
 
   async loadFlocksFilter() {
@@ -1570,7 +1634,37 @@ class WeeklyService {
 
   buildWeeklyHistoryHTML(customer, blocks) {
     const title = "🕓 گزارش تاریخچه هفتگی (گله‌های تکمیل‌شده)";
-    const persianDate = formatDate(new Date());
+    const now = new Date();
+    const persianDate = formatDate(now);
+
+    // تاریخ و ساعت دریافت گزارش (شمسی/فارسی)
+    const reportDate = new Intl.DateTimeFormat("fa-IR", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(now);
+    const reportTime = new Intl.DateTimeFormat("fa-IR", {
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(now);
+
+    // ===== دریافت‌کننده گزارش (کاربر لاگین‌شده) =====
+    const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
+    const reporterName =
+      currentUser.fullName ||
+      [currentUser.first_name, currentUser.last_name]
+        .filter(Boolean)
+        .join(" ") ||
+      currentUser.username ||
+      "کاربر ناشناس";
+    const roleText =
+      {
+        super_admin: "مدیر اصلی",
+        admin: "مدیر",
+        sub_admin: "مدیر میانی",
+        expert: "کارشناس",
+        customer: "مشتری",
+      }[currentUser.role] || "کاربر";
 
     const bodyBlocks = blocks
       .map((b) => {
@@ -1640,6 +1734,7 @@ class WeeklyService {
           .report-page-header { text-align: center; padding: 8px 0 12px; border-bottom: 3px solid #2c7a6e; margin-bottom: 14px; }
           .report-page-header h1 { color: #2c7a6e; font-size: 20px; margin: 0 0 4px; }
           .report-page-header .date { color: #94a3b8; font-size: 12px; }
+          .report-page-header .report-logo { display: block; height: 50px; width: auto; margin: 0 auto 8px; }
           .customer-box { background: #f8fafc; border: 1px solid #eef2f6; border-radius: 8px; padding: 8px 12px; margin-bottom: 14px; font-size: 12px; }
           .history-flock { page-break-inside: auto; margin-bottom: 10px; }
           .history-flock-header { background: #2c7a6e; color: #fff; padding: 6px 12px; border-radius: 8px; font-weight: 600; font-size: 13px; }
@@ -1657,7 +1752,7 @@ class WeeklyService {
         <table class="report-main">
           <thead>
             <tr><td>
-              <div class="report-page-header"><h1>${title}</h1><div class="date">تاریخ گزارش: ${persianDate}</div></div>
+              <div class="report-page-header"><img class="report-logo" src="/assets/images/skb-logo.png" alt="لوگوی شرکت" onerror="this.style.display='none'"><h1>${title}</h1><div class="date">تاریخ گزارش: ${persianDate}</div></div>
               <div class="customer-box">
                 <strong>مشتری:</strong> ${customer.full_name || "-"} — ${customer.farm_name || "-"} |
                 موبایل: ${customer.mobile_number || "-"} | استان: ${customer.province || "-"}
@@ -1667,7 +1762,10 @@ class WeeklyService {
           <tbody>
             <tr><td>
               ${blocks.length ? bodyBlocks : '<p style="text-align:center;color:#94a3b8;">گله تکمیل‌شده‌ای یافت نشد</p>'}
-              <div class="report-footer"><p>گزارش سامانه مدیریت مشتریان (SKB-CRM)</p></div>
+              <div class="report-footer">
+                <p>📌 دریافت گزارش توسط: <strong>${reporterName}</strong> (${roleText}) | تاریخ: <strong>${reportDate}</strong> | ساعت: <strong>${reportTime}</strong></p>
+                <p style="margin-top: 6px;">گزارش سامانه مدیریت مشتریان (SKB-CRM)</p>
+              </div>
             </td></tr>
           </tbody>
         </table>
@@ -1695,6 +1793,8 @@ class WeeklyService {
   resetCache() {
     this.cache = {};
     this.flockWeeks = {};
+    this.weeksShown = {};
+    this._weekItemBuilders = {};
   }
 }
 
@@ -1716,4 +1816,6 @@ if (typeof window !== "undefined") {
   window.deleteWeekFromForm = (id) => weeklyService.deleteWeek(id);
   window.toggleWeekAccordion = (header) => weeklyService.toggleWeek(header);
   window.toggleFlockCard = (header) => weeklyService.toggleFlock?.(header);
+  window.showMoreWeeks = (btn, flockId) =>
+    weeklyService.showMoreWeeks(btn, flockId);
 }

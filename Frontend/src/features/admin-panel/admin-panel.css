@@ -676,6 +676,161 @@
   font-size: 14px;
 }
 
+/* ===== مودال فرم دیکشنری — طراحی گرافیکی جدید ===== */
+.dict-swal-popup {
+  border-radius: 20px;
+  padding-top: 22px;
+}
+
+.dict-swal-popup .swal2-title {
+  padding: 0 6px 16px;
+  font-family: "Vazir", sans-serif;
+}
+
+.dict-swal-popup .swal2-html-container {
+  margin: 0;
+  text-align: right;
+  overflow: visible;
+}
+
+/* هدر گرافیکی مودال با آیکون رنگی */
+.dict-modal-title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 16px;
+  font-weight: 800;
+  color: #1e293b;
+  line-height: 1.6;
+}
+
+.dict-modal-title-icon {
+  width: 46px;
+  height: 46px;
+  flex: 0 0 46px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #14b8a6, #0f766e);
+  color: #ffffff;
+  font-size: 20px;
+  box-shadow: 0 6px 16px rgba(20, 184, 166, 0.35);
+}
+
+/* چیدمان دو ستونه فرم */
+.dict-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px 22px;
+  text-align: right;
+  align-items: start;
+}
+
+.dict-form-field {
+  margin-bottom: 8px;
+}
+
+.dict-form-field.wide {
+  grid-column: 1 / -1;
+}
+
+.dict-form-field label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 7px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #334155;
+  cursor: default;
+}
+
+.dict-field-icon {
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  border-radius: 9px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #ecfdf5, #d1fae5);
+  color: #0f766e;
+  font-size: 12px;
+  box-shadow: inset 0 0 0 1px rgba(15, 118, 110, 0.12);
+}
+
+/* ستاره فیلد الزامی — درون خط لابل */
+.dict-form-field .dict-required-star {
+  position: static;
+  top: auto;
+  left: auto;
+  margin-inline-start: 2px;
+  color: #dc2626;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+/* اینپوت‌های مدرن‌تر (شامل select) */
+.dict-swal-popup .dict-form-field input[type="text"],
+.dict-swal-popup .dict-form-field input[type="number"],
+.dict-swal-popup .dict-form-field select,
+.dict-swal-popup .dict-form-field textarea {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  background: #fbfdff;
+  color: #0f172a;
+  font-size: 13px;
+  transition: all 0.25s ease;
+  box-sizing: border-box;
+}
+
+.dict-swal-popup .dict-form-field input:focus,
+.dict-swal-popup .dict-form-field select:focus,
+.dict-swal-popup .dict-form-field textarea:focus {
+  outline: none;
+  border-color: #14b8a6;
+  background: #ffffff;
+  box-shadow: 0 0 0 4px rgba(20, 184, 166, 0.12);
+}
+
+.dict-swal-popup .dict-form-field textarea {
+  resize: vertical;
+  min-height: 74px;
+}
+
+.dict-swal-popup .dict-form-field select {
+  appearance: auto;
+  cursor: pointer;
+}
+
+/* رنگ‌پیکر و سوییچ */
+.dict-swal-popup .dict-form-field input[type="color"] {
+  width: 64px;
+  height: 36px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.dict-ft-boolean .dict-checkbox-wrapper {
+  margin-top: 4px;
+}
+
+.dict-ft-boolean .dict-checkbox-label {
+  font-weight: 600;
+}
+
+/* مودال جمع‌وجور روی موبایل */
+@media (max-width: 640px) {
+  .dict-form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* ===== ریسپانسیو ===== */
 @media (max-width: 992px) {
   .dict-manager {

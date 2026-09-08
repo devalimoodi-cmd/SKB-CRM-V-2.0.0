@@ -343,11 +343,11 @@ export const dashboardRenderer = {
       : [];
     const hallDaysHTML =
       hall.status === "danger" && hallOverdue.length
-        ? `<span class="days-info overdue-pill" style="color:#dc2626; font-weight:600;"><i class="fas fa-exclamation-circle"></i> معوق: هفته ${hallOverdue.join("، ")}</span>`
+        ? `<span class="days-info overdue-pill" style="color:#dc2626; font-weight:600;"><i class="fas fa-exclamation-circle"></i> معوق: هفته ${this.formatWeekList(hallOverdue)}</span>`
         : this.daysInfoHTML(hall.weekEndDate, hall.status);
 
     return `
-      <div class="task-hall-row"
+      <div class="task-hall-row${(parseInt(hall.weekNumber) || 1) > 10 ? " task-hall-over-age" : ""}"
            data-customer-id="${customer?.id ?? 0}"
            data-flock-id="${hall.id}"
            data-week-number="${hall.weekNumber ?? 0}"
@@ -391,6 +391,9 @@ export const dashboardRenderer = {
         <div class="th-stepper">
           <span class="stepper-label">پیشرفت هفته‌های سالن</span>
           <div class="steps-container">${this.renderWeeksBar(hall)}</div>
+          ${(parseInt(hall.weekNumber) || 1) > 10
+            ? '<div class="th-overage-note"><i class="fas fa-exclamation-triangle"></i> این سالن از سن استاندارد (۱۰ هفته) خارج است</div>'
+            : ""}
         </div>
       </div>
     `;
@@ -407,7 +410,7 @@ export const dashboardRenderer = {
       : [];
     const current = parseInt(hall.weekNumber) || 1;
     const maxCompleted = completed.length ? Math.max(...completed) : 0;
-    const totalWeeks = Math.max(current, maxCompleted, 8);
+    const totalWeeks = Math.min(Math.max(current, maxCompleted, 8), 10);
     let html = "";
     for (let i = 1; i <= totalWeeks; i++) {
       const isCompleted = completed.includes(i);
@@ -441,6 +444,16 @@ export const dashboardRenderer = {
         </div>`;
     }
     return html;
+  },
+
+  // خلاصهکردن لیست شمارهٔ هفتهها در حد سقف استاندارد (۱۰) با سهنقطه
+  formatWeekList(nums, cap = 10) {
+    const arr = Array.isArray(nums)
+      ? nums.map(Number).filter((n) => Number.isFinite(n) && n > 0)
+      : [];
+    const unique = [...new Set(arr)].sort((a, b) => a - b);
+    if (unique.length <= cap) return unique.join("، ");
+    return `${unique.slice(0, cap).join("، ")}، …`;
   },
 
   smsTodayHTML(today) {

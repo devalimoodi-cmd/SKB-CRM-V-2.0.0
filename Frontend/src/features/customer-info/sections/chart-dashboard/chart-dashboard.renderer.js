@@ -69,6 +69,23 @@ export const chartDashboardRenderer = {
     container.innerHTML = `
             <div class="analysis-module">
 
+                <!-- ===== نمایش گله‌های گذشته (تاگل + بنر هشدار) ===== -->
+                <div class="analysis-history-bar">
+                    <label class="analysis-toggle">
+                        <input type="checkbox" id="includePastToggle" ${options.includePast ? "checked" : ""} onchange="chartDashboardService.togglePastMode(this.checked)">
+                        <span class="analysis-toggle-slider"></span>
+                        <span class="analysis-toggle-label"><i class="fas fa-history"></i> نمایش گله‌های گذشته</span>
+                    </label>
+                    ${options.includePast && options.hasPastFlocks && !options.hasActiveFlock
+                      ? '<span class="analysis-history-note">مشتری گلهٔ فعال ندارد — دادهٔ گله‌های گذشته نمایش داده می‌شود</span>'
+                      : options.includePast
+                        ? '<span class="analysis-history-note">گله‌های گذشته به لیست اضافه شدند؛ یکی را انتخاب کنید</span>'
+                        : ""}
+                </div>
+                ${options.selectedPast
+                  ? '<div class="analysis-past-banner"><i class="fas fa-exclamation-triangle"></i> این نمودار اطلاعات گله‌های گذشته / پایان‌یافته را نشان می‌دهد</div>'
+                  : ""}
+
                 <!-- ===== کنترل‌های بالا ===== -->
                 <div class="analysis-controls">
                     <div class="analysis-control-group analysis-view-group">

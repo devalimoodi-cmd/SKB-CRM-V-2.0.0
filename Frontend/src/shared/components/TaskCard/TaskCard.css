@@ -586,3 +586,43 @@
     border-top: none;
   }
 }
+
+
+/* ============================================================
+   بنر «خارج از سن استاندارد» در کارت تسک (گله‌های تاریخ گذشته)
+   ============================================================ */
+.task-overage-banner {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #fffbeb;
+  border: 1.5px solid #fcd34d;
+  color: #92400e;
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 10px;
+  padding: 8px 12px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.task-overage-banner i {
+  color: #d97706;
+  font-size: 13px;
+}
+
+.task-overage-banner + * {
+  margin-top: 6px;
+
+
+/* ============================================================
+   بوردر اخطاری دور کارت تسک گله‌های خارج از سن استاندارد
+   ============================================================ */
+.task-card.task-card-over-age {
+  outline: 2px dashed #f59e0b;
+  outline-offset: -2px;
+  box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.14);
+}
+
+}

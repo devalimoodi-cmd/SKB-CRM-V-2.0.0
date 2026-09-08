@@ -516,6 +516,35 @@ class HallsReport {
     const now = new Date(generatedAt);
     const persianDate = formatDate(now);
 
+    // تاریخ و ساعت دریافت گزارش (شمسی/فارسی)
+    const reportDate = new Intl.DateTimeFormat("fa-IR", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(now);
+    const reportTime = new Intl.DateTimeFormat("fa-IR", {
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(now);
+
+    // ===== دریافت‌کننده گزارش (کاربر لاگین‌شده) =====
+    const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
+    const reporterName =
+      currentUser.fullName ||
+      [currentUser.first_name, currentUser.last_name]
+        .filter(Boolean)
+        .join(" ") ||
+      currentUser.username ||
+      "کاربر ناشناس";
+    const roleText =
+      {
+        super_admin: "مدیر اصلی",
+        admin: "مدیر",
+        sub_admin: "مدیر میانی",
+        expert: "کارشناس",
+        customer: "مشتری",
+      }[currentUser.role] || "کاربر";
+
     // ===== گروه‌بندی سالن‌ها بر اساس واحد =====
     const hallsWithoutUnit = halls.filter((h) => !h.unit_id);
     let unitSectionsHTML = "";
@@ -675,6 +704,12 @@ class HallsReport {
             color: #2c7a6e;
             font-size: 22px;
             margin: 0 0 5px;
+          }
+          .report-logo {
+            display: block;
+            height: 60px;
+            width: auto;
+            margin: 0 auto 10px;
           }
           .report-header .date {
             color: #94a3b8;
@@ -876,6 +911,7 @@ class HallsReport {
       </head>
       <body>
         <div class="report-header">
+          <img class="report-logo" src="/assets/images/skb-logo.png" alt="لوگوی شرکت" onerror="this.style.display='none'">
           <h1>📋 گزارش کامل واحدها و سالن‌ها</h1>
           <div class="date">تاریخ گزارش: ${persianDate}</div>
         </div>
@@ -911,6 +947,11 @@ class HallsReport {
         ${unitSectionsHTML}
 
         <div class="report-footer">
+          <p>
+            📌 دریافت گزارش توسط: <strong>${reporterName}</strong> (${roleText}) |
+            تاریخ: <strong>${reportDate}</strong> |
+            ساعت: <strong>${reportTime}</strong>
+          </p>
           <p>این گزارش توسط سامانه مدیریت مشتریان (SKB-CRM) تولید شده است</p>
         </div>
         <script>

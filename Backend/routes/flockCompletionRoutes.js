@@ -50,6 +50,14 @@ router.get(
 // دریافت اطلاعات پایان دوره یک گله
 router.get("/:id", protect, flockCompletionController.getFlockCompletionById);
 
+// ویرایش/بروزرسانی اطلاعات پایان دوره
+router.put(
+  "/:id",
+  protect,
+  authorize("expert", "admin", "sub_admin", "super_admin"),
+  flockCompletionController.updateFlockCompletion,
+);
+
 // حذف (بازگردانی) یک پایان دوره
 router.delete(
   "/:id",

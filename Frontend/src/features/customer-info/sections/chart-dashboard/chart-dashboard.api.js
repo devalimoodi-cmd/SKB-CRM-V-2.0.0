@@ -12,9 +12,10 @@ export const chartDashboardApi = {
   },
 
   // دریافت داده‌های تحلیلی نمودارهای داینامیک
-  async getAnalysis(customerId) {
+  async getAnalysis(customerId, scope = "") {
     const params = {};
     if (customerId) params.customerId = customerId;
+    if (scope && String(scope).toLowerCase() === "all") params.scope = "all";
     return apiService.get(API_CONSTANTS.ENDPOINTS.DASHBOARD.ANALYSIS, params);
   },
 

@@ -12,6 +12,32 @@ import {
   formatDate,
 } from "../../../../core/utils/date.utils.js";
 
+// نمایش تاریخ کشتار به‌صورت بازه‌ای (شروع/پایان)؛ رکوردهای قدیمی تک‌تاریخی هم پشتیبانی می‌شوند
+const formatSlaughterRange = (completion) => {
+  if (!completion) return "-";
+  const start = completion.slaughter_date || null;
+  const end = completion.slaughter_end_date || null;
+  if (!start && !end) return "-";
+  if (!end || end === start) {
+    return convertToPersianDate(start || end);
+  }
+  return `${convertToPersianDate(start)} تا ${convertToPersianDate(end)}`;
+};
+
+// نمایش سن کشتار به‌صورت بازه‌ای (شروع/پایان)؛ رکوردهای قدیمی تک‌عددی هم پشتیبانی می‌شوند
+const formatAgeRange = (completion) => {
+  if (!completion) return "-";
+  const start = completion.slaughter_age_days;
+  const end = completion.slaughter_age_end_days;
+  const hasStart = start !== null && start !== undefined;
+  const hasEnd = end !== null && end !== undefined;
+  if (!hasStart && !hasEnd) return "-";
+  if (!hasEnd || Number(end) === Number(start)) {
+    return `${hasStart ? start : end} روز`;
+  }
+  return `${start}-${end} روز`;
+};
+
 class HatcheryReport {
   constructor() {
     this.customerId = null;
@@ -176,7 +202,8 @@ class HatcheryReport {
                   <tr><td>جمع هزینه‌ها</td><td>${completion.total_cost != null ? `${Number(completion.total_cost).toLocaleString("fa-IR")} تومان` : "-"}</td></tr>
                   <tr><td>سود خالص</td><td><strong style="color:${Number(completion.net_profit) >= 0 ? "#16a34a" : "#dc2626"};">${completion.net_profit != null ? `${Number(completion.net_profit).toLocaleString("fa-IR")} تومان` : "-"}</strong></td></tr>
                   <tr><td>درصد سود</td><td>${completion.profit_percent != null ? `${completion.profit_percent}٪` : "-"}</td></tr>
-                  <tr><td>سن کشتار</td><td>${completion.slaughter_age_days ? completion.slaughter_age_days + " روز" : "-"}</td></tr>
+                  <tr><td>سن کشتار</td><td>${formatAgeRange(completion)}</td></tr>
+                  <tr><td>تاریخ کشتار (اعلامی مرغدار)</td><td>${formatSlaughterRange(completion)}</td></tr>
                   <tr><td>هفته آخر</td><td>${completion.final_week_number ?? "-"}</td></tr>
                 </table>
               </div>
@@ -232,6 +259,36 @@ class HatcheryReport {
     const { customer, flocks, completionsMap, generatedAt, mode } = reportData;
     const now = new Date(generatedAt);
     const persianDate = formatDate(now);
+
+    // تاریخ و ساعت دریافت گزارش (شمسی/فارسی)
+    const reportDate = new Intl.DateTimeFormat("fa-IR", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(now);
+    const reportTime = new Intl.DateTimeFormat("fa-IR", {
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(now);
+
+    // ===== دریافت‌کننده گزارش (کاربر لاگین‌شده) =====
+    const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
+    const reporterName =
+      currentUser.fullName ||
+      [currentUser.first_name, currentUser.last_name]
+        .filter(Boolean)
+        .join(" ") ||
+      currentUser.username ||
+      "کاربر ناشناس";
+    const roleText =
+      {
+        super_admin: "مدیر اصلی",
+        admin: "مدیر",
+        sub_admin: "مدیر میانی",
+        expert: "کارشناس",
+        customer: "مشتری",
+      }[currentUser.role] || "کاربر";
+
     const title =
       mode === "history"
         ? "🕓 گزارش تاریخچه جوجه‌ریزی (گله‌های تکمیل‌شده)"
@@ -285,6 +342,7 @@ class HatcheryReport {
             border-bottom: 3px solid #2c7a6e; margin-bottom: 18px;
           }
           .report-page-header h1 { color: #2c7a6e; font-size: 21px; margin: 0 0 5px; }
+          .report-page-header .report-logo { display: block; height: 54px; width: auto; margin: 0 auto 8px; }
           .report-page-header .date { color: #94a3b8; font-size: 12px; }
           .report-customer-info {
             background: #f8fafc; padding: 10px 14px; border-radius: 8px;
@@ -336,6 +394,7 @@ class HatcheryReport {
           <thead>
             <tr><td>
               <div class="report-page-header">
+                <img class="report-logo" src="/assets/images/skb-logo.png" alt="لوگوی شرکت" onerror="this.style.display='none'">
                 <h1>${title}</h1>
                 <div class="date">تاریخ گزارش: ${persianDate}</div>
               </div>
@@ -352,7 +411,14 @@ class HatcheryReport {
             <tr><td>
               <div class="report-content">
                 ${flocksHTML}
-                <div class="report-footer"><p>این گزارش توسط سامانه مدیریت مشتریان (SKB-CRM) تولید شده است</p></div>
+                <div class="report-footer">
+                  <p>
+                    📌 دریافت گزارش توسط: <strong>${reporterName}</strong> (${roleText}) |
+                    تاریخ: <strong>${reportDate}</strong> |
+                    ساعت: <strong>${reportTime}</strong>
+                  </p>
+                  <p>این گزارش توسط سامانه مدیریت مشتریان (SKB-CRM) تولید شده است</p>
+                </div>
               </div>
             </td></tr>
           </tbody>
