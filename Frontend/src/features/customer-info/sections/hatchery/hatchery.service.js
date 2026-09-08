@@ -22,12 +22,59 @@ const formatSlaughterRange = (completion) => {
   return `${convertToPersianDate(start)} تا ${convertToPersianDate(end)}`;
 };
 
-// نمایش سن کشتار به‌صورت بازه‌ای (شروع/پایان)؛ رکوردهای قدیمی تک‌عددی هم پشتیبانی می‌شوند
+// برچسب روش ثبت سن کشتار
+const slaughterAgeMethodLabel = (completion) => {
+  const m = completion?.slaughter_age_method;
+  if (m === "range") return "روش بازهٔ تاریخی";
+  if (m === "direct") return "روش ورود مستقیم سن";
+  if (m === "weighted") return "روش ارسال چندمرحله‌ای";
+  return completion?.slaughter_age_end_days ? "بازهٔ سن (قدیمی)" : "";
+};
+
+// جدول جزئیات ارسال‌های چندمرحله‌ای (روش weighted)
+const slaughterShipmentsHtml = (completion, opts = {}) => {
+  const rows = Array.isArray(completion?.slaughter_shipments)
+    ? completion.slaughter_shipments
+    : [];
+  if (!rows.length) return "";
+  const listRows = rows
+    .map(
+      (r) => `<tr>
+        <td style="padding:4px 8px;border:1px solid #e2e8f0;">${r.age_days ?? "-"}</td>
+        <td style="padding:4px 8px;border:1px solid #e2e8f0;">${r.quantity != null ? Number(r.quantity).toLocaleString("fa-IR") : "-"}</td>
+        <td style="padding:4px 8px;border:1px solid #e2e8f0;">${r.date ? convertToPersianDate(r.date) : "-"}</td>
+      </tr>`,
+    )
+    .join("");
+  return `<div style="margin-top:8px;">
+    <div style="font-size:11.5px;font-weight:700;color:#334155;margin-bottom:4px;">جزئیات ارسال‌ها به کشتارگاه:</div>
+    <table style="border-collapse:collapse;width:100%;font-size:11.5px;">
+      <thead><tr>
+        <th style="padding:4px 8px;border:1px solid #cbd5e1;background:#f1f5f9;">سن (روز)</th>
+        <th style="padding:4px 8px;border:1px solid #cbd5e1;background:#f1f5f9;">تعداد (قطعه)</th>
+        <th style="padding:4px 8px;border:1px solid #cbd5e1;background:#f1f5f9;">تاریخ</th>
+      </tr></thead>
+      <tbody>${listRows}</tbody>
+    </table>
+  </div>`;
+};
+
+// نمایش سن کشتار — برای رکوردهای دارای «روش» فقط سن نهایی؛ رکوردهای قدیمی بازهٔ قبلی
 const formatAgeRange = (completion) => {
   if (!completion) return "-";
   const start = completion.slaughter_age_days;
-  const end = completion.slaughter_age_end_days;
+  const method = completion.slaughter_age_method;
   const hasStart = start !== null && start !== undefined;
+  const faNum = hasStart
+    ? Number(start).toLocaleString("fa-IR", { maximumFractionDigits: 0 })
+    : "";
+  if (method === "range") return hasStart ? `${faNum} روز` : "-";
+  if (method === "direct") return hasStart ? `${faNum} روز` : "-";
+  if (method === "weighted") {
+    return hasStart ? `${faNum} روز (میانگین وزنی)` : "-";
+  }
+  // رکورد قدیمی بدون method
+  const end = completion.slaughter_age_end_days;
   const hasEnd = end !== null && end !== undefined;
   if (!hasStart && !hasEnd) return "-";
   if (!hasEnd || Number(end) === Number(start)) {
@@ -1960,8 +2007,13 @@ class HatcheryService {
           <div style="background:#f8fafc;border-radius:10px;padding:7px 10px;font-size:11px;color:#64748b;">ارسالی به کشتارگاه<br><b style="color:#0f172a;">${fmt(c.total_sent)} قطعه</b></div>
           <div style="background:#f8fafc;border-radius:10px;padding:7px 10px;font-size:11px;color:#64748b;">وزن کل زنده<br><b style="color:#0f172a;">${fmt(c.total_live_weight)} کیلوگرم</b></div>
           <div style="background:#f8fafc;border-radius:10px;padding:7px 10px;font-size:11px;color:#64748b;">میانگین وزن<br><b style="color:#0f172a;">${fmt(c.avg_live_weight, 3)} کیلوگرم</b></div>
-          <div style="background:#f8fafc;border-radius:10px;padding:7px 10px;font-size:11px;color:#64748b;">سن کشتار<br><b style="color:#0f172a;">${formatAgeRange(c)}</b></div>
+          <div style="background:#f8fafc;border-radius:10px;padding:7px 10px;font-size:11px;color:#64748b;">سن کشتار<br><b style="color:#0f172a;">${formatAgeRange(c)}</b>${
+            slaughterAgeMethodLabel(c)
+              ? `<div style="color:#7c3aed;font-size:9.5px;font-weight:600;margin-top:3px;">${slaughterAgeMethodLabel(c)}</div>`
+              : ""
+          }</div>
         </div>
+        ${slaughterShipmentsHtml(c)}
         <div style="background:#f8fafc;border:1px solid #eef2f6;border-radius:12px;padding:10px 14px;margin-bottom:10px;">
           <div style="font-size:12px;font-weight:800;color:#0f172a;margin-bottom:6px;">شاخصها (سیستمی / اعلامی مرغدار)</div>
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:6px;font-size:11.5px;">
@@ -2369,6 +2421,499 @@ class HatcheryService {
     return this._pcSlaughterAgeAt("pc_sdate_end");
   }
 
+  // ============================================================
+  // ابزارهای «روش ثبت سن کشتار» — بازهٔ تاریخی | ورود مستقیم | چندمرحله‌ای
+  // ============================================================
+  _pcDateIso(rawFa) {
+    const s = String(rawFa || "").trim();
+    if (!s) return null;
+    if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+    const g = convertPersianToGregorian(s);
+    if (!g) return null;
+    return String(g).replace(/\//g, "-").slice(0, 10);
+  }
+
+  _pcFlockIso() {
+    return (
+      this._pcDateIso(document.getElementById("pc_flock_iso")?.value) || null
+    );
+  }
+
+  _pcAgeOfIso(isoSlaughter, flockIsoArg) {
+    const f = flockIsoArg || this._pcFlockIso();
+    if (!f || !isoSlaughter) return null;
+    const d1 = new Date(`${isoSlaughter}T00:00:00`);
+    const d0 = new Date(`${f}T00:00:00`);
+    if (Number.isNaN(d1.getTime()) || Number.isNaN(d0.getTime())) return null;
+    const diff = Math.floor((d1 - d0) / 86400000) + 1;
+    return diff > 0 ? diff : null;
+  }
+
+  _pcIsoFromAge(age, flockIsoArg) {
+    const f = flockIsoArg || this._pcFlockIso();
+    const n = Math.round(Number(age) || 0);
+    if (!f || n < 1) return null;
+    const d = new Date(`${f}T00:00:00`);
+    if (Number.isNaN(d.getTime())) return null;
+    d.setDate(d.getDate() + n - 1);
+    const p = (x) => String(x).padStart(2, "0");
+    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+  }
+
+  _pcSlaughterMethodData() {
+    const methodEl = document.getElementById("pc_age_method");
+    const method = methodEl?.value || "range";
+    const out = {
+      method,
+      age: 0,
+      slaughterDate: null,
+      slaughterEndDate: null,
+      shipments: [],
+    };
+
+    if (method === "range") {
+      out.slaughterDate = this._pcDateIso(
+        document.getElementById("pc_sdate")?.value,
+      );
+      const endRaw = String(
+        document.getElementById("pc_sdate_end")?.value || "",
+      ).trim();
+      out.slaughterEndDate = endRaw ? this._pcDateIso(endRaw) : null;
+      if (out.slaughterEndDate === out.slaughterDate)
+        out.slaughterEndDate = null;
+      const a1 = this._pcAgeOfIso(out.slaughterDate);
+      const a2 = out.slaughterEndDate
+        ? this._pcAgeOfIso(out.slaughterEndDate)
+        : a1;
+      if (a1 && a2) out.age = Math.round((a1 + a2) / 2);
+      else if (a1) out.age = a1;
+      return out;
+    }
+
+    if (method === "direct") {
+      const entered = Math.round(
+        this._toNum(document.getElementById("pc_age_direct")?.value) || 0,
+      );
+      out.age = entered;
+      out.slaughterDate = this._pcIsoFromAge(entered);
+      return out;
+    }
+
+    // weighted — خواندن ردیف‌های ارسال از DOM
+    document
+      .querySelectorAll("#pc_ship_rows .pc-ship-row")
+      .forEach((row) => {
+        const a = Math.round(
+          this._toNum(row.querySelector(".pc-ship-age")?.value) || 0,
+        );
+        const q = Math.round(
+          this._toNum(row.querySelector(".pc-ship-qty")?.value) || 0,
+        );
+        if (a > 0 && q > 0) {
+          out.shipments.push({
+            age_days: a,
+            quantity: q,
+            date: this._pcIsoFromAge(a),
+          });
+        }
+      });
+    if (out.shipments.length) {
+      const totalQty = out.shipments.reduce((s, r) => s + r.quantity, 0);
+      out.age = Math.round(
+        out.shipments.reduce((s, r) => s + r.age_days * r.quantity, 0) /
+          totalQty,
+      );
+      const dates = out.shipments
+        .map((r) => r.date)
+        .filter(Boolean)
+        .sort();
+      out.slaughterDate = dates.length ? dates[0] : null;
+      out.slaughterEndDate =
+        dates.length > 1 ? dates[dates.length - 1] : null;
+    }
+    return out;
+  }
+
+  _renderPcMethodUi(d) {
+    const setText = (id, t) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = t;
+    };
+    const faInt = (n) =>
+      (Number(n) || 0).toLocaleString("fa-IR", {
+        maximumFractionDigits: 0,
+      });
+
+    if (d.method === "range") {
+      const a1 = this._pcAgeOfIso(d.slaughterDate);
+      const a2 = d.slaughterEndDate
+        ? this._pcAgeOfIso(d.slaughterEndDate)
+        : a1;
+      if (d.slaughterDate && a2 && a2 !== a1) {
+        setText(
+          "pc_range_note",
+          `سن شروع کشتار ${faInt(a1)} روز — سن پایان ${faInt(a2)} روز → میانگین سن کشتار ${faInt(
+            d.age,
+          )} روز`,
+        );
+      } else if (d.slaughterDate) {
+        setText(
+          "pc_range_note",
+          `کشتار یک‌روزه — سن کشتار ${faInt(d.age)} روز`,
+        );
+      } else {
+        setText("pc_range_note", "تاریخ شروع کشتار را وارد کنید");
+      }
+    } else if (d.method === "direct") {
+      setText(
+        "pc_direct_date",
+        d.slaughterDate ? convertToPersianDate(d.slaughterDate) : "—",
+      );
+    } else {
+      const totalQty = d.shipments.reduce((s, r) => s + r.quantity, 0);
+      setText(
+        "pc_weighted_note",
+        d.shipments.length
+          ? `${d.shipments.length} ارسال (مجموع ${faInt(
+              totalQty,
+            )} قطعه) → میانگین وزنی سن کشتار ${faInt(d.age)} روز`
+          : "ردیفی اضافه کنید و برای هر ارسال سن و تعداد را وارد کنید",
+      );
+      // تاریخ هر ردیف به‌صورت خودکار به‌روز می‌شود
+      document
+        .querySelectorAll("#pc_ship_rows .pc-ship-row")
+        .forEach((row) => {
+          const dateEl = row.querySelector(".pc-ship-date");
+          if (dateEl) {
+            const dateIso = this._pcIsoFromAge(
+              this._toNum(row.querySelector(".pc-ship-age")?.value),
+            );
+            dateEl.textContent = dateIso
+              ? convertToPersianDate(dateIso)
+              : "—";
+          }
+        });
+    }
+
+    const ageOut = document.getElementById("pc_out_age");
+    if (ageOut) ageOut.textContent = faInt(d.age);
+  }
+
+  setPcSlaughterMethod(method) {
+    if (!["range", "direct", "weighted"].includes(method)) method = "range";
+    document.querySelectorAll(".pc-method-pill").forEach((btn) => {
+      btn.classList.toggle("pc-method-active", btn.dataset.method === method);
+    });
+    const hiddenEl = document.getElementById("pc_age_method");
+    if (hiddenEl) hiddenEl.value = method;
+    ["range", "direct", "weighted"].forEach((m) => {
+      const panel = document.getElementById(`pc_panel_${m}`);
+      if (panel) panel.style.display = m === method ? "block" : "none";
+    });
+    if (
+      method === "weighted" &&
+      !document.querySelector("#pc_ship_rows .pc-ship-row")
+    ) {
+      this.addPcShipRow();
+    }
+    this.recalcCompletionInputs();
+  }
+
+  addPcShipRow(age = "", qty = "") {
+    const container = document.getElementById("pc_ship_rows");
+    if (!container) return;
+    container.insertAdjacentHTML(
+      "beforeend",
+      `<div class="pc-ship-row">
+        <input type="number" min="1" class="pc-in pc-ship-age" placeholder="سن (روز)" value="${age}" oninput="hatcheryRecalcCompletion()">
+        <input type="number" min="1" class="pc-in pc-ship-qty" placeholder="تعداد (قطعه)" value="${qty}" oninput="hatcheryRecalcCompletion()">
+        <div class="pc-read pc-ship-date" title="تاریخ خودکار از سن و جوجه‌ریزی">—</div>
+        <button type="button" class="pc-ship-del" title="حذف این ردیف" onclick="hatcheryRemovePcShip(this)"><i class="fas fa-times"></i></button>
+      </div>`,
+    );
+  }
+
+  removePcShip(btn) {
+    const row = btn?.closest(".pc-ship-row");
+    if (row) row.remove();
+    this.recalcCompletionInputs();
+  }
+
+  // ============================================================
+  // روش‌های سن کشتار در مودال ویرایش پایان دوره (UE)
+  // ============================================================
+  _ueFlockIso() {
+    const raw = document.getElementById("ueFlockIso")?.value || "";
+    return this._pcDateIso(raw) || null;
+  }
+
+  _ueMethodSlaughterData() {
+    const methodEl = document.getElementById("ue_age_method");
+    const method = methodEl?.value || "range";
+    const base = this._ueFlockIso();
+    const out = {
+      method,
+      age: 0,
+      slaughterDate: null,
+      slaughterEndDate: null,
+      shipments: [],
+    };
+
+    if (method === "range") {
+      out.slaughterDate = this._pcDateIso(
+        document.getElementById("ueSlaughterDate")?.value,
+      );
+      const endRaw = String(
+        document.getElementById("ueSlaughterEndDate")?.value || "",
+      ).trim();
+      out.slaughterEndDate = endRaw ? this._pcDateIso(endRaw) : null;
+      if (out.slaughterEndDate === out.slaughterDate)
+        out.slaughterEndDate = null;
+      const a1 = this._pcAgeOfIso(out.slaughterDate, base);
+      const a2 = out.slaughterEndDate
+        ? this._pcAgeOfIso(out.slaughterEndDate, base)
+        : a1;
+      if (a1 && a2) out.age = Math.round((a1 + a2) / 2);
+      else if (a1) out.age = a1;
+      return out;
+    }
+
+    if (method === "direct") {
+      const entered = Math.round(
+        this._toNum(document.getElementById("ueAgeDirect")?.value) || 0,
+      );
+      out.age = entered;
+      out.slaughterDate = this._pcIsoFromAge(entered, base);
+      return out;
+    }
+
+    // weighted
+    document
+      .querySelectorAll("#ue_ship_rows .ue-ship-row")
+      .forEach((row) => {
+        const a = Math.round(
+          this._toNum(row.querySelector(".ue-ship-age")?.value) || 0,
+        );
+        const q = Math.round(
+          this._toNum(row.querySelector(".ue-ship-qty")?.value) || 0,
+        );
+        if (a > 0 && q > 0) {
+          out.shipments.push({
+            age_days: a,
+            quantity: q,
+            date: this._pcIsoFromAge(a, base),
+          });
+        }
+      });
+    if (out.shipments.length) {
+      const totalQty = out.shipments.reduce((s, r) => s + r.quantity, 0);
+      out.age = Math.round(
+        out.shipments.reduce((s, r) => s + r.age_days * r.quantity, 0) /
+          totalQty,
+      );
+      const dates = out.shipments
+        .map((r) => r.date)
+        .filter(Boolean)
+        .sort();
+      out.slaughterDate = dates.length ? dates[0] : null;
+      out.slaughterEndDate =
+        dates.length > 1 ? dates[dates.length - 1] : null;
+    }
+    return out;
+  }
+
+  ueRecalcSlaughterMethod() {
+    const d = this._ueMethodSlaughterData();
+    const setText = (id, t) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = t;
+    };
+    const faInt = (n) =>
+      (Number(n) || 0).toLocaleString("fa-IR", {
+        maximumFractionDigits: 0,
+      });
+
+    if (d.method === "range") {
+      const base = this._ueFlockIso();
+      const a1 = this._pcAgeOfIso(d.slaughterDate, base);
+      const a2 = d.slaughterEndDate
+        ? this._pcAgeOfIso(d.slaughterEndDate, base)
+        : a1;
+      if (d.slaughterDate && a2 && a2 !== a1) {
+        setText(
+          "ue_range_note",
+          `سن شروع ${faInt(a1)} روز — سن پایان ${faInt(a2)} روز → میانگین ${faInt(
+            d.age,
+          )} روز`,
+        );
+      } else if (d.slaughterDate) {
+        setText("ue_range_note", `کشتار یک‌روزه — سن ${faInt(d.age)} روز`);
+      } else {
+        setText("ue_range_note", "تاریخ شروع کشتار را وارد کنید");
+      }
+    } else if (d.method === "direct") {
+      setText(
+        "ue_direct_date",
+        d.slaughterDate ? convertToPersianDate(d.slaughterDate) : "—",
+      );
+    } else {
+      const totalQty = d.shipments.reduce((s, r) => s + r.quantity, 0);
+      setText(
+        "ue_weighted_note",
+        d.shipments.length
+          ? `${d.shipments.length} ارسال (مجموع ${faInt(
+              totalQty,
+            )} قطعه) → میانگین وزنی سن ${faInt(d.age)} روز`
+          : "ردیفی اضافه کنید و برای هر ارسال سن و تعداد را وارد کنید",
+      );
+      document
+        .querySelectorAll("#ue_ship_rows .ue-ship-row")
+        .forEach((row) => {
+          const dateEl = row.querySelector(".ue-ship-date");
+          if (dateEl) {
+            const dateIso = this._pcIsoFromAge(
+              this._toNum(row.querySelector(".ue-ship-age")?.value),
+              this._ueFlockIso(),
+            );
+            dateEl.textContent = dateIso
+              ? convertToPersianDate(dateIso)
+              : "—";
+          }
+        });
+    }
+
+    const ageOut = document.getElementById("ue_out_age");
+    if (ageOut) ageOut.textContent = faInt(d.age);
+    return d;
+  }
+
+  setUeSlaughterMethod(method) {
+    if (!["range", "direct", "weighted"].includes(method)) method = "range";
+    document.querySelectorAll(".ue-method-pill").forEach((btn) => {
+      btn.classList.toggle("ue-method-active", btn.dataset.method === method);
+    });
+    const hiddenEl = document.getElementById("ue_age_method");
+    if (hiddenEl) hiddenEl.value = method;
+    ["range", "direct", "weighted"].forEach((m) => {
+      const panel = document.getElementById(`ueMethodPanel_${m}`);
+      if (panel) panel.style.display = m === method ? "block" : "none";
+    });
+    if (
+      method === "weighted" &&
+      !document.querySelector("#ue_ship_rows .ue-ship-row")
+    ) {
+      this.addUeShipRow();
+    }
+    this.ueRecalcSlaughterMethod();
+  }
+
+  addUeShipRow(age = "", qty = "", dateIso = "") {
+    const container = document.getElementById("ue_ship_rows");
+    if (!container) return;
+    const dateText = dateIso ? convertToPersianDate(dateIso) : "";
+    container.insertAdjacentHTML(
+      "beforeend",
+      `<div class="ue-ship-row">
+        <input type="number" min="1" class="ue-field ue-ship-age" placeholder="سن (روز)" value="${age}" oninput="hatcheryUeRecalc()">
+        <input type="number" min="1" class="ue-field ue-ship-qty" placeholder="تعداد (قطعه)" value="${qty}" oninput="hatcheryUeRecalc()">
+        <div class="ue-field ue-ship-date" title="تاریخ خودکار">${dateText || "—"}</div>
+        <button type="button" class="ue-ship-del" title="حذف ردیف" onclick="hatcheryRemoveUeShip(this)"><i class="fas fa-times"></i></button>
+      </div>`,
+    );
+  }
+
+  removeUeShip(btn) {
+    const row = btn?.closest(".ue-ship-row");
+    if (row) row.remove();
+    this.ueRecalcSlaughterMethod();
+  }
+
+  _ueSlaughterSectionHtml(c, flock) {
+    const method = c.slaughter_age_method || (
+      c.slaughter_end_date || c.slaughter_age_end_days ? "range" : "direct"
+    );
+    const flockIso =
+      flock?.placement_date || c.flock?.placement_date || "";
+    const startFa = c.slaughter_date
+      ? convertToPersianDate(c.slaughter_date)
+      : "";
+    const endFa = c.slaughter_end_date
+      ? convertToPersianDate(c.slaughter_end_date)
+      : "";
+    const shipments = Array.isArray(c.slaughter_shipments)
+      ? c.slaughter_shipments
+      : [];
+
+    const shipRowsHtml = shipments.length
+      ? shipments
+          .map(
+            (s) =>
+              `<div class="ue-ship-row">
+                <input type="number" min="1" class="ue-field ue-ship-age" placeholder="سن (روز)" value="${s.age_days ?? ""}" oninput="hatcheryUeRecalc()">
+                <input type="number" min="1" class="ue-field ue-ship-qty" placeholder="تعداد (قطعه)" value="${s.quantity ?? ""}" oninput="hatcheryUeRecalc()">
+                <div class="ue-field ue-ship-date" title="تاریخ خودکار">${s.date ? convertToPersianDate(s.date) : "—"}</div>
+                <button type="button" class="ue-ship-del" title="حذف ردیف" onclick="hatcheryRemoveUeShip(this)"><i class="fas fa-times"></i></button>
+              </div>`,
+          )
+          .join("")
+      : "";
+
+    return `
+      <div class="ue-section">
+        <div class="ue-section-title"><i class="fas fa-calendar-check"></i> سن کشتار — روش ثبت</div>
+        <input type="hidden" id="ueFlockIso" value="${flockIso}">
+        <input type="hidden" id="ue_age_method" value="${method}">
+        <div class="ue-method-pills">
+          <button type="button" class="ue-method-pill ${method === "range" ? "ue-method-active" : ""}" data-method="range" onclick="hatcherySetUeMethod('range')"><i class="fas fa-calendar-week"></i> بازهٔ تاریخی</button>
+          <button type="button" class="ue-method-pill ${method === "direct" ? "ue-method-active" : ""}" data-method="direct" onclick="hatcherySetUeMethod('direct')"><i class="fas fa-arrow-left"></i> ورود مستقیم سن</button>
+          <button type="button" class="ue-method-pill ${method === "weighted" ? "ue-method-active" : ""}" data-method="weighted" onclick="hatcherySetUeMethod('weighted')"><i class="fas fa-truck-fast"></i> ارسال چندمرحله‌ای</button>
+        </div>
+
+        <div class="ue-method-panel" id="ueMethodPanel_range" style="${method === "range" ? "" : "display:none;"}">
+          <div class="ue-2col">
+            <div>
+              <label class="ue-label">تاریخ شروع کشتار</label>
+              <input type="text" id="ueSlaughterDate" class="ue-field" placeholder="۱۴۰۴/۰۱/۰۱" value="${startFa}" onchange="hatcheryUeRecalc()">
+            </div>
+            <div>
+              <label class="ue-label">تاریخ پایان کشتار</label>
+              <input type="text" id="ueSlaughterEndDate" class="ue-field" placeholder="۱۴۰۴/۰۱/۰۱" value="${endFa}" onchange="hatcheryUeRecalc()">
+            </div>
+          </div>
+          <div class="ue-age-calc-note" id="ue_range_note"></div>
+        </div>
+
+        <div class="ue-method-panel" id="ueMethodPanel_direct" style="${method === "direct" ? "" : "display:none;"}">
+          <div class="ue-2col">
+            <div>
+              <label class="ue-label">سن کشتار (روز) *</label>
+              <input type="number" min="1" id="ueAgeDirect" class="ue-field" placeholder="مثلاً ۴۲" value="${method === "direct" ? (c.slaughter_age_days ?? "") : ""}" oninput="hatcheryUeRecalc()">
+            </div>
+            <div>
+              <label class="ue-label">تاریخ کشتار (محاسبه‌شده)</label>
+              <div class="ue-field" id="ue_direct_date" style="background:#f1f5f9;padding-top:10px;">—</div>
+            </div>
+          </div>
+          <div class="ue-age-calc-note">تاریخ بر اساس سن و تاریخ جوجه‌ریزی به‌صورت خودکار محاسبه می‌شود.</div>
+        </div>
+
+        <div class="ue-method-panel" id="ueMethodPanel_weighted" style="${method === "weighted" ? "" : "display:none;"}">
+          <div style="margin-bottom:8px;">
+            <button type="button" class="ue-add-ship" onclick="hatcheryAddUeShip()"><i class="fas fa-plus"></i> افزودن ارسال</button>
+          </div>
+          <div id="ue_ship_rows">${shipRowsHtml}</div>
+          <div class="ue-age-calc-note">میانگین وزنی: <b id="ue_weighted_note">—</b></div>
+        </div>
+
+        <div style="margin-top:10px; display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:8px;">
+          <div>
+            <label class="ue-label">سن کشتار نهایی (روز)</label>
+            <div class="ue-field" id="ue_out_age" style="background:#faf5ff;border-color:#e9d5ff;color:#7c3aed;font-weight:800;font-size:15px;padding-top:10px;">${c.slaughter_age_days != null ? Number(c.slaughter_age_days).toLocaleString("fa-IR") : "۰"}</div>
+          </div>
+        </div>
+      </div>`;
+  }
+
   formatTomanInput(el) {
     if (!el) return;
     const n = this._toNum(el.value);
@@ -2507,18 +3052,63 @@ class HatcheryService {
       </div>
 
       <div class="pc-sec">
-        <div class="pc-sec-title"><i class="fas fa-calendar-check"></i> ۲) بازهٔ کشتار و سن کشتار</div>
-        <div class="pc-grid">
+        <div class="pc-sec-title"><i class="fas fa-calendar-check"></i> ۲) سن کشتار — انتخاب روش ثبت</div>
+
+        <div class="pc-method-pills">
+          <button type="button" class="pc-method-pill pc-method-active" data-method="range" onclick="hatcherySetPcMethod('range')"><i class="fas fa-calendar-week"></i> بازهٔ تاریخی</button>
+          <button type="button" class="pc-method-pill" data-method="direct" onclick="hatcherySetPcMethod('direct')"><i class="fas fa-arrow-left"></i> ورود مستقیم سن</button>
+          <button type="button" class="pc-method-pill" data-method="weighted" onclick="hatcherySetPcMethod('weighted')"><i class="fas fa-truck-fast"></i> ارسال چندمرحله‌ای</button>
+        </div>
+        <input type="hidden" id="pc_age_method" value="range">
+
+        <!-- پنل روش ۱: بازهٔ تاریخی -->
+        <div class="pc-method-panel" id="pc_panel_range">
+          <div class="pc-grid">
+            <div style="margin-bottom:7px;">
+              <label class="pc-label">تاریخ شروع کشتار <small style="color:#b45309;">* اعلامی مرغدار</small></label>
+              <input type="text" id="pc_sdate" class="pc-in pc-date" value="${convertToPersianDate(today)}" onchange="hatcheryRecalcCompletion()" oninput="hatcheryRecalcCompletion()">
+            </div>
+            <div style="margin-bottom:7px;">
+              <label class="pc-label">تاریخ پایان کشتار <small style="color:#94a3b8;">(اختیاری — اگر کشتار چند روز طول بکشد)</small></label>
+              <input type="text" id="pc_sdate_end" class="pc-in pc-date" value="" onchange="hatcheryRecalcCompletion()" oninput="hatcheryRecalcCompletion()">
+            </div>
+          </div>
+          <div class="pc-age-calc-note" id="pc_range_note"></div>
+        </div>
+
+        <!-- پنل روش ۲: ورود مستقیم سن -->
+        <div class="pc-method-panel" id="pc_panel_direct" style="display:none;">
+          <div class="pc-grid">
+            <div style="margin-bottom:7px;">
+              <label class="pc-label">سن کشتار (روز) <small style="color:#b45309;">*</small></label>
+              <input type="number" min="1" id="pc_age_direct" class="pc-in" placeholder="مثلاً ۴۲" oninput="hatcheryRecalcCompletion()">
+            </div>
+            <div style="margin-bottom:7px;">
+              <label class="pc-label">تاریخ کشتار (محاسبه‌شده)</label>
+              <div class="pc-read" id="pc_direct_date">—</div>
+            </div>
+          </div>
+          <div class="pc-age-calc-note">تاریخ ارسال بر اساس سن واردشده و تاریخ جوجه‌ریزی به‌صورت خودکار محاسبه می‌شود.</div>
+        </div>
+
+        <!-- پنل روش ۳: چند ارسال با میانگین وزنی -->
+        <div class="pc-method-panel" id="pc_panel_weighted" style="display:none;">
+          <div style="margin-bottom:8px;">
+            <button type="button" class="pc-add-ship" onclick="hatcheryAddPcShip()"><i class="fas fa-plus"></i> افزودن ارسال</button>
+          </div>
+          <div id="pc_ship_rows"></div>
+          <div class="pc-age-calc-note">میانگین وزنی: <b id="pc_weighted_note">—</b></div>
+        </div>
+
+        <div style="margin-top:12px; display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:10px 16px;">
           <div style="margin-bottom:7px;">
-            <label class="pc-label">تاریخ شروع کشتار <small style="color:#b45309;">* اعلامی مرغدار</small></label>
-            <input type="text" id="pc_sdate" class="pc-in pc-date" value="${convertToPersianDate(today)}" onchange="hatcheryRecalcCompletion()" oninput="hatcheryRecalcCompletion()">
+            <label class="pc-label">سن کشتار نهایی (روز)</label>
+            ${this._pcRead("", "pc_out_age")}
           </div>
           <div style="margin-bottom:7px;">
-            <label class="pc-label">تاریخ پایان کشتار <small style="color:#94a3b8;">(اختیاری — اگر کشتار چند روز طول بکشد)</small></label>
-            <input type="text" id="pc_sdate_end" class="pc-in pc-date" value="" onchange="hatcheryRecalcCompletion()" oninput="hatcheryRecalcCompletion()">
+            <label class="pc-label">نام کشتارگاه <small style="color:#94a3b8;">(اختیاری)</small></label>
+            <input type="text" id="pc_slaughterhouse" class="pc-in" placeholder="اختیاری">
           </div>
-          ${this._pcRead("سن کشتار (روز)", "pc_out_age")}
-          ${this._pcRow("نام کشتارگاه", "pc_slaughterhouse", "", { type: "text", placeholder: "اختیاری" })}
         </div>
       </div>
 
@@ -2713,6 +3303,18 @@ class HatcheryService {
         #pc_out_epi{background:#f5f3ff;border-color:#ddd6fe;color:#6d28d9;}
         #pc_out_adg{background:#ecfeff;border-color:#a5f3fc;color:#0e7490;}
         #pc_out_gain,#pc_out_survival{background:#f0fdf4;border-color:#bbf7d0;color:#15803d;}
+        .pc-method-pills{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;}
+        .pc-method-pill{border:1.5px solid #cbd5e1;background:#fff;color:#475569;border-radius:999px;padding:7px 14px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:all .15s ease;}
+        .pc-method-pill:hover{border-color:#0d9488;color:#0d9488;}
+        .pc-method-pill.pc-method-active{background:#0d9488;border-color:#0d9488;color:#fff;box-shadow:0 4px 12px rgba(13,148,136,.25);}
+        .pc-method-panel{background:#fff;border:1px dashed #d9f3ec;border-radius:12px;padding:10px 12px;margin-bottom:10px;}
+        .pc-age-calc-note{background:#f0fdf4;border:1px solid #d1fae5;color:#047857;border-radius:8px;padding:6px 10px;font-size:11.5px;margin-top:8px;}
+        .pc-add-ship{border:1.5px dashed #0d9488;background:#ecfdf5;color:#0d9488;border-radius:10px;padding:7px 14px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:6px;}
+        .pc-add-ship:hover{background:#d1fae5;}
+        .pc-ship-row{display:grid;grid-template-columns:1fr 1fr 1.2fr auto;gap:8px;align-items:center;margin-bottom:8px;}
+        .pc-ship-date{text-align:center;font-size:12px;}
+        .pc-ship-del{width:34px;height:34px;border:none;background:#fef2f2;color:#dc2626;border-radius:9px;cursor:pointer;font-size:12px;}
+        .pc-ship-del:hover{background:#fee2e2;}
       </style>
       <div class="pc-wrap">
         ${this._pcSummary(data)}
@@ -2742,7 +3344,11 @@ class HatcheryService {
     const sysAvg = val("pc_sys_weight") || 0;
     const initWeight =
       val("pc_init_weight") || 0.04;
-    const age = this._pcSlaughterAge();
+
+    // محاسبه سن کشتار بر اساس روش انتخابی (بازهٔ تاریخی / مستقیم / میانگین وزنی)
+    const slaughterData = this._pcSlaughterMethodData();
+    this._renderPcMethodUi(slaughterData);
+    const age = slaughterData.age || 0;
 
     const mortality = initial > 0 ? Math.max(0, initial - sent) : 0;
     const mortalityPct = initial > 0 ? (mortality / initial) * 100 : 0;
@@ -2801,14 +3407,7 @@ class HatcheryService {
     setOut("pc_out_far_gain", gainKg);
     setOut("pc_out_far_survival", survival, "٪");
 
-    const ageEnd = this._pcSlaughterEndAge();
-    const ageOutEl = document.getElementById("pc_out_age");
-    if (ageOutEl) {
-      const faInt = (n) =>
-        (n || 0).toLocaleString("fa-IR", { maximumFractionDigits: 0 });
-      ageOutEl.textContent =
-        age > 0 && ageEnd > age ? `${faInt(age)}-${faInt(ageEnd)}` : faInt(age);
-    }
+    // (سن نهایی و راهنمای روش در _renderPcMethodUi پر می‌شود)
     setOut("pc_out_mortality", mortality);
     setOut("pc_out_mortality_pct", mortalityPct, "٪");
     setOut("pc_out_avg", avgWeight);
@@ -2854,19 +3453,27 @@ class HatcheryService {
     const sysSent = val("pc_sys_sent") || 0;
     const sysAvg = val("pc_sys_weight") || 0;
     const initWeight = val("pc_init_weight") || 0.04;
-    const age = this._pcSlaughterAge();
-
-    const sdateRaw = txt("pc_sdate");
-    const sdate = sdateRaw
-      ? convertPersianToGregorian(sdateRaw) || null
-      : null;
-    const sdateEndRaw = txt("pc_sdate_end");
-    const sdateEnd = sdateEndRaw
-      ? convertPersianToGregorian(sdateEndRaw) || null
-      : null;
+    const slaughter = this._pcSlaughterMethodData();
+    const age = slaughter.age;
+    const sdate = slaughter.slaughterDate;
+    const sdateEnd = slaughter.slaughterEndDate;
     if (sdate && sdateEnd && String(sdateEnd) < String(sdate)) {
       Swal.showValidationMessage(
         "تاریخ پایان کشتار نمی‌تواند قبل از تاریخ شروع باشد",
+      );
+      return false;
+    }
+    if (slaughter.method === "range" && !sdate) {
+      Swal.showValidationMessage("تاریخ شروع کشتار را وارد کنید");
+      return false;
+    }
+    if (slaughter.method === "direct" && (!age || age < 1)) {
+      Swal.showValidationMessage("سن کشتار را وارد کنید (عدد مثبت)");
+      return false;
+    }
+    if (slaughter.method === "weighted" && slaughter.shipments.length === 0) {
+      Swal.showValidationMessage(
+        "در روش چندمرحله‌ای حداقل یک ارسال با سن و تعداد معتبر اضافه کنید",
       );
       return false;
     }
@@ -2885,10 +3492,6 @@ class HatcheryService {
     }
     if (!live || live <= 0) {
       Swal.showValidationMessage("وزن کل زنده گله را وارد کنید");
-      return false;
-    }
-    if (!sdate) {
-      Swal.showValidationMessage("تاریخ شروع کشتار معتبر نیست");
       return false;
     }
 
@@ -2949,13 +3552,19 @@ class HatcheryService {
     const sharedData = {
       completion_type: "completed",
       completion_date: new Date().toISOString().slice(0, 10),
+      slaughter_age_method: slaughter.method,
       slaughter_age_days: age > 0 ? age : null,
-      slaughter_age_end_days:
-        age > 0 && this._pcSlaughterEndAge() > age
-          ? this._pcSlaughterEndAge()
-          : null,
+      slaughter_age_end_days: null,
       slaughter_date: sdate,
       slaughter_end_date: sdateEnd,
+      slaughter_shipments:
+        slaughter.method === "weighted" && slaughter.shipments.length
+          ? slaughter.shipments.map((r) => ({
+              age_days: r.age_days,
+              quantity: r.quantity,
+              date: r.date,
+            }))
+          : null,
       slaughterhouse_name: txt("pc_slaughterhouse") || null,
       total_sent: sent,
       total_live_weight: round(live),
@@ -3554,6 +4163,17 @@ class HatcheryService {
             .ue-section-title { font-size:12.5px; font-weight:700; color:#2c7a6e; margin-bottom:8px; display:flex; align-items:center; gap:6px; }
             .ue-2col { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
             .ue-3col { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
+            .ue-method-pills{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;}
+            .ue-method-pill{border:1.5px solid #cbd5e1;background:#fff;color:#475569;border-radius:999px;padding:6px 12px;font-family:'Vazir';font-size:11.5px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;}
+            .ue-method-pill:hover{border-color:#2c7a6e;color:#2c7a6e;}
+            .ue-method-pill.ue-method-active{background:#2c7a6e;border-color:#2c7a6e;color:#fff;}
+            .ue-method-panel{background:#fff;border:1px dashed #d1fae5;border-radius:10px;padding:10px;margin-bottom:10px;}
+            .ue-age-calc-note{background:#f0fdf4;border:1px solid #d1fae5;color:#047857;border-radius:8px;padding:6px 10px;font-size:11px;margin-top:8px;font-family:'Vazir';}
+            .ue-add-ship{border:1.5px dashed #2c7a6e;background:#ecfdf5;color:#2c7a6e;border-radius:9px;padding:6px 12px;font-family:'Vazir';font-size:11.5px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:6px;}
+            .ue-ship-row{display:grid;grid-template-columns:1fr 1fr 1.2fr auto;gap:6px;align-items:center;margin-bottom:6px;}
+            .ue-ship-date{text-align:center;background:#f1f5f9;font-family:'Vazir';}
+            .ue-ship-del{width:32px;height:34px;border:none;background:#fef2f2;color:#dc2626;border-radius:8px;cursor:pointer;font-size:12px;}
+            .ue-ship-del:hover{background:#fee2e2;}
           </style>
 
           <div style="background:linear-gradient(135deg,#2c7a6e,#035552); color:#fff; border-radius:12px; padding:14px 16px; margin-bottom:16px; display:flex; align-items:center; gap:12px; position:relative;">
@@ -3609,29 +4229,15 @@ class HatcheryService {
                 <label class="ue-label">درصد تلفات</label>
                 <input type="number" step="0.01" id="ueMortalityRate" class="ue-field" value="${editMortalityRate}">
               </div>
-              <div>
-                <label class="ue-label">سن کشتار (روز)</label>
-                <input type="number" id="ueSlaughterAge" class="ue-field" value="${c.slaughter_age_days ?? ""}">
-              </div>
-              <div>
-                <label class="ue-label">سن پایان کشتار (روز)</label>
-                <input type="number" id="ueSlaughterEndAge" class="ue-field" value="${c.slaughter_age_end_days ?? ""}" placeholder="اختیاری — اگر کشتار چند روز طول بکشد">
-              </div>
             </div>
           </div>
+
+          ${this._ueSlaughterSectionHtml(c, flock)}
 
           <!-- اطلاعات کشتارگاه -->
           <div class="ue-section">
             <div class="ue-section-title"><i class="fas fa-industry"></i> اطلاعات کشتارگاه</div>
             <div class="ue-2col">
-              <div>
-                <label class="ue-label">تاریخ شروع کشتار</label>
-                <input type="text" id="ueSlaughterDate" class="ue-field" placeholder="۱۴۰۴/۰۱/۰۱" value="${c.slaughter_date ? convertToPersianDate(c.slaughter_date) : ""}">
-              </div>
-              <div>
-                <label class="ue-label">تاریخ پایان کشتار</label>
-                <input type="text" id="ueSlaughterEndDate" class="ue-field" placeholder="۱۴۰۴/۰۱/۰۱" value="${c.slaughter_end_date ? convertToPersianDate(c.slaughter_end_date) : ""}">
-              </div>
               <div>
                 <label class="ue-label">نام کشتارگاه</label>
                 <input type="text" id="ueSlaughterhouse" class="ue-field" value="${c.slaughterhouse_name ?? ""}">
@@ -3734,6 +4340,9 @@ class HatcheryService {
             });
           }
 
+          // پیش‌نمایش لحظه‌ای سن کشتار بر اساس روش انتخابی
+          this.ueRecalcSlaughterMethod();
+
           // تقویم شمسی برای بازه کشتار (شروع و پایان)
           if (typeof $.fn.persianDatepicker !== "undefined") {
             ["ueSlaughterDate", "ueSlaughterEndDate"].forEach((inputId) => {
@@ -3759,16 +4368,9 @@ class HatcheryService {
             return false;
           }
 
-          const dateVal =
-            document.getElementById("ueSlaughterDate")?.value?.trim() || "";
-          const slaughterDate = dateVal
-            ? convertPersianToGregorian(dateVal)
-            : null;
-          const endDateVal =
-            document.getElementById("ueSlaughterEndDate")?.value?.trim() || "";
-          const slaughterEndDate = endDateVal
-            ? convertPersianToGregorian(endDateVal)
-            : null;
+          const slaughterData = this.ueRecalcSlaughterMethod();
+          const slaughterDate = slaughterData.slaughterDate;
+          const slaughterEndDate = slaughterData.slaughterEndDate;
           if (
             slaughterDate &&
             slaughterEndDate &&
@@ -3776,6 +4378,26 @@ class HatcheryService {
           ) {
             Swal.showValidationMessage(
               "تاریخ پایان کشتار نمی‌تواند قبل از تاریخ شروع باشد",
+            );
+            return false;
+          }
+          if (slaughterData.method === "range" && !slaughterDate) {
+            Swal.showValidationMessage("تاریخ شروع کشتار را وارد کنید");
+            return false;
+          }
+          if (
+            slaughterData.method === "direct" &&
+            (!slaughterData.age || slaughterData.age < 1)
+          ) {
+            Swal.showValidationMessage("سن کشتار را وارد کنید (عدد مثبت)");
+            return false;
+          }
+          if (
+            slaughterData.method === "weighted" &&
+            slaughterData.shipments.length === 0
+          ) {
+            Swal.showValidationMessage(
+              "در روش چندمرحله‌ای حداقل یک ارسال با سن و تعداد معتبر اضافه کنید",
             );
             return false;
           }
@@ -3803,12 +4425,21 @@ class HatcheryService {
                 document.getElementById("ueTotalMortality")?.value || null,
               mortality_rate:
                 document.getElementById("ueMortalityRate")?.value || null,
+              slaughter_age_method: slaughterData.method,
               slaughter_age_days:
-                document.getElementById("ueSlaughterAge")?.value || null,
-              slaughter_age_end_days:
-                document.getElementById("ueSlaughterEndAge")?.value || null,
+                slaughterData.age > 0 ? slaughterData.age : null,
+              slaughter_age_end_days: null,
               slaughter_date: slaughterDate,
               slaughter_end_date: slaughterEndDate,
+              slaughter_shipments:
+                slaughterData.method === "weighted" &&
+                slaughterData.shipments.length
+                  ? slaughterData.shipments.map((r) => ({
+                      age_days: r.age_days,
+                      quantity: r.quantity,
+                      date: r.date,
+                    }))
+                  : null,
               slaughterhouse_name:
                 document.getElementById("ueSlaughterhouse")?.value?.trim() ||
                 null,
@@ -3896,7 +4527,12 @@ class HatcheryService {
       setVal("ueSystemFcr", data.system_fcr);
       setVal("ueTotalMortality", data.total_mortality);
       setVal("ueMortalityRate", data.mortality_rate);
-      setVal("ueSlaughterAge", data.slaughter_age_days);
+      const ueAgeBox = document.getElementById("ue_out_age");
+      if (ueAgeBox && data.slaughter_age_days != null) {
+        ueAgeBox.textContent = Number(data.slaughter_age_days).toLocaleString(
+          "fa-IR",
+        );
+      }
 
       notificationService.success("✅ فیلدهای سیستمی محاسبه مجدد شدند");
     } catch (error) {
@@ -3980,6 +4616,15 @@ if (typeof window !== "undefined") {
     hatcheryService.formatTomanInput(el);
   window.hatcheryRecalcCompletion = () =>
     hatcheryService.recalcCompletionInputs();
+  window.hatcherySetPcMethod = (m) =>
+    hatcheryService.setPcSlaughterMethod(m);
+  window.hatcheryAddPcShip = () => hatcheryService.addPcShipRow();
+  window.hatcheryRemovePcShip = (btn) => hatcheryService.removePcShip(btn);
+  window.hatcheryUeRecalc = () => hatcheryService.ueRecalcSlaughterMethod();
+  window.hatcherySetUeMethod = (m) =>
+    hatcheryService.setUeSlaughterMethod(m);
+  window.hatcheryAddUeShip = () => hatcheryService.addUeShipRow();
+  window.hatcheryRemoveUeShip = (btn) => hatcheryService.removeUeShip(btn);
   window.addFlockBookmark = (flockId) => hatcheryService.addFlockBookmark(flockId);
   window.addFlockBookmarkOf = (flockId) =>
     hatcheryService.addFlockBookmark(flockId);

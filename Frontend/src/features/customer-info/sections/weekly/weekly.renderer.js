@@ -21,6 +21,54 @@ const fmtPct = (value, digits = 2) =>
     : `${fmtNum(value, digits)}٪`;
 
 // کارت‌های شاخص یک هفته (برای گزارش اختصاصی گله) - گروه‌بندی‌شده
+// ابزارهای نمایش انحراف از استاندارد در کارتها (همانند فرم زندهٔ هفتگی)
+const fmtDev = (value, digits = 2) => {
+  if (value === null || value === undefined || isNaN(value)) return "";
+  return Number(value).toLocaleString("fa-IR", {
+    maximumFractionDigits: digits,
+  });
+};
+const weightNote = (m) => {
+  if (!m || m.weight === null || !m.standard) return "";
+  if (m.weightStatus === "ok") return "✅ در بازه استاندارد";
+  if (m.weightStatus === "below")
+    return `▼ ${fmtDev(Math.abs(m.weightDeviation), 3)} کیلوگرم کمتر از هدف`;
+  if (m.weightStatus === "above")
+    return `▲ ${fmtDev(m.weightDeviation, 3)} کیلوگرم بیشتر از هدف`;
+  return "";
+};
+const gainNote = (m) => {
+  if (!m) return "";
+  if (m.standardGain === null || m.standardGain === undefined) {
+    return m.weightGain !== null ? "استاندارد نژاد ثبت نشده" : "";
+  }
+  const base = `استاندارد: ${fmtNum(m.standardGain, 3)} کیلوگرم`;
+  if (!m.gainDeviation) return base;
+  const sign = m.gainDeviation > 0 ? "▲" : "▼";
+  return `${base} | ${sign} ٪${fmtDev(Math.abs(m.gainDeviation), 2)}`;
+};
+const fcrNote = (m) => {
+  if (!m) return "";
+  if (m.standardFcr === null || m.standardFcr === undefined) {
+    return m.fcr !== null ? "استاندارد FCR ثبت نشده" : "";
+  }
+  const base = `استاندارد: ${fmtNum(m.standardFcr, 3)}`;
+  if (!m.fcrDeviation) return base;
+  const sign = m.fcrDeviation > 0 ? "▲" : "▼";
+  return `${base} | ${sign} ٪${fmtDev(Math.abs(m.fcrDeviation), 2)}`;
+};
+const adgNote = (m) => {
+  if (!m) return "";
+  if (m.standardDailyGainGrams === null || m.standardDailyGainGrams === undefined) {
+    return "";
+  }
+  const base = `استاندارد: ${fmtNum(m.standardDailyGainGrams, 1)} گرم`;
+  if (m.dailyGainGrams === null) return base;
+  const diff = m.dailyGainGrams - m.standardDailyGainGrams;
+  if (Math.abs(diff) < 0.05) return base;
+  return `${base} | ${diff > 0 ? "▲" : "▼"} ${fmtNum(Math.abs(diff), 1)} گرم`;
+};
+
 const renderWeekMetricsCards = (metrics) => {
   if (!metrics) {
     return '<div class="wc-empty">داده‌های این هفته ثبت نشده است</div>';
@@ -47,17 +95,17 @@ const renderWeekMetricsCards = (metrics) => {
     {
       title: "⚖️ وزن",
       cards: [
-        card("میانگین وزن هفتگی", `${fmtNum(metrics.weight, 3)} کیلوگرم`),
+        card("میانگین وزن هفتگی", `${fmtNum(metrics.weight, 3)} کیلوگرم`, weightNote(metrics)),
         card("وزن استاندارد نژاد", `${fmtNum(metrics.standardWeight, 3)} کیلوگرم`),
         card("وزن کل گله (زنده)", `${fmtNum(metrics.totalLiveWeight, 1)} کیلوگرم`),
-        card("افزایش وزن هفتگی", `${fmtNum(metrics.weightGain, 3)} کیلوگرم`, `استاندارد: ${fmtNum(metrics.standardGain, 3)}`),
+        card("افزایش وزن هفتگی", `${fmtNum(metrics.weightGain, 3)} کیلوگرم`, gainNote(metrics)),
         card("افزایش وزن کل گله", `${fmtNum(metrics.totalWeightGain, 1)} کیلوگرم`),
       ],
     },
     {
       title: "🚀 رشد",
       cards: [
-        card("ADG هفتگی", `${fmtNum(metrics.dailyGainGrams, 1)} گرم`, `استاندارد: ${fmtNum(metrics.standardDailyGainGrams, 1)} گرم`),
+        card("ADG هفتگی", `${fmtNum(metrics.dailyGainGrams, 1)} گرم`, adgNote(metrics)),
         card("ADG تجمعی", `${fmtNum(metrics.cumulativeAdg, 1)} گرم`),
       ],
     },
@@ -67,7 +115,7 @@ const renderWeekMetricsCards = (metrics) => {
         card("دان مصرفی کل", `${fmtNum(metrics.cumulativeFeed, 1)} کیلوگرم`),
         card("سرانه مصرف روزانه", `${fmtNum(metrics.dailyFeedPerBird, 1)} گرم`),
         card("سرانه مصرف هفتگی", `${fmtNum(metrics.weeklyFeedPerBird, 3)} کیلوگرم`),
-        card("FCR تا این هفته", fmtNum(metrics.fcr, 3), `استاندارد: ${fmtNum(metrics.standardFcr, 3)}`),
+        card("FCR تا این هفته", fmtNum(metrics.fcr, 3), fcrNote(metrics)),
       ],
     },
   ];
@@ -83,8 +131,102 @@ const renderWeekMetricsCards = (metrics) => {
     .join("")}</div>`;
 };
 
-// استایل مشترک گزارش‌ها
-const REPORT_STYLES = `
+// ===== ماتریس جدولی «همهٔ شاخص‌های یک سالن» — هر ستون یک هفته =====
+export function renderHistoryWeekMatrix(weeks) {
+  const list = (weeks || []).slice();
+  if (list.length === 0) {
+    return '<p style="color:#94a3b8;padding:4px 2px;">ثبت هفتگی‌ای برای این سالن موجود نیست</p>';
+  }
+  const cell = (v) => `<td>${v === null || v === undefined ? "—" : v}</td>`;
+  const rowHtml = (label, fn) =>
+    `<tr><th>${label}</th>${list.map((w) => cell(fn(w))).join("")}</tr>`;
+  const m = (w) => w.metrics || {};
+  const pct = (v) => fmtPct(v);
+  const fa = (v, d = 2) => fmtNum(v, d);
+  const joinArr = (w, key) => (w[key] || []).join("، ") || "—";
+  const weightStatus = (w) => {
+    const mm = m(w);
+    if (!mm || mm.weight == null || !mm.standard) return "—";
+    if (mm.weightStatus === "ok") return "✅ بازه استاندارد";
+    if (mm.weightStatus === "below")
+      return `▼ ${fmtNum(Math.abs(mm.weightDeviation), 3)} کیلوگرم کمتر از هدف`;
+    if (mm.weightStatus === "above")
+      return `▲ ${fmtNum(mm.weightDeviation, 3)} کیلوگرم بیشتر از هدف`;
+    return "—";
+  };
+
+  const headerCells = list
+    .map((w) => `<th>هفته ${w.week_number ?? "-"}</th>`)
+    .join("");
+
+  const rows = [
+    rowHtml("بازهٔ تاریخ", (w) =>
+      [
+        w.week_start_date ? convertToPersianDate(w.week_start_date) : "-",
+        w.week_end_date ? convertToPersianDate(w.week_end_date) : "-",
+      ].join(" تا "),
+    ),
+    rowHtml("سن (روز)", (w) => w.flock_age_days ?? "—"),
+    rowHtml("خوراک روزانه (کیلوگرم)", (w) => w.daily_feed_intake ?? "—"),
+    rowHtml("خوراک هفتگی (کیلوگرم)", (w) => w.weekly_feed_intake ?? "—"),
+    rowHtml("میانگین وزن (کیلوگرم)", (w) =>
+      w.weekly_weight != null ? fa(w.weekly_weight, 3) : "—",
+    ),
+    rowHtml("تلفات (قطعه)", (w) => fa(w.weekly_mortality || 0, 0)),
+    rowHtml("٪ تلفات هفتگی", (w) => pct(m(w).weeklyMortalityPercent)),
+    rowHtml("٪ تلفات تجمعی/کل", (w) => pct(m(w).totalMortalityPercent)),
+    rowHtml("٪ زنده‌مانی هفتگی", (w) => pct(m(w).weeklySurvivalPercent)),
+    rowHtml("٪ زنده‌مانی تجمعی", (w) => pct(m(w).cumulativeSurvivalPercent)),
+    rowHtml("وزن استاندارد نژاد (کیلوگرم)", (w) =>
+      m(w).standardWeight != null ? fa(m(w).standardWeight, 3) : "—",
+    ),
+    rowHtml("اختلاف وزن با هدف (کیلوگرم)", (w) =>
+      m(w).weightDeviation != null ? fa(m(w).weightDeviation, 3) : "—",
+    ),
+    rowHtml("وضعیت وزن", weightStatus),
+    rowHtml("افزایش وزن هفتگی (کیلوگرم)", (w) =>
+      m(w).weightGain != null ? fa(m(w).weightGain, 3) : "—",
+    ),
+    rowHtml("ADG هفتگی (گرم/روز)", (w) =>
+      m(w).dailyGainGrams != null ? fa(m(w).dailyGainGrams, 1) : "—",
+    ),
+    rowHtml("ADG تجمعی (گرم/روز)", (w) =>
+      m(w).cumulativeAdg != null ? fa(m(w).cumulativeAdg, 1) : "—",
+    ),
+    rowHtml("دان مصرفی کل (کیلوگرم)", (w) =>
+      m(w).cumulativeFeed != null ? fa(m(w).cumulativeFeed, 1) : "—",
+    ),
+    rowHtml("سرانهٔ مصرف روزانه (گرم)", (w) =>
+      m(w).dailyFeedPerBird != null ? fa(m(w).dailyFeedPerBird, 1) : "—",
+    ),
+    rowHtml("سرانهٔ مصرف هفتگی (کیلوگرم)", (w) =>
+      m(w).weeklyFeedPerBird != null ? fa(m(w).weeklyFeedPerBird, 3) : "—",
+    ),
+    rowHtml("FCR (تا این هفته)", (w) =>
+      m(w).fcr != null ? fa(m(w).fcr, 3) : "—",
+    ),
+    rowHtml("FCR استاندارد", (w) =>
+      m(w).standardFcr != null ? fa(m(w).standardFcr, 3) : "—",
+    ),
+    rowHtml("انحراف FCR (٪)", (w) =>
+      m(w).fcrDeviation != null ? fa(m(w).fcrDeviation, 2) : "—",
+    ),
+    rowHtml("خاموشی (ساعت)", (w) => fa(w.blackout_hours || 0, 2)),
+    rowHtml("بیماری‌ها", (w) => joinArr(w, "diseases")),
+    rowHtml("واکسن‌ها", (w) => joinArr(w, "vaccines")),
+    rowHtml("داروها", (w) => joinArr(w, "medicines")),
+    rowHtml("نوع خوراک", (w) => joinArr(w, "feedTypes")),
+    rowHtml("پیشنهادات", (w) => joinArr(w, "suggestions")),
+    rowHtml("توضیحات", (w) => w.additional_notes || "—"),
+  ];
+
+  return `<table class="report-table history-week-matrix">
+      <thead><tr><th>شاخص</th>${headerCells}</tr></thead>
+      <tbody>${rows.join("")}</tbody>
+    </table>`;
+}
+
+export const REPORT_STYLES = `
     @font-face {
         font-family: "Vazir";
         src: url("/assets/fonts/Vazir-Regular-FD.ttf") format("truetype");

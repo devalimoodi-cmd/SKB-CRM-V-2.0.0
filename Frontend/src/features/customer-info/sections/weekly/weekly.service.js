@@ -1,5 +1,5 @@
 import { weeklyApi } from "./weekly.api.js";
-import { weeklyRenderer } from "./weekly.renderer.js";
+import { weeklyRenderer, REPORT_STYLES, renderHistoryWeekMatrix } from "./weekly.renderer.js";
 import { weeklyValidation } from "./weekly.validation.js";
 import { calculateWeekMetrics } from "./weekly.calculations.js";
 import { notificationService } from "../../../../core/services/notification.service.js";
@@ -1576,8 +1576,8 @@ class WeeklyService {
   // ===== گزارش تاریخچه هفتگی (گله‌های تکمیل‌شده) =====
 
   async generateWeeklyHistoryReport() {
+    notificationService.showLoading("در حال آماده‌سازی گزارش تاریخچهٔ هفتگی...");
     try {
-      notificationService.info("📄 در حال آماده‌سازی تاریخچه هفتگی...");
       const res = await apiService.get("/flocks", {
         customer_id: this.customerId,
         status: "completed",
@@ -1611,13 +1611,62 @@ class WeeklyService {
           } catch (e) {
             console.warn(`⚠️ بدون هفتگی سالن ${p.id}`);
           }
+
+          // فقط هفتههای ثبتشده + مرتبسازی صعودی
+          const savedWeeks = (weeks || [])
+            .filter((w) => w && w.week_number)
+            .sort((a, b) => (a.week_number || 0) - (b.week_number || 0));
+
+          // محاسبه متریک کامل هر هفته (دقیقاً مثل فرم زندهٔ هفتگی و گزارش گله)
+          const flockLike = {
+            ...p,
+            total_chicks_count: p.total_chicks_count,
+            avg_initial_weight: p.avg_initial_weight,
+            breed_id: p.breed_id,
+            placement_date: p.placement_date,
+          };
+          if (
+            !Array.isArray(flockLike.standards) ||
+            flockLike.standards.length === 0
+          ) {
+            const stds = await this.loadStandardsForFlock(flockLike);
+            flockLike.standards = stds || [];
+          }
+          savedWeeks.forEach((w) => {
+            // رکوردهای خام API این فلگ را ندارند؛ برای خوانده‌شدن توسط calculateWeekMetrics لازم است
+            w.existsInDb = true;
+            // اگر خوراک هفتگی ذخیره نشده ولی روزانه موجود باشد، از روی آن برآورد می‌شود
+            if (
+              (w.weekly_feed_intake === null ||
+                w.weekly_feed_intake === undefined ||
+                w.weekly_feed_intake === "") &&
+              w.daily_feed_intake !== null &&
+              w.daily_feed_intake !== undefined &&
+              w.daily_feed_intake !== ""
+            ) {
+              w.weekly_feed_intake =
+                (parseFloat(w.daily_feed_intake) || 0) * 7;
+            }
+            w.diseases = w.diseases || [];
+            w.vaccines = w.vaccines || [];
+            w.medicines = w.medicines || [];
+            w.feedTypes = w.feedTypes || [];
+            w.suggestions = w.suggestions || [];
+            w.metrics = calculateWeekMetrics({
+              flock: flockLike,
+              weeks: savedWeeks,
+              weekNumber: w.week_number,
+              formValues: {},
+            });
+          });
+
           halls.push({
             placement: p,
             hallName:
               p.hall?.hall_name ||
               p.Hall?.hall_name ||
               `سالن ${p.hall_id || "-"}`,
-            weeks,
+            weeks: savedWeeks,
           });
         }
         blocks.push({ flock, completion, halls });
@@ -1629,6 +1678,8 @@ class WeeklyService {
     } catch (error) {
       console.error("❌ Error generating weekly history report:", error);
       notificationService.error("❌ خطا در تولید گزارش تاریخچه هفتگی");
+    } finally {
+      notificationService.hideLoading();
     }
   }
 
@@ -1672,25 +1723,13 @@ class WeeklyService {
         const unitName = f.unit?.unit_name || "-";
         const halls = b.halls
           .map((h) => {
-            const weekRows = h.weeks
-              .map(
-                (w) => `
-                  <tr>
-                    <td>هفته ${w.week_number}</td>
-                    <td>${w.week_start_date ? convertToPersianDate(w.week_start_date) : "-"} تا ${w.week_end_date ? convertToPersianDate(w.week_end_date) : "-"}</td>
-                    <td>${w.weekly_weight ?? "-"}</td>
-                    <td>${w.weekly_feed_intake ?? w.daily_feed_intake ?? "-"}</td>
-                    <td>${w.weekly_mortality ?? 0}</td>
-                  </tr>`,
-              )
-              .join("");
+            const list = h.weeks || [];
             return `
               <div class="history-hall">
-                <h4>🧩 ${h.hallName}</h4>
-                <table class="report-table">
-                  <thead><tr><th>هفته</th><th>بازه تاریخ</th><th>وزن (گرم)</th><th>خوراک (کیلوگرم)</th><th>تلفات</th></tr></thead>
-                  <tbody>${weekRows || '<tr><td colspan="5" style="color:#94a3b8;">ثبت هفتگی‌ای موجود نیست</td></tr>'}</tbody>
-                </table>
+                <h4>🧩 ${h.hallName}${
+                  list.length ? ` — ${list.length} هفتهٔ ثبت‌شده` : ""
+                }</h4>
+                ${list.length ? renderHistoryWeekMatrix(list) : '<p style="color:#94a3b8;padding:4px 2px;">ثبت هفتگی‌ای برای این سالن موجود نیست</p>'}
               </div>
             `;
           })
@@ -1727,7 +1766,8 @@ class WeeklyService {
           @font-face { font-family: "Vazir"; src: url("/assets/fonts/Vazir-Regular-FD.ttf") format("truetype"); font-weight: 400; }
           @font-face { font-family: "Vazir"; src: url("/assets/fonts/Vazir-Bold-FD.ttf") format("truetype"); font-weight: 700; }
           @media print { body { margin: 0.5cm; } }
-          body { font-family: 'Vazir', 'Tahoma', sans-serif; direction: rtl; background: #fff; color: #1e293b; font-size: 12px; margin: 0; }
+          ${REPORT_STYLES}
+          body { font-family: 'Vazir', 'Tahoma', sans-serif; direction: rtl; background: #fff; color: #1e293b; font-size: 12px; margin: 0; padding: 16px; }
           .report-main { width: 100%; border-collapse: collapse; }
           .report-main thead { display: table-header-group; }
           .report-main td { border: none; padding: 0; }

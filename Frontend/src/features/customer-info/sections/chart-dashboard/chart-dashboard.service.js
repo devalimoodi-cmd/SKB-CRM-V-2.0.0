@@ -737,7 +737,11 @@ class ChartDashboardService {
         );
         if (resAll.success) {
           const allRaw = resAll.data.flocks || [];
-          const pastExists = allRaw.some((f) => f.isActive === false);
+          // پاسخ API خاصیت isActive را داخل flock برمی‌گرداند (سازگاری با هر دو شکل)
+          const isPastRow = (x) =>
+            (x && x.flock && x.flock.isActive === false) ||
+            (x && x.isActive === false);
+          const pastExists = allRaw.some(isPastRow);
           if (pastExists) {
             raw = allRaw;
             this.includePast = true;
@@ -761,7 +765,9 @@ class ChartDashboardService {
       ...f,
       color: PALETTE[i % PALETTE.length],
       series: this.computeSeries(f),
-      _isPast: f.isActive === false,
+      _isPast:
+        (f && f.flock && f.flock.isActive === false) ||
+        (f && f.isActive === false),
     }));
   }
 

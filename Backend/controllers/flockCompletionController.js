@@ -166,6 +166,160 @@ const aggregateHallDetails = (details) => {
 };
 
 // ============================================================
+// ابزارهای محاسبه «سن کشتار نهایی» بر اساس روش انتخابی کاربر
+// مبنای سن: اختلاف تاریخ با جوجه‌ریزی + ۱ روز (سازگار با منطق قدیم سرور)
+// ============================================================
+const toIsoDate = (v) => {
+  if (!v) return null;
+  const s = String(v).trim();
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+  const m = s.match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})$/);
+  if (!m) return null;
+  return `${m[1]}-${m[2].padStart(2, "0")}-${m[3].padStart(2, "0")}`;
+};
+
+const addDaysToIso = (iso, days) => {
+  const d = new Date(`${iso}T00:00:00`);
+  if (Number.isNaN(d.getTime())) return null;
+  d.setDate(d.getDate() + days);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
+    d.getDate(),
+  ).padStart(2, "0")}`;
+};
+
+const ageDaysBetween = (placementIso, dateIso) => {
+  const p = toIsoDate(placementIso);
+  const d = toIsoDate(dateIso);
+  if (!p || !d) return null;
+  const dp = new Date(`${p}T00:00:00`);
+  const dd = new Date(`${d}T00:00:00`);
+  if (Number.isNaN(dp.getTime()) || Number.isNaN(dd.getTime())) return null;
+  const diff = Math.floor((dd - dp) / (1000 * 60 * 60 * 24)) + 1;
+  return diff > 0 ? diff : null;
+};
+
+const SLAUGHTER_METHODS = new Set(["range", "direct", "weighted"]);
+
+const computeSlaughterFields = (payload = {}, placementDate = null, fallback = {}) => {
+  const method = SLAUGHTER_METHODS.has(payload.slaughter_age_method)
+    ? payload.slaughter_age_method
+    : null;
+  const placementIso = toIsoDate(placementDate);
+  const fallbackAge =
+    fallback.age != null && fallback.age !== ""
+      ? parseInt(fallback.age) || null
+      : null;
+  const hasExplicitAge =
+    payload.slaughter_age_days != null && payload.slaughter_age_days !== "";
+  const hasExplicitEndAge =
+    payload.slaughter_age_end_days != null &&
+    payload.slaughter_age_end_days !== "";
+
+  const out = {
+    slaughter_date: toIsoDate(payload.slaughter_date),
+    slaughter_end_date: toIsoDate(payload.slaughter_end_date),
+    slaughter_age_days: hasExplicitAge
+      ? parseInt(payload.slaughter_age_days) || null
+      : fallbackAge,
+    slaughter_age_end_days: hasExplicitEndAge
+      ? parseInt(payload.slaughter_age_end_days) || null
+      : null,
+    slaughter_age_method: method,
+    slaughter_shipments: null,
+  };
+
+  if (method === "range") {
+    out.slaughter_age_method = "range";
+    const startAge = ageDaysBetween(placementIso, out.slaughter_date);
+    const endAge =
+      out.slaughter_end_date && out.slaughter_end_date !== out.slaughter_date
+        ? ageDaysBetween(placementIso, out.slaughter_end_date)
+        : startAge;
+    if (startAge != null && endAge != null) {
+      out.slaughter_age_days = Math.round((startAge + endAge) / 2);
+    } else {
+      out.slaughter_age_days = startAge != null ? startAge : fallbackAge;
+    }
+    out.slaughter_age_end_days = endAge != null ? endAge : null;
+    out.slaughter_shipments = null;
+    return out;
+  }
+
+  if (method === "direct") {
+    out.slaughter_age_method = "direct";
+    const entered =
+      payload.slaughter_age_days != null && payload.slaughter_age_days !== ""
+        ? parseInt(payload.slaughter_age_days) || 0
+        : 0;
+    out.slaughter_age_days = entered > 0 ? entered : fallbackAge;
+    out.slaughter_age_end_days = null;
+    out.slaughter_date =
+      entered > 0 && placementIso
+        ? addDaysToIso(placementIso, entered - 1)
+        : out.slaughter_date;
+    out.slaughter_end_date = null;
+    out.slaughter_shipments = null;
+    return out;
+  }
+
+  if (method === "weighted") {
+    out.slaughter_age_method = "weighted";
+    const rows = (Array.isArray(payload.slaughter_shipments)
+      ? payload.slaughter_shipments
+      : []
+    )
+      .map((r) => ({
+        age_days: parseInt(r.age_days) || 0,
+        quantity: parseInt(r.quantity) || 0,
+        date: toIsoDate(r.date),
+      }))
+      .filter((r) => r.age_days > 0 && r.quantity > 0);
+
+    if (rows.length > 0) {
+      const totalQty = rows.reduce((s, r) => s + r.quantity, 0);
+      const weighted =
+        rows.reduce((s, r) => s + r.age_days * r.quantity, 0) / totalQty;
+      const withDates = rows.map((r) => ({
+        age_days: r.age_days,
+        quantity: r.quantity,
+        date: r.date || (placementIso ? addDaysToIso(placementIso, r.age_days - 1) : null),
+      }));
+      const dates = withDates.map((r) => r.date).filter(Boolean).sort();
+      out.slaughter_age_days = Math.round(weighted);
+      out.slaughter_age_end_days = null;
+      out.slaughter_date = dates.length ? dates[0] : null;
+      out.slaughter_end_date = dates.length > 1 ? dates[dates.length - 1] : null;
+      out.slaughter_shipments = withDates;
+    } else {
+      out.slaughter_age_days = fallbackAge;
+      out.slaughter_date = null;
+      out.slaughter_end_date = null;
+      out.slaughter_shipments = null;
+    }
+    return out;
+  }
+
+  // بدون روش (داده/رکورد قدیمی): همان مقادیر خام ارسالی + سازگاری محاسبه از تاریخ
+  if (!method) {
+    if (out.slaughter_date && placementIso) {
+      const derivedStart = ageDaysBetween(placementIso, out.slaughter_date);
+      if (!hasExplicitAge && derivedStart != null) {
+        out.slaughter_age_days = derivedStart;
+      }
+      const derivedEnd =
+        out.slaughter_end_date &&
+        out.slaughter_end_date !== out.slaughter_date
+          ? ageDaysBetween(placementIso, out.slaughter_end_date)
+          : null;
+      if (!hasExplicitEndAge && derivedEnd != null) {
+        out.slaughter_age_end_days = derivedEnd;
+      }
+    }
+  }
+  return out;
+};
+
+// ============================================================
 // @desc    بستن یک گله با ثبت پایان دوره (سرگروه + ریز per سالن)
 // ============================================================
 const finalizeFlockCompletion = async (
@@ -223,6 +377,17 @@ const finalizeFlockCompletion = async (
   const agg = aggregateHallDetails(details);
   const repPlacement = placements[0];
 
+  // ===== محاسبه «سن کشتار نهایی» بر اساس روش انتخابی کاربر (مبنای شاخص‌ها) =====
+  const slaughterFields = computeSlaughterFields(
+    shared_data,
+    repPlacement?.placement_date || null,
+    { age: agg.slaughter_age_days ?? null },
+  );
+  const slaughterStart =
+    slaughterFields.slaughter_date || shared_data.slaughter_date || null;
+  const slaughterEnd =
+    slaughterFields.slaughter_end_date || shared_data.slaughter_end_date || null;
+
   const num = (v) => {
     if (v === undefined || v === null || v === "") return null;
     const n = Number(v);
@@ -248,7 +413,7 @@ const finalizeFlockCompletion = async (
   const initialTotal = parseInt(agg.initial_chicks_count) || 0;
   const systemSent = parseInt(agg.final_chicks_count) || 0;
   const systemAge =
-    shared_data.slaughter_age_days ?? agg.slaughter_age_days ?? null;
+    slaughterFields.slaughter_age_days ?? agg.slaughter_age_days ?? null;
   const systemInitKg = normKg(agg.initial_avg_weight);
   const systemAvgKg =
     parseFloat(agg.final_avg_weight ?? agg.system_last_weight) || 0;
@@ -296,8 +461,6 @@ const finalizeFlockCompletion = async (
         (systemAge * farmerFcrVal)
       : null;
 
-  const slaughterStart = shared_data.slaughter_date || null;
-  const slaughterEnd = shared_data.slaughter_end_date || null;
   if (
     slaughterStart &&
     slaughterEnd &&
@@ -309,26 +472,20 @@ const finalizeFlockCompletion = async (
     err.status = 400;
     throw err;
   }
+  if (
+    shared_data.slaughter_age_method === "weighted" &&
+    !slaughterFields.slaughter_age_days
+  ) {
+    const err = new Error(
+      "در روش چندمرحله‌ای حداقل یک ارسال معتبر (سن و تعداد) وارد کنید",
+    );
+    err.status = 400;
+    throw err;
+  }
 
-  // سن کشتار (شروع/پایان) — اولویت با مقدار صریح کلاینت، وگرنه از تاریخ بازهٔ کشتار و تاریخ جوجه‌ریزی محاسبه می‌شود
-  const ageDaysFrom = (dateStr) => {
-    if (!dateStr || !repPlacement?.placement_date) return null;
-    const p = new Date(repPlacement.placement_date);
-    const d = new Date(dateStr);
-    if (Number.isNaN(p.getTime()) || Number.isNaN(d.getTime())) return null;
-    p.setHours(0, 0, 0, 0);
-    d.setHours(0, 0, 0, 0);
-    const diff = Math.floor((d - p) / (1000 * 60 * 60 * 24)) + 1;
-    return diff > 0 ? diff : null;
-  };
-  const slaughterAgeDays =
-    shared_data.slaughter_age_days != null
-      ? Number(shared_data.slaughter_age_days) || null
-      : ageDaysFrom(slaughterStart) ?? agg.slaughter_age_days ?? null;
-  const slaughterAgeEndDays =
-    shared_data.slaughter_age_end_days != null
-      ? Number(shared_data.slaughter_age_end_days) || null
-      : ageDaysFrom(slaughterEnd);
+  // سن نهایی (مرجع شاخص‌ها) + سن پایان فقط برای حالت بازه/رکوردهای قدیمی
+  const slaughterAgeDays = slaughterFields.slaughter_age_days;
+  const slaughterAgeEndDays = slaughterFields.slaughter_age_end_days;
   if (
     slaughterAgeDays &&
     slaughterAgeEndDays &&
@@ -368,6 +525,8 @@ const finalizeFlockCompletion = async (
     farmer_total_meat: shared_data.farmer_total_meat || null,
     farmer_total_feed: shared_data.farmer_total_feed || null,
     farmer_total_weight: shared_data.farmer_total_weight || null,
+    slaughter_age_method: slaughterFields.slaughter_age_method || null,
+    slaughter_shipments: slaughterFields.slaughter_shipments || null,
     slaughter_date: slaughterStart,
     slaughter_end_date: slaughterEnd,
     slaughterhouse_name: shared_data.slaughterhouse_name || null,
@@ -833,31 +992,71 @@ const updateFlockCompletion = async (req, res) => {
       return errorResponse(res, "اطلاعات پایان دوره یافت نشد", 404);
     }
 
-    const { slaughter_date, slaughter_end_date } = payload;
-    if (
-      slaughter_date &&
-      slaughter_end_date &&
-      String(slaughter_end_date) < String(slaughter_date)
-    ) {
-      return errorResponse(
-        res,
-        "تاریخ پایان کشتار نمی‌تواند قبل از تاریخ شروع باشد",
-        400,
+    const hasSlaughterMethod = SLAUGHTER_METHODS.has(
+      payload.slaughter_age_method,
+    );
+    let slaughterFields = null;
+    if (hasSlaughterMethod) {
+      const rep = await ChickPlacement.findOne({
+        where: completion.chick_placement_id
+          ? { id: completion.chick_placement_id }
+          : { flock_id: completion.flock_id },
+        order: [["placement_date", "ASC"]],
+      });
+      slaughterFields = computeSlaughterFields(
+        payload,
+        rep?.placement_date || null,
+        { age: completion.slaughter_age_days ?? null },
       );
-    }
+      if (
+        slaughterFields.slaughter_date &&
+        slaughterFields.slaughter_end_date &&
+        String(slaughterFields.slaughter_end_date) <
+          String(slaughterFields.slaughter_date)
+      ) {
+        return errorResponse(
+          res,
+          "تاریخ پایان کشتار نمی‌تواند قبل از تاریخ شروع باشد",
+          400,
+        );
+      }
+      if (
+        payload.slaughter_age_method === "weighted" &&
+        !slaughterFields.slaughter_age_days
+      ) {
+        return errorResponse(
+          res,
+          "در روش چندمرحله‌ای حداقل یک ارسال معتبر (سن و تعداد) وارد کنید",
+          400,
+        );
+      }
+    } else {
+      const { slaughter_date, slaughter_end_date } = payload;
+      if (
+        slaughter_date &&
+        slaughter_end_date &&
+        String(slaughter_end_date) < String(slaughter_date)
+      ) {
+        return errorResponse(
+          res,
+          "تاریخ پایان کشتار نمی‌تواند قبل از تاریخ شروع باشد",
+          400,
+        );
+      }
 
-    const ageStart = payload.slaughter_age_days;
-    const ageEnd = payload.slaughter_age_end_days;
-    if (
-      ageStart != null &&
-      ageEnd != null &&
-      Number(ageEnd) < Number(ageStart)
-    ) {
-      return errorResponse(
-        res,
-        "سن پایان کشتار نمی‌تواند کمتر از سن شروع باشد",
-        400,
-      );
+      const ageStart = payload.slaughter_age_days;
+      const ageEnd = payload.slaughter_age_end_days;
+      if (
+        ageStart != null &&
+        ageEnd != null &&
+        Number(ageEnd) < Number(ageStart)
+      ) {
+        return errorResponse(
+          res,
+          "سن پایان کشتار نمی‌تواند کمتر از سن شروع باشد",
+          400,
+        );
+      }
     }
 
     const allowed = [
@@ -870,6 +1069,8 @@ const updateFlockCompletion = async (req, res) => {
       "final_week_number",
       "slaughter_age_days",
       "slaughter_age_end_days",
+      "slaughter_age_method",
+      "slaughter_shipments",
       "slaughter_date",
       "slaughter_end_date",
       "slaughterhouse_name",
@@ -922,6 +1123,11 @@ const updateFlockCompletion = async (req, res) => {
       if (payload[key] !== undefined) updateData[key] = payload[key];
     });
     delete updateData.recompute; // فقط فلگ عملیات است؛ ذخیره نمی‌شود
+
+    if (slaughterFields) {
+      // بازمحاسبه قطعی «سن کشتار نهایی» سمت سرور بر اساس روش انتخابی
+      Object.assign(updateData, slaughterFields);
+    }
 
     if (Object.keys(updateData).length > 0) {
       await completion.update(updateData);

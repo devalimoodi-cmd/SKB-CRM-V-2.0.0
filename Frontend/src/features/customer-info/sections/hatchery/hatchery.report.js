@@ -24,12 +24,30 @@ const formatSlaughterRange = (completion) => {
   return `${convertToPersianDate(start)} تا ${convertToPersianDate(end)}`;
 };
 
-// نمایش سن کشتار به‌صورت بازه‌ای (شروع/پایان)؛ رکوردهای قدیمی تک‌عددی هم پشتیبانی می‌شوند
+// برچسب روش ثبت سن کشتار
+const slaughterAgeMethodLabel = (completion) => {
+  const m = completion?.slaughter_age_method;
+  if (m === "range") return "روش بازهٔ تاریخی";
+  if (m === "direct") return "روش ورود مستقیم سن";
+  if (m === "weighted") return "روش ارسال چندمرحله‌ای";
+  return completion?.slaughter_age_end_days ? "بازهٔ سن (قدیمی)" : "";
+};
+
+// نمایش سن کشتار — برای رکوردهای دارای «روش» فقط سن نهایی؛ رکوردهای قدیمی بازهٔ قبلی
 const formatAgeRange = (completion) => {
   if (!completion) return "-";
   const start = completion.slaughter_age_days;
-  const end = completion.slaughter_age_end_days;
+  const method = completion.slaughter_age_method;
   const hasStart = start !== null && start !== undefined;
+  const faNum = hasStart
+    ? Number(start).toLocaleString("fa-IR", { maximumFractionDigits: 0 })
+    : "";
+  if (method === "range") return hasStart ? `${faNum} روز` : "-";
+  if (method === "direct") return hasStart ? `${faNum} روز` : "-";
+  if (method === "weighted") {
+    return hasStart ? `${faNum} روز (میانگین وزنی)` : "-";
+  }
+  const end = completion.slaughter_age_end_days;
   const hasEnd = end !== null && end !== undefined;
   if (!hasStart && !hasEnd) return "-";
   if (!hasEnd || Number(end) === Number(start)) {
@@ -203,9 +221,41 @@ class HatcheryReport {
                   <tr><td>سود خالص</td><td><strong style="color:${Number(completion.net_profit) >= 0 ? "#16a34a" : "#dc2626"};">${completion.net_profit != null ? `${Number(completion.net_profit).toLocaleString("fa-IR")} تومان` : "-"}</strong></td></tr>
                   <tr><td>درصد سود</td><td>${completion.profit_percent != null ? `${completion.profit_percent}٪` : "-"}</td></tr>
                   <tr><td>سن کشتار</td><td>${formatAgeRange(completion)}</td></tr>
+                  ${
+                    completion.slaughter_age_method ||
+                    completion.slaughter_age_end_days
+                      ? `<tr><td>روش سن کشتار</td><td>${slaughterAgeMethodLabel(completion) || "-"}</td></tr>`
+                      : ""
+                  }
                   <tr><td>تاریخ کشتار (اعلامی مرغدار)</td><td>${formatSlaughterRange(completion)}</td></tr>
                   <tr><td>هفته آخر</td><td>${completion.final_week_number ?? "-"}</td></tr>
                 </table>
+                ${
+                  completion.slaughter_age_method === "weighted" &&
+                  Array.isArray(completion.slaughter_shipments) &&
+                  completion.slaughter_shipments.length
+                    ? `<div style="margin-top:8px;font-size:11px;color:#334155;">
+                        <strong>جزئیات ارسال‌ها به کشتارگاه:</strong>
+                        <table class="report-table compact" style="margin-top:4px;">
+                          <thead><tr><th>سن (روز)</th><th>تعداد (قطعه)</th><th>تاریخ</th></tr></thead>
+                          <tbody>
+                            ${completion.slaughter_shipments
+                              .map(
+                                (s) =>
+                                  `<tr><td>${s.age_days ?? "-"}</td><td>${
+                                    s.quantity != null
+                                      ? Number(s.quantity).toLocaleString("fa-IR")
+                                      : "-"
+                                  }</td><td>${
+                                    s.date ? convertToPersianDate(s.date) : "-"
+                                  }</td></tr>`,
+                              )
+                              .join("")}
+                          </tbody>
+                        </table>
+                      </div>`
+                    : ""
+                }
               </div>
             </div>`
               : ""

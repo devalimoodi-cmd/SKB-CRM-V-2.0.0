@@ -110,6 +110,18 @@ const FlockCompletion = sequelize.define(
       allowNull: true,
       comment: "📅 سن پایان کشتار (روز) — وقتی کشتار چند روز طول بکشد",
     },
+    slaughter_age_method: {
+      type: DataTypes.STRING(20),
+      allowNull: true,
+      comment:
+        "📅 روش ثبت سن کشتار نهایی: range(بازه تاریخی) | direct(ورود مستقیم سن) | weighted(میانگین وزنی ارسال‌های چندمرحله‌ای)",
+    },
+    slaughter_shipments: {
+      type: DataTypes.JSON,
+      allowNull: true,
+      comment:
+        "📅 جزئیات ارسال‌های چندمرحله‌ای به کشتارگاه در روش weighted: [{age_days, quantity, date}]",
+    },
 
     // ==========================================================
     // 🏭 اطلاعات کشتارگاه (6 فیلد)
