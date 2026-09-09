@@ -1717,44 +1717,107 @@ class WeeklyService {
         customer: "مشتری",
       }[currentUser.role] || "کاربر";
 
+    // ===== ابزارهای کمکی نمایش =====
+    const fmtCount = (v) => (parseInt(v) || 0).toLocaleString("fa-IR");
+    const toPersianShort = (date) => {
+      if (!date) return "-";
+      try {
+        return new Intl.DateTimeFormat("fa-IR", {
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+        }).format(new Date(date));
+      } catch {
+        return "-";
+      }
+    };
+
+    // آمار کل گزارش برای کارت‌های ابتدای صفحه
+    const totalHalls = blocks.reduce((s, b) => s + (b.halls?.length || 0), 0);
+    const totalWeeks = blocks.reduce(
+      (s, b) =>
+        s + (b.halls || []).reduce((s2, h) => s2 + (h.weeks?.length || 0), 0),
+      0,
+    );
+
     const bodyBlocks = blocks
       .map((b) => {
         const f = b.flock;
+        const flockNum = f.flock_number || "-";
         const unitName = f.unit?.unit_name || "-";
+        const comp = b.completion;
+        const flockWeeksCount = (b.halls || []).reduce(
+          (s, h) => s + (h.weeks?.length || 0),
+          0,
+        );
+
+        // 🏁 اطلاعات پایان دوره گله — نوار خلاصهٔ گروهی
+        const completionStrip = comp
+          ? `<div class="flock-summary-strip history-completion-strip">
+              <span class="label-chip">🏁 پایان دوره</span>
+              <span><strong>جوجه اولیه:</strong> ${fmtCount(comp.initial_chicks_count)} قطعه</span>
+              <span><strong>جوجه نهایی:</strong> ${fmtCount(comp.final_chicks_count)} قطعه</span>
+              <span><strong>تلفات کل:</strong> ${fmtCount(comp.total_mortality)} قطعه</span>
+              <span><strong>FCR:</strong> ${comp.system_fcr ?? "-"}</span>
+              <span><strong>سن کشتار:</strong> ${comp.slaughter_age_days ?? "-"} روز</span>
+            </div>`
+          : "";
+
         const halls = b.halls
           .map((h) => {
             const list = h.weeks || [];
+            const placement = h.placement || {};
+            const weeksChip =
+              list.length > 0
+                ? `<span class="hh-meta">📅 ${fmtCount(list.length)} هفتهٔ ثبت‌شده</span>`
+                : "";
+            const chicksChip = placement.total_chicks_count
+              ? `<span class="hh-meta">🐣 ${fmtCount(placement.total_chicks_count)} قطعه</span>`
+              : "";
+            const dateChip = placement.placement_date
+              ? `<span class="hh-meta">📆 ${toPersianShort(placement.placement_date)}</span>`
+              : "";
             return `
               <div class="history-hall">
-                <h4>🧩 ${h.hallName}${
-                  list.length ? ` — ${list.length} هفتهٔ ثبت‌شده` : ""
-                }</h4>
-                ${list.length ? renderHistoryWeekMatrix(list) : '<p style="color:#94a3b8;padding:4px 2px;">ثبت هفتگی‌ای برای این سالن موجود نیست</p>'}
+                <div class="history-hall-head">
+                  <span class="hh-title">🧩 ${h.hallName}</span>
+                  ${weeksChip}${chicksChip}${dateChip}
+                </div>
+                ${
+                  list.length
+                    ? renderHistoryWeekMatrix(list)
+                    : '<p style="color:#94a3b8;padding:4px 2px;">ثبت هفتگی‌ای برای این سالن موجود نیست</p>'
+                }
               </div>
             `;
           })
           .join("");
 
-        const completionInfo = b.completion
-          ? `<div class="completion-summary">
-              <b>🏁 پایان دوره:</b>
-              جوجه اولیه ${(parseInt(b.completion.initial_chicks_count) || 0).toLocaleString()} |
-              نهایی ${(parseInt(b.completion.final_chicks_count) || 0).toLocaleString()} |
-              تلفات ${parseInt(b.completion.total_mortality) || 0} |
-              FCR ${b.completion.system_fcr ?? "-"} |
-              سن کشتار ${b.completion.slaughter_age_days ?? "-"} روز
-            </div>`
-          : "";
-
         return `
-          <div class="report-flock history-flock">
-            <div class="history-flock-header">🐣 گله ${f.flock_number || "-"} — واحد ${unitName}</div>
-            ${completionInfo}
+          <div class="flock-section history-flock-section">
+            <div class="flock-header">
+              <div>
+                <div class="flock-title">🐔 گله ${flockNum} — واحد ${unitName}</div>
+              </div>
+              <div class="flock-meta">
+                <span>🏭 ${fmtCount(b.halls.length)} سالن</span>
+                <span>📅 ${fmtCount(flockWeeksCount)} هفته ثبت‌شده</span>
+                <span class="status-badge history-done-badge">🏁 تکمیل‌شده</span>
+              </div>
+            </div>
+            ${completionStrip}
             ${halls}
           </div>
         `;
       })
-      .join('<hr class="report-divider">');
+      .join("");
+
+    const summaryStats = `
+      <div class="summary-stats">
+        <div class="summary-stat"><div class="stat-number">${fmtCount(blocks.length)}</div><div class="stat-label">گلهٔ تکمیل‌شده</div></div>
+        <div class="summary-stat"><div class="stat-number">${fmtCount(totalHalls)}</div><div class="stat-label">سالن</div></div>
+        <div class="summary-stat"><div class="stat-number">${fmtCount(totalWeeks)}</div><div class="stat-label">هفتهٔ ثبت‌شده</div></div>
+      </div>`;
 
     return `
       <!DOCTYPE html>
@@ -1763,48 +1826,51 @@ class WeeklyService {
         <meta charset="UTF-8">
         <title>${title}</title>
         <style>
-          @font-face { font-family: "Vazir"; src: url("/assets/fonts/Vazir-Regular-FD.ttf") format("truetype"); font-weight: 400; }
-          @font-face { font-family: "Vazir"; src: url("/assets/fonts/Vazir-Bold-FD.ttf") format("truetype"); font-weight: 700; }
-          @media print { body { margin: 0.5cm; } }
           ${REPORT_STYLES}
-          body { font-family: 'Vazir', 'Tahoma', sans-serif; direction: rtl; background: #fff; color: #1e293b; font-size: 12px; margin: 0; padding: 16px; }
+          body { background: #f8fafc; color: #1e293b; font-size: 12px; margin: 0; padding: 16px; }
           .report-main { width: 100%; border-collapse: collapse; }
           .report-main thead { display: table-header-group; }
           .report-main td { border: none; padding: 0; }
-          .report-page-header { text-align: center; padding: 8px 0 12px; border-bottom: 3px solid #2c7a6e; margin-bottom: 14px; }
-          .report-page-header h1 { color: #2c7a6e; font-size: 20px; margin: 0 0 4px; }
-          .report-page-header .date { color: #94a3b8; font-size: 12px; }
-          .report-page-header .report-logo { display: block; height: 50px; width: auto; margin: 0 auto 8px; }
-          .customer-box { background: #f8fafc; border: 1px solid #eef2f6; border-radius: 8px; padding: 8px 12px; margin-bottom: 14px; font-size: 12px; }
-          .history-flock { page-break-inside: auto; margin-bottom: 10px; }
-          .history-flock-header { background: #2c7a6e; color: #fff; padding: 6px 12px; border-radius: 8px; font-weight: 600; font-size: 13px; }
-          .history-hall { margin: 8px 2px; }
-          .history-hall h4 { color: #035552; font-size: 12px; margin: 0 0 4px; }
-          .completion-summary { background: #eef2ff; border-radius: 8px; padding: 6px 12px; margin: 6px 0; font-size: 12px; line-height: 2; }
-          .report-table { width: 100%; border-collapse: collapse; font-size: 11.5px; }
-          .report-table th { background: #035552; color: #fff; padding: 4px 8px; }
-          .report-table td { border: 1px solid #eef2f6; padding: 4px 8px; text-align: center; }
-          .report-divider { border: none; border-top: 1px dashed #e2e8f0; margin: 12px 0; }
-          .report-footer { text-align: center; color: #94a3b8; font-size: 11px; margin-top: 25px; }
+          .report-page-header { text-align: center; background: linear-gradient(135deg, #2c7a6e 0%, #065f46 100%); color: #fff; border-radius: 12px; padding: 22px 18px; margin-bottom: 20px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          .report-page-header h1 { color: #fff; font-size: 22px; margin: 0 0 6px; font-weight: 700; }
+          .report-page-header .date { color: rgba(255,255,255,0.92); font-size: 12px; margin-top: 6px; }
+          .report-page-header .report-logo { display: block; height: 46px; width: auto; margin: 0 auto 10px; background: #fff; padding: 5px 10px; border-radius: 10px; }
+          .report-main .customer-info { margin: 0 0 16px; }
         </style>
       </head>
       <body>
         <table class="report-main">
           <thead>
             <tr><td>
-              <div class="report-page-header"><img class="report-logo" src="/assets/images/skb-logo.png" alt="لوگوی شرکت" onerror="this.style.display='none'"><h1>${title}</h1><div class="date">تاریخ گزارش: ${persianDate}</div></div>
-              <div class="customer-box">
-                <strong>مشتری:</strong> ${customer.full_name || "-"} — ${customer.farm_name || "-"} |
-                موبایل: ${customer.mobile_number || "-"} | استان: ${customer.province || "-"}
+              <div class="report-page-header">
+                <img class="report-logo" src="/assets/images/skb-logo.png" alt="لوگوی شرکت" onerror="this.style.display='none'">
+                <h1>${title}</h1>
+                <div class="date">📅 تاریخ تهیه: ${persianDate} | ساعت: ${reportTime}</div>
+              </div>
+
+              ${summaryStats}
+
+              <div class="customer-info">
+                <h3>👤 اطلاعات مشتری</h3>
+                <div class="customer-grid">
+                  <div class="customer-item"><span class="label">نام مشتری</span><span class="value">${customer.full_name || "-"}</span></div>
+                  <div class="customer-item"><span class="label">نام واحد / مزرعه</span><span class="value">${customer.farm_name || "-"}</span></div>
+                  <div class="customer-item"><span class="label">موبایل</span><span class="value" style="direction:ltr;">${customer.mobile_number || "-"}</span></div>
+                  <div class="customer-item"><span class="label">استان</span><span class="value">${customer.province || "-"}</span></div>
+                </div>
               </div>
             </td></tr>
           </thead>
           <tbody>
             <tr><td>
-              ${blocks.length ? bodyBlocks : '<p style="text-align:center;color:#94a3b8;">گله تکمیل‌شده‌ای یافت نشد</p>'}
+              ${
+                blocks.length
+                  ? bodyBlocks
+                  : '<div class="flock-section"><p style="text-align:center;color:#94a3b8;padding:10px;">گلهٔ تکمیل‌شده با ثبت هفتگی برای این مشتری یافت نشد.</p></div>'
+              }
               <div class="report-footer">
-                <p>📌 دریافت گزارش توسط: <strong>${reporterName}</strong> (${roleText}) | تاریخ: <strong>${reportDate}</strong> | ساعت: <strong>${reportTime}</strong></p>
-                <p style="margin-top: 6px;">گزارش سامانه مدیریت مشتریان (SKB-CRM)</p>
+                <div class="report-by">📌 دریافت گزارش توسط: <strong>${reporterName}</strong> (${roleText}) — تاریخ: <strong>${reportDate}</strong> | ساعت: <strong>${reportTime}</strong></div>
+                <p>گزارش سامانه مدیریت مشتریان (SKB-CRM)</p>
               </div>
             </td></tr>
           </tbody>

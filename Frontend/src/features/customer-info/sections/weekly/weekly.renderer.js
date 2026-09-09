@@ -131,15 +131,12 @@ const renderWeekMetricsCards = (metrics) => {
     .join("")}</div>`;
 };
 
-// ===== ماتریس جدولی «همهٔ شاخص‌های یک سالن» — هر ستون یک هفته =====
+// ===== ماتریس‌های موضوعی «تاریخچهٔ هفتگی» — هر ستون یک هفته و هر جدول یک گروه از شاخص‌های مرتبط =====
 export function renderHistoryWeekMatrix(weeks) {
   const list = (weeks || []).slice();
   if (list.length === 0) {
     return '<p style="color:#94a3b8;padding:4px 2px;">ثبت هفتگی‌ای برای این سالن موجود نیست</p>';
   }
-  const cell = (v) => `<td>${v === null || v === undefined ? "—" : v}</td>`;
-  const rowHtml = (label, fn) =>
-    `<tr><th>${label}</th>${list.map((w) => cell(fn(w))).join("")}</tr>`;
   const m = (w) => w.metrics || {};
   const pct = (v) => fmtPct(v);
   const fa = (v, d = 2) => fmtNum(v, d);
@@ -159,71 +156,84 @@ export function renderHistoryWeekMatrix(weeks) {
     .map((w) => `<th>هفته ${w.week_number ?? "-"}</th>`)
     .join("");
 
-  const rows = [
-    rowHtml("بازهٔ تاریخ", (w) =>
-      [
-        w.week_start_date ? convertToPersianDate(w.week_start_date) : "-",
-        w.week_end_date ? convertToPersianDate(w.week_end_date) : "-",
-      ].join(" تا "),
-    ),
-    rowHtml("سن (روز)", (w) => w.flock_age_days ?? "—"),
-    rowHtml("خوراک روزانه (کیلوگرم)", (w) => w.daily_feed_intake ?? "—"),
-    rowHtml("خوراک هفتگی (کیلوگرم)", (w) => w.weekly_feed_intake ?? "—"),
-    rowHtml("میانگین وزن (کیلوگرم)", (w) =>
-      w.weekly_weight != null ? fa(w.weekly_weight, 3) : "—",
-    ),
-    rowHtml("تلفات (قطعه)", (w) => fa(w.weekly_mortality || 0, 0)),
-    rowHtml("٪ تلفات هفتگی", (w) => pct(m(w).weeklyMortalityPercent)),
-    rowHtml("٪ تلفات تجمعی/کل", (w) => pct(m(w).totalMortalityPercent)),
-    rowHtml("٪ زنده‌مانی هفتگی", (w) => pct(m(w).weeklySurvivalPercent)),
-    rowHtml("٪ زنده‌مانی تجمعی", (w) => pct(m(w).cumulativeSurvivalPercent)),
-    rowHtml("وزن استاندارد نژاد (کیلوگرم)", (w) =>
-      m(w).standardWeight != null ? fa(m(w).standardWeight, 3) : "—",
-    ),
-    rowHtml("اختلاف وزن با هدف (کیلوگرم)", (w) =>
-      m(w).weightDeviation != null ? fa(m(w).weightDeviation, 3) : "—",
-    ),
-    rowHtml("وضعیت وزن", weightStatus),
-    rowHtml("افزایش وزن هفتگی (کیلوگرم)", (w) =>
-      m(w).weightGain != null ? fa(m(w).weightGain, 3) : "—",
-    ),
-    rowHtml("ADG هفتگی (گرم/روز)", (w) =>
-      m(w).dailyGainGrams != null ? fa(m(w).dailyGainGrams, 1) : "—",
-    ),
-    rowHtml("ADG تجمعی (گرم/روز)", (w) =>
-      m(w).cumulativeAdg != null ? fa(m(w).cumulativeAdg, 1) : "—",
-    ),
-    rowHtml("دان مصرفی کل (کیلوگرم)", (w) =>
-      m(w).cumulativeFeed != null ? fa(m(w).cumulativeFeed, 1) : "—",
-    ),
-    rowHtml("سرانهٔ مصرف روزانه (گرم)", (w) =>
-      m(w).dailyFeedPerBird != null ? fa(m(w).dailyFeedPerBird, 1) : "—",
-    ),
-    rowHtml("سرانهٔ مصرف هفتگی (کیلوگرم)", (w) =>
-      m(w).weeklyFeedPerBird != null ? fa(m(w).weeklyFeedPerBird, 3) : "—",
-    ),
-    rowHtml("FCR (تا این هفته)", (w) =>
-      m(w).fcr != null ? fa(m(w).fcr, 3) : "—",
-    ),
-    rowHtml("FCR استاندارد", (w) =>
-      m(w).standardFcr != null ? fa(m(w).standardFcr, 3) : "—",
-    ),
-    rowHtml("انحراف FCR (٪)", (w) =>
-      m(w).fcrDeviation != null ? fa(m(w).fcrDeviation, 2) : "—",
-    ),
-    rowHtml("خاموشی (ساعت)", (w) => fa(w.blackout_hours || 0, 2)),
-    rowHtml("بیماری‌ها", (w) => joinArr(w, "diseases")),
-    rowHtml("واکسن‌ها", (w) => joinArr(w, "vaccines")),
-    rowHtml("داروها", (w) => joinArr(w, "medicines")),
-    rowHtml("نوع خوراک", (w) => joinArr(w, "feedTypes")),
-    rowHtml("پیشنهادات", (w) => joinArr(w, "suggestions")),
-    rowHtml("توضیحات", (w) => w.additional_notes || "—"),
+  // هر ردیف = یک شاخص، سلول‌ها = هفته‌ها (همان رویکرد ماتریسی)
+  const row = (label, fn, opts = {}) => {
+    const tdClass = opts.text ? ' class="history-text"' : "";
+    return `<tr>
+        <th class="history-indicator">${label}</th>
+        ${list.map((w) => `<td${tdClass}>${fn(w)}</td>`).join("")}
+      </tr>`;
+  };
+
+  // سلول عددی — در صورت خالی بودن «—»
+  const num = (getter, d = 2) => (w) => {
+    const v = getter(w);
+    return v === null || v === undefined || v === "" ? "—" : fa(v, d);
+  };
+
+  const dateRange = (w) =>
+    [
+      w.week_start_date ? convertToPersianDate(w.week_start_date) : "-",
+      w.week_end_date ? convertToPersianDate(w.week_end_date) : "-",
+    ].join(" تا ");
+
+  // هر گروه: عنوان موضوعی + جدول ماتریسی مجزا با ستون‌های هفته
+  const group = (title, rowsHtml) => `
+        <div class="history-matrix-group">
+          <h4 class="metrics-title history-group-title">${title}</h4>
+          <table class="week-table history-matrix">
+            <thead><tr><th class="history-indicator-col">شاخص</th>${headerCells}</tr></thead>
+            <tbody>${rowsHtml}</tbody>
+          </table>
+        </div>`;
+
+  const groups = [
+    group("🐔 جمعیت، تلفات و زنده‌مانی", [
+      row("جمعیت ابتدای هفته", num((w) => m(w).birdsStartOfWeek, 0)),
+      row("جمعیت انتهای هفته (زنده)", num((w) => m(w).birdsEndOfWeek, 0)),
+      row("تلفات هفتگی (قطعه)", num((w) => w.weekly_mortality, 0)),
+      row("٪ تلفات هفتگی", (w) => pct(m(w).weeklyMortalityPercent)),
+      row("٪ تلفات کل (تجمعی)", (w) => pct(m(w).totalMortalityPercent)),
+      row("٪ زنده‌مانی هفتگی", (w) => pct(m(w).weeklySurvivalPercent)),
+      row("٪ زنده‌مانی تجمعی", (w) => pct(m(w).cumulativeSurvivalPercent)),
+    ].join("")),
+    group("⚖️ وزن", [
+      row("میانگین وزن هفتگی (کیلوگرم)", num((w) => w.weekly_weight, 3)),
+      row("وزن استاندارد نژاد (کیلوگرم)", num((w) => m(w).standardWeight, 3)),
+      row("اختلاف وزن با هدف (کیلوگرم)", num((w) => m(w).weightDeviation, 3)),
+      row("وضعیت وزن نسبت به هدف", weightStatus),
+      row("وزن کل گلهٔ زنده (کیلوگرم)", num((w) => m(w).totalLiveWeight, 1)),
+      row("افزایش وزن هفتگی (کیلوگرم)", num((w) => m(w).weightGain, 3)),
+      row("افزایش وزن کل گله (کیلوگرم)", num((w) => m(w).totalWeightGain, 1)),
+    ].join("")),
+    group("🚀 رشد", [
+      row("ADG هفتگی (گرم/روز)", num((w) => m(w).dailyGainGrams, 1)),
+      row("ADG تجمعی (گرم/روز)", num((w) => m(w).cumulativeAdg, 1)),
+    ].join("")),
+    group("🛒 خوراک و ضریب تبدیل", [
+      row("خوراک روزانه (کیلوگرم)", num((w) => w.daily_feed_intake, 2)),
+      row("خوراک هفتگی (کیلوگرم)", num((w) => w.weekly_feed_intake, 2)),
+      row("دان مصرفی کل (کیلوگرم)", num((w) => m(w).cumulativeFeed, 1)),
+      row("سرانهٔ مصرف روزانه (گرم)", num((w) => m(w).dailyFeedPerBird, 1)),
+      row("سرانهٔ مصرف هفتگی (کیلوگرم)", num((w) => m(w).weeklyFeedPerBird, 3)),
+      row("FCR (تجمیعی تا این هفته)", num((w) => m(w).fcr, 3)),
+      row("FCR استاندارد نژاد", num((w) => m(w).standardFcr, 3)),
+      row("انحراف FCR (٪)", num((w) => m(w).fcrDeviation, 2)),
+    ].join("")),
+    group("📋 جزئیات ثبت هفتگی", [
+      row("بازهٔ تاریخ", dateRange),
+      row("سن (روز)", num((w) => w.flock_age_days, 0)),
+      row("خاموشی (ساعت)", num((w) => w.blackout_hours, 2)),
+      row("بیماری‌ها", (w) => joinArr(w, "diseases"), { text: true }),
+      row("واکسن‌ها", (w) => joinArr(w, "vaccines"), { text: true }),
+      row("داروها", (w) => joinArr(w, "medicines"), { text: true }),
+      row("نوع خوراک", (w) => joinArr(w, "feedTypes"), { text: true }),
+      row("پیشنهادات", (w) => joinArr(w, "suggestions"), { text: true }),
+      row("توضیحات", (w) => w.additional_notes || "—", { text: true }),
+    ].join("")),
   ];
 
-  return `<table class="report-table history-week-matrix">
-      <thead><tr><th>شاخص</th>${headerCells}</tr></thead>
-      <tbody>${rows.join("")}</tbody>
-    </table>`;
+  return `<div class="history-groups">${groups.join("")}</div>`;
 }
 
 export const REPORT_STYLES = `
@@ -300,6 +310,26 @@ export const REPORT_STYLES = `
     .detail-list td { padding: 6px 8px; text-align: center; border: 1px solid #e2e8f0; }
     .report-footer { text-align: center; font-size: 12px; color: #94a3b8; border-top: 2px solid #e2e8f0; padding-top: 20px; margin-top: 30px; }
     .report-footer .report-by { background: #f1f5f9; padding: 8px 20px; border-radius: 8px; display: inline-block; font-size: 13px; color: #1e293b; margin-top: 8px; }
+    /* ===== ماتریس‌های موضوعی تاریخچهٔ هفتگی ===== */
+    .history-groups { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
+    .history-matrix-group { background: #fff; border: 1px solid #eef2f6; border-radius: 10px; padding: 10px 12px 12px; page-break-inside: avoid; }
+    .history-matrix-group .history-group-title { margin: 0 0 6px; font-size: 12px; }
+    .history-matrix { width: 100%; border-collapse: collapse; font-size: 11px; }
+    .history-matrix th, .history-matrix td { border: 1px solid #e2e8f0; padding: 4px 6px; }
+    .history-matrix thead th { background: #f1f5f9; color: #1e293b; text-align: center; font-weight: 600; white-space: nowrap; }
+    .history-matrix th.history-indicator-col { background: #e2e8f0; }
+    .history-matrix th.history-indicator { text-align: right; white-space: nowrap; font-size: 11px; color: #1e293b; }
+    .history-matrix td { text-align: center; }
+    .history-matrix td.history-text { text-align: right; min-width: 70px; max-width: 160px; line-height: 1.6; white-space: normal; overflow-wrap: break-word; }
+    .history-matrix tr { page-break-inside: avoid; }
+    .history-flock-section { page-break-inside: auto; }
+    .history-hall { margin-top: 14px; page-break-inside: auto; }
+    .history-hall-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; background: #f0fdf9; border: 1px solid #a7f3d0; border-radius: 8px; padding: 6px 12px; }
+    .history-hall-head .hh-title { font-size: 13px; font-weight: 800; color: #065f46; }
+    .history-hall-head .hh-meta { font-size: 11px; color: #475569; background: #fff; border: 1px solid #a7f3d0; padding: 1px 10px; border-radius: 20px; white-space: nowrap; }
+    .history-completion-strip { margin-top: 10px; }
+    .history-completion-strip .label-chip { display: inline-block; background: #fff; border: 1px solid #a7f3d0; color: #065f46; padding: 1px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+    .history-done-badge { background: #d1fae5; color: #065f46; }
     @media print { body { background: white; padding: 10px; } .flock-section, .week-report-block { box-shadow: none; border: 1px solid #e2e8f0; } .report-header { background: #2c7a6e !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; } .summary-stat { box-shadow: none; border: 1px solid #e2e8f0; } }
     @media (max-width: 768px) { .week-table { font-size: 10px; } .week-table th, .week-table td { padding: 4px 6px; } .flock-header { flex-direction: column; align-items: flex-start; gap: 8px; } .summary-stats { grid-template-columns: repeat(2, 1fr); } .wc-groups { grid-template-columns: 1fr; } }
 `;
