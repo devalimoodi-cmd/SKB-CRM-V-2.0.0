@@ -178,6 +178,15 @@ class HatcheryReport {
       mode === "history"
         ? `تکمیل‌شده — ${f.ended_at ? convertToPersianDate(f.ended_at) : "-"}`
         : "در جریان";
+    // درصد تلفات از معکوس زنده‌مانی هر مبنا (سیستمی / اعلامی مرغدار) مشتق می‌شود
+    const reportSysMortPct =
+      completion?.system_survival_percent != null
+        ? 100 - Number(completion.system_survival_percent)
+        : null;
+    const reportFarmerMortPct =
+      completion?.farmer_survival_percent != null
+        ? 100 - Number(completion.farmer_survival_percent)
+        : null;
 
     // هدر گله
     let html = `
@@ -208,6 +217,20 @@ class HatcheryReport {
                   <tr><td>جوجه اولیه</td><td>${(parseInt(completion.initial_chicks_count) || 0).toLocaleString()}</td></tr>
                   <tr><td>جوجه نهایی</td><td>${(parseInt(completion.final_chicks_count) || 0).toLocaleString()}</td></tr>
                   <tr><td>تلفات کل</td><td>${parseInt(completion.total_mortality) || 0}</td></tr>
+                  <tr><td>درصد تلفات (سیستمی)</td><td>${
+                    reportSysMortPct != null
+                      ? `${reportSysMortPct.toLocaleString("fa-IR", {
+                          maximumFractionDigits: 2,
+                        })}٪`
+                      : "-"
+                  }</td></tr>
+                  <tr><td>درصد تلفات (اعلامی مرغدار)</td><td>${
+                    reportFarmerMortPct != null
+                      ? `${reportFarmerMortPct.toLocaleString("fa-IR", {
+                          maximumFractionDigits: 2,
+                        })}٪`
+                      : "-"
+                  }</td></tr>
                   <tr><td>FCR نهایی</td><td><strong>${completion.final_fcr ?? completion.system_fcr ?? completion.farmer_fcr ?? "-"}</strong></td></tr>
                   <tr><td>FCR (سیستمی)</td><td>${completion.system_fcr ?? "-"}</td></tr>
                   <tr><td>FCR (اعلامی مرغدار)</td><td>${completion.farmer_fcr ?? "-"}</td></tr>

@@ -1998,6 +1998,15 @@ class HatcheryService {
     }
     const profit = Number(c.net_profit || 0);
     const profitColor = profit >= 0 ? "#16a34a" : "#dc2626";
+    // درصد تلفات از معکوس زنده‌مانیِ هر مبنا (سیستمی / اعلامی مرغدار) مشتق می‌شود
+    const sysMortPct =
+      c.system_survival_percent != null
+        ? 100 - Number(c.system_survival_percent)
+        : null;
+    const farmerMortPct =
+      c.farmer_survival_percent != null
+        ? 100 - Number(c.farmer_survival_percent)
+        : null;
     return `
       <div style="margin-top:16px;">
         <h4 style="color:#0d9488;font-size:14px;margin:0 0 8px;border-bottom:2px solid #ccfbf1;padding-bottom:5px;"><i class="fas fa-flag-checkered"></i> اطلاعات پایان دوره و کشتار</h4>
@@ -2021,6 +2030,11 @@ class HatcheryService {
             <div><b>EPI:</b> ${fmt(c.system_epi)} / ${fmt(c.farmer_epi)}</div>
             <div><b>ADG (گرم/روز):</b> ${fmt(c.system_adg_grams)} / ${fmt(c.farmer_adg_grams)}</div>
             <div><b>زنده‌مانی:</b> ${fmt(c.system_survival_percent)}٪ / ${fmt(c.farmer_survival_percent)}٪</div>
+            <div><b>درصد تلفات کل (سیستمی / اعلامی):</b> ${
+              sysMortPct != null ? `${fmt(sysMortPct, 2)}٪` : "-"
+            } / ${
+              farmerMortPct != null ? `${fmt(farmerMortPct, 2)}٪` : "-"
+            }</div>
           </div>
         </div>
         <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;padding:10px 14px;">
