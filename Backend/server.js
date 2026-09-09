@@ -4,6 +4,7 @@ const dotenv = require("dotenv");
 const { connectDB } = require("./config/database");
 const path = require("path");
 const os = require("os");
+const { protect, authorize } = require("./middleware/auth");
 
 // Routes
 const customerRegistrationRoutes = require("./routes/customerRegistrationRoutes");
@@ -84,9 +85,14 @@ app.get("/", (req, res) => {
   res.json({ message: "Server is running!" });
 });
 
-app.get("/health", (req, res) => {
-  res.json({ status: "OK", timestamp: new Date().toISOString() });
-});
+app.get(
+  "/health",
+  protect,
+  authorize("admin", "super_admin", "sub_admin", "expert"),
+  (req, res) => {
+    res.json({ status: "OK", timestamp: new Date().toISOString() });
+  },
+);
 
 // تنظیمات سراسری برنامه
 app.use("/api/settings", settingsRoutes);
@@ -132,16 +138,13 @@ app.use("/api/visit-reports", visitReportRoutes);
 // ================================================
 
 // ============================مسیرهای تست و مانیتورینگ============================
-app.get("/", (req, res) => {
-  res.json({ message: "Server is running!" });
-});
 
-app.get("/health", (req, res) => {
-  res.json({ status: "OK", timestamp: new Date().toISOString() });
-});
-
-// مانیتورینگ ساده سرور
-app.get("/api/server-status", (req, res) => {
+// مانیتورینگ ساده سرور (فقط نقش‌های مدیریتی)
+app.get(
+  "/api/server-status",
+  protect,
+  authorize("admin", "super_admin", "sub_admin"),
+  (req, res) => {
   const totalMem = os.totalmem();
   const freeMem = os.freemem();
   const usedMem = totalMem - freeMem;

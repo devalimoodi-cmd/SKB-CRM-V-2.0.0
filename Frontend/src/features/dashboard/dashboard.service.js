@@ -1452,58 +1452,212 @@ SKB-CRM.IR`,
     this.renderChartSeriesToggles();
   }
 
-  openChartComparePicker() {
-    if (!this.flockCards || !this.flockCards.length) {
-      notificationService.warning("گله‌ای برای مقایسه در دسترس نیست");
-      return;
-    }
-    let optionsHtml = "";
-    this.flockCards.forEach((card) => {
-      const fl = card.flock || {};
-      const gNum = fl.flockNumber || fl.id || "";
-      optionsHtml += `<optgroup label="گله ${gNum}">
-        <option value="flock:${fl.id}|گله ${gNum} (کل)">کل گله ${gNum}</option>`;
-      (fl.halls || [])
-        .filter((h) => h.isActive)
-        .forEach((h) => {
-          const hn = h.hallName || `سالن ${h.hallId}`;
-          optionsHtml += `<option value="hall:${h.id}|${hn} (گله ${gNum})">${hn} — گله ${gNum}</option>`;
-        });
-      optionsHtml += "</optgroup>";
-    });
+  async _loadCompareCustomers() {
+    const res = await apiService.get("/customers", { limit: 1000, page: 1 });
+    if (!res.success) return [];
+    const rows =
+      res.data?.customers ||
+      res.data?.rows ||
+      res.data?.list ||
+      (Array.isArray(res.data) ? res.data : []) ||
+      [];
+    return rows
+      .map((r) => ({
+        id: r.id ?? r.customer_id,
+        name: r.full_name || r.fullName || `مشتری ${r.id}`,
+        farm: r.farm_name || r.farmName || "",
+      }))
+      .filter((c) => c.id != null)
+      .sort((a, b) => (a.name || "").localeCompare(b.name || "", "fa"));
+  }
+
+  async _loadCustomerFlocksForCompare(customerId) {
+    const normalize = (arr) =>
+      (Array.isArray(arr) ? arr : []).map((f) => ({
+        id: f.id,
+        flockNumber: f.flock_number || f.flockNumber || f.id || "",
+        status: f.status || "active",
+        placements: (f.placements || []).map((p) => ({
+          id: p.id,
+          hallName:
+            p.hall?.hall_name ||
+            p.Hall?.hall_name ||
+            p.hall_name ||
+            `سالن ${p.hall_id}`,
+          isActive: p.is_active,
+        })),
+      }));
+    const [activeRes, pastRes] = await Promise.all([
+      apiService.get("/flocks", {
+        customer_id: customerId,
+        status: "active",
+        limit: 500,
+      }),
+      apiService.get("/flocks", {
+        customer_id: customerId,
+        status: "completed",
+        limit: 500,
+      }),
+    ]);
+    return {
+      active: normalize(activeRes?.success ? activeRes.data?.flocks : []),
+      past: normalize(pastRes?.success ? pastRes.data?.flocks : []),
+    };
+  }
+
+  _flockGroupHTML(flock, customerLabel) {
+    const groupLabel = `گله ${flock.flockNumber} (کل) — ${customerLabel}`;
+    const hallRows = (flock.placements || [])
+      .map((p) => {
+        const hallLabel = `${p.hallName} — گله ${flock.flockNumber}`;
+        return `
+          <label class="dash-cmp-row">
+            <input type="checkbox" class="dash-cmp-check" value="hall:${p.id}|${hallLabel}" />
+            <i class="fas fa-door-open dash-cmp-icon"></i>
+            <span class="dash-cmp-label">${p.hallName}</span>
+            <span class="dash-cmp-badge ${p.isActive ? "dash-cmp-ok" : "dash-cmp-done"}">${p.isActive ? "فعال" : "پایان‌یافته"}</span>
+          </label>`;
+      })
+      .join("");
+    return `
+      <div class="dash-cmp-flock">
+        <div class="dash-cmp-flock-title"><i class="fas fa-layer-group"></i> گله ${flock.flockNumber}</div>
+        <label class="dash-cmp-row dash-cmp-group">
+          <input type="checkbox" class="dash-cmp-check" value="flock:${flock.id}|${groupLabel}" />
+          <i class="fas fa-chart-line dash-cmp-icon"></i>
+          <span class="dash-cmp-label">کل گله (${(flock.placements || []).length} سالن)</span>
+        </label>
+        ${hallRows}
+      </div>`;
+  }
+
+  async openChartComparePicker() {
     if (typeof Swal === "undefined") return;
-    Swal.fire({
-      title: "مقایسه با گله/سالن دیگر",
-      html: `
-        <div style="text-align:right; direction:rtl; font-family:Vazir,sans-serif;">
-          <select id="compareTarget" style="width:100%; padding:8px; border:1px solid #e2e8f0; border-radius:8px; font-size:13px;">
-            <option value="">انتخاب کنید...</option>${optionsHtml}
-          </select>
-          <p style="font-size:11px; color:#94a3b8; margin-top:8px;">سری اضافه‌شده با رنگ جداگانه روی هر سه نمودار (وزن/تلفات/خوراک) نمایش داده می‌شود.</p>
-        </div>`,
-      showCancelButton: true,
-      confirmButtonText: "➕ افزودن به نمودار",
-      cancelButtonText: "انصراف",
-      confirmButtonColor: "#2c7a6e",
-      preConfirm: () => {
-        const raw = document.getElementById("compareTarget")?.value || "";
-        if (!raw) {
-          Swal.showValidationMessage("یک گله یا سالن انتخاب کنید");
-          return false;
-        }
-        const parts = raw.split("|");
-        const [scope, id] = (parts[0] || "").split(":");
-        return { scope, id, label: parts[1] || "" };
-      },
-    }).then((result) => {
-      if (result.isConfirmed && result.value) {
-        this.addChartComparison(
-          result.value.scope,
-          result.value.id,
-          result.value.label,
-        );
+    try {
+      const customers = await this._loadCompareCustomers();
+      if (!customers.length) {
+        notificationService.warning("مشتری‌ای برای مقایسه یافت نشد");
+        return;
       }
-    });
+      const customerOpts = customers
+        .map(
+          (c) =>
+            `<option value="${c.id}">${c.name}${c.farm ? ` (${c.farm})` : ""}</option>`,
+        )
+        .join("");
+      const step1 = await Swal.fire({
+        title: "انتخاب مشتری برای مقایسه",
+        html: `<div style="text-align:right;direction:rtl;font-family:Vazir,sans-serif;">
+          <div class="dash-cmp-step"><i class="fas fa-user"></i> مشتری موردنظر را انتخاب کنید</div>
+          <select id="dashCmpCustomer" class="dash-cmp-select">
+            <option value="">انتخاب مشتری...</option>${customerOpts}
+          </select>
+        </div>`,
+        showCancelButton: true,
+        confirmButtonText: "ادامه",
+        cancelButtonText: "انصراف",
+        confirmButtonColor: "#2c7a6e",
+        preConfirm: () => {
+          const v = document.getElementById("dashCmpCustomer")?.value;
+          if (!v) {
+            Swal.showValidationMessage("یک مشتری انتخاب کنید");
+            return false;
+          }
+          return parseInt(v, 10);
+        },
+      });
+      if (!step1.isConfirmed) return;
+      const customerId = step1.value;
+      const customer =
+        customers.find((c) => c.id === customerId) || null;
+      const customerLabel = customer
+        ? `${customer.name}${customer.farm ? ` — ${customer.farm}` : ""}`
+        : `مشتری ${customerId}`;
+
+      notificationService.showLoading("در حال دریافت گله‌های مشتری...");
+      let flocksData;
+      try {
+        flocksData = await this._loadCustomerFlocksForCompare(customerId);
+      } finally {
+        notificationService.hideLoading();
+      }
+      if (
+        !flocksData ||
+        (!flocksData.active.length && !flocksData.past.length)
+      ) {
+        notificationService.warning("برای این مشتری گله/سالنی یافت نشد");
+        return;
+      }
+
+      const section = (list, icon, title, cls) =>
+        !list.length
+          ? ""
+          : `<div class="dash-cmp-sec ${cls}">
+              <div class="dash-cmp-sec-head"><i class="fas ${icon}"></i> ${title} (${list.length} گله)</div>
+              ${list.map((f) => this._flockGroupHTML(f, customerLabel)).join("")}
+            </div>`;
+      const html = `<div style="text-align:right;direction:rtl;font-family:Vazir,sans-serif;">
+        <div class="dash-cmp-cust"><i class="fas fa-warehouse"></i> ${customerLabel}</div>
+        ${section(flocksData.active, "fa-circle-check", "گله‌های فعال", "dash-cmp-active")}
+        ${section(flocksData.past, "fa-clock-rotate-left", "گله‌های گذشته", "dash-cmp-past")}
+        <p class="dash-cmp-hint"><i class="fas fa-circle-info"></i> می‌توانید چند گله یا سالن را هم‌زمان انتخاب کنید (حداکثر ۸ سری).</p>
+      </div>`;
+
+      const step2 = await Swal.fire({
+        title: "انتخاب گله/سالن برای مقایسه",
+        html,
+        width: 760,
+        showCancelButton: true,
+        confirmButtonText: "افزودن به نمودار",
+        cancelButtonText: "انصراف",
+        confirmButtonColor: "#2c7a6e",
+        preConfirm: () => {
+          const picked = [...document.querySelectorAll(".dash-cmp-check:checked")].map(
+            (i) => i.value,
+          );
+          if (!picked.length) {
+            Swal.showValidationMessage("حداقل یک گله یا سالن انتخاب کنید");
+            return false;
+          }
+          if (picked.length > 8) {
+            Swal.showValidationMessage("حداکثر ۸ سری مقایسه مجاز است");
+            return false;
+          }
+          return picked;
+        },
+      });
+      if (step2.isConfirmed && step2.value) {
+        await this._addPickedComparisons(step2.value);
+      }
+    } catch (error) {
+      console.error("❌ Error in compare picker:", error);
+      notificationService.error("خطا در باز کردن مودال مقایسه");
+    }
+  }
+
+  async _addPickedComparisons(picked) {
+    this.setChartsLoading(true);
+    let added = 0;
+    try {
+      for (const raw of picked || []) {
+        const parts = String(raw || "").split("|");
+        const [scope, id] = (parts[0] || "").split(":");
+        const label = parts.slice(1).join("|") || "";
+        if (!id) continue;
+        const before = this.chartStack.length;
+        await this.addChartComparison(scope, id, label);
+        if (this.chartStack.length > before) added++;
+      }
+    } catch (error) {
+      console.error("❌ Error adding picked comparisons:", error);
+    } finally {
+      this.setChartsLoading(false);
+    }
+    if (added === 0) {
+      notificationService.info(
+        "سری جدیدی اضافه نشد (ممکن است تکراری یا بدون دادهٔ هفتگی باشد)",
+      );
+    }
   }
 
   updateCharts(data) {

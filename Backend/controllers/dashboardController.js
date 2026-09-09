@@ -1148,8 +1148,8 @@ const getChartsData = async (req, res) => {
         );
       }
 
-      const placements = await ChickPlacement.findAll({
-        where: { flock_id: groupId, is_active: true },
+      const allGroupPlacements = await ChickPlacement.findAll({
+        where: { flock_id: groupId },
         include: [
           {
             model: WeeklyManagement,
@@ -1160,6 +1160,11 @@ const getChartsData = async (req, res) => {
         ],
         order: [["placement_date", "ASC"]],
       });
+
+      // گله‌های فعال فقط سالن‌های فعال؛ گله‌های تمام‌شده همهٔ سالن‌های همان دوره
+      const placements = allGroupPlacements.some((p) => p.is_active)
+        ? allGroupPlacements.filter((p) => p.is_active)
+        : allGroupPlacements;
 
       if (placements.length === 0) {
         return successResponse(
@@ -1259,7 +1264,10 @@ const getChartsData = async (req, res) => {
               flockInfo: {
                 id: groupId,
                 flockNumber: flockRow.flock_number,
-                hallName: `کل گله (${activeHalls} سالن فعال)`,
+                hallName:
+                  flockRow.status === "active"
+                    ? `کل گله (${activeHalls} سالن فعال)`
+                    : `کل گله (${activeHalls} سالن - پایان‌یافته)`,
                 customerName: flockRow.customer?.full_name || "نامشخص",
                 farmName: flockRow.customer?.farm_name || "نامشخص",
                 placementDate: flockRow.placement_date,
@@ -1287,15 +1295,14 @@ const getChartsData = async (req, res) => {
       );
     }
 
-    let whereCondition = { is_active: true };
-
-    // ✅ اگر flockId ارسال شده، فقط آن گله را بگیر
+    // اگر شناسهٔ مشخص (سالن/جوجه‌ریزی) ارسال شود، فارغ از فعال/گذشته بودن همان گله گرفته می‌شود
+    let whereCondition = {};
     if (flockId) {
       whereCondition.id = parseInt(flockId);
-    }
-    // ✅ اگر customerId ارسال شده، گله‌های آن مشتری را بگیر
-    else if (customerId) {
-      whereCondition.customer_id = parseInt(customerId);
+    } else if (customerId) {
+      whereCondition = { customer_id: parseInt(customerId), is_active: true };
+    } else {
+      whereCondition = { is_active: true };
     }
 
     console.log(`📊 دریافت داده‌های نمودار با فیلتر:`, {
