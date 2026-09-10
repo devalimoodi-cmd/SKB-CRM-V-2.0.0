@@ -1236,12 +1236,28 @@ SKB-CRM.IR`,
     el.style.left = "0px";
     el.style.top = "0px";
 
-    const wrapperRect = wrapper.getBoundingClientRect();
     const availW = wrapper.clientWidth || 0;
-    let left = (tooltip.caretX || 0) - (el.offsetWidth || 160) / 2;
+
+    // ✅ عرض تولتیپ برابر عرض محتوای داخل آن (بدون محدودیت عرض ثابت)
+    el.style.maxWidth = "none";
+    el.querySelectorAll(".dash-tt-title, .dash-tt-row").forEach((node) => {
+      node.style.whiteSpace = "";
+    });
+
+    let ttW = el.offsetWidth || 160;
+    // اگر محتوا از عرض قابل‌نمایش نمودار بیشتر بود، متن داخل همان عرض wrap می‌شود
+    if (availW && ttW > availW - 8) {
+      el.style.maxWidth = `${Math.max(140, availW - 8)}px`;
+      el.querySelectorAll(".dash-tt-title, .dash-tt-row").forEach((node) => {
+        node.style.whiteSpace = "normal";
+      });
+      ttW = el.offsetWidth || ttW;
+    }
+
+    let left = (tooltip.caretX || 0) - ttW / 2;
     if (left < 4) left = 4;
-    if (left + (el.offsetWidth || 160) > availW - 4) {
-      left = Math.max(4, availW - (el.offsetWidth || 160) - 4);
+    if (left + ttW > availW - 4) {
+      left = Math.max(4, availW - ttW - 4);
     }
     let top = (tooltip.caretY || 0) - (el.offsetHeight || 60) - 12;
     if (top < 4) top = (tooltip.caretY || 0) + 12;
