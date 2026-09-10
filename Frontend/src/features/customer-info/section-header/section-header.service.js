@@ -2,6 +2,7 @@ import { apiService } from "../../../core/services/api.service.js";
 import { API_CONSTANTS } from "../../../core/constants/api.const.js";
 import { stateService } from "../../../core/services/state.service.js";
 import { notificationService } from "../../../core/services/notification.service.js";
+import { animateCounter } from "../../../core/utils/animate.utils.js";
 
 class SectionHeaderService {
   constructor() {
@@ -98,11 +99,13 @@ class SectionHeaderService {
     const totalChicksEl = document.getElementById("totalChicks");
     const remainingChicksEl = document.getElementById("remainingChicks");
 
-    if (activeUnitsEl) activeUnitsEl.textContent = stats.activeUnits || 0;
-    if (totalHallsEl) totalHallsEl.textContent = stats.totalHalls || 0;
-    if (activeFlocksEl) activeFlocksEl.textContent = stats.activeFlocks || 0;
-    if (totalChicksEl) totalChicksEl.textContent = stats.totalChicks || 0;
-    if (remainingChicksEl) remainingChicksEl.textContent = stats.remainingChicks || 0;
+    if (activeUnitsEl) animateCounter(activeUnitsEl, stats.activeUnits || 0);
+    if (totalHallsEl) animateCounter(totalHallsEl, stats.totalHalls || 0);
+    if (activeFlocksEl)
+      animateCounter(activeFlocksEl, stats.activeFlocks || 0);
+    if (totalChicksEl) animateCounter(totalChicksEl, stats.totalChicks || 0);
+    if (remainingChicksEl)
+      animateCounter(remainingChicksEl, stats.remainingChicks || 0);
 
     // ===== اطلاعات متا =====
     this.renderMetaInfo(customer);

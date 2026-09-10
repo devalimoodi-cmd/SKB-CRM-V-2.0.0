@@ -157,6 +157,7 @@
   font-size: 20px;
   font-weight: 700;
   color: #1e293b;
+  font-variant-numeric: tabular-nums;
 }
 
 .customer-meta-info {
