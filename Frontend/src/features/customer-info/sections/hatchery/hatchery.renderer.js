@@ -205,6 +205,9 @@ export const hatcheryRenderer = {
           <button type="button" class="flock-sms-btn" onclick="window.sendFlockSmsFlock(${flock.id})">
             <i class="fas fa-sms"></i> پیامک گله
           </button>
+          <button type="button" class="flock-sms-btn" onclick="window.showFlockSmsHistory()" title="تاریخچه پیامک‌های ارسالی مشتری">
+            <i class="fas fa-clock-rotate-left"></i> تاریخچه پیامک
+          </button>
           <button type="button" class="flock-end-btn" onclick="window.endActiveFlockOf(${flock.id})">
             <i class="fas fa-ban"></i> پایان گله
           </button>
@@ -406,6 +409,11 @@ export const hatcheryRenderer = {
                             ${
                               hasGroup
                                 ? `<button class="action-btn" onclick="window.printFlockCompletionReport(${groupId})" title="دریافت گزارش پایان دوره گله (چاپ)"><i class="fas fa-file-export"></i></button>`
+                                : ""
+                            }
+                            ${
+                              hasGroup
+                                ? `<button class="action-btn" onclick="window.printFlockSmsReport(${groupId})" title="دریافت گزارش پیامک‌های ارسالی گله"><i class="fas fa-comment-sms"></i></button>`
                                 : ""
                             }
                             ${

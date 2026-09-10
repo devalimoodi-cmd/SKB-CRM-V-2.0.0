@@ -5,6 +5,7 @@ import { hatcheryTabsService } from "./hatchery.tabs.service.js";
 import { hatcheryValidation } from "./hatchery.validation.js";
 import { notificationService } from "../../../../core/services/notification.service.js";
 import { stateService } from "../../../../core/services/state.service.js";
+import { openSmsHistoryModal } from "../../../sms/sms.history.modal.js";
 import {
   convertPersianToGregorian,
   convertToPersianDate,
@@ -1964,6 +1965,28 @@ class HatcheryService {
     if (typeof this.refreshExtraHalls === "function") this.refreshExtraHalls();
     if (typeof window.refreshWeeksDisplay === "function") {
       await window.refreshWeeksDisplay();
+    }
+  }
+
+  // ===== نمایش تاریخچه پیامک‌های مشتری (مودال مشترک با صفحهٔ کارشناس) =====
+  async showFlockSmsHistory() {
+    try {
+      const customerId = this.customerId || stateService.getCustomerId();
+      if (!customerId) {
+        notificationService.error("شناسه مشتری یافت نشد");
+        return;
+      }
+      await openSmsHistoryModal({
+        customerId,
+        onAfterRefresh: async () => {
+          if (typeof this.refreshFlockPanel === "function") {
+            await this.refreshFlockPanel();
+          }
+        },
+      });
+    } catch (error) {
+      console.error("❌ Error opening customer sms history:", error);
+      notificationService.error("خطا در باز کردن تاریخچه پیامک‌ها");
     }
   }
 
@@ -4792,6 +4815,16 @@ if (typeof window !== "undefined") {
     } catch (error) {
       console.error("Error printing flock completion report:", error);
       notificationService.error("خطا در تولید گزارش پایان دوره گله");
+    }
+  };
+  window.showFlockSmsHistory = () => hatcheryService.showFlockSmsHistory();
+  window.printFlockSmsReport = async (flockId) => {
+    try {
+      const { hatcheryReport } = await import("./hatchery.report.js");
+      await hatcheryReport.generateFlockSmsReport(flockId);
+    } catch (error) {
+      console.error("Error printing flock sms report:", error);
+      notificationService.error("خطا در تولید گزارش پیامک‌های گله");
     }
   };
   window.generateChickReport = async () => {

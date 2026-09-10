@@ -20,7 +20,7 @@ const fmtPct = (value, digits = 2) =>
     ? "—"
     : `${fmtNum(value, digits)}٪`;
 
-// کارت‌های شاخص یک هفته (برای گزارش اختصاصی گله) - گروه‌بندی‌شده
+// کارت‌های شاخص یک هفته (برای گزارش اختصاصی سالن) - گروه‌بندی‌شده
 // ابزارهای نمایش انحراف از استاندارد در کارتها (همانند فرم زندهٔ هفتگی)
 const fmtDev = (value, digits = 2) => {
   if (value === null || value === undefined || isNaN(value)) return "";
@@ -852,13 +852,13 @@ export const weeklyRenderer = {
             <html dir="rtl">
             <head>
                 <meta charset="UTF-8">
-                <title>گزارش اختصاصی گله ${flock.flock_number}</title>
+                <title>گزارش اختصاصی سالن ${flock.flock_number}</title>
                 <style>${REPORT_STYLES}</style>
             </head>
             <body>
                 <div class="report-header">
                     <img class="report-logo" src="/assets/images/skb-logo.png" alt="لوگوی شرکت" onerror="this.style.display='none'">
-                    <h1>🐔 گزارش اختصاصی گله ${flock.flock_number}</h1>
+                    <h1>🐔 گزارش اختصاصی سالن ${flock.flock_number}</h1>
                     <div class="sub">سامانه اطلاعات، خدمات و ارتباطات با مشتریان (سِکاد)</div>
                     <div class="report-info">📅 تاریخ تهیه: ${now} - ساعت: ${nowTime}</div>
                 </div>

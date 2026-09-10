@@ -197,6 +197,18 @@ export const hatcheryApi = {
     return apiService.post("/sms/flock-reminder", data);
   },
 
+  // تاریخچه پیامک‌های مشتری (با فیلتر اختیاری گله/دوره)
+  async getCustomerSmsHistory(customerId, params = {}) {
+    return apiService.get(`/sms/log/${customerId}`, params);
+  },
+
+  // بروزرسانی وضعیت پیامک‌های یک گله/دوره
+  async refreshSmsStatus(customerId, flockId = null, flockPeriodId = null) {
+    let url = `/sms/update-status/flock/${customerId}/${flockId ?? "null"}`;
+    if (flockPeriodId) url += `?flock_period_id=${flockPeriodId}`;
+    return apiService.get(url);
+  },
+
   // ===== دوره‌ها (Period) =====
   // در این نسخه مفهوم «دوره» به گله (جوجه‌ریزی) نگاشت می‌شود؛
   // این متدها برای سازگاری با کدهای موجود اضافه شده‌اند.

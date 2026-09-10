@@ -559,6 +559,330 @@ class HatcheryReport {
     }
   }
 
+  // ================================================================
+  // گزارش پیامک‌های ارسالی یک گله (چاپ) — مثل سایر گزارشات
+  // ================================================================
+  async generateFlockSmsReport(flockId) {
+    try {
+      await this.init();
+
+      const flockRes = await apiService.get(`/flocks/${flockId}`);
+      if (!flockRes?.success || !flockRes.data) {
+        alert("گله یافت نشد");
+        return;
+      }
+      const flock = flockRes.data;
+
+      const customerRes = await apiService
+        .get(`/customers/${this.customerId}`)
+        .catch(() => null);
+      const customer = customerRes?.data || null;
+
+      // بروزرسانی وضعیت پیامک‌های همین گله قبل از تولید گزارش
+      try {
+        await hatcheryApi.refreshSmsStatus(this.customerId, flockId, flockId);
+      } catch (e) {
+        console.warn("⚠️ بروزرسانی وضعیت پیامک‌ها انجام نشد");
+      }
+
+      const logsRes = await hatcheryApi.getCustomerSmsHistory(this.customerId, {
+        flock_period_id: flockId,
+      });
+      const logs =
+        logsRes?.success && Array.isArray(logsRes.data) ? logsRes.data : [];
+
+      const html = this.buildFlockSmsReportHTML(customer, flock, logs);
+      const printWindow = window.open("", "_blank", "width=1100,height=800");
+      if (!printWindow) {
+        alert("لطفاً باز شدن پنجره popup را مجاز کنید");
+        return;
+      }
+      printWindow.document.write(html);
+      printWindow.document.close();
+    } catch (error) {
+      console.error("Error generating flock sms report:", error);
+      alert("خطا در تولید گزارش پیامک‌های گله: " + error.message);
+    }
+  }
+
+  buildFlockSmsReportHTML(customer, flock, logs) {
+    const now = new Date();
+    const persianDate = formatDate(now);
+    const reportDate = new Intl.DateTimeFormat("fa-IR", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(now);
+    const reportTime = new Intl.DateTimeFormat("fa-IR", {
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(now);
+
+    const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
+    const reporterName =
+      currentUser.fullName ||
+      [currentUser.first_name, currentUser.last_name]
+        .filter(Boolean)
+        .join(" ") ||
+      currentUser.username ||
+      "کاربر ناشناس";
+    const roleText =
+      {
+        super_admin: "مدیر اصلی",
+        admin: "مدیر",
+        sub_admin: "مدیر میانی",
+        expert: "کارشناس",
+        customer: "مشتری",
+      }[currentUser.role] || "کاربر";
+
+    const title = `📱 گزارش پیامک‌های ارسالی گله ${flock.flock_number ?? ""}`;
+    const unitName =
+      flock.unit?.unit_name || flock.unit_name || "-";
+    const hallNames =
+      [
+        ...new Set(
+          (flock.placements || [])
+            .map(
+              (p) =>
+                p.hall?.hall_name ||
+                p.Hall?.hall_name ||
+                (p.hall_id ? `سالن ${p.hall_id}` : null),
+            )
+            .filter(Boolean),
+        ),
+      ].join("، ") || "-";
+
+    const esc = (v) =>
+      String(v ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+
+    const dateParts = (dateStr) => {
+      if (!dateStr) return { d: "—", t: "" };
+      try {
+        const dt = new Date(dateStr);
+        return {
+          d: new Intl.DateTimeFormat("fa-IR", {
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+          }).format(dt),
+          t: new Intl.DateTimeFormat("fa-IR", {
+            hour: "2-digit",
+            minute: "2-digit",
+          }).format(dt),
+        };
+      } catch {
+        return { d: "—", t: "" };
+      }
+    };
+
+    const getDeliveryText = (deliveryState) => {
+      const map = {
+        0: "⏳ در صف ارسال",
+        1: "✅ رسیده به گوشی",
+        2: "❌ نرسیده به گوشی",
+        3: "📡 پردازش در مخابرات",
+        4: "❌ نرسیده به مخابرات",
+        5: "📡 رسیده به مخابرات",
+        6: "❌ خطا",
+        7: "⛔ لیست سیاه",
+        8: "❓ نامشخص",
+      };
+      return deliveryState === null ||
+        deliveryState === undefined ||
+        deliveryState === ""
+        ? "-"
+        : map[Number(deliveryState)] || "نامشخص";
+    };
+
+    const getSenderName = (sender) => {
+      if (!sender) return "کاربر سیستم";
+      return (
+        `${sender.first_name || ""} ${sender.last_name || ""}`.trim() ||
+        sender.username ||
+        "کاربر سیستم"
+      );
+    };
+
+    const statusText = (status) =>
+      ({
+        pending: "در انتظار",
+        sent: "ارسال شده",
+        delivered: "تحویل داده شده",
+        failed: "ناموفق",
+      })[status] || "در انتظار";
+
+    const countBy = (st) =>
+      (logs || []).filter((r) => (r.status || "pending") === st).length;
+
+    const rows =
+      logs && logs.length
+        ? logs
+            .map((r, i) => {
+              const sent = dateParts(r.sent_at || r.created_at);
+              const delivered = dateParts(r.delivered_at);
+              const scope = r.scope === "hall" ? "hall" : "flock";
+              const status = ["pending", "sent", "delivered", "failed"].includes(
+                r.status,
+              )
+                ? r.status
+                : "pending";
+              return `
+            <tr>
+              <td class="sms-idx">${i + 1}</td>
+              <td class="sms-msg">${esc(r.message || "—")}</td>
+              <td class="sms-scope"><span class="sms-chip chip-${scope}">${scope === "hall" ? "سالن" : "کل گله"}</span></td>
+              <td class="sms-target">${esc(r.targetLabel || r.target_title || "—")}</td>
+              <td class="sms-role">${esc(r.roleLabel || "—")}</td>
+              <td class="sms-date"><span class="dt-d">${sent.d}</span><span class="dt-t">${sent.t}</span></td>
+              <td class="sms-date"><span class="dt-d">${delivered.d}</span><span class="dt-t">${delivered.t}</span></td>
+              <td class="sms-delivery">${esc(getDeliveryText(r.delivery_state))}</td>
+              <td class="sms-status"><span class="status-chip status-${status}">${esc(statusText(status))}</span></td>
+              <td class="sms-sender">${esc(getSenderName(r.sender))}</td>
+            </tr>`;
+            })
+            .join("")
+        : '<tr><td colspan="10" class="sms-empty">پیامکی برای این گله ثبت نشده است</td></tr>';
+
+    return `
+      <!DOCTYPE html>
+      <html lang="fa" dir="rtl">
+      <head>
+        <meta charset="UTF-8">
+        <title>${title}</title>
+        <style>
+          @font-face { font-family: "Vazir"; src: url("/assets/fonts/Vazir-Regular-FD.ttf") format("truetype"); font-weight: 400; }
+          @font-face { font-family: "Vazir"; src: url("/assets/fonts/Vazir-Medium-FD.ttf") format("truetype"); font-weight: 500; }
+          @font-face { font-family: "Vazir"; src: url("/assets/fonts/Vazir-Bold-FD.ttf") format("truetype"); font-weight: 700; }
+          @page { size: A4 landscape; margin: 8mm; }
+          @media print { body { margin: 0; } }
+          body { font-family: 'Vazir', 'Tahoma', sans-serif; direction: rtl; background: #fff; color: #1e293b; font-size: 13px; line-height: 1.7; margin: 0; }
+          .report-main { width: 100%; border-collapse: collapse; }
+          .report-main thead { display: table-header-group; }
+          .report-main td { border: none; padding: 0; vertical-align: top; }
+          .report-page-header { text-align: center; padding: 10px 0 12px; border-bottom: 3px solid #2c7a6e; margin-bottom: 18px; }
+          .report-page-header h1 { color: #2c7a6e; font-size: 21px; margin: 0 0 5px; }
+          .report-page-header .date { color: #94a3b8; font-size: 12px; }
+          .report-page-header .report-logo { display: block; height: 50px; width: auto; margin: 0 auto 8px; }
+          .customer-info-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 10px; }
+          .customer-info-table td { border: none; padding: 3px 6px; text-align: right; }
+          .info-box { background: #f8fafc; border: 1px solid #eef2f6; border-radius: 8px; padding: 8px 12px; margin-bottom: 12px; font-size: 12px; }
+          .summary-stats { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+          .stat-box { flex: 1; min-width: 120px; background: #f8fafc; border: 1px solid #eef2f6; border-radius: 8px; padding: 8px 12px; text-align: center; }
+          .stat-box .stat-label { font-size: 11px; color: #64748b; }
+          .stat-box .stat-value { font-size: 18px; font-weight: 700; color: #2c7a6e; }
+          .report-table { width: 100%; border-collapse: collapse; font-size: 12px; table-layout: fixed; }
+          .report-table th { background: #2c7a6e; color: #fff; padding: 8px 5px; font-weight: 700; font-size: 11px; text-align: center; border: 1px solid #2c7a6e; white-space: nowrap; }
+          .report-table td { padding: 7px 6px; border: 1px solid #eef2f6; text-align: center; vertical-align: middle; line-height: 1.6; overflow-wrap: break-word; word-break: break-word; }
+          .report-table tbody tr:nth-child(even) { background: #fafbfc; }
+          .report-table tbody tr { page-break-inside: avoid; }
+          .report-table td.sms-idx { color: #94a3b8; font-weight: 700; }
+          .report-table td.sms-msg { text-align: right; white-space: pre-wrap; word-break: break-word; color: #1e293b; }
+          .report-table td.sms-target, .report-table td.sms-role, .report-table td.sms-sender { text-align: right; color: #334155; }
+          .report-table td.sms-role, .report-table td.sms-sender { font-size: 11.5px; }
+          .report-table td.sms-date { padding: 5px 4px; }
+          .report-table td.sms-date .dt-d { display: block; font-size: 11px; color: #334155; white-space: nowrap; }
+          .report-table td.sms-date .dt-t { display: block; font-size: 10.5px; color: #94a3b8; white-space: nowrap; }
+          .report-table td.sms-delivery { font-size: 11.5px; color: #334155; }
+          .report-table td.sms-empty { text-align: center; color: #94a3b8; padding: 16px; }
+          .sms-chip { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 10.5px; font-weight: 700; white-space: nowrap; }
+          .sms-chip.chip-flock { background: #ecfdf5; color: #047857; }
+          .sms-chip.chip-hall { background: #eff6ff; color: #1d4ed8; }
+          .status-chip { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 10.5px; font-weight: 700; white-space: nowrap; }
+          .status-chip.status-delivered { background: #dcfce7; color: #15803d; }
+          .status-chip.status-sent { background: #dbeafe; color: #2563eb; }
+          .status-chip.status-failed { background: #fee2e2; color: #dc2626; }
+          .status-chip.status-pending { background: #fef3c7; color: #b45309; }
+          .report-table th, .sms-chip, .status-chip, .stat-box, .info-box { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          .report-footer { text-align: center; color: #94a3b8; font-size: 11px; margin-top: 30px; padding-top: 12px; border-top: 1px solid #eef2f6; }
+        </style>
+      </head>
+      <body>
+        <table class="report-main">
+          <thead>
+            <tr><td>
+              <div class="report-page-header">
+                <img class="report-logo" src="/assets/images/skb-logo.png" alt="لوگوی شرکت" onerror="this.style.display='none'">
+                <h1>${title}</h1>
+                <div class="date">تاریخ گزارش: ${persianDate}</div>
+              </div>
+              <table class="customer-info-table">
+                <tr>
+                  <td><strong>نام مشتری:</strong> ${customer?.full_name || "-"}</td>
+                  <td><strong>نام فارم:</strong> ${customer?.farm_name || "-"}</td>
+                </tr>
+                <tr>
+                  <td><strong>موبایل:</strong> ${customer?.mobile_number || "-"}</td>
+                  <td><strong>استان:</strong> ${customer?.province || "-"}</td>
+                </tr>
+              </table>
+              <div class="info-box">
+                <strong>شماره گله:</strong> ${flock.flock_number ?? "-"} |
+                <strong>واحد:</strong> ${unitName} |
+                <strong>تاریخ جوجه‌ریزی:</strong> ${flock.placement_date ? convertToPersianDate(flock.placement_date) : "-"} |
+                <strong>سالن‌های عضو:</strong> ${hallNames}
+              </div>
+              <div class="summary-stats">
+                <div class="stat-box"><div class="stat-label">تعداد پیامک‌ها</div><div class="stat-value">${logs.length.toLocaleString("fa-IR")}</div></div>
+                <div class="stat-box"><div class="stat-label">تحویل داده شده</div><div class="stat-value">${countBy("delivered").toLocaleString("fa-IR")}</div></div>
+                <div class="stat-box"><div class="stat-label">در انتظار</div><div class="stat-value">${countBy("pending").toLocaleString("fa-IR")}</div></div>
+                <div class="stat-box"><div class="stat-label">ناموفق</div><div class="stat-value">${countBy("failed").toLocaleString("fa-IR")}</div></div>
+              </div>
+            </td></tr>
+          </thead>
+          <tbody>
+            <tr><td>
+              <table class="report-table">
+                <colgroup>
+                  <col style="width:34px">
+                  <col>
+                  <col style="width:62px">
+                  <col style="width:108px">
+                  <col style="width:88px">
+                  <col style="width:84px">
+                  <col style="width:84px">
+                  <col style="width:100px">
+                  <col style="width:82px">
+                  <col style="width:100px">
+                </colgroup>
+                <thead>
+                  <tr>
+                    <th>ردیف</th>
+                    <th>متن پیام</th>
+                    <th>دامنه</th>
+                    <th>هدف / گیرنده</th>
+                    <th>نقش</th>
+                    <th>تاریخ ارسال</th>
+                    <th>تاریخ تحویل</th>
+                    <th>وضعیت تحویل</th>
+                    <th>وضعیت</th>
+                    <th>فرستنده</th>
+                  </tr>
+                </thead>
+                <tbody>${rows}</tbody>
+              </table>
+              <div class="report-footer">
+                <p>
+                  📌 دریافت گزارش توسط: <strong>${reporterName}</strong> (${roleText}) |
+                  تاریخ: <strong>${reportDate}</strong> |
+                  ساعت: <strong>${reportTime}</strong>
+                </p>
+                <p>این گزارش توسط سامانه مدیریت مشتریان (SKB-CRM) تولید شده است</p>
+              </div>
+            </td></tr>
+          </tbody>
+        </table>
+        <script>
+          window.onload = function() { window.print(); }
+        <\/script>
+      </body>
+      </html>
+    `;
+  }
+
   async generateAndPrint(mode = "active") {
     try {
       await this.init();

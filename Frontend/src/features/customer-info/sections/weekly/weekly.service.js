@@ -199,9 +199,9 @@ class WeeklyService {
                         </div>
                         <div class="flock-header-actions">
                             <button type="button" class="btn-flock-report"
-                                title="دریافت گزارش اختصاصی این گله"
+                                title="دریافت گزارش اختصاصی این سالن"
                                 onclick="event.stopPropagation(); window.generateFlockReport(${flock.id})">
-                                <i class="fas fa-file-alt"></i> گزارش گله
+                                <i class="fas fa-file-alt"></i> گزارش سالن
                             </button>
                             <i class="fas fa-chevron-down flock-accordion-icon"></i>
                         </div>
@@ -1522,7 +1522,7 @@ class WeeklyService {
     return true;
   }
 
-  // ===== گزارش اختصاصی یک گله =====
+  // ===== گزارش اختصاصی یک سالن =====
 
   async generateFlockReport(flockId) {
     try {
@@ -1532,7 +1532,7 @@ class WeeklyService {
         return;
       }
 
-      notificationService.info("📄 در حال آماده‌سازی گزارش گله...");
+      notificationService.info("📄 در حال آماده‌سازی گزارش سالن...");
 
       const customerResponse = await weeklyApi.getCustomer(this.customerId);
       const customer = customerResponse.success ? customerResponse.data : {};
@@ -1546,10 +1546,10 @@ class WeeklyService {
       );
 
       this.openReportWindow(reportHtml);
-      notificationService.success("✅ گزارش گله با موفقیت آماده شد");
+      notificationService.success("✅ گزارش سالن با موفقیت آماده شد");
     } catch (error) {
       console.error("❌ Error generating flock report:", error);
-      notificationService.error("❌ خطا در تولید گزارش گله");
+      notificationService.error("❌ خطا در تولید گزارش سالن");
     }
   }
 
@@ -1631,7 +1631,7 @@ class WeeklyService {
             .filter((w) => w && w.week_number)
             .sort((a, b) => (a.week_number || 0) - (b.week_number || 0));
 
-          // محاسبه متریک کامل هر هفته (دقیقاً مثل فرم زندهٔ هفتگی و گزارش گله)
+          // محاسبه متریک کامل هر هفته (دقیقاً مثل فرم زندهٔ هفتگی و گزارش سالن)
           const flockLike = {
             ...p,
             total_chicks_count: p.total_chicks_count,
