@@ -704,6 +704,8 @@ const completeFlockPeriods = async (req, res) => {
     const shared_data = req.body.shared_data || {};
     shared_data.hall_data = req.body.hall_data || shared_data.hall_data || {};
     const completedBy = req.user?.id || null;
+    // حالت ویرایش: اجازهٔ بازنویسی پایان دورهٔ گلهٔ بستهٔ قبلی
+    const isUpdate = req.body.is_update === true;
 
     if (!Array.isArray(flock_ids) || flock_ids.length === 0) {
       await transaction.rollback();
@@ -722,12 +724,27 @@ const completeFlockPeriods = async (req, res) => {
     const results = [];
     for (const flock of flocks) {
       if (flock.status !== "active") {
-        await transaction.rollback();
-        return errorResponse(
-          res,
-          `گله شماره ${flock.flock_number} فعال نیست و قبلاً با وضعیت ${flock.status} بسته شده است`,
-          400,
-        );
+        if (!isUpdate) {
+          await transaction.rollback();
+          return errorResponse(
+            res,
+            `گله شماره ${flock.flock_number} فعال نیست و قبلاً با وضعیت ${flock.status} بسته شده است`,
+            400,
+          );
+        }
+        // در حالت ویرایش باید از قبل پایان دوره ثبت شده باشد
+        const existing = await FlockCompletion.findOne({
+          where: { flock_id: flock.id },
+          transaction,
+        });
+        if (!existing) {
+          await transaction.rollback();
+          return errorResponse(
+            res,
+            `پایان دوره‌ای برای گله شماره ${flock.flock_number} ثبت نشده است`,
+            404,
+          );
+        }
       }
       const completion = await finalizeFlockCompletion(
         flock,
@@ -745,8 +762,10 @@ const completeFlockPeriods = async (req, res) => {
     successResponse(
       res,
       { results },
-      "پایان دوره گله‌ها با ثبت تفکیکی per سالن انجام شد",
-      201,
+      isUpdate
+        ? "اطلاعات پایان دوره گله ویرایش شد"
+        : "پایان دوره گله‌ها با ثبت تفکیکی per سالن انجام شد",
+      isUpdate ? 200 : 201,
     );
   } catch (error) {
     await transaction.rollback();

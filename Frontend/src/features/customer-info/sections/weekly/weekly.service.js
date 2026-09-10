@@ -1586,11 +1586,25 @@ class WeeklyService {
       const flocks =
         res?.success && Array.isArray(res.data?.flocks) ? res.data.flocks : [];
 
+      // مودال انتخاب گله‌های قبلی (تکمیل‌شده)
+      notificationService.hideLoading();
+      if (flocks.length === 0) {
+        notificationService.warning("گلهٔ تکمیل‌شده‌ای برای این مشتری یافت نشد");
+        return;
+      }
+
+      const selectedFlocks = await this.pickHistoryFlocks(flocks);
+      if (!selectedFlocks || selectedFlocks.length === 0) return;
+
+      notificationService.showLoading(
+        "در حال آماده‌سازی گزارش تاریخچهٔ هفتگی...",
+      );
+
       const customerResponse = await weeklyApi.getCustomer(this.customerId);
       const customer = customerResponse.success ? customerResponse.data : {};
 
       const blocks = [];
-      for (const flock of flocks) {
+      for (const flock of selectedFlocks) {
         const placements = flock.placements || [];
         let completion = null;
         try {
@@ -1681,6 +1695,170 @@ class WeeklyService {
     } finally {
       notificationService.hideLoading();
     }
+  }
+
+  // ===== مودال انتخاب گله‌های قبلی برای گزارش تاریخچه هفتگی =====
+
+  async pickHistoryFlocks(flocks) {
+    // اگر SweetAlert2 در دسترس نبود، مثل قبل همهٔ گله‌ها انتخاب می‌شوند
+    if (typeof Swal === "undefined") return flocks;
+
+    const metaOf = (flock) => {
+      const placements = flock.placements || [];
+      const hallsCount = placements.length;
+      const chicks = placements.reduce(
+        (sum, p) => sum + (parseInt(p.total_chicks_count) || 0),
+        0,
+      );
+      let date = "-";
+      if (flock.placement_date) {
+        try {
+          date = convertToPersianDate(flock.placement_date);
+        } catch {
+          date = "-";
+        }
+      }
+      return { hallsCount, chicks, date };
+    };
+
+    const rowsHtml = flocks
+      .map((flock) => {
+        const { hallsCount, chicks, date } = metaOf(flock);
+        const unitName = flock.unit?.unit_name || "-";
+        const flockNumber = flock.flock_number || "-";
+        const searchKey = `${flockNumber} ${unitName} ${date}`.toLowerCase();
+        return `
+          <label class="wh-item" data-halls="${hallsCount}" data-chicks="${chicks}" data-search="${searchKey}">
+            <input type="checkbox" class="wh-item-check" value="${flock.id}">
+            <span class="wh-item-main">
+              <span class="wh-item-title">🐔 گله ${flockNumber} <span class="wh-item-unit">— واحد ${unitName}</span></span>
+              <span class="wh-item-meta">
+                <span><i class="fas fa-warehouse"></i> ${hallsCount.toLocaleString("fa-IR")} سالن</span>
+                <span><i class="fas fa-egg"></i> ${chicks.toLocaleString("fa-IR")} قطعه</span>
+                <span><i class="fas fa-calendar-alt"></i> ${date}</span>
+              </span>
+            </span>
+          </label>`;
+      })
+      .join("");
+
+    const html = `
+      <div class="wh-picker" dir="rtl">
+        <div class="wh-stats">
+          <div class="wh-stat">
+            <span class="wh-stat-val" id="whStatFlocks">0</span>
+            <span class="wh-stat-lbl">گلهٔ انتخابی</span>
+          </div>
+          <div class="wh-stat">
+            <span class="wh-stat-val" id="whStatHalls">0</span>
+            <span class="wh-stat-lbl">سالن</span>
+          </div>
+          <div class="wh-stat">
+            <span class="wh-stat-val" id="whStatChicks">0</span>
+            <span class="wh-stat-lbl">جوجه‌ریزی (قطعه)</span>
+          </div>
+        </div>
+
+        <div class="wh-toolbar">
+          <button type="button" class="wh-tool-btn" id="whSelectAll">
+            <i class="fas fa-check-double"></i> انتخاب همه
+          </button>
+          <button type="button" class="wh-tool-btn ghost" id="whClearAll">
+            <i class="fas fa-eraser"></i> پاک‌کردن
+          </button>
+          <input type="text" id="whSearch" class="wh-search" placeholder="جستجوی شماره گله یا واحد...">
+        </div>
+
+        <div class="wh-list" id="whPickerList">${rowsHtml}</div>
+
+        <p class="wh-hint">
+          <i class="fas fa-circle-info"></i>
+          فقط گله‌های تکمیل‌شده نمایش داده می‌شوند و کارت‌های هدر گزارش بر اساس انتخاب شما محاسبه می‌شود.
+        </p>
+      </div>
+    `;
+
+    const updateStats = () => {
+      const checked = Array.from(
+        document.querySelectorAll("#whPickerList .wh-item-check:checked"),
+      );
+      let halls = 0;
+      let chicks = 0;
+      checked.forEach((cb) => {
+        const item = cb.closest(".wh-item");
+        halls += parseInt(item?.dataset.halls || "0", 10) || 0;
+        chicks += parseInt(item?.dataset.chicks || "0", 10) || 0;
+      });
+      const fEl = document.getElementById("whStatFlocks");
+      const hEl = document.getElementById("whStatHalls");
+      const cEl = document.getElementById("whStatChicks");
+      if (fEl) fEl.textContent = checked.length.toLocaleString("fa-IR");
+      if (hEl) hEl.textContent = halls.toLocaleString("fa-IR");
+      if (cEl) cEl.textContent = chicks.toLocaleString("fa-IR");
+    };
+
+    const result = await Swal.fire({
+      title: "انتخاب گله‌های قبلی برای گزارش هفتگی",
+      html,
+      width: 720,
+      showCancelButton: true,
+      showCloseButton: true,
+      confirmButtonText: '<i class="fas fa-file"></i> دریافت گزارش',
+      cancelButtonText: "انصراف",
+      confirmButtonColor: "#2c7a6e",
+      cancelButtonColor: "#94a3b8",
+      customClass: { popup: "wh-popup", htmlContainer: "wh-html" },
+      didOpen: () => {
+        const list = document.getElementById("whPickerList");
+        const search = document.getElementById("whSearch");
+
+        list?.addEventListener("change", (e) => {
+          if (e.target.classList.contains("wh-item-check")) updateStats();
+        });
+
+        document.getElementById("whSelectAll")?.addEventListener("click", () => {
+          list?.querySelectorAll(".wh-item").forEach((item) => {
+            if (item.style.display !== "none") {
+              const cb = item.querySelector(".wh-item-check");
+              if (cb) cb.checked = true;
+            }
+          });
+          updateStats();
+        });
+
+        document.getElementById("whClearAll")?.addEventListener("click", () => {
+          list
+            ?.querySelectorAll(".wh-item-check")
+            .forEach((cb) => (cb.checked = false));
+          updateStats();
+        });
+
+        search?.addEventListener("input", () => {
+          const q = search.value.trim().toLowerCase();
+          list?.querySelectorAll(".wh-item").forEach((item) => {
+            const match = !q || (item.dataset.search || "").includes(q);
+            item.style.display = match ? "" : "none";
+          });
+          updateStats();
+        });
+
+        updateStats();
+      },
+      preConfirm: () => {
+        const picked = Array.from(
+          document.querySelectorAll("#whPickerList .wh-item-check:checked"),
+        ).map((cb) => parseInt(cb.value, 10));
+        if (picked.length === 0) {
+          Swal.showValidationMessage("حداقل یک گله را انتخاب کنید");
+          return false;
+        }
+        return picked;
+      },
+    });
+
+    if (!result.isConfirmed || !Array.isArray(result.value)) return null;
+    const idSet = new Set(result.value);
+    return flocks.filter((flock) => idSet.has(flock.id));
   }
 
   buildWeeklyHistoryHTML(customer, blocks) {

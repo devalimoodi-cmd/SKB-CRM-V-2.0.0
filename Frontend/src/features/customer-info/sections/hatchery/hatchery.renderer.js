@@ -413,6 +413,11 @@ export const hatcheryRenderer = {
                                 ? `<button class="action-btn complete" onclick="window.completeFlockOf(${groupId})" title="ثبت پایان گله / اطلاعات کشتار و محاسبات اقتصادی"><i class="fas fa-flag-checkered"></i></button>`
                                 : ""
                             }
+                            ${
+                              hasGroup && !g.is_active
+                                ? `<button class="action-btn completion-edit" onclick="window.editFlockCompletion(${groupId})" title="ویرایش / اصلاح اطلاعات پایان دوره گله"><i class="fas fa-pen-to-square"></i></button>`
+                                : ""
+                            }
                             <button class="action-btn edit" onclick="window.${editFn}" title="ویرایش کامل گله">
                                 <i class="fas fa-edit"></i>
                             </button>

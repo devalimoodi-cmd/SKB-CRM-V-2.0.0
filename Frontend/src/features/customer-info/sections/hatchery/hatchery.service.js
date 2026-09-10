@@ -2994,6 +2994,89 @@ class HatcheryService {
     }
   }
 
+  // ===== ویرایش / اصلاح اطلاعات پایان دوره یک گلهٔ تکمیل‌شده =====
+  async editFlockCompletion(flockId) {
+    try {
+      notificationService.showLoading("در حال دریافت اطلاعات پایان دوره...");
+      let compRes;
+      let prevRes;
+      try {
+        [compRes, prevRes] = await Promise.all([
+          hatcheryApi.getFlockCompletionByFlock(flockId),
+          hatcheryApi.getFlockCompletionPreview(flockId),
+        ]);
+      } finally {
+        notificationService.hideLoading();
+      }
+
+      if (!compRes?.success || !compRes.data) {
+        notificationService.warning(
+          "برای این گله اطلاعات پایان دوره‌ای ثبت نشده است",
+        );
+        return;
+      }
+      if (!prevRes?.success || !prevRes.data) {
+        notificationService.error(
+          prevRes?.message || "خطا در دریافت داده‌های گله",
+        );
+        return;
+      }
+
+      const comp = compRes.data;
+      const preview = prevRes.data;
+
+      // نقشه ریز سالن‌ها با کلید chick_placement_id
+      const hallsMap = {};
+      (comp.hallDetails || []).forEach((d) => {
+        if (!d || !d.chick_placement_id) return;
+        hallsMap[String(d.chick_placement_id)] = {
+          sent_to_slaughter_count: d.sent_to_slaughter_count,
+          live_weight_kg: d.live_weight_kg,
+          declared_feed_intake: d.declared_feed_intake,
+        };
+      });
+
+      const existing = {
+        completionId: comp.id,
+        completion_date: comp.completion_date,
+        completion_type: comp.completion_type,
+        confirmed_by_customer: comp.confirmed_by_customer,
+        slaughter_age_method: comp.slaughter_age_method,
+        slaughter_age_days: comp.slaughter_age_days,
+        slaughter_age_end_days: comp.slaughter_age_end_days,
+        slaughter_date: comp.slaughter_date,
+        slaughter_end_date: comp.slaughter_end_date,
+        slaughter_shipments: comp.slaughter_shipments,
+        slaughterhouse_name: comp.slaughterhouse_name,
+        total_sent: comp.total_sent,
+        total_live_weight: comp.total_live_weight,
+        avg_live_weight: comp.avg_live_weight,
+        total_mortality: comp.total_mortality,
+        mortality_rate: comp.mortality_rate,
+        farmer_total_feed: comp.farmer_total_feed,
+        farmer_fcr: comp.farmer_fcr,
+        price_per_kg: comp.price_per_kg,
+        income_total: comp.income_total,
+        chick_cost: comp.chick_cost,
+        feed_cost: comp.feed_cost,
+        medication_cost: comp.medication_cost,
+        fuel_cost: comp.fuel_cost,
+        labor_cost: comp.labor_cost,
+        other_cost: comp.other_cost,
+        carcass_weight_kg: comp.carcass_weight_kg,
+        carcass_yield_percent: comp.carcass_yield_percent,
+        feed_basis: comp.feed_basis,
+        notes: comp.notes,
+        halls: hallsMap,
+      };
+
+      await this._openFlockCompletionModal(preview, existing);
+    } catch (error) {
+      console.error("❌ Error editing flock completion:", error);
+      notificationService.error("خطا در باز کردن ویرایش پایان دوره");
+    }
+  }
+
   _pcRow(label, id, value, opts = {}) {
     const type = opts.type || "number";
     const readOnly = !!opts.readOnly;
@@ -3024,8 +3107,12 @@ class HatcheryService {
     </div>`;
   }
 
-  _pcHallBlock(hall) {
+  _pcHallBlock(hall, ex = null) {
     const hid = hall.chick_placement_id;
+    const hx = (ex && ex.halls && ex.halls[String(hid)]) || {};
+    const hSent = hx.sent_to_slaughter_count ?? "";
+    const hLive = hx.live_weight_kg ?? "";
+    const hFeed = hx.declared_feed_intake ?? "";
     return `<div class="pc-hall">
       <div style="font-weight:700;font-size:12px;color:#2c7a6e;margin-bottom:6px;display:flex;align-items:center;gap:6px;">
         <i class="fas fa-warehouse"></i> ${hall.hall_name || `سالن ${hall.hall_id}`}
@@ -3034,24 +3121,35 @@ class HatcheryService {
         ).toLocaleString("fa-IR")} قطعه)</span>
       </div>
       <div class="pc-grid">
-        ${this._pcRow("تعداد ارسالی به کشتارگاه (اختیاری)", `pc_hsent_${hid}`, "", {
+        ${this._pcRow("تعداد ارسالی به کشتارگاه (اختیاری)", `pc_hsent_${hid}`, hSent, {
           placeholder: "مثلاً ۹۵۰۰",
         })}
-        ${this._pcRow("وزن زنده سالن (کیلوگرم)", `pc_hlive_${hid}`, "", {
+        ${this._pcRow("وزن زنده سالن (کیلوگرم)", `pc_hlive_${hid}`, hLive, {
           placeholder: "مثلاً ۲۳۵۰۰",
         })}
-        ${this._pcRow("خوراک اعلامی سالن (کیلوگرم)", `pc_hfeed_${hid}`, "", {
+        ${this._pcRow("خوراک اعلامی سالن (کیلوگرم)", `pc_hfeed_${hid}`, hFeed, {
           placeholder: "اختیاری",
         })}
       </div>
     </div>`;
   }
 
-  _pcFormTop(data) {
+  _pcFormTop(data, ex = null) {
     const flock = data.flock || {};
     const halls = Array.isArray(data.halls) ? data.halls : [];
     const s = data.summary || {};
     const today = new Date().toISOString().slice(0, 10);
+    const method =
+      ex && ["range", "direct", "weighted"].includes(ex.slaughter_age_method)
+        ? ex.slaughter_age_method
+        : "range";
+    const startDate = ex?.slaughter_date
+      ? convertToPersianDate(ex.slaughter_date)
+      : convertToPersianDate(today);
+    const endDate = ex?.slaughter_end_date
+      ? convertToPersianDate(ex.slaughter_end_date)
+      : "";
+    const exVal = (v) => (v === null || v === undefined ? "" : v);
     return `
       <div class="pc-sec">
         <div class="pc-sec-title"><i class="fas fa-id-card"></i> ۱) اطلاعات هویتی گله</div>
@@ -3069,33 +3167,33 @@ class HatcheryService {
         <div class="pc-sec-title"><i class="fas fa-calendar-check"></i> ۲) سن کشتار — انتخاب روش ثبت</div>
 
         <div class="pc-method-pills">
-          <button type="button" class="pc-method-pill pc-method-active" data-method="range" onclick="hatcherySetPcMethod('range')"><i class="fas fa-calendar-week"></i> بازهٔ تاریخی</button>
-          <button type="button" class="pc-method-pill" data-method="direct" onclick="hatcherySetPcMethod('direct')"><i class="fas fa-arrow-left"></i> ورود مستقیم سن</button>
-          <button type="button" class="pc-method-pill" data-method="weighted" onclick="hatcherySetPcMethod('weighted')"><i class="fas fa-truck-fast"></i> ارسال چندمرحله‌ای</button>
+          <button type="button" class="pc-method-pill ${method === "range" ? "pc-method-active" : ""}" data-method="range" onclick="hatcherySetPcMethod('range')"><i class="fas fa-calendar-week"></i> بازهٔ تاریخی</button>
+          <button type="button" class="pc-method-pill ${method === "direct" ? "pc-method-active" : ""}" data-method="direct" onclick="hatcherySetPcMethod('direct')"><i class="fas fa-arrow-left"></i> ورود مستقیم سن</button>
+          <button type="button" class="pc-method-pill ${method === "weighted" ? "pc-method-active" : ""}" data-method="weighted" onclick="hatcherySetPcMethod('weighted')"><i class="fas fa-truck-fast"></i> ارسال چندمرحله‌ای</button>
         </div>
-        <input type="hidden" id="pc_age_method" value="range">
+        <input type="hidden" id="pc_age_method" value="${method}">
 
         <!-- پنل روش ۱: بازهٔ تاریخی -->
-        <div class="pc-method-panel" id="pc_panel_range">
+        <div class="pc-method-panel" id="pc_panel_range" style="display:${method === "range" ? "block" : "none"};">
           <div class="pc-grid">
             <div style="margin-bottom:7px;">
               <label class="pc-label">تاریخ شروع کشتار <small style="color:#b45309;">* اعلامی مرغدار</small></label>
-              <input type="text" id="pc_sdate" class="pc-in pc-date" value="${convertToPersianDate(today)}" onchange="hatcheryRecalcCompletion()" oninput="hatcheryRecalcCompletion()">
+              <input type="text" id="pc_sdate" class="pc-in pc-date" value="${startDate}" onchange="hatcheryRecalcCompletion()" oninput="hatcheryRecalcCompletion()">
             </div>
             <div style="margin-bottom:7px;">
               <label class="pc-label">تاریخ پایان کشتار <small style="color:#94a3b8;">(اختیاری — اگر کشتار چند روز طول بکشد)</small></label>
-              <input type="text" id="pc_sdate_end" class="pc-in pc-date" value="" onchange="hatcheryRecalcCompletion()" oninput="hatcheryRecalcCompletion()">
+              <input type="text" id="pc_sdate_end" class="pc-in pc-date" value="${endDate}" onchange="hatcheryRecalcCompletion()" oninput="hatcheryRecalcCompletion()">
             </div>
           </div>
           <div class="pc-age-calc-note" id="pc_range_note"></div>
         </div>
 
         <!-- پنل روش ۲: ورود مستقیم سن -->
-        <div class="pc-method-panel" id="pc_panel_direct" style="display:none;">
+        <div class="pc-method-panel" id="pc_panel_direct" style="display:${method === "direct" ? "block" : "none"};">
           <div class="pc-grid">
             <div style="margin-bottom:7px;">
               <label class="pc-label">سن کشتار (روز) <small style="color:#b45309;">*</small></label>
-              <input type="number" min="1" id="pc_age_direct" class="pc-in" placeholder="مثلاً ۴۲" oninput="hatcheryRecalcCompletion()">
+              <input type="number" min="1" id="pc_age_direct" class="pc-in" value="${exVal(ex?.slaughter_age_days)}" placeholder="مثلاً ۴۲" oninput="hatcheryRecalcCompletion()">
             </div>
             <div style="margin-bottom:7px;">
               <label class="pc-label">تاریخ کشتار (محاسبه‌شده)</label>
@@ -3106,7 +3204,7 @@ class HatcheryService {
         </div>
 
         <!-- پنل روش ۳: چند ارسال با میانگین وزنی -->
-        <div class="pc-method-panel" id="pc_panel_weighted" style="display:none;">
+        <div class="pc-method-panel" id="pc_panel_weighted" style="display:${method === "weighted" ? "block" : "none"};">
           <div style="margin-bottom:8px;">
             <button type="button" class="pc-add-ship" onclick="hatcheryAddPcShip()"><i class="fas fa-plus"></i> افزودن ارسال</button>
           </div>
@@ -3121,7 +3219,7 @@ class HatcheryService {
           </div>
           <div style="margin-bottom:7px;">
             <label class="pc-label">نام کشتارگاه <small style="color:#94a3b8;">(اختیاری)</small></label>
-            <input type="text" id="pc_slaughterhouse" class="pc-in" placeholder="اختیاری">
+            <input type="text" id="pc_slaughterhouse" class="pc-in" value="${ex?.slaughterhouse_name || ""}" placeholder="اختیاری">
           </div>
         </div>
       </div>
@@ -3130,7 +3228,7 @@ class HatcheryService {
         <div class="pc-sec-title"><i class="fas fa-users"></i> ۳) اطلاعات جمعیتی (تعداد)</div>
         <div class="pc-grid">
           ${this._pcRow("تعداد اولیه جوجه‌ها", "pc_initial", s.initial_chicks_count ?? 0, { readOnly: true })}
-          ${this._pcRow("تعداد ارسالی به کشتارگاه", "pc_sent", "", { min: 1, placeholder: "مثلاً ۹۵۰۰" })}
+          ${this._pcRow("تعداد ارسالی به کشتارگاه", "pc_sent", exVal(ex?.total_sent), { min: 1, placeholder: "مثلاً ۹۵۰۰" })}
           ${this._pcRead("تلفات کل (خودکار)", "pc_out_mortality", "قطعه")}
           ${this._pcRead("درصد تلفات (خودکار)", "pc_out_mortality_pct", "٪")}
         </div>
@@ -3139,8 +3237,8 @@ class HatcheryService {
       <div class="pc-sec">
         <div class="pc-sec-title"><i class="fas fa-weight-scale"></i> ۴) اطلاعات وزنی</div>
         <div class="pc-grid">
-          ${this._pcRow("وزن کل زنده گله", "pc_live", "", { min: 1, placeholder: "مثلاً ۲۴۰۰۰", unit: "کیلوگرم" })}
-          ${this._pcRow("وزن لاشه (اختیاری)", "pc_carcass", "", { min: 0, unit: "کیلوگرم" })}
+          ${this._pcRow("وزن کل زنده گله", "pc_live", exVal(ex?.total_live_weight), { min: 1, placeholder: "مثلاً ۲۴۰۰۰", unit: "کیلوگرم" })}
+          ${this._pcRow("وزن لاشه (اختیاری)", "pc_carcass", exVal(ex?.carcass_weight_kg), { min: 0, unit: "کیلوگرم" })}
           ${this._pcRead("میانگین وزن هر قطعه", "pc_out_avg", "کیلوگرم")}
           ${this._pcRead("درصد راندمان لاشه", "pc_out_yield", "٪")}
         </div>
@@ -3150,12 +3248,12 @@ class HatcheryService {
         <div class="pc-sec-title"><i class="fas fa-wheat-awn"></i> ۵) اطلاعات خوراک</div>
         <div class="pc-grid">
           ${this._pcRow("کل خوراک سیستم", "pc_feed_sys", s.system_total_feed ?? 0, { readOnly: true, unit: "کیلوگرم" })}
-          ${this._pcRow("خوراک اعلامی مرغدار", "pc_feed_decl", "", { min: 0, unit: "کیلوگرم", placeholder: "اختیاری" })}
+          ${this._pcRow("خوراک اعلامی مرغدار", "pc_feed_decl", exVal(ex?.farmer_total_feed), { min: 0, unit: "کیلوگرم", placeholder: "اختیاری" })}
           <div style="margin-bottom:7px;">
             <label class="pc-label">مبنای محاسبه FCR</label>
             <select id="pc_feed_basis" class="pc-in" onchange="hatcheryRecalcCompletion()">
-              <option value="system">سیستم</option>
-              <option value="declared">اعلامی مرغدار</option>
+              <option value="system" ${ex?.feed_basis !== "declared" ? "selected" : ""}>سیستم</option>
+              <option value="declared" ${ex?.feed_basis === "declared" ? "selected" : ""}>اعلامی مرغدار</option>
             </select>
           </div>
           ${this._pcRead("خوراک مبنای محاسبه", "pc_out_feed_used", "کیلوگرم")}
@@ -3163,25 +3261,26 @@ class HatcheryService {
       </div>`;
   }
 
-  _pcFormBottom(data) {
+  _pcFormBottom(data, ex = null) {
     const s = data.summary || {};
     const halls = Array.isArray(data.halls) ? data.halls : [];
     const initWeight = this._pcNormKg(s.initial_avg_weight);
+    const exVal = (v) => (v === null || v === undefined ? "" : v);
     const hallBlocks = halls
-      .map((h) => this._pcHallBlock(h))
+      .map((h) => this._pcHallBlock(h, ex))
       .join('<div style="height:6px;"></div>');
     return `
       <div class="pc-sec">
         <div class="pc-sec-title"><i class="fas fa-coins"></i> ۶) اطلاعات اقتصادی</div>
         <div class="pc-grid">
-          ${this._pcRow("قیمت هر کیلو گوشت مرغ زنده (تومان)", "pc_price", "", { type: "text", placeholder: "مثلاً ۸۵,۰۰۰", onblur: "hatcheryFormatToman(this)" })}
+          ${this._pcRow("قیمت هر کیلو گوشت مرغ زنده (تومان)", "pc_price", exVal(ex?.price_per_kg), { type: "text", placeholder: "مثلاً ۸۵,۰۰۰", onblur: "hatcheryFormatToman(this)" })}
           ${this._pcRead("درآمد کل", "pc_out_income", "تومان")}
-          ${this._pcRow("هزینه جوجه (تومان)", "pc_cost_chick", "", { type: "text", onblur: "hatcheryFormatToman(this)" })}
-          ${this._pcRow("هزینه خوراک (تومان)", "pc_cost_feed", "", { type: "text", onblur: "hatcheryFormatToman(this)" })}
-          ${this._pcRow("هزینه دارو و واکسن (تومان)", "pc_cost_med", "", { type: "text", onblur: "hatcheryFormatToman(this)" })}
-          ${this._pcRow("هزینه سوخت (تومان)", "pc_cost_fuel", "", { type: "text", onblur: "hatcheryFormatToman(this)" })}
-          ${this._pcRow("هزینه نیروی انسانی (تومان)", "pc_cost_labor", "", { type: "text", onblur: "hatcheryFormatToman(this)" })}
-          ${this._pcRow("سایر هزینه‌ها (تومان)", "pc_cost_other", "", { type: "text", onblur: "hatcheryFormatToman(this)" })}
+          ${this._pcRow("هزینه جوجه (تومان)", "pc_cost_chick", exVal(ex?.chick_cost), { type: "text", onblur: "hatcheryFormatToman(this)" })}
+          ${this._pcRow("هزینه خوراک (تومان)", "pc_cost_feed", exVal(ex?.feed_cost), { type: "text", onblur: "hatcheryFormatToman(this)" })}
+          ${this._pcRow("هزینه دارو و واکسن (تومان)", "pc_cost_med", exVal(ex?.medication_cost), { type: "text", onblur: "hatcheryFormatToman(this)" })}
+          ${this._pcRow("هزینه سوخت (تومان)", "pc_cost_fuel", exVal(ex?.fuel_cost), { type: "text", onblur: "hatcheryFormatToman(this)" })}
+          ${this._pcRow("هزینه نیروی انسانی (تومان)", "pc_cost_labor", exVal(ex?.labor_cost), { type: "text", onblur: "hatcheryFormatToman(this)" })}
+          ${this._pcRow("سایر هزینه‌ها (تومان)", "pc_cost_other", exVal(ex?.other_cost), { type: "text", onblur: "hatcheryFormatToman(this)" })}
           ${this._pcRead("جمع کل هزینه‌ها", "pc_out_total_cost", "تومان")}
           ${this._pcRead("سود خالص", "pc_out_profit", "تومان")}
           ${this._pcRead("درصد سود", "pc_out_profit_pct", "٪")}
@@ -3223,15 +3322,15 @@ class HatcheryService {
 
       <div class="pc-sec">
         <div class="pc-sec-title"><i class="fas fa-sticky-note"></i> توضیحات و تأیید</div>
-        <textarea id="pc_notes" class="pc-note" rows="2" placeholder="توضیحات تکمیلی (اختیاری)..."></textarea>
+        <textarea id="pc_notes" class="pc-note" rows="2" placeholder="توضیحات تکمیلی (اختیاری)...">${ex?.notes || ""}</textarea>
         <label style="display:flex;align-items:center;gap:6px;font-size:11.5px;color:#475569;margin-top:8px;cursor:pointer;">
-          <input type="checkbox" id="pc_confirmed"> اطلاعات پایان دوره توسط مرغدار تأیید شده است
+          <input type="checkbox" id="pc_confirmed" ${ex?.confirmed_by_customer ? "checked" : ""}> اطلاعات پایان دوره توسط مرغدار تأیید شده است
         </label>
         <input type="hidden" id="pc_init_weight" value="${initWeight.toFixed(4)}">
       </div>`;
   }
 
-  _pcSummary(data) {
+  _pcSummary(data, ex = null) {
     const flock = data.flock || {};
     const halls = Array.isArray(data.halls) ? data.halls : [];
     const s = data.summary || {};
@@ -3256,12 +3355,12 @@ class HatcheryService {
         </div>
         <div class="pc-sum-item" data-c="5">
           <span class="pc-sum-ico"><i class="fas fa-flag-checkered"></i></span>
-          <span><span class="pc-sum-lbl">وضعیت</span><b>در حال پایان</b></span>
+          <span><span class="pc-sum-lbl">وضعیت</span><b>${ex ? "در حال ویرایش" : "در حال پایان"}</b></span>
         </div>
       </div>`;
   }
 
-  _pcForm(data) {
+  _pcForm(data, ex = null) {
     return `
       <style>
         .pc-wrap{direction:rtl;text-align:right;font-family:Vazir,sans-serif;max-height:76vh;overflow-y:auto;padding:8px 14px 16px;}
@@ -3329,11 +3428,18 @@ class HatcheryService {
         .pc-ship-date{text-align:center;font-size:12px;}
         .pc-ship-del{width:34px;height:34px;border:none;background:#fef2f2;color:#dc2626;border-radius:9px;cursor:pointer;font-size:12px;}
         .pc-ship-del:hover{background:#fee2e2;}
+        .pc-edit-banner{background:#fffbeb;border:1.5px solid #f59e0b;color:#92400e;border-radius:12px;padding:10px 14px;font-size:12.5px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+        .pc-edit-banner i{color:#d97706;}
       </style>
       <div class="pc-wrap">
-        ${this._pcSummary(data)}
-        ${this._pcFormTop(data)}
-        ${this._pcFormBottom(data)}
+        ${
+          ex
+            ? `<div class="pc-edit-banner"><i class="fas fa-pen-to-square"></i> حالت ویرایش اطلاعات پایان دوره فعال است — تغییرات جایگزین اطلاعات قبلی می‌شود.</div>`
+            : ""
+        }
+        ${this._pcSummary(data, ex)}
+        ${this._pcFormTop(data, ex)}
+        ${this._pcFormBottom(data, ex)}
       </div>`;
   }
 
@@ -3447,7 +3553,7 @@ class HatcheryService {
     setOut("pc_out_survival", survival, "٪");
   }
 
-  async _collectCompletionSave(flockId, halls) {
+  async _collectCompletionSave(flockId, halls, existing = null) {
     const val = (id) => this._toNum(document.getElementById(id)?.value);
     const txt = (id) =>
       String(document.getElementById(id)?.value || "").trim();
@@ -3564,8 +3670,9 @@ class HatcheryService {
         : 0;
 
     const sharedData = {
-      completion_type: "completed",
-      completion_date: new Date().toISOString().slice(0, 10),
+      completion_type: existing?.completion_type || "completed",
+      completion_date:
+        existing?.completion_date || new Date().toISOString().slice(0, 10),
       slaughter_age_method: slaughter.method,
       slaughter_age_days: age > 0 ? age : null,
       slaughter_age_end_days: null,
@@ -3639,6 +3746,7 @@ class HatcheryService {
       flockId,
       sharedData,
       hallData,
+      !!existing,
     );
     if (!response.success) {
       Swal.showValidationMessage(
@@ -3649,19 +3757,23 @@ class HatcheryService {
     return true;
   }
 
-  async _openFlockCompletionModal(data) {
+  async _openFlockCompletionModal(data, existing = null) {
     const flockId = data.flock?.id;
     const halls = Array.isArray(data.halls) ? data.halls : [];
     if (!flockId) return;
+    const isEdit = !!existing;
 
     const result = await Swal.fire({
-      title: `ثبت پایان گله ${data.flock?.flock_number ?? ""} و اطلاعات کشتار`,
-      html: this._pcForm(data),
+      title: isEdit
+        ? `ویرایش اطلاعات پایان دوره گله ${data.flock?.flock_number ?? ""}`
+        : `ثبت پایان گله ${data.flock?.flock_number ?? ""} و اطلاعات کشتار`,
+      html: this._pcForm(data, existing),
       width: "1080px",
       showCancelButton: true,
-      confirmButtonText: "🏁 ثبت و پایان گله",
+      confirmButtonText: isEdit ? "💾 ذخیره تغییرات" : "🏁 ثبت و پایان گله",
       cancelButtonText: "انصراف",
-      confirmButtonColor: "#0d9488",
+      confirmButtonColor: isEdit ? "#d97706" : "#0d9488",
+      customClass: isEdit ? { popup: "pc-popup-edit" } : undefined,
       reverseButtons: true,
       showCloseButton: true,
       didOpen: () => {
@@ -3691,10 +3803,32 @@ class HatcheryService {
           const box = el.closest("div");
           if (box) box.style.display = "none";
         });
+        // در حالت ویرایش: بازگردانی روش سن کشتار و ارسال‌های چندمرحله‌ای
+        if (isEdit) {
+          try {
+            const method =
+              existing.slaughter_age_method === "direct"
+                ? "direct"
+                : existing.slaughter_age_method === "weighted"
+                  ? "weighted"
+                  : "range";
+            const ships = Array.isArray(existing.slaughter_shipments)
+              ? existing.slaughter_shipments
+              : [];
+            if (method === "weighted" && ships.length) {
+              ships.forEach((s) =>
+                this.addPcShipRow(s.age_days ?? "", s.quantity ?? ""),
+              );
+            }
+            this.setPcSlaughterMethod(method);
+          } catch (e) {
+            /* ignore */
+          }
+        }
         this.recalcCompletionInputs();
       },
       preConfirm: async () => {
-        const ok = await this._collectCompletionSave(flockId, halls);
+        const ok = await this._collectCompletionSave(flockId, halls, existing);
         if (!ok) return false;
         return true;
       },
@@ -3702,7 +3836,9 @@ class HatcheryService {
 
     if (result.isConfirmed) {
       notificationService.success(
-        "پایان دوره گله با موفقیت ثبت شد و گله بسته شد",
+        isEdit
+          ? "✅ اطلاعات پایان دوره ویرایش شد"
+          : "پایان دوره گله با موفقیت ثبت شد و گله بسته شد",
       );
       await this._refreshFlockViews();
     }
@@ -4626,6 +4762,8 @@ if (typeof window !== "undefined") {
     hatcheryService.completeFlockOf(flockId);
   window.completeFlockOf = (flockId) =>
     hatcheryService.completeFlockOf(flockId);
+  window.editFlockCompletion = (flockId) =>
+    hatcheryService.editFlockCompletion(flockId);
   window.hatcheryFormatToman = (el) =>
     hatcheryService.formatTomanInput(el);
   window.hatcheryRecalcCompletion = () =>

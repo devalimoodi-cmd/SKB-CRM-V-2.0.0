@@ -160,7 +160,7 @@ export const hatcheryApi = {
   },
 
   // ثبت پایان دوره گله (سرگروه + ریز تفکیکی per سالن)
-  async completeFlock(flockId, sharedData = {}, hallData = null) {
+  async completeFlock(flockId, sharedData = {}, hallData = null, isUpdate = false) {
     const body = {
       flock_ids: [flockId],
       shared_data: sharedData,
@@ -168,6 +168,7 @@ export const hatcheryApi = {
     if (hallData && Object.keys(hallData).length) {
       body.hall_data = hallData;
     }
+    if (isUpdate) body.is_update = true;
     return apiService.post("/flock-completions/complete-flock", body);
   },
 

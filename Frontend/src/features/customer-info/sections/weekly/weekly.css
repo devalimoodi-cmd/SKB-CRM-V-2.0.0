@@ -1170,3 +1170,182 @@
   }
 }
 
+/* ============================================================
+   مودال انتخاب گله‌های قبلی — گزارش تاریخچه هفتگی
+   ============================================================ */
+.wh-popup {
+  border-radius: 16px !important;
+}
+
+.wh-html {
+  margin: 0 !important;
+}
+
+.wh-picker {
+  font-family: "Vazir", sans-serif;
+  direction: rtl;
+  text-align: right;
+}
+
+.wh-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.wh-stat {
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.wh-stat-val {
+  font-size: 18px;
+  font-weight: 800;
+  color: #2c7a6e;
+}
+
+.wh-stat-lbl {
+  font-size: 11px;
+  color: #64748b;
+}
+
+.wh-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.wh-tool-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid #a7f3d0;
+  background: #ecfdf5;
+  color: #047857;
+  font-family: "Vazir", sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.wh-tool-btn:hover {
+  background: #d1fae5;
+}
+
+.wh-tool-btn.ghost {
+  border-color: #e2e8f0;
+  background: #f8fafc;
+  color: #475569;
+}
+
+.wh-tool-btn.ghost:hover {
+  background: #eef2f6;
+}
+
+.wh-search {
+  flex: 1;
+  min-width: 160px;
+  padding: 6px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  font-family: "Vazir", sans-serif;
+  font-size: 12px;
+  outline: none;
+}
+
+.wh-search:focus {
+  border-color: #2c7a6e;
+  box-shadow: 0 0 0 2px rgba(44, 122, 110, 0.12);
+}
+
+.wh-list {
+  max-height: 320px;
+  overflow-y: auto;
+  border: 1px solid #eef2f6;
+  border-radius: 12px;
+  padding: 6px;
+  background: #ffffff;
+}
+
+.wh-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.wh-item:hover {
+  background: #f8fafc;
+}
+
+.wh-item-check {
+  width: 16px;
+  height: 16px;
+  margin-top: 3px;
+  accent-color: #2c7a6e;
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+
+.wh-item-main {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+  min-width: 0;
+}
+
+.wh-item-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.wh-item-unit {
+  font-weight: 600;
+  color: #2c7a6e;
+}
+
+.wh-item-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: 11px;
+  color: #64748b;
+}
+
+.wh-item-meta i {
+  color: #94a3b8;
+}
+
+.wh-hint {
+  margin: 8px 0 0;
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.wh-hint i {
+  color: #f59e0b;
+}
+
+@media (max-width: 560px) {
+  .wh-stats {
+    grid-template-columns: 1fr;
+  }
+}
+
