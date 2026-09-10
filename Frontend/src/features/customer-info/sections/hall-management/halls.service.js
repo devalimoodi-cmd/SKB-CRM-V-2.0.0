@@ -1826,6 +1826,21 @@ class HallsService {
     }
   }
 
+  // باز نگه‌داشتن کارت یک واحد خاص (بعد از رفرش لیست)
+  expandUnitCard(unitId, scroll = true) {
+    const card = document.querySelector(
+      `.unit-card[data-unit-id="${unitId}"]`,
+    );
+    if (!card) return;
+    const body = card.querySelector(".unit-card-body");
+    const header = card.querySelector(".unit-card-header");
+    if (body) body.style.display = "block";
+    if (header) header.classList.remove("collapsed");
+    if (scroll && typeof card.scrollIntoView === "function") {
+      card.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+  }
+
   toggleHallCard(header) {
     const card = header.closest(".hall-card");
     if (!card) return;
@@ -2056,6 +2071,8 @@ class HallsService {
 
         notificationService.success("✅ اطلاعات واحد با موفقیت بروزرسانی شد");
         await this.loadData();
+        // لیست رفرش شد؛ کارت همان واحد باز بماند تا نام‌های جدید سالن‌ها دیده شود
+        this.expandUnitCard(unitId);
       } else {
         notificationService.error(response.message || "خطا در بروزرسانی واحد");
       }

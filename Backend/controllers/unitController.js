@@ -246,10 +246,12 @@ const getUnitById = async (req, res) => {
 // بروزرسانی واحد
 // ============================================
 const updateUnit = async (req, res) => {
+  const transaction = await sequelize.transaction();
   try {
     const { id } = req.params;
-    const unit = await Unit.findByPk(id);
+    const unit = await Unit.findByPk(id, { transaction });
     if (!unit) {
+      await transaction.rollback();
       return errorResponse(res, "واحد یافت نشد", 404);
     }
 
@@ -273,18 +275,94 @@ const updateUnit = async (req, res) => {
       }
     }
 
+    // نرمال‌سازی نام واحد (برای همسان بودن نام سالن‌ها با نام واحد)
+    const trimmedName =
+      updateData.unit_name !== undefined
+        ? String(updateData.unit_name).trim()
+        : null;
+    if (trimmedName !== null) {
+      updateData.unit_name = trimmedName;
+    }
+
     // اگر unit_status_id ارسال شده، بررسی وجود آن
     if (updateData.unit_status_id) {
-      const status = await UnitStatus.findByPk(updateData.unit_status_id);
+      const status = await UnitStatus.findByPk(updateData.unit_status_id, {
+        transaction,
+      });
       if (!status) {
+        await transaction.rollback();
         return errorResponse(res, "وضعیت واحد معتبر نیست", 400);
       }
     }
 
-    await unit.update(updateData);
-    successResponse(res, unit, "واحد با موفقیت بروزرسانی شد");
+    // آیا نام واحد تغییر کرده است؟
+    const unitNameChanged =
+      trimmedName !== null &&
+      trimmedName !== "" &&
+      trimmedName !== unit.unit_name;
+
+    await unit.update(updateData, { transaction });
+
+    // ============================================
+    // بازتولید نام سالن‌های همین واحد با نام جدید
+    // نام سالن‌ها به‌صورت خودکار «سالن <حرف> - <نام واحد>» ساخته می‌شود؛
+    // پس با تغییر نام واحد باید حرف و نام جدید روی سالن‌های زیرمجموعه هم اعمال شود.
+    // ============================================
+    let renamedHalls = 0;
+    if (unitNameChanged) {
+      const halls = await Hall.findAll({
+        where: { unit_id: unit.id },
+        transaction,
+      });
+
+      // ترتیب پایدار: شماره سالن (عددی) → hall_order → id
+      const orderedHalls = halls.slice().sort((a, b) => {
+        const aNum = parseInt(a.hall_number, 10);
+        const bNum = parseInt(b.hall_number, 10);
+        const aHasNum = !Number.isNaN(aNum);
+        const bHasNum = !Number.isNaN(bNum);
+        if (aHasNum && bHasNum && aNum !== bNum) return aNum - bNum;
+        if (aHasNum !== bHasNum) return aHasNum ? -1 : 1;
+        const aOrder = a.hall_order || 0;
+        const bOrder = b.hall_order || 0;
+        if (aOrder !== bOrder) return aOrder - bOrder;
+        return a.id - b.id;
+      });
+
+      for (let i = 0; i < orderedHalls.length; i++) {
+        const letter = String.fromCharCode(65 + i); // A, B, C...
+        const newHallName = `سالن ${letter} - ${trimmedName}`;
+        if (orderedHalls[i].hall_name !== newHallName) {
+          await orderedHalls[i].update(
+            { hall_name: newHallName },
+            { transaction },
+          );
+          renamedHalls += 1;
+        }
+      }
+    }
+
+    await transaction.commit();
+
+    successResponse(
+      res,
+      { ...unit.toJSON(), renamed_halls: renamedHalls },
+      unitNameChanged && renamedHalls > 0
+        ? `واحد و نام ${renamedHalls} سالن زیرمجموعه بروزرسانی شد`
+        : "واحد با موفقیت بروزرسانی شد",
+    );
   } catch (error) {
+    if (transaction && !transaction.finished) {
+      await transaction.rollback();
+    }
     console.error("خطا در بروزرسانی واحد:", error);
+    if (error.name === "SequelizeUniqueConstraintError") {
+      return errorResponse(
+        res,
+        "این نام واحد برای این مشتری قبلاً ثبت شده است",
+        400,
+      );
+    }
     errorResponse(res, error.message, 500);
   }
 };
