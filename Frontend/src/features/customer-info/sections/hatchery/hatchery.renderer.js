@@ -408,12 +408,12 @@ export const hatcheryRenderer = {
                             </button>
                             ${
                               hasGroup
-                                ? `<button class="action-btn" onclick="window.printFlockCompletionReport(${groupId})" title="دریافت گزارش پایان دوره گله (چاپ)"><i class="fas fa-file-export"></i></button>`
+                                ? `<button class="action-btn report-completion" onclick="window.printFlockCompletionReport(${groupId})" title="دریافت گزارش پایان دوره گله (چاپ)"><i class="fas fa-file-export"></i></button>`
                                 : ""
                             }
                             ${
                               hasGroup
-                                ? `<button class="action-btn" onclick="window.printFlockSmsReport(${groupId})" title="دریافت گزارش پیامک‌های ارسالی گله"><i class="fas fa-comment-sms"></i></button>`
+                                ? `<button class="action-btn report-sms" onclick="window.printFlockSmsReport(${groupId})" title="دریافت گزارش پیامک‌های ارسالی گله"><i class="fas fa-comment-sms"></i></button>`
                                 : ""
                             }
                             ${

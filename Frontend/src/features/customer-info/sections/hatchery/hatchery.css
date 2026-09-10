@@ -564,6 +564,39 @@
   color: #2563eb;
 }
 
+/* گزارش پایان دوره گله */
+.action-btn.report-completion {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.action-btn.report-completion:hover {
+  background: #0369a1;
+  color: #ffffff;
+}
+
+/* گزارش پیامک‌های گله */
+.action-btn.report-sms {
+  background: #ccfbf1;
+  color: #0f766e;
+}
+
+.action-btn.report-sms:hover {
+  background: #0f766e;
+  color: #ffffff;
+}
+
+/* ثبت اتمام دوره / پایان گله */
+.action-btn.complete {
+  background: #ede9fe;
+  color: #7c3aed;
+}
+
+.action-btn.complete:hover {
+  background: #7c3aed;
+  color: #ffffff;
+}
+
 /* ============================================
    ریسپانسیو
    ============================================ */
