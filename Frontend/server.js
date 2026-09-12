@@ -54,47 +54,155 @@ app.use("/node_modules", express.static(path.join(__dirname, "node_modules")));
 
 // ============================================
 // ✅ API Proxy (به بک‌اند)
+// - بدنهٔ JSON: همان JSON پارس‌شده
+// - بدنهٔ FormData/فایل: خام و دست‌نخورده (stream)
+// - پاسخ: همان‌طور که هست (JSON/فایل/متن) بدون تغییر
 // ============================================
 
-const API_URL = process.env.API_URL || "http://192.168.168.72:5000/api";
+const { Readable } = require("node:stream");
+
+// کاندیدهای بک‌اند؛ اولین موردی که جواب بدهد استفاده می‌شود
+const API_TARGETS = [
+  process.env.API_URL,
+  "http://127.0.0.1:5000/api",
+  "http://localhost:5000/api",
+  "http://192.168.168.72:5000/api",
+].filter(Boolean);
+
+let activeApiTarget = null; // آخرین تارگت سالم (برای سرعت)
+
+// هدرهایی که نباید به بک‌اند منتقل شوند
+const SKIP_HEADERS = new Set([
+  "host",
+  "origin",
+  "referer",
+  "connection",
+  "content-length",
+  "accept-encoding",
+  "transfer-encoding",
+]);
+
+const buildForwardHeaders = (req) => {
+  const headers = {};
+  Object.entries(req.headers).forEach(([key, value]) => {
+    if (!SKIP_HEADERS.has(key.toLowerCase()) && value !== undefined) {
+      headers[key] = value;
+    }
+  });
+  return headers;
+};
 
 app.use("/api", async (req, res) => {
   if (!req.originalUrl.startsWith("/api")) {
     return res.status(404).json({ success: false, message: "Not found" });
   }
 
-  try {
-    const targetUrl = `${API_URL}${req.originalUrl.replace("/api", "")}`;
-    console.log(`🔄 Proxy: ${req.method} ${targetUrl}`);
+  const apiPath = req.originalUrl.replace(/^\/api/, "") || "/";
+  const contentType = String(req.headers["content-type"] || "");
+  const hasBody = !["GET", "HEAD", "OPTIONS"].includes(req.method);
 
-    const options = {
-      method: req.method,
-      headers: {
-        "Content-Type": "application/json",
-        ...req.headers,
-      },
-    };
+  // ===== آماده‌سازی بدنه =====
+  let body;
+  let duplex;
 
-    delete options.headers.host;
-    delete options.headers.connection;
-    delete options.headers["content-length"];
-
-    if (req.method !== "GET" && req.method !== "HEAD") {
-      options.body = JSON.stringify(req.body);
+  if (hasBody) {
+    if (contentType.includes("application/json")) {
+      body =
+        req.body && Object.keys(req.body).length
+          ? JSON.stringify(req.body)
+          : undefined;
+    } else if (contentType.includes("application/x-www-form-urlencoded")) {
+      body = new URLSearchParams(req.body || {}).toString();
+    } else {
+      // FormData / فایل / باینری → بدنهٔ خام بدون هیچ تغییری
+      body = Readable.toWeb(req);
+      duplex = "half";
     }
-
-    const response = await fetch(targetUrl, options);
-    const data = await response.json();
-
-    res.status(response.status).json(data);
-  } catch (error) {
-    console.error("❌ Proxy error:", error);
-    res.status(500).json({
-      success: false,
-      message: "خطا در ارتباط با سرور",
-      error: error.message,
-    });
   }
+
+  const targets = activeApiTarget
+    ? [activeApiTarget, ...API_TARGETS.filter((t) => t !== activeApiTarget)]
+    : API_TARGETS;
+
+  let lastError = null;
+
+  for (const base of targets) {
+    const targetUrl = `${base.replace(/\/+$/, "")}${apiPath}`;
+
+    try {
+      const response = await fetch(targetUrl, {
+        method: req.method,
+        headers: buildForwardHeaders(req),
+        body,
+        duplex,
+        signal: AbortSignal.timeout(120000),
+      });
+
+      activeApiTarget = base;
+      console.log(`🔄 Proxy: ${req.method} ${targetUrl} → ${response.status}`);
+
+      res.status(response.status);
+
+      const resContentType = response.headers.get("content-type");
+      const resDisposition = response.headers.get("content-disposition");
+      if (resContentType) res.setHeader("Content-Type", resContentType);
+      if (resDisposition) {
+        res.setHeader("Content-Disposition", resDisposition);
+      }
+
+      if (!response.body) return res.end();
+
+      // ✅ پاسخ را همان‌طور که هست (JSON یا فایل) عبور بده
+      return Readable.fromWeb(response.body).pipe(res);
+    } catch (error) {
+      lastError = error;
+      if (activeApiTarget === base) activeApiTarget = null;
+      console.error(`❌ Proxy failed (${base}):`, error.message);
+    }
+  }
+
+  res.status(502).json({
+    success: false,
+    message: "خطا در ارتباط با سرور",
+    error: lastError ? lastError.message : "Unknown error",
+  });
+});
+
+// ============================================
+// ✅ پروکسی فایل‌های آپلودی بک‌اند (تصاویر/پیوست‌ها) → هم‌مبدأ
+// تا تصاویر از همان دامنهٔ سایت لود شوند (بدون نیاز به پورت ۵۰۰۰)
+// ============================================
+app.use("/uploads", async (req, res) => {
+  const filePath = req.originalUrl.replace(/^\/uploads/, "") || "/";
+
+  for (const base of API_TARGETS) {
+    const origin = base.replace(/\/api\/?$/, "");
+    const targetUrl = `${origin}/uploads${filePath}`;
+
+    try {
+      const response = await fetch(targetUrl, {
+        method: req.method,
+        headers: buildForwardHeaders(req),
+        signal: AbortSignal.timeout(60000),
+      });
+
+      if (response.status === 404) continue; // شاید روی تارگت دیگری باشد
+
+      res.status(response.status);
+
+      const resContentType = response.headers.get("content-type");
+      if (resContentType) res.setHeader("Content-Type", resContentType);
+      res.setHeader("Cache-Control", "public, max-age=86400");
+
+      if (!response.body) return res.end();
+
+      return Readable.fromWeb(response.body).pipe(res);
+    } catch (error) {
+      console.error(`❌ Uploads proxy failed (${targetUrl}):`, error.message);
+    }
+  }
+
+  res.status(404).json({ success: false, message: "File not found" });
 });
 
 // ============================================
@@ -209,7 +317,10 @@ app.listen(PORT, () => {
   console.log(`   /bookmarks   → بوکمارک‌ها`);
   console.log(`   /sms         → مدیریت پیامک`);
   console.log(`   /setup-admin → تنظیمات اولیه`);
-  console.log(`\n🔗 API Proxy: /api/* → ${API_URL}/*`);
+  console.log(
+    `\n🔗 API Proxy: /api/* → ${activeApiTarget || API_TARGETS.join(" | ")}/*`,
+  );
+  console.log(`\n🖼️ Uploads Proxy: /uploads/* → بک‌اند /uploads/*`);
   console.log(
     `\n📦 Node Modules: /node_modules/* → ${path.join(__dirname, "node_modules")}`,
   );

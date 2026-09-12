@@ -16,6 +16,11 @@ const CONFIG = (() => {
       return window.__API_BASE_URL__;
     }
 
+    // باز کردن مستقیم فایل (file://) → بک‌اند لوکال
+    if (window.location.protocol === "file:") {
+      return "http://localhost:5000/api";
+    }
+
     const hostname = window.location.hostname;
 
     // لوکال / توسعه روی لپ‌تاپ → بک‌اند لوکال
@@ -23,14 +28,10 @@ const CONFIG = (() => {
       return "http://localhost:5000/api";
     }
 
-    // سرور اختصاصی داخلی → بک‌اند همان سرور
-    if (hostname === "192.168.168.72") {
-      return "http://192.168.168.72:5000/api";
-    }
-
-    // ✅ هر دامنه/آی‌پی دیگر (ورود از اینترنت) → پروکسی هم‌مبدأ
+    // ✅ در همه حالت‌های دیگر (شبکهٔ داخلی و اینترنت) → پروکسی هم‌مبدأ
     // Frontend/server.js مسیر /api را به بک‌اند پروکسی می‌کند؛
-    // پس دیگر آدرس خصوصی 192.168.168.72 از مرورگرِ کاربر اینترنتی درخواست نمی‌شود.
+    // بنابراین مرورگر فقط به پورتِ خودِ سایت نیاز دارد (نه پورت ۵۰۰۰)
+    // و مشکل فایروال/عدم دسترسی به IP خصوصی از اینترنت حل می‌شود.
     return "/api";
   };
 
@@ -108,6 +109,11 @@ export { CONFIG };
 // قرار دادن در window
 if (typeof window !== "undefined") {
   window.CONFIG = CONFIG;
+
+  // ✅ آدرس پایهٔ فایل‌های استاتیک بک‌اند (تصاویر /uploads/...)
+  // وقتی API هم‌مبدأ («/api») باشد مقدار خالی می‌شود تا تصاویر
+  // از همان دامنهٔ سایت (پروکسی) لود شوند.
+  window.API_URL = String(CONFIG.API_BASE_URL || "").replace(/\/api\/?$/, "");
 }
 
 console.log("✅ Config loaded");

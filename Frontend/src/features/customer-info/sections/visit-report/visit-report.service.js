@@ -778,7 +778,7 @@ class VisitReportService {
             name: att.file_name,
             type: att.mime_type,
             size: att.file_size,
-            data: `${window.API_URL}/visit-reports/download/${att.id}`,
+            data: `${window.CONFIG?.API_BASE_URL || ""}/visit-reports/download/${att.id}`,
             file: null,
             isExisting: true,
             isNew: false,
