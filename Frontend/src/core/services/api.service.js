@@ -93,9 +93,15 @@ class ApiService {
   }
 
   async get(endpoint, params = {}) {
-    const url = new URL(
-      endpoint.startsWith("http") ? endpoint : `${this.baseURL}${endpoint}`,
-    );
+    const target = endpoint.startsWith("http")
+      ? endpoint
+      : `${this.baseURL}${endpoint}`;
+
+    // ✅ پشتیبانی از آدرس نسبی (مثل /api/...) با base گرفتن از آدرس فعلی صفحه
+    // (قبلاً new URL با آدرس نسبی خطای Invalid URL می‌داد)
+    const base =
+      typeof window !== "undefined" ? window.location.href : undefined;
+    const url = new URL(target, base);
     Object.keys(params).forEach((key) => {
       if (
         params[key] !== undefined &&

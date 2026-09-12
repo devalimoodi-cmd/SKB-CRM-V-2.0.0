@@ -60,6 +60,21 @@ app.use("/node_modules", express.static(path.join(__dirname, "node_modules")));
 // ============================================
 
 const { Readable } = require("node:stream");
+const fs = require("node:fs");
+
+// ✅ لاگ خطاهای پروکسی در فایل (برای تشخیص «بک‌اند خواب است»)
+const LOG_DIR = path.join(__dirname, "logs");
+const logProxyError = (message) => {
+  try {
+    if (!fs.existsSync(LOG_DIR)) fs.mkdirSync(LOG_DIR, { recursive: true });
+    fs.appendFileSync(
+      path.join(LOG_DIR, "proxy-error.log"),
+      `[${new Date().toISOString()}] ${message}\n`,
+    );
+  } catch {
+    /* بی‌صدا رد شو - لاگ نباید خودش خطا بدهد */
+  }
+};
 
 // کاندیدهای بک‌اند؛ اولین موردی که جواب بدهد استفاده می‌شود
 const API_TARGETS = [
@@ -157,7 +172,9 @@ app.use("/api", async (req, res) => {
     } catch (error) {
       lastError = error;
       if (activeApiTarget === base) activeApiTarget = null;
+      const failMsg = `${req.method} ${targetUrl} → ${error.message}`;
       console.error(`❌ Proxy failed (${base}):`, error.message);
+      logProxyError(failMsg);
     }
   }
 
@@ -199,6 +216,7 @@ app.use("/uploads", async (req, res) => {
       return Readable.fromWeb(response.body).pipe(res);
     } catch (error) {
       console.error(`❌ Uploads proxy failed (${targetUrl}):`, error.message);
+      logProxyError(`[uploads] ${req.method} ${targetUrl} -> ${error.message}`);
     }
   }
 

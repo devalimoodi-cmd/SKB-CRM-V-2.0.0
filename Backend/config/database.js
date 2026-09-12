@@ -26,7 +26,7 @@ const sequelize = new Sequelize(
 );
 
 // تابع برای تست و برقراری اتصال
-const connectDB = async () => {
+const connectDB = async (attempt = 1) => {
   try {
     await sequelize.authenticate();
     console.log("✅ Successfully connected to PostgreSQL.");
@@ -35,8 +35,16 @@ const connectDB = async () => {
     // await sequelize.sync({ alter: false });
     console.log("✅ Models synchronized successfully.");
   } catch (error) {
-    console.error("❌ Database connection error:", error);
-    process.exit(1); // خروج از برنامه اگه نتونست وصل بشه
+    console.error(
+      `❌ Database connection error (attempt ${attempt}):`,
+      error.message || error,
+    );
+
+    // ✅ به‌جای بستن کل سرویس (process.exit)، دوباره تلاش می‌کنیم
+    // تا قطعی موقت دیتابیس، API را از کار نیندازد.
+    const waitSeconds = Math.min(5 * attempt, 30);
+    console.log(`⏳ تلاش مجدد اتصال به دیتابیس در ${waitSeconds} ثانیه...`);
+    setTimeout(() => connectDB(attempt + 1), waitSeconds * 1000);
   }
 };
 

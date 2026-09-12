@@ -70,6 +70,19 @@ app.use(express.urlencoded({ extended: true }));
 // برای سرو فایل‌های استاتیک (عکس‌ها)
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
+// ============================================
+// ✅ بررسی سلامت سرویس (عمومی - بدون احراز هویت)
+// برای تست پروکسی فرانت‌اند و دسترسی از بیرون شبکه
+// ============================================
+app.get("/api/ping", (req, res) => {
+  res.json({
+    success: true,
+    message: "SKB-CRM API is running",
+    port: Number(process.env.PORT || 5000),
+    time: new Date().toISOString(),
+  });
+});
+
 // اتصال به دیتابیس
 connectDB();
 
