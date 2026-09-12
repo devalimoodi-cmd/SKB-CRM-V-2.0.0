@@ -9,6 +9,13 @@ const CONFIG = (() => {
     if (typeof window === "undefined") {
       return "http://localhost:5000/api";
     }
+
+    // ✅ امکان تعیین دستی از بیرون (اختیاری)
+    // مثال قبل از لود config:  window.__API_BASE_URL__ = "https://api.example.com/api"
+    if (window.__API_BASE_URL__) {
+      return window.__API_BASE_URL__;
+    }
+
     const hostname = window.location.hostname;
 
     // لوکال / توسعه روی لپ‌تاپ → بک‌اند لوکال
@@ -16,20 +23,22 @@ const CONFIG = (() => {
       return "http://localhost:5000/api";
     }
 
-    // سرور اختصاصی → بک‌اند همان سرور
+    // سرور اختصاصی داخلی → بک‌اند همان سرور
     if (hostname === "192.168.168.72") {
       return "http://192.168.168.72:5000/api";
     }
 
-    // هر آدرس/دامنه دیگر → fallback به production
-    return null;
+    // ✅ هر دامنه/آی‌پی دیگر (ورود از اینترنت) → پروکسی هم‌مبدأ
+    // Frontend/server.js مسیر /api را به بک‌اند پروکسی می‌کند؛
+    // پس دیگر آدرس خصوصی 192.168.168.72 از مرورگرِ کاربر اینترنتی درخواست نمی‌شود.
+    return "/api";
   };
 
   const detectedApi = detectApiBaseUrl();
 
   const configs = {
     development: {
-      API_BASE_URL: detectedApi || "http://192.168.168.72:5000/api",
+      API_BASE_URL: detectedApi || "/api",
       APP_NAME: "SKB-CRM (Dev)",
       ENABLE_LOGS: true,
       DEFAULT_PAGE_SIZE: 10,
