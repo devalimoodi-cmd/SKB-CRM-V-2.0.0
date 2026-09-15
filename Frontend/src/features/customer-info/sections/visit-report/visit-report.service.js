@@ -2,11 +2,12 @@ import { visitReportApi } from "./visit-report.api.js";
 import { visitReportRenderer } from "./visit-report.renderer.js";
 import { visitReportValidation } from "./visit-report.validation.js";
 import { notificationService } from "../../../../core/services/notification.service.js";
+import { sanitizeHtmlDocument } from "../../../../core/utils/string.utils.js";
+
 import { stateService } from "../../../../core/services/state.service.js";
 import {
   convertPersianToGregorian,
   convertToPersianDate,
-  formatDate,
 } from "../../../../core/utils/date.utils.js";
 
 class VisitReportService {
@@ -319,7 +320,7 @@ class VisitReportService {
       // تعیین محدودیت بر اساس نوع فایل
       const isVideo = file.type.startsWith("video/");
       const maxSize = isVideo ? this.MAX_VIDEO_SIZE : this.MAX_OTHER_SIZE;
-      const maxSizeMB = isVideo ? 500 : 15;
+      const _maxSizeMB = isVideo ? 500 : 15;
 
       // بررسی حجم فایل قبل از اضافه کردن
       if (file.size > maxSize) {
@@ -453,9 +454,11 @@ class VisitReportService {
       div.innerHTML = `
                 <i class="fas ${fileIcon}"></i>
                 <span style="flex:1; margin-right: 10px;">${attachment.name}</span>
-                <a href="${attachment.data}" target="_blank" style="color: #2c7a6e; margin:0 5px;" title="مشاهده">
+                <button onclick="window.viewAttachment(${attachment.id})"
+                        style="background: none; border: none; color: #2c7a6e; cursor: pointer; margin:0 5px;"
+                        title="مشاهده">
                     <i class="fas fa-eye"></i>
-                </a>
+                </button>
                 <button onclick="window.downloadAttachment(${attachment.id}, '${attachment.name}')" 
                         style="background: none; border: none; color: #3b82f6; cursor: pointer; margin:0 5px;" 
                         title="دانلود">
@@ -596,7 +599,7 @@ class VisitReportService {
     this.showUploadProgressModal();
 
     const saveBtn = document.querySelector(".skb-visit-save");
-    const originalText = saveBtn?.innerHTML;
+    const _originalText = saveBtn?.innerHTML;
 
     if (saveBtn) {
       saveBtn.disabled = true;
@@ -778,7 +781,6 @@ class VisitReportService {
             name: att.file_name,
             type: att.mime_type,
             size: att.file_size,
-            data: `${window.CONFIG?.API_BASE_URL || ""}/visit-reports/download/${att.id}`,
             file: null,
             isExisting: true,
             isNew: false,
@@ -889,6 +891,41 @@ class VisitReportService {
     } catch (error) {
       console.error("❌ Error downloading attachment:", error);
       notificationService.error("خطا در دانلود فایل");
+    }
+  }
+
+  // ===== مشاهدهٔ پیوست (با توکن — در تب جدید) =====
+  // قبلاً آیکن «چشم» یک لینک ساده به /api/visit-reports/download/:id بود
+  // که هدر Authorization را نمی‌فرستاد و ۴۰۱ می‌گرفت.
+  async viewAttachment(attachmentId) {
+    try {
+      const response = await visitReportApi.downloadAttachment(attachmentId);
+      if (!response.ok) {
+        if (response.status === 401) {
+          notificationService.error("دسترسی غیرمجاز، لطفاً مجدداً وارد شوید");
+          return;
+        }
+        throw new Error("خطا در مشاهده فایل");
+      }
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const opened = window.open(url, "_blank");
+
+      // اگر مرورگر پنجرهٔ جدید را باز نکرد، فایل دانلود شود
+      if (!opened) {
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `attachment-${attachmentId}`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      }
+
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+    } catch (error) {
+      console.error("❌ Error viewing attachment:", error);
+      notificationService.error("خطا در مشاهده فایل");
     }
   }
 
@@ -1005,7 +1042,8 @@ class VisitReportService {
     }
 
     const html = visitReportRenderer.renderPrintReport(visit);
-    printWindow.document.write(html);
+    // ✅ پاک‌سازی خروجی گزارش (جلوگیری از اجرای اسکریپت تزریق‌شده از دیتابیس)
+    printWindow.document.write(sanitizeHtmlDocument(html));
     printWindow.document.close();
 
     printWindow.onload = function () {
@@ -1039,6 +1077,7 @@ if (typeof window !== "undefined") {
   window.printVisitReport = (id) => visitReportService.printReport(id);
   window.downloadAttachment = (id, name) =>
     visitReportService.downloadAttachment(id, name);
+  window.viewAttachment = (id) => visitReportService.viewAttachment(id);
   window.downloadAllAttachments = (id) =>
     visitReportService.downloadAllAttachments?.(id);
   window.filterVisits = () => visitReportService.filterReports();

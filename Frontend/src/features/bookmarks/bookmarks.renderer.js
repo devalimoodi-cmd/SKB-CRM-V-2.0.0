@@ -8,7 +8,7 @@ export const bookmarksRenderer = {
     const priorityColor = this.getPriorityColor(bookmark.priority);
     const typeText = bookmark.type === "reminder" ? "🔔 یادآوری" : "📌 بوکمارک";
     const icon = bookmark.type === "reminder" ? "fa-bell" : "fa-bookmark";
-    const iconColor = bookmark.type === "reminder" ? "#f59e0b" : "#3b82f6";
+    const _iconColor = bookmark.type === "reminder" ? "#f59e0b" : "#3b82f6";
     const isOverdue =
       bookmark.due_date && new Date(bookmark.due_date) < new Date();
 

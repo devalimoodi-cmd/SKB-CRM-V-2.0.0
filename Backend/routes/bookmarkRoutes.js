@@ -1,7 +1,7 @@
 // routes/bookmarkRoutes.js
 const express = require("express");
 const router = express.Router();
-const { protect, authorize } = require("../middleware/auth");
+const { protect } = require("../middleware/auth");
 const bookmarkController = require("../controllers/bookmarkController");
 
 // همه روت‌ها نیاز به احراز هویت دارند

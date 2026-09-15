@@ -3,6 +3,10 @@ export function toNumber(value, defaultValue = 0) {
   return isNaN(num) ? defaultValue : num;
 }
 
+// ✅ toPersianNumber در string.utils.js تعریف شده و قبلاً import نشده بود
+// (یعنی formatCurrency/formatWeight/formatPercent خطای ReferenceError می‌دادند)
+import { toPersianNumber } from "./string.utils.js";
+
 export function toFixed(value, decimals = 2) {
   const num = toNumber(value);
   return num.toFixed(decimals);

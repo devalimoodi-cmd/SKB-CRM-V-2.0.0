@@ -1,6 +1,4 @@
 import {
-  convertToPersianDate,
-  formatDate,
 } from "../../core/utils/date.utils.js";
 
 export const customerListRenderer = {

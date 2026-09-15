@@ -4,6 +4,7 @@ export const API_CONSTANTS = {
     AUTH: {
       LOGIN: "/users/login",
       LOGOUT: "/users/logout",
+      CAPTCHA: "/captcha",
       SETUP_ADMIN: "/users/setup-admin",
       CHECK_ADMIN: "/users/check-admin",
       CHANGE_PASSWORD: "/users/:id/change-password",

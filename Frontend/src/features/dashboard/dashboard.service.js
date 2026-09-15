@@ -9,8 +9,9 @@ import { stateService } from "../../core/services/state.service.js";
 import {
   convertPersianToGregorian,
   convertToPersianDate,
-  formatDate,
 } from "../../core/utils/date.utils.js";
+import { escapeHtml, escapeJsAttr } from "../../core/utils/string.utils.js";
+
 
 class DashboardService {
   constructor() {
@@ -386,9 +387,9 @@ SKB-CRM.IR`,
         : '<span class="cs-pill cs-hall"><i class="fas fa-map-marker-alt"></i> سالن</span>';
     labelEl.innerHTML = `${pill} <b>گله ${info.flockNumber || ""}</b>${
       info.hallName
-        ? ` <span class="cs-sep">-</span> ${info.hallName}`
+        ? ` <span class="cs-sep">-</span> ${escapeHtml(info.hallName)}`
         : ""
-    } <span class="cs-sep">|</span> ${info.customerName || ""}`;
+    } <span class="cs-sep">|</span> ${escapeHtml(info.customerName || "")}`;
   }
 
   // ===== تولبار چیدمان نمودارها (تمام‌عرض / کنار هم) =====
@@ -670,7 +671,7 @@ SKB-CRM.IR`,
           ? flock.daysRemaining
           : "",
       smsStatusHTML: smsInfoHTML,
-      onClick: `window.selectFlockForChart(${customer.id}, ${flock.id}, '${customer.name}', ${flock.flockNumber}, ${flock.weekNumber})`,
+      onClick: `window.selectFlockForChart(${customer.id}, ${flock.id}, ${escapeJsAttr(customer.name)}, ${flock.flockNumber}, ${flock.weekNumber})`,
       actions: {
         profile: {
           label: "پروفایل",

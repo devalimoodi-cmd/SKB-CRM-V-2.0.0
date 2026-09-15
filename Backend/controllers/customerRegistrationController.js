@@ -140,7 +140,7 @@ const registerCustomer = async (req, res) => {
 const getAllCustomers = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
+    const limit = Math.min(parseInt(req.query.limit) || 10, 100); // ✅ سقف ۱۰۰ رکورد در هر درخواست
     const offset = (page - 1) * limit;
 
     const { count, rows } = await CustomerPersonalInfo.findAndCountAll({

@@ -1,43 +1,82 @@
 const express = require("express");
 const router = express.Router();
 const userController = require("../controllers/userController");
-const { protect, authorize } = require("../middleware/auth");
-const upload = require("../middleware/upload");
+const { protect, authorize, authorizeSelfOr, ADMIN_ROLES } = require("../middleware/auth");
+const { uploadProfile } = require("../middleware/upload");
+const {
+  loginLimiter,
+  setupAdminLimiter,
+} = require("../middleware/rateLimit");
 
 // ============================================
 // مسیرهای عمومی (بدون نیاز به احراز هویت)
 // ============================================
 router.get("/check-admin", userController.checkAdminExists);
-router.post("/setup-admin", userController.setupAdmin);
-router.post("/login", userController.loginUser);
+router.post("/setup-admin", setupAdminLimiter, userController.setupAdmin);
+router.post("/login", loginLimiter, userController.loginUser);
 
 // ============================================
 // مسیرهای محافظت شده (نیاز به احراز هویت)
 // ============================================
-
-// سایر مسیرهای محافظت شده
 router.use(protect);
 
-// وضعیت آنلاین
-router.put("/:id/online-status", userController.updateOnlineStatus);
+// ===== وضعیت آنلاین =====
+// هر کاربر فقط وضعیت خودش را می‌تواند تغییر دهد (ادمین‌ها برای همه)
+router.put(
+  "/:id/online-status",
+  authorizeSelfOr(...ADMIN_ROLES),
+  userController.updateOnlineStatus,
+);
+router.patch(
+  "/:id/online-status",
+  authorizeSelfOr(...ADMIN_ROLES),
+  userController.updateOnlineStatus,
+);
 
-// بازنشانی توکن
-router.post("/:id/reset-token", userController.resetUserToken);
+// ===== مدیریت کاربران (فقط نقش‌های مدیریتی) =====
+router.get("/by-role/:role", authorize(...ADMIN_ROLES), userController.getUsersByRole);
+router.get("/", authorize(...ADMIN_ROLES), userController.getAllUsers);
 
-// دریافت کاربران بر اساس نقش
-router.get("/by-role/:role", userController.getUsersByRole);
-router.get("/", userController.getAllUsers);
-
-// دریافت، بروزرسانی و حذف کاربر (با :id)
-router.get("/:id", userController.getUserById);
-router.put("/:id", upload.single("profile_image"), userController.updateUser);
-router.delete("/:id", userController.deleteUser);
-
-// ثبت نام کاربر جدید
+// ثبت نام کاربر جدید (فقط ادمین‌ها)
 router.post(
   "/register",
-  upload.single("profile_image"),
+  authorize(...ADMIN_ROLES),
+  uploadProfile.single("profile_image"),
   userController.registerUser,
 );
+
+// بازنشانی توکن کاربر (فقط ادمین‌ها)
+router.post(
+  "/:id/reset-token",
+  authorize(...ADMIN_ROLES),
+  userController.resetUserToken,
+);
+
+// بازکردن قفل حساب کاربر (فقط ادمین‌ها)
+router.post(
+  "/:id/unlock",
+  authorize(...ADMIN_ROLES),
+  userController.unlockUser,
+);
+
+// ===== مشاهده/ویرایش (خودِ کاربر یا ادمین‌ها) =====
+router.get("/:id", authorizeSelfOr(...ADMIN_ROLES), userController.getUserById);
+router.put(
+  "/:id",
+  authorizeSelfOr(...ADMIN_ROLES),
+  uploadProfile.single("profile_image"),
+  userController.updateUser,
+);
+router.patch(
+  "/:id",
+  authorizeSelfOr(...ADMIN_ROLES),
+  userController.updateUser,
+);
+
+// ===== خروج (باطل کردن نشست سمت سرور) =====
+router.post("/logout", userController.logoutUser);
+
+// حذف کاربر (فقط ادمین‌ها)
+router.delete("/:id", authorize(...ADMIN_ROLES), userController.deleteUser);
 
 module.exports = router;

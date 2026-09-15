@@ -1,5 +1,5 @@
 import { formatDate } from "../../core/utils/date.utils.js";
-import { getDefaultAvatar } from "../../core/utils/string.utils.js";
+import { escapeHtml} from "../../core/utils/string.utils.js";
 
 export const adminPanelRenderer = {
   // ===== رندر جدول مدیران اصلی =====
@@ -32,10 +32,10 @@ export const adminPanelRenderer = {
                             }
                         </div>
                     </td>
-                    <td>${user.first_name} ${user.last_name}</td>
-                    <td>${user.username}</td>
-                    <td>${user.email || "-"}</td>
-                    <td>${user.mobile_number || "-"}</td>
+                    <td>${escapeHtml(user.first_name)} ${escapeHtml(user.last_name)}</td>
+                    <td>${escapeHtml(user.username)}</td>
+                    <td>${escapeHtml(user.email) || "-"}</td>
+                    <td>${escapeHtml(user.mobile_number) || "-"}</td>
                     <td><span class="role-badge super-admin">مدیر اصلی</span></td>
                     <td><span class="status-badge ${statusClass}">${statusText}</span></td>
                     <td>${user.createdAt ? formatDate(user.createdAt) : "-"}</td>
@@ -98,10 +98,10 @@ export const adminPanelRenderer = {
                             }
                         </div>
                     </td>
-                    <td>${user.first_name} ${user.last_name}</td>
-                    <td>${user.username}</td>
-                    <td>${user.email || "-"}</td>
-                    <td>${user.mobile_number || "-"}</td>
+                    <td>${escapeHtml(user.first_name)} ${escapeHtml(user.last_name)}</td>
+                    <td>${escapeHtml(user.username)}</td>
+                    <td>${escapeHtml(user.email) || "-"}</td>
+                    <td>${escapeHtml(user.mobile_number) || "-"}</td>
                     <td><span class="role-badge ${roleClass}">${roleText}</span></td>
                     <td><span class="status-badge ${statusClass}">${statusText}</span></td>
                     <td>${user.createdAt ? formatDate(user.createdAt) : "-"}</td>
@@ -171,7 +171,7 @@ export const adminPanelRenderer = {
 
       html += `
                 <div class="chat-bubble ${isMine ? "me" : "other"}">
-                    <div><strong class="chat-sender">${isMine ? "من" : senderName}</strong></div>
+                    <div><strong class="chat-sender">${isMine ? "من" : escapeHtml(senderName)}</strong></div>
                     <div>${this.escapeHtml(msg.content)}</div>
                     <div class="chat-meta"><span>${time}</span></div>
                 </div>

@@ -10,6 +10,7 @@ const Unit = require("../models/Unit");
 const Hall = require("../models/Hall");
 const ChickenBreed = require("../models/ChickenBreed");
 const FlockCompletion = require("../models/FlockCompletion");
+const { parsePagination } = require("../utils/pagination");
 const { Op } = require("sequelize");
 const { successResponse, errorResponse } = require("../utils/response");
 
@@ -111,13 +112,15 @@ const createFlock = async (req, res) => {
 // ============================================
 const getFlocks = async (req, res) => {
   try {
-    const { customer_id, unit_id, status, page = 1, limit = 50 } = req.query;
+    const { customer_id, unit_id, status } = req.query;
+    // ✅ صفحه‌بندی با سقف
+    const { page, limit, offset } = parsePagination(req.query, {
+      defaultLimit: 50,
+    });
     const where = {};
     if (customer_id) where.customer_id = parseInt(customer_id);
     if (unit_id) where.unit_id = parseInt(unit_id);
     if (status && status !== "all") where.status = status;
-
-    const offset = (page - 1) * limit;
 
     const { count, rows } = await Flock.findAndCountAll({
       where,

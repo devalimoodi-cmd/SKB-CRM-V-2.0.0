@@ -1,14 +1,14 @@
 // BackEnd/sync-db.js
-const { sequelize } = require("./config/database");
-require("./models/associations");
-require("./models/AppSetting"); // اطمینان از ساخت جدول app_settings در sync
+const { sequelize } = require("../config/database");
+require("../models/associations");
+require("../models/AppSetting"); // اطمینان از ساخت جدول app_settings در sync
 
 async function syncDatabase() {
   try {
     console.log("🔄 شروع همگام‌سازی دیتابیس...");
 
     // اصلاح رکوردهای فاقد کاربر معتبر (created_by/updated_by)
-    const { sequelize: sq } = require("./config/database");
+    const { sequelize: sq } = require("../config/database");
     await sq.query(
       `UPDATE "customer_personal_information" SET "created_by" = NULL WHERE "created_by" IS NOT NULL AND "created_by" NOT IN (SELECT id FROM users)`,
     );

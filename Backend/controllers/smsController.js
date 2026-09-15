@@ -1,5 +1,6 @@
 const SmsService = require("../services/smsService"); // ✅ این درست است
 const { successResponse, errorResponse } = require("../utils/response");
+const { parsePagination } = require("../utils/pagination");
 
 // ================================================================
 // نگاشت وضعیت تحویل — طبق جدول کدهای سرویس‌دهنده (sms.ir):
@@ -902,7 +903,8 @@ const saveSmsLog = async (req, res) => {
 // ============================================
 const getRecentSmsLogs = async (req, res) => {
   try {
-    const { limit = 50 } = req.query;
+    // ✅ سقف تعداد رکورد
+    const { limit } = parsePagination(req.query, { defaultLimit: 50 });
 
     const logs = await SmsLog.findAll({
       where: { sent_by: req.user.id },

@@ -2,7 +2,6 @@ import { bookmarksApi } from "./bookmarks.api.js";
 import { bookmarksService } from "./bookmarks.service.js";
 import { notificationService } from "../../core/services/notification.service.js";
 import {
-  convertPersianToGregorian,
   convertToPersianDate,
 } from "../../core/utils/date.utils.js";
 

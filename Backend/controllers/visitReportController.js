@@ -5,12 +5,11 @@ const VisitReportAttachment = require("../models/VisitReportAttachment");
 const Hall = require("../models/Hall");
 const Unit = require("../models/Unit");
 const User = require("../models/User");
-const { Op } = require("sequelize");
 const { successResponse, errorResponse } = require("../utils/response");
+const { parsePagination } = require("../utils/pagination");
 const { fixUnicodeName } = require("../middleware/upload");
 const { sequelize } = require("../config/database");
 const fs = require("fs");
-const path = require("path");
 
 // ========== ایجاد گزارش جدید ==========
 const createVisitReport = async (req, res) => {
@@ -285,9 +284,12 @@ const getVisitReports = async (req, res) => {
       status,
       sort = "visit_date",
       order = "DESC",
-      page = 1,
-      limit = 20,
     } = req.query;
+
+    // ✅ صفحه‌بندی با سقف
+    const { page, limit, offset } = parsePagination(req.query, {
+      defaultLimit: 20,
+    });
     const where = {};
 
     if (customer_id) where.customer_id = parseInt(customer_id);
@@ -306,8 +308,6 @@ const getVisitReports = async (req, res) => {
     ];
     const sortField = validSortFields.includes(sort) ? sort : "visit_date";
     const sortOrder = order.toUpperCase() === "ASC" ? "ASC" : "DESC";
-
-    const offset = (page - 1) * limit;
 
     const { count, rows } = await VisitReport.findAndCountAll({
       where,

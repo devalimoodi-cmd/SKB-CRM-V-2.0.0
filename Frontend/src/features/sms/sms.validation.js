@@ -13,7 +13,7 @@ export const smsValidation = {
     // بررسی کاراکترهای غیرمجاز
     if (
       message &&
-      /[^\u0600-\u06FF\uFB8A\u067E\u0686\u06AF\u200C\u200D\s0-9a-zA-Z.,!?()\-]/.test(
+      /[^\u0600-\u06FF\uFB8A\u067E\u0686\u06AF\u200C\u200D\s0-9a-zA-Z.,!?()-]/.test(
         message,
       )
     ) {

@@ -112,8 +112,45 @@ const fixUnicodeName = (name) => {
 const upload = multer({
   storage: storage,
   fileFilter: fileFilter,
-  limits: { fileSize: 500 * 1024 * 1024 }, // 500 MB
+  limits: {
+    fileSize: 500 * 1024 * 1024, // حداکثر ۵۰۰MB برای ویدیو
+    files: 10, // حداکثر ۱۰ فایل در هر درخواست
+    fields: 60, // حداکثر ۶۰ فیلد متنی
+  },
 });
 
-module.exports = upload;
-module.exports.fixUnicodeName = fixUnicodeName;
+// ============================================================
+// ✅ multer عکس پروفایل کاربران (جدا و امن‌تر)
+// - ذخیره در uploads/profile_images
+// - فقط تصویر، حداکثر ۵ مگابایت، فقط یک فایل
+// ============================================================
+const profileDir = "uploads/profile_images";
+ensureDirectoryExists(profileDir);
+
+const profileStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, profileDir),
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    cb(null, `profile_${Date.now()}_${Math.round(Math.random() * 1e9)}${ext}`);
+  },
+});
+
+const imageOnlyFilter = (req, file, cb) => {
+  const allowed = [
+    "image/jpeg",
+    "image/jpg",
+    "image/png",
+    "image/webp",
+    "image/gif",
+  ];
+  if (allowed.includes(file.mimetype)) cb(null, true);
+  else cb(new Error("فقط تصویر (JPG/PNG/WEBP/GIF) مجاز است"), false);
+};
+
+const uploadProfile = multer({
+  storage: profileStorage,
+  fileFilter: imageOnlyFilter,
+  limits: { fileSize: 5 * 1024 * 1024, files: 1 },
+});
+
+module.exports = { upload, uploadProfile, fixUnicodeName };

@@ -8,10 +8,8 @@ const ChickPlacement = require("../models/ChickPlacement");
 const Hall = require("../models/Hall");
 const CustomerPersonalInfo = require("../models/CustomerPersonalInfo");
 const Unit = require("../models/Unit");
-const {
-  validateWeeklyData,
-  validateMultipleItems,
-} = require("../validations/weeklyValidation");
+const { parsePagination } = require("../utils/pagination");
+const { validateWeeklyData } = require("../validations/weeklyValidation");
 
 const Disease = require("../models/Disease");
 const Vaccine = require("../models/Vaccine");
@@ -22,6 +20,7 @@ const User = require("../models/User"); // ← مهم!
 
 const { successResponse, errorResponse } = require("../utils/response");
 const { Op } = require("sequelize");
+const { sequelize } = require("../config/database");
 
 // ============================================
 // تابع کمکی: بررسی وجود و فعال بودن گله
@@ -72,7 +71,13 @@ const checkWeekOrder = async (chick_placement_id, week_number) => {
 // ============================================
 // تابع کمکی: ذخیره آیتم‌های چندگانه (بیماری، واکسن و ...) - اصلاح شده
 // ============================================
-const saveMultipleItems = async (Model, foreignKey, items, baseData) => {
+const saveMultipleItems = async (
+  Model,
+  foreignKey,
+  items,
+  baseData,
+  transaction = null,
+) => {
   if (!items || !Array.isArray(items) || items.length === 0) return [];
 
   const records = [];
@@ -91,13 +96,16 @@ const saveMultipleItems = async (Model, foreignKey, items, baseData) => {
   }
 
   if (records.length === 0) return [];
-  return await Model.bulkCreate(records);
+  return await Model.bulkCreate(records, { transaction });
 };
 
 // ============================================
 // ایجاد اطلاعات هفتگی جدید - اصلاح شده
 // ============================================
 const createWeeklyRecord = async (req, res) => {
+  // ✅ تراکنش: ثبت هفتگی در چند جدول نوشته می‌شود؛ اگر خطایی رخ دهد
+  // هیچ رکورد ناقصی (بدون بیماری/واکسن/دارو/...) باقی نمی‌ماند.
+  let transaction = null;
   try {
     // 1. اعتبارسنجی داده‌های اصلی
     const validation = validateWeeklyData(req.body);
@@ -173,6 +181,7 @@ const createWeeklyRecord = async (req, res) => {
     }
 
     // 8. ایجاد رکورد اصلی
+    transaction = await sequelize.transaction();
     const weeklyRecord = await WeeklyManagement.create({
       customer_id,
       unit_id: unit_id || null,
@@ -189,7 +198,7 @@ const createWeeklyRecord = async (req, res) => {
       weekly_mortality: weekly_mortality || 0,
       blackout_hours: blackout_hours || 0,
       additional_notes: additional_notes || null,
-    });
+    }, { transaction });
 
     // ذخیره آیتم‌های چندگانه
     const baseData = {
@@ -207,6 +216,7 @@ const createWeeklyRecord = async (req, res) => {
         "disease_id",
         disease_ids,
         baseData,
+        transaction,
       );
     }
 
@@ -217,6 +227,7 @@ const createWeeklyRecord = async (req, res) => {
         "vaccine_id",
         vaccine_ids,
         baseData,
+        transaction,
       );
     }
 
@@ -231,6 +242,7 @@ const createWeeklyRecord = async (req, res) => {
         "medicine_id",
         medicine_ids,
         baseData,
+        transaction,
       );
     }
 
@@ -245,6 +257,7 @@ const createWeeklyRecord = async (req, res) => {
         "feed_type_id",
         feed_type_ids,
         baseData,
+        transaction,
       );
     }
 
@@ -259,7 +272,17 @@ const createWeeklyRecord = async (req, res) => {
         "suggestion_id",
         suggestion_ids,
         baseData,
+        transaction,
       );
+    }
+
+    // ✅ قلاب تست (فقط خارج از production): برای اثبات rollback تراکنش
+    // در سرور واقعی (NODE_ENV=production) هرگز فعال نمی‌شود.
+    if (
+      process.env.NODE_ENV !== "production" &&
+      process.env.TEST_FAIL_WEEKLY === "true"
+    ) {
+      throw new Error("TEST_FAIL_WEEKLY (fault injection)");
     }
 
     // 10. دریافت رکورد کامل با تمام جزئیات
@@ -292,6 +315,7 @@ const createWeeklyRecord = async (req, res) => {
           attributes: ["suggestion_id"],
         },
       ],
+      transaction,
     });
 
     // فرمت کردن خروجی
@@ -321,6 +345,10 @@ const createWeeklyRecord = async (req, res) => {
       WeeklySuggestions: undefined,
     };
 
+    // ✅ همهٔ نوشتن‌ها موفق شد → تراکنش ثبت می‌شود
+    await transaction.commit();
+    transaction = null;
+
     successResponse(
       res,
       formattedComplete,
@@ -328,6 +356,13 @@ const createWeeklyRecord = async (req, res) => {
       201,
     );
   } catch (error) {
+    if (transaction) {
+      try {
+        await transaction.rollback();
+      } catch {
+        /* اگر تراکنش قبلاً بسته شده باشد */
+      }
+    }
     console.error("خطا در ثبت اطلاعات هفتگی:", error);
     errorResponse(res, error.message, 500);
   }
@@ -343,9 +378,12 @@ const getWeeklyRecords = async (req, res) => {
       hall_id,
       chick_placement_id,
       week_number,
-      page = 1,
-      limit = 20,
     } = req.query;
+
+    // ✅ صفحه‌بندی با سقف
+    const { page, limit, offset } = parsePagination(req.query, {
+      defaultLimit: 20,
+    });
     const where = {};
 
     if (customer_id) where.customer_id = parseInt(customer_id);
@@ -355,8 +393,6 @@ const getWeeklyRecords = async (req, res) => {
     if (week_number) where.week_number = parseInt(week_number);
 
     console.log("📊 جستجوی هفته‌ها با شرط:", where);
-
-    const offset = (page - 1) * limit;
 
     const { count, rows } = await WeeklyManagement.findAndCountAll({
       where,
@@ -747,6 +783,8 @@ const getWeeklyRecordsByFlock = async (req, res) => {
 // بروزرسانی اطلاعات هفتگی - اصلاح شده
 // ============================================
 const updateWeeklyRecord = async (req, res) => {
+  // ✅ تراکنش: بروزرسانی رکورد + آیتم‌های وابسته باید اتمیک باشد
+  let transaction = null;
   try {
     const { id } = req.params;
     const record = await WeeklyManagement.findByPk(id);
@@ -790,7 +828,8 @@ const updateWeeklyRecord = async (req, res) => {
       return errorResponse(res, validation.errors[0], 400, validation.errors);
     }
 
-    await record.update(updateData);
+    transaction = await sequelize.transaction();
+    await record.update(updateData, { transaction });
 
     // بروزرسانی آیتم‌های چندگانه (در صورت ارسال)
     const baseData = {
@@ -805,6 +844,7 @@ const updateWeeklyRecord = async (req, res) => {
     if (req.body.disease_ids) {
       await WeeklyDisease.destroy({
         where: { weekly_management_id: record.id },
+        transaction,
       });
       if (req.body.disease_ids.length > 0) {
         await saveMultipleItems(
@@ -812,12 +852,14 @@ const updateWeeklyRecord = async (req, res) => {
           "disease_id",
           req.body.disease_ids,
           baseData,
+          transaction,
         );
       }
     }
     if (req.body.vaccine_ids) {
       await WeeklyVaccine.destroy({
         where: { weekly_management_id: record.id },
+        transaction,
       });
       if (req.body.vaccine_ids.length > 0) {
         await saveMultipleItems(
@@ -825,12 +867,14 @@ const updateWeeklyRecord = async (req, res) => {
           "vaccine_id",
           req.body.vaccine_ids,
           baseData,
+          transaction,
         );
       }
     }
     if (req.body.medicine_ids) {
       await WeeklyMedicine.destroy({
         where: { weekly_management_id: record.id },
+        transaction,
       });
       if (req.body.medicine_ids.length > 0) {
         await saveMultipleItems(
@@ -838,23 +882,29 @@ const updateWeeklyRecord = async (req, res) => {
           "medicine_id",
           req.body.medicine_ids,
           baseData,
+          transaction,
         );
       }
     }
     if (req.body.feed_type_ids) {
-      await WeeklyFeed.destroy({ where: { weekly_management_id: record.id } });
+      await WeeklyFeed.destroy({
+        where: { weekly_management_id: record.id },
+        transaction,
+      });
       if (req.body.feed_type_ids.length > 0) {
         await saveMultipleItems(
           WeeklyFeed,
           "feed_type_id",
           req.body.feed_type_ids,
           baseData,
+          transaction,
         );
       }
     }
     if (req.body.suggestion_ids) {
       await WeeklySuggestion.destroy({
         where: { weekly_management_id: record.id },
+        transaction,
       });
       if (req.body.suggestion_ids.length > 0) {
         await saveMultipleItems(
@@ -862,6 +912,7 @@ const updateWeeklyRecord = async (req, res) => {
           "suggestion_id",
           req.body.suggestion_ids,
           baseData,
+          transaction,
         );
       }
     }
@@ -895,6 +946,7 @@ const updateWeeklyRecord = async (req, res) => {
           attributes: ["suggestion_id"],
         },
       ],
+      transaction,
     });
 
     // فرمت کردن خروجی
@@ -925,12 +977,23 @@ const updateWeeklyRecord = async (req, res) => {
       WeeklySuggestions: undefined,
     };
 
+    // ✅ تراکنش ثبت می‌شود
+    await transaction.commit();
+    transaction = null;
+
     successResponse(
       res,
       formattedUpdated,
       "اطلاعات هفتگی با موفقیت بروزرسانی شد",
     );
   } catch (error) {
+    if (transaction) {
+      try {
+        await transaction.rollback();
+      } catch {
+        /* اگر تراکنش قبلاً بسته شده باشد */
+      }
+    }
     console.error("خطا:", error);
     errorResponse(res, error.message, 500);
   }
@@ -939,6 +1002,8 @@ const updateWeeklyRecord = async (req, res) => {
 // حذف اطلاعات هفتگی
 // ============================================
 const deleteWeeklyRecord = async (req, res) => {
+  // ✅ تراکنش: حذف رکورد اصلی و آیتم‌های وابسته با هم انجام شود
+  let transaction = null;
   try {
     const { id } = req.params;
     const record = await WeeklyManagement.findByPk(id);
@@ -954,15 +1019,41 @@ const deleteWeeklyRecord = async (req, res) => {
     }
 
     // حذف آیتم‌های مرتبط
-    await WeeklyDisease.destroy({ where: { weekly_management_id: id } });
-    await WeeklyVaccine.destroy({ where: { weekly_management_id: id } });
-    await WeeklyMedicine.destroy({ where: { weekly_management_id: id } });
-    await WeeklyFeed.destroy({ where: { weekly_management_id: id } });
-    await WeeklySuggestion.destroy({ where: { weekly_management_id: id } });
+    transaction = await sequelize.transaction();
+    await WeeklyDisease.destroy({
+      where: { weekly_management_id: id },
+      transaction,
+    });
+    await WeeklyVaccine.destroy({
+      where: { weekly_management_id: id },
+      transaction,
+    });
+    await WeeklyMedicine.destroy({
+      where: { weekly_management_id: id },
+      transaction,
+    });
+    await WeeklyFeed.destroy({
+      where: { weekly_management_id: id },
+      transaction,
+    });
+    await WeeklySuggestion.destroy({
+      where: { weekly_management_id: id },
+      transaction,
+    });
 
-    await record.destroy();
+    await record.destroy({ transaction });
+
+    await transaction.commit();
+    transaction = null;
     successResponse(res, null, "اطلاعات هفتگی با موفقیت حذف شد");
   } catch (error) {
+    if (transaction) {
+      try {
+        await transaction.rollback();
+      } catch {
+        /* اگر تراکنش قبلاً بسته شده باشد */
+      }
+    }
     console.error("خطا:", error);
     errorResponse(res, error.message, 500);
   }

@@ -51,7 +51,7 @@ export const hatcheryFormService = {
     document.getElementById("chickPeriodId").value = unit.id;
     document.getElementById("chickUnitName").value = unit.unit_name;
     document.getElementById("chickStartDate").value = this.convertToPersianDate(
-      period.start_date,
+      unit.start_date,
     );
     // وضعیت از unit_statuses می‌آید
   },

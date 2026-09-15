@@ -1,6 +1,6 @@
 // ✅ این رو جایگزین کنید
-import { convertToPersianDate } from "../../../../core/utils/date.utils.js";
-import { toNumber } from "../../../../core/utils/number.utils.js";
+import "../../../../core/utils/date.utils.js";
+import "../../../../core/utils/number.utils.js";
 
 export const hallsRenderer = {
   // ===== رندر سلکت‌ها =====
@@ -285,7 +285,7 @@ export const hallsRenderer = {
       return item ? item.name : "-";
     };
 
-    const periodName = hall.periodInfo?.period_name || "-";
+    const _periodName = hall.periodInfo?.period_name || "-";
     const floorType = getDictName(
       hall.physicalInfo?.floor_type_id,
       dictionaries.floorTypes,

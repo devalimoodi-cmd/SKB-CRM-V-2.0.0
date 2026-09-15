@@ -1,0 +1,133 @@
+// ============================================================
+// eslint.config.js (Flat config - ESLint 9/10) — Frontend
+// هدف: گرفتن خطاهای واقعی در کد مرورگر (متغیر تعریف‌نشده، کلید تکراری، کد مرده)
+// اجرا: npm run lint   (در پوشهٔ Frontend)
+// ⚠️ این پروژه عمداً CSP سخت‌گیرانه ندارد چون صفحات اسکریپت/هندلر inline دارند؛
+//    بنابراین برای «متغیرهای سراسری» فقط موارد شناخته‌شده تعریف می‌شوند.
+// ============================================================
+
+const BROWSER_GLOBALS = {
+  window: "readonly",
+  document: "readonly",
+  navigator: "readonly",
+  location: "readonly",
+  history: "readonly",
+  localStorage: "readonly",
+  sessionStorage: "readonly",
+  console: "readonly",
+  fetch: "readonly",
+  alert: "readonly",
+  confirm: "readonly",
+  prompt: "readonly",
+  setTimeout: "readonly",
+  clearTimeout: "readonly",
+  setInterval: "readonly",
+  clearInterval: "readonly",
+  requestAnimationFrame: "readonly",
+  cancelAnimationFrame: "readonly",
+  queueMicrotask: "readonly",
+  structuredClone: "readonly",
+  atob: "readonly",
+  btoa: "readonly",
+  getComputedStyle: "readonly",
+  matchMedia: "readonly",
+  scrollTo: "readonly",
+  open: "readonly",
+  print: "readonly",
+  getSelection: "readonly",
+  // سازنده‌ها و APIهای مرورگر
+  URL: "readonly",
+  URLSearchParams: "readonly",
+  Blob: "readonly",
+  File: "readonly",
+  FileReader: "readonly",
+  FormData: "readonly",
+  Headers: "readonly",
+  Request: "readonly",
+  Response: "readonly",
+  AbortController: "readonly",
+  AbortSignal: "readonly",
+  TextEncoder: "readonly",
+  TextDecoder: "readonly",
+  Intl: "readonly",
+  Image: "readonly",
+  Audio: "readonly",
+  Event: "readonly",
+  CustomEvent: "readonly",
+  Element: "readonly",
+  Node: "readonly",
+  NodeList: "readonly",
+  HTMLElement: "readonly",
+  HTMLInputElement: "readonly",
+  XMLHttpRequest: "readonly",
+  WebSocket: "readonly",
+  MutationObserver: "readonly",
+  ResizeObserver: "readonly",
+  IntersectionObserver: "readonly",
+  DOMException: "readonly",
+  DOMParser: "readonly",
+  performance: "readonly",
+  crypto: "readonly",
+  Chart: "readonly",
+  ChartDataLabels: "readonly",
+  Swal: "readonly",
+  swal: "readonly",
+  $: "readonly",
+  jQuery: "readonly",
+  bootstrap: "readonly",
+  persianDate: "readonly",
+  XLSX: "readonly",
+  html2canvas: "readonly",
+  lottie: "readonly",
+  gregorianDate: "readonly",
+};
+
+const COMMON_RULES = {
+  "no-undef": "error",
+  // ✅ پارامترهای بدون استفاده (هندلرهای رویداد، callback‌ها، catch) هشدار نمی‌گیرند
+  // چون قرارداد رایج کد مرورگر است؛ اما متغیر/import بدون استفاده هشدار می‌گیرد.
+  "no-unused-vars": [
+    "warn",
+    {
+      args: "none",
+      caughtErrors: "none",
+      varsIgnorePattern: "^_",
+      ignoreRestSiblings: true,
+    },
+  ],
+  "no-dupe-keys": "error",
+  "no-dupe-args": "error",
+  "no-dupe-class-members": "error",
+  "no-unreachable": "error",
+  "no-cond-assign": "error",
+  "no-constant-condition": "warn",
+  "no-empty": ["warn", { allowEmptyCatch: true }],
+  "no-fallthrough": "error",
+  "no-redeclare": "error",
+  "no-self-assign": "error",
+  "no-useless-escape": "warn",
+  "no-unsafe-finally": "error",
+  "no-async-promise-executor": "warn",
+};
+
+module.exports = [
+  {
+    ignores: [
+      "node_modules/**",
+      "src/vendor/**",
+      "dist/**",
+      "build/**",
+      "logs/**",
+      "**/*.min.js",
+    ],
+  },
+  {
+    files: ["src/**/*.js", "**/*.mjs"],
+    languageOptions: {
+      ecmaVersion: 2023,
+      sourceType: "module",
+      globals: { ...BROWSER_GLOBALS },
+    },
+    rules: COMMON_RULES,
+  },
+];

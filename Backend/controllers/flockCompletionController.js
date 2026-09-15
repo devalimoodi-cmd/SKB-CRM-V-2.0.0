@@ -8,6 +8,7 @@ const WeeklyManagement = require("../models/WeeklyManagement");
 const Hall = require("../models/Hall");
 const CustomerPersonalInfo = require("../models/CustomerPersonalInfo");
 const { successResponse, errorResponse } = require("../utils/response");
+const { parsePagination } = require("../utils/pagination");
 
 // ============================================================
 // محاسبه اطلاعات سیستمی از داده‌های هفتگی گله
@@ -829,17 +830,18 @@ const getFlockCompletions = async (req, res) => {
       unit_id,
       hall_id,
       completion_date,
-      page = 1,
-      limit = 20,
     } = req.query;
+
+    // ✅ صفحه‌بندی با سقف
+    const { page, limit, offset } = parsePagination(req.query, {
+      defaultLimit: 20,
+    });
     const where = {};
 
     if (customer_id) where.customer_id = customer_id;
     if (unit_id) where.unit_id = unit_id;
     if (hall_id) where.hall_id = hall_id;
     if (completion_date) where.completion_date = completion_date;
-
-    const offset = (page - 1) * limit;
 
     const { count, rows } = await FlockCompletion.findAndCountAll({
       where,

@@ -1,5 +1,5 @@
 import { customerListApi } from "./customer-list.api.js";
-import { customerListRenderer } from "./customer-list.renderer.js";
+import "./customer-list.renderer.js";
 import { customerListValidation } from "./customer-list.validation.js";
 import { notificationService } from "../../core/services/notification.service.js";
 import { authService } from "../../core/services/auth.service.js";

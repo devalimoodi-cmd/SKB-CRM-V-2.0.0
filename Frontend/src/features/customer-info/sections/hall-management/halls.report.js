@@ -7,9 +7,10 @@ import { hallsApi } from "./halls.api.js";
 import { apiService } from "../../../../core/services/api.service.js";
 import { stateService } from "../../../../core/services/state.service.js";
 import {
-  convertToPersianDate,
   formatDate,
 } from "../../../../core/utils/date.utils.js";
+import { sanitizeHtmlDocument } from "../../../../core/utils/string.utils.js";
+
 
 class HallsReport {
   constructor() {
@@ -931,7 +932,7 @@ class HallsReport {
         </div>
         <script>
           window.onload = function() { window.print(); }
-        <\/script>
+        </script>
       </body>
       </html>
     `;
@@ -948,7 +949,8 @@ class HallsReport {
         alert("لطفاً باز شدن پنجره popup را مجاز کنید");
         return;
       }
-      printWindow.document.write(html);
+      // ✅ پاک‌سازی خروجی گزارش (جلوگیری از اجرای اسکریپت تزریق‌شده از دیتابیس)
+      printWindow.document.write(sanitizeHtmlDocument(html));
       printWindow.document.close();
     } catch (error) {
       console.error("❌ Error generating report:", error);

@@ -1,2 +1,0 @@
-service: 0
-renderer: 0

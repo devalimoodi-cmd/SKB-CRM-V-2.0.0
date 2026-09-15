@@ -1,8 +1,27 @@
 // server.js (نسخه اصلاح شده برای ساختار جدید)
 
 const express = require("express");
+const fs = require("fs");
 const path = require("path");
 const app = express();
+
+// ✅ اگر Nginx روی همین ماشین جلوتر از این سرور باشد، آی‌پی واقعی کاربر
+// از X-Forwarded-For خوانده می‌شود و به بک‌اند هم پاس داده می‌شود.
+app.set("trust proxy", "loopback");
+
+// ✅ هدرهای امنیتی برای صفحات HTML خود سایت
+// (CSP عمداً تنظیم نشده چون صفحات این پروژه اسکریپت/هندلر inline دارند)
+app.use((req, res, next) => {
+  res.removeHeader("X-Powered-By");
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "SAMEORIGIN");
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  res.setHeader(
+    "Permissions-Policy",
+    "geolocation=(), microphone=(), camera=()",
+  );
+  next();
+});
 const PORT = process.env.PORT || 3000;
 
 // ===== Middleware =====
@@ -15,42 +34,162 @@ app.use(express.urlencoded({ extended: true }));
 
 const srcPath = path.join(__dirname, "src");
 
-// ✅ گزینه عدم ذخیره در کش برای JS (تا مرورگر نسخه جدید را بگیرد)
-const noStoreCache = {
-  setHeaders: (res) => {
-    res.setHeader("Cache-Control", "no-store");
-  },
+// ============================================
+// ✅ نسخه‌دهی خودکار دارایی‌ها + سیاست کش
+// ------------------------------------------------------------
+// مشکل قبلی: همهٔ JSها با `no-store` فرستاده می‌شدند؛ یعنی در هر بازدید
+// (و هر رفرش) مرورگر همهٔ ~۴۰ فایل را دوباره دانلود می‌کرد → روی اینترنت
+// ضعیف کارخانه بسیار کند بود.
+// راه‌حل:
+//   ۱) هنگام سرو HTML، به آدرس همهٔ JS/CSSهای محلی یک `?v=<نسخه>` اضافه می‌شود
+//      (نسخه از جدیدترین زمان تغییر فایل‌ها ساخته می‌شود) → بدون تغییر فایل‌های HTML
+//   ۲) فایل‌های نسخه‌دار: کش یک‌سالهٔ immutable (بدون درخواست دوباره)
+//   ۳) فایل‌های بدون نسخه (import‌های داخلی ماژول‌ها): کش ۶۰ ثانیه‌ای + ETag
+//      (هم سرعت خوب، هم به‌روزرسانی سریع بعد از استقرار)
+//   ۴) HTML: همیشه no-cache (با ETag → پاسخ ۳۰۴ سبک)
+// ============================================
+const ASSET_VERSION = computeAssetVersion();
+
+function computeAssetVersion() {
+  const roots = [
+    path.join(srcPath, "core"),
+    path.join(srcPath, "features"),
+    path.join(srcPath, "shared"),
+    path.join(srcPath, "styles"),
+    path.join(srcPath, "assets"),
+  ];
+  let newest = 0;
+  let count = 0;
+
+  const walk = (dir) => {
+    let entries = [];
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const entry of entries) {
+      const abs = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        walk(abs);
+      } else if (/\.(js|css)$/i.test(entry.name)) {
+        try {
+          const stat = fs.statSync(abs);
+          if (stat.mtimeMs > newest) newest = stat.mtimeMs;
+          count += 1;
+        } catch {
+          /* فایل در دسترس نیست */
+        }
+      }
+    }
+  };
+  roots.forEach(walk);
+
+  const stamp = new Date(newest || Date.now())
+    .toISOString()
+    .replace(/[-:]/g, "")
+    .replace(/\..+$/, "");
+  return `${stamp}-${count}`;
+}
+
+const assetCacheHeaders = (req, res, next) => {
+  const ext = path.extname(req.path || "").toLowerCase();
+  const isScript = ext === ".js" || ext === ".mjs" || ext === ".css" || ext === ".map";
+
+  if (ext === ".html" || ext === "") {
+    res.setHeader("Cache-Control", "no-cache");
+  } else if (isScript) {
+    if (req.query && (req.query.v || req.query.version)) {
+      res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+    } else {
+      res.setHeader("Cache-Control", "private, max-age=60, must-revalidate");
+    }
+  } else {
+    res.setHeader("Cache-Control", "public, max-age=86400");
+  }
+  next();
 };
 
 // 1. Assets (تصاویر، فونت‌ها)
-app.use("/assets", express.static(path.join(srcPath, "assets")));
+app.use("/assets", assetCacheHeaders, express.static(path.join(srcPath, "assets")));
 
 // 2. Core (هسته اصلی)
-app.use("/core", express.static(path.join(srcPath, "core"), noStoreCache));
+app.use("/core", assetCacheHeaders, express.static(path.join(srcPath, "core")));
 
 // 3. Features (ماژول‌های اصلی)
 app.use(
   "/features",
-  express.static(path.join(srcPath, "features"), noStoreCache),
+  assetCacheHeaders,
+  express.static(path.join(srcPath, "features")),
 );
 
 // 4. Shared (کامپوننت‌های اشتراکی)
-app.use("/shared", express.static(path.join(srcPath, "shared"), noStoreCache));
+app.use(
+  "/shared",
+  assetCacheHeaders,
+  express.static(path.join(srcPath, "shared")),
+);
 
 // 5. Styles (استایل‌های سراسری)
-app.use("/styles", express.static(path.join(srcPath, "styles")));
+app.use("/styles", assetCacheHeaders, express.static(path.join(srcPath, "styles")));
 
 // 6. Vendor (کتابخانه‌ها)
-app.use("/vendor", express.static(path.join(srcPath, "vendor")));
+app.use("/vendor", assetCacheHeaders, express.static(path.join(srcPath, "vendor")));
 
 // 7. Pages (صفحات HTML)
-app.use("/pages", express.static(path.join(srcPath, "pages"), noStoreCache));
+app.use(
+  "/pages",
+  assetCacheHeaders,
+  express.static(path.join(srcPath, "pages")),
+);
 
 // 8. Public (فایل‌های عمومی)
-app.use("/public", express.static(path.join(srcPath, "public")));
+app.use("/public", assetCacheHeaders, express.static(path.join(srcPath, "public")));
 
 // 9. ✅ Node Modules (کتابخانه‌های npm)
-app.use("/node_modules", express.static(path.join(__dirname, "node_modules")));
+app.use(
+  "/node_modules",
+  assetCacheHeaders,
+  express.static(path.join(__dirname, "node_modules")),
+);
+
+// ============================================
+// ✅ نسخه‌دهی خودکار آدرس دارایی‌ها در صفحات HTML
+// به‌جای تغییر دستی ~۲۵۰ تگ <script>/<link> در فایل‌های HTML، هنگام سرو هر
+// صفحه به آدرس JS/CSSهای محلی یک `?v=<ASSET_VERSION>` اضافه می‌شود.
+// نتیجه: مرورگر فایل‌های نسخه‌دار را یک‌ساله کش می‌کند و با هر استقرار نسخه
+// عوض می‌شود → هم سرعت بالا، هم بدون «کش کهنه».
+// ============================================
+const LOCAL_ASSET_PATH = /\/(core|features|shared|styles|assets|vendor)\//;
+
+const rewriteAssetUrls = (html) =>
+  String(html).replace(
+    /(\b(?:src|href)\s*=\s*)(["'])([^"']+?\.(?:js|css)(?:\?[^"']*)?)\2/gi,
+    (match, prefix, quote, url) => {
+      if (/^(?:[a-z]+:)?\/\//i.test(url)) return match; // آدرس خارجی
+      if (/(?:^|[?&])v=/.test(url)) return match; // قبلاً نسخه خورده
+      if (url.includes("node_modules/")) return match; // کتابخانه‌های npm
+      if (!LOCAL_ASSET_PATH.test(url)) return match;
+      return `${prefix}${quote}${url}?v=${ASSET_VERSION}${quote}`;
+    },
+  );
+
+app.use((req, res, next) => {
+  const originalSendFile = res.sendFile.bind(res);
+  res.sendFile = (filePath, options, callback) => {
+    const isPageHtml =
+      typeof filePath === "string" && /pages[\\/][^\\/]+\.html$/i.test(filePath);
+    if (!isPageHtml) return originalSendFile(filePath, options, callback);
+
+    return fs.readFile(filePath, "utf8", (error, html) => {
+      if (error) return originalSendFile(filePath, options, callback);
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      res.setHeader("Cache-Control", "no-cache");
+      return res.send(rewriteAssetUrls(html));
+    });
+  };
+  next();
+});
 
 // ============================================
 // ✅ API Proxy (به بک‌اند)
@@ -60,7 +199,6 @@ app.use("/node_modules", express.static(path.join(__dirname, "node_modules")));
 // ============================================
 
 const { Readable } = require("node:stream");
-const fs = require("node:fs");
 
 // ✅ لاگ خطاهای پروکسی در فایل (برای تشخیص «بک‌اند خواب است»)
 const LOG_DIR = path.join(__dirname, "logs");
@@ -76,15 +214,42 @@ const logProxyError = (message) => {
   }
 };
 
+// ✅ حالت سخت‌گیرانهٔ پروکسی (PROXY_STRICT=true)
+// دلیل وجود: در حالت عادی، اگر API_URL اشتباه باشد یا بک‌اند اصلی بالا نباشد،
+// درخواست‌ها بی‌صدا به کاندیدهای بعدی (مثلاً بک‌اند قدیمی روی پورت 5000) می‌روند
+// و خطای پیکربندی پنهان می‌ماند. در حالت strict فقط API_URL استفاده می‌شود.
+const PROXY_STRICT =
+  String(process.env.PROXY_STRICT || "").toLowerCase() === "true";
+
+const DEFAULT_API_TARGET = "http://127.0.0.1:5000/api";
+
 // کاندیدهای بک‌اند؛ اولین موردی که جواب بدهد استفاده می‌شود
-const API_TARGETS = [
-  process.env.API_URL,
-  "http://127.0.0.1:5000/api",
-  "http://localhost:5000/api",
-  "http://192.168.168.72:5000/api",
-].filter(Boolean);
+const API_TARGETS = PROXY_STRICT
+  ? [process.env.API_URL || DEFAULT_API_TARGET]
+  : [
+      process.env.API_URL,
+      DEFAULT_API_TARGET,
+      "http://localhost:5000/api",
+      "http://192.168.168.72:5000/api",
+    ].filter(Boolean);
+
+if (PROXY_STRICT) {
+  console.log(`🔒 Proxy: حالت strict فعال — فقط ${API_TARGETS[0]} استفاده می‌شود`);
+  if (!process.env.API_URL) {
+    console.warn(
+      "⚠️  PROXY_STRICT=true است ولی API_URL تعیین نشده → از " +
+        DEFAULT_API_TARGET +
+        " استفاده می‌شود. API_URL را در محیط تنظیم کنید.",
+    );
+  }
+}
 
 let activeApiTarget = null; // آخرین تارگت سالم (برای سرعت)
+
+// ✅ حداکثر زمان انتظار برای بک‌اند
+// آپلودهای بزرگ (تا ۵۰۰MB) به زمان بیشتری از حالت پیش‌فرض نیاز دارند
+// قابل تغییر با متغیر محیطی: PROXY_TIMEOUT_MS
+const PROXY_TIMEOUT_MS = Number(process.env.PROXY_TIMEOUT_MS || 600000); // ۱۰ دقیقه
 
 // هدرهایی که نباید به بک‌اند منتقل شوند
 const SKIP_HEADERS = new Set([
@@ -104,6 +269,8 @@ const buildForwardHeaders = (req) => {
       headers[key] = value;
     }
   });
+  headers["x-forwarded-for"] = req.ip;
+  headers["x-real-ip"] = req.ip;
   return headers;
 };
 
@@ -135,9 +302,14 @@ app.use("/api", async (req, res) => {
     }
   }
 
-  const targets = activeApiTarget
-    ? [activeApiTarget, ...API_TARGETS.filter((t) => t !== activeApiTarget)]
-    : API_TARGETS;
+  // ✅ ترتیب تلاش: تارگت سالم فعلی، سپس بقیهٔ کاندیدها (بدون تکرار)
+  const targets = [
+    ...new Set(
+      (activeApiTarget ? [activeApiTarget, ...API_TARGETS] : API_TARGETS).filter(
+        Boolean,
+      ),
+    ),
+  ];
 
   let lastError = null;
 
@@ -150,7 +322,7 @@ app.use("/api", async (req, res) => {
         headers: buildForwardHeaders(req),
         body,
         duplex,
-        signal: AbortSignal.timeout(120000),
+        signal: AbortSignal.timeout(PROXY_TIMEOUT_MS),
       });
 
       activeApiTarget = base;
@@ -339,6 +511,7 @@ app.listen(PORT, () => {
     `\n🔗 API Proxy: /api/* → ${activeApiTarget || API_TARGETS.join(" | ")}/*`,
   );
   console.log(`\n🖼️ Uploads Proxy: /uploads/* → بک‌اند /uploads/*`);
+  console.log(`\n🏷️ Asset version: ${ASSET_VERSION} (نسخه‌دهی خودکار JS/CSS)`);
   console.log(
     `\n📦 Node Modules: /node_modules/* → ${path.join(__dirname, "node_modules")}`,
   );

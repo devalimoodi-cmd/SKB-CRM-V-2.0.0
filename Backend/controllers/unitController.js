@@ -1,5 +1,6 @@
 const { sequelize } = require("../config/database");
 const { Op } = require("sequelize");
+const { parsePagination } = require("../utils/pagination");
 const Unit = require("../models/Unit");
 const UnitStatus = require("../models/UnitStatus");
 const UnitExpert = require("../models/UnitExpert");
@@ -128,9 +129,12 @@ const getUnits = async (req, res) => {
       is_active,
       sort = "id",
       order = "DESC",
-      page = 1,
-      limit = 20,
     } = req.query;
+
+    // ✅ صفحه‌بندی با سقف
+    const { page, limit, offset } = parsePagination(req.query, {
+      defaultLimit: 20,
+    });
     const where = {};
 
     if (customer_id) where.customer_personal_information_id = customer_id;
@@ -139,8 +143,6 @@ const getUnits = async (req, res) => {
     const validSortFields = ["id", "unit_name", "created_at", "hall_count"];
     const sortField = validSortFields.includes(sort) ? sort : "id";
     const sortOrder = order.toUpperCase() === "ASC" ? "ASC" : "DESC";
-
-    const offset = (page - 1) * limit;
 
     const { count, rows } = await Unit.findAndCountAll({
       where,

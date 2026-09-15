@@ -3,6 +3,10 @@ const router = express.Router();
 const dictionaryController = require("../controllers/dictionaryController");
 const { protect, authorize } = require("../middleware/auth");
 
+// ✅ همهٔ مسیرهای دیکشنری نیاز به ورود دارند
+// (قبلاً همهٔ GETها باز بودند و مثلاً /dictionary/experts نام کاربری و موبایل کارشناسان را لو می‌داد)
+router.use(protect);
+
 // --------------------Start routes Hall_Tayp dictionary tables-------------
 
 // ============================================

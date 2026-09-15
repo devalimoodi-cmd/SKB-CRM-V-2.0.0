@@ -1,4 +1,16 @@
 {
+  "name": "frontend",
+  "version": "1.0.0",
+  "description": "SKB-CRM Frontend (site + /api proxy)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "lint": "eslint src",
+    "test:cache": "node frontend-server-test.mjs"
+  },
+  "devDependencies": {
+    "eslint": "^10.10.0"
+  },
   "dependencies": {
     "@fortawesome/fontawesome-free": "^7.3.1",
     "@mdi/font": "^7.4.47",
@@ -11,5 +23,8 @@
     "persian-date": "^1.1.0",
     "persian-datepicker": "^1.2.0",
     "sweetalert2": "^11.26.25"
+  },
+  "devDependencies": {
+    "eslint": "^10.10.0"
   }
 }

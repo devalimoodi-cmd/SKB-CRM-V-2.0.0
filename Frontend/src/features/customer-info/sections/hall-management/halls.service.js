@@ -5,8 +5,6 @@ import { notificationService } from "../../../../core/services/notification.serv
 import { stateService } from "../../../../core/services/state.service.js";
 import { authService } from "../../../../core/services/auth.service.js";
 import {
-  convertPersianToGregorian,
-  convertGregorianToPersian,
 } from "../../../../core/utils/date.utils.js";
 
 class HallsService {
@@ -1108,7 +1106,7 @@ class HallsService {
 
     try {
       const selectedHall = this.halls.find((h) => h.id == hallId);
-      const periodId = selectedHall?.period_id || null;
+      const _periodId = selectedHall?.period_id || null;
 
       if (hallId) {
         // ✅ حالت ویرایش - فقط اطلاعات پایه
@@ -1534,7 +1532,7 @@ class HallsService {
 
   createSysRowHtml(cat, item = {}) {
     const qty = parseInt(item.quantity) || 1;
-    const spec = item.spec || "";
+    const _spec = item.spec || "";
     if (cat === "fan") {
       const size = item.size || item.spec || "";
       const capacity = item.capacity || "";
@@ -1637,7 +1635,7 @@ class HallsService {
     const container = document.getElementById("systemItemsEditor");
     if (!container) return;
     container.querySelectorAll(".sys-rows").forEach((rowsEl) => {
-      const cat = rowsEl.id.replace("sysRows-", "");
+      const _cat = rowsEl.id.replace("sysRows-", "");
       const total = Array.from(rowsEl.querySelectorAll(".sys-item-qty")).reduce(
         (s, inp) => s + (parseInt(inp.value) || 0),
         0,

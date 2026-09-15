@@ -345,23 +345,8 @@ class HatcheryService {
       return;
     }
 
-    try {
-      // شماره بعدی حذف شده - واحدها نیازی به شماره اتوماتیک ندارند
-      return;
-      if (response.success) {
-        const periodIdField = document.getElementById("chickPeriodId");
-        const periodNameField = document.getElementById("chickPeriodName");
-
-        if (periodIdField) {
-          periodIdField.value = response.data.periodId || "";
-        }
-        if (periodNameField && !periodNameField.value) {
-          periodNameField.value = response.data.periodName || "";
-        }
-      }
-    } catch (error) {
-      console.error("❌ Error loading next period number:", error);
-    }
+    // ✅ شمارهٔ بعدی حذف شده — واحدها نیازی به شمارهٔ اتوماتیک ندارند
+    // (کد مردهٔ قبلی که به متغیر تعریف‌نشدهٔ response ارجاع می‌داد حذف شد)
   }
 
   async loadNextFlockNumber() {
@@ -4316,7 +4301,7 @@ class HatcheryService {
       // محاسبه پویا برای رکوردهای قدیمی (جوجه نهایی و تلفات)
       const editInitialChicks = parseInt(c.initial_chicks_count) || 0;
       const editTotalMortality = parseInt(c.total_mortality) || 0;
-      const editTransportMortality = parseInt(c.transport_mortality) || 0;
+      const _editTransportMortality = parseInt(c.transport_mortality) || 0;
       const editFinalChicks = Math.max(
         0,
         editInitialChicks - editTotalMortality,

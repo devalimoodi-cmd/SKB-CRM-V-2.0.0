@@ -3,8 +3,8 @@ import { adminPanelRenderer } from "./admin-panel.renderer.js";
 import { adminPanelValidation } from "./admin-panel.validation.js";
 import { notificationService } from "../../core/services/notification.service.js";
 import { authService } from "../../core/services/auth.service.js";
-import { stateService } from "../../core/services/state.service.js";
-import { formatDate } from "../../core/utils/date.utils.js";
+import "../../core/services/state.service.js";
+import "../../core/utils/date.utils.js";
 
 class AdminPanelService {
   constructor() {

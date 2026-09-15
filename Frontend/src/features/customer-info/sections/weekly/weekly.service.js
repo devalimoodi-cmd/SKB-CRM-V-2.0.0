@@ -3,14 +3,14 @@ import { weeklyRenderer, REPORT_STYLES, renderHistoryWeekMatrix } from "./weekly
 import { weeklyValidation } from "./weekly.validation.js";
 import { calculateWeekMetrics } from "./weekly.calculations.js";
 import { notificationService } from "../../../../core/services/notification.service.js";
+import { sanitizeHtmlDocument } from "../../../../core/utils/string.utils.js";
+
 import { stateService } from "../../../../core/services/state.service.js";
 import { authService } from "../../../../core/services/auth.service.js";
 import { apiService } from "../../../../core/services/api.service.js";
 import { hatcheryApi } from "../hatchery/hatchery.api.js";
 import {
-  convertPersianToGregorian,
   convertToPersianDate,
-  daysBetween,
   formatDate,
 } from "../../../../core/utils/date.utils.js";
 
@@ -1512,7 +1512,8 @@ class WeeklyService {
       notificationService.error("لطفاً باز شدن پنجره popup را مجاز کنید");
       return false;
     }
-    printWindow.document.write(html);
+    // ✅ پاک‌سازی خروجی گزارش (جلوگیری از اجرای اسکریپت تزریق‌شده از دیتابیس)
+    printWindow.document.write(sanitizeHtmlDocument(html));
     printWindow.document.close();
     printWindow.onload = function () {
       setTimeout(() => {
@@ -2053,7 +2054,7 @@ class WeeklyService {
             </td></tr>
           </tbody>
         </table>
-        <script>window.onload = function(){ window.print(); }<\/script>
+        <script>window.onload = function(){ window.print(); }</script>
       </body>
       </html>
     `;

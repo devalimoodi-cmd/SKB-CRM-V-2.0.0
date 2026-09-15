@@ -101,25 +101,24 @@ class AuthService {
   // ===== لاگین و خروج =====
   // core/services/auth.service.js
 
-  async login(username, password) {
+  async login(username, password, captcha = null) {
     try {
+      const payload = { username, password };
+
+      // ✅ کپچا (در صورت فعال بودن در سرور + وجود پاسخ)
+      if (captcha && captcha.id && captcha.answer) {
+        payload.captcha_id = captcha.id;
+        payload.captcha_answer = captcha.answer;
+      }
+
       const response = await apiService.post(
         API_CONSTANTS.ENDPOINTS.AUTH.LOGIN,
-        { username, password },
+        payload,
       );
 
-      console.log("📤 پاسخ کامل از سرور:", response); // ✅ اضافه کن
-
       if (response.success) {
-        console.log("📤 توکن دریافتی:", response.data.token); // ✅ اضافه کن
-
         this.setToken(response.data.token);
         this.setUser(response.data.user);
-
-        console.log(
-          "✅ توکن ذخیره شده در localStorage:",
-          localStorage.getItem(CONFIG.TOKEN_KEY),
-        ); // ✅ اضافه کن
 
         await this.updateOnlineStatus(response.data.user.id, true);
         return response.data;
@@ -135,6 +134,9 @@ class AuthService {
     if (user?.id) {
       this.updateOnlineStatus(user.id, false).catch(() => {});
     }
+
+    // ✅ باطل کردن توکن در سرور (بهترین تلاش — حتی اگر شکست بخورد، خروج انجام می‌شود)
+    apiService.post(API_CONSTANTS.ENDPOINTS.AUTH.LOGOUT).catch(() => {});
 
     this.setToken(null);
     this.setUser(null);

@@ -1,8 +1,8 @@
 // Backend/seed-unit-statuses.js
-const { sequelize } = require("./config/database");
-require("./models/associations");
+const { sequelize } = require("../config/database");
+require("../models/associations");
 
-const UnitStatus = require("./models/UnitStatus");
+const UnitStatus = require("../models/UnitStatus");
 
 const statuses = [
   {
@@ -48,7 +48,7 @@ async function seed() {
     console.log("✅ اتصال به دیتابیس برقرار شد");
 
     for (const status of statuses) {
-      const [record, created] = await UnitStatus.findOrCreate({
+      const [, created] = await UnitStatus.findOrCreate({
         where: { name: status.name },
         defaults: status,
       });

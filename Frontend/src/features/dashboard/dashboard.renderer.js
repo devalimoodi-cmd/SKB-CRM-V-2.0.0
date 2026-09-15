@@ -1,4 +1,8 @@
 import { convertToPersianDate } from "../../core/utils/date.utils.js";
+import {
+  escapeHtml,
+  escapeJsAttr,
+} from "../../core/utils/string.utils.js";
 
 export const dashboardRenderer = {
   // ===== رندر کارت تسک =====
@@ -34,12 +38,12 @@ export const dashboardRenderer = {
                  data-flock-id="${flock.id}"
                  data-week-number="${flock.weekNumber}"
                  data-flock-number="${flock.flockNumber}"
-                 onclick="window.selectFlockForChart(${customer.id}, ${flock.id}, '${customer.name}', ${flock.flockNumber}, ${flock.weekNumber})"
+                 onclick="window.selectFlockForChart(${customer.id}, ${flock.id}, ${escapeJsAttr(customer.name)}, ${flock.flockNumber}, ${flock.weekNumber})"
                  style="border-right-color: ${borderColor}; background: ${bgColor}; cursor: pointer;">
                 
                 <div class="task-card-info">
-                    <div class="customer-name" style="font-weight: 600; color: #1e293b;">${customer.name}</div>
-                    <div class="customer-farm" style="font-size: 13px; color: #64748b;">${customer.farmName} | ${customer.city}</div>
+                    <div class="customer-name" style="font-weight: 600; color: #1e293b;">${escapeHtml(customer.name)}</div>
+                    <div class="customer-farm" style="font-size: 13px; color: #64748b;">${escapeHtml(customer.farmName)} | ${escapeHtml(customer.city)}</div>
                     
                     <div class="week-info" style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 4px; font-size: 13px; color: #475569;">
                         <span>🐣 گله ${flock.flockNumber}</span>
@@ -70,7 +74,7 @@ export const dashboardRenderer = {
                     <button class="btn-detail" onclick="event.stopPropagation(); window.showCustomerDetail(${customer.id}, ${flock.id})" title="مشاهده جزئیات">
                         <i class="fas fa-info-circle"></i>
                     </button>
-                    <button class="btn-sms" onclick="event.stopPropagation(); window.sendSmsToCustomer(${customer.id}, '${customer.name}', ${flock.id}, ${flock.weekNumber}, ${flock.flockNumber}, this.closest('.task-card'))" title="ارسال پیامک">
+                    <button class="btn-sms" onclick="event.stopPropagation(); window.sendSmsToCustomer(${customer.id}, ${escapeJsAttr(customer.name)}, ${flock.id}, ${flock.weekNumber}, ${flock.flockNumber}, this.closest('.task-card'))" title="ارسال پیامک">
                         <i class="fas fa-sms"></i>
                     </button>
                     <button class="btn-history" onclick="event.stopPropagation(); window.showSmsHistory(${customer.id}, ${flock.id})" title="تاریخچه پیامک‌ها">
@@ -92,7 +96,7 @@ export const dashboardRenderer = {
     const priorityColor = this.getPriorityColor(bookmark.priority);
     const typeText = bookmark.type === "reminder" ? "🔔 یادآوری" : "📌 بوکمارک";
     const icon = bookmark.type === "reminder" ? "fa-bell" : "fa-bookmark";
-    const iconColor = bookmark.type === "reminder" ? "#f59e0b" : "#3b82f6";
+    const _iconColor = bookmark.type === "reminder" ? "#f59e0b" : "#3b82f6";
     const isOverdue =
       bookmark.due_date && new Date(bookmark.due_date) < new Date();
 
@@ -186,19 +190,19 @@ export const dashboardRenderer = {
     const activeHalls = halls.filter((h) => h.isActive);
     const st = this.statusUI(flock?.status);
     const defHall = activeHalls[0] || halls[0] || null;
-    const csafe = String(customer?.name || "").replace(/'/g, "");
+    const csafe = escapeJsAttr(customer?.name);
     const customerInitial = String(customer?.name || "؟")
       .trim()
       .charAt(0) || "؟";
     const groupClick = flock?.id
-      ? `window.selectFlockGroupForChart(${customer?.id ?? 0}, ${flock.id}, '${csafe}', ${flock?.flockNumber ?? "null"}, ${flock?.weekNumber ?? "null"})`
+      ? `window.selectFlockGroupForChart(${customer?.id ?? 0}, ${flock.id}, ${csafe}, ${flock?.flockNumber ?? "null"}, ${flock?.weekNumber ?? "null"})`
       : "";
 
     const meta = [];
     if (flock?.flockNumber)
       meta.push(`<span class="task-chip chip-flock"><i class="fas fa-feather"></i> گله ${flock.flockNumber}</span>`);
     if (flock?.unitName)
-      meta.push(`<span class="task-chip chip-unit"><i class="fas fa-industry"></i> ${flock.unitName}</span>`);
+      meta.push(`<span class="task-chip chip-unit"><i class="fas fa-industry"></i> ${escapeHtml(flock.unitName)}</span>`);
     if (flock?.placementDate)
       meta.push(
         `<span class="task-chip chip-date"><i class="fas fa-calendar-alt"></i> ${convertToPersianDate(flock.placementDate)}</span>`,
@@ -249,8 +253,8 @@ export const dashboardRenderer = {
           <div class="fc-main" style="flex:1; min-width:0;">
             <div class="fc-headline">
               <div style="flex:1; min-width:0;">
-                <div class="customer-name" style="font-weight:700; color:#0f172a;">${customer?.name || "نامشخص"}</div>
-                <div class="customer-farm" style="font-size:12px; color:#64748b;">${customer?.farmName || ""}${customer?.city ? " | " + customer.city : ""}</div>
+                <div class="customer-name" style="font-weight:700; color:#0f172a;">${escapeHtml(customer?.name || "نامشخص")}</div>
+                <div class="customer-farm" style="font-size:12px; color:#64748b;">${escapeHtml(customer?.farmName || "")}${customer?.city ? " | " + escapeHtml(customer.city) : ""}</div>
               </div>
               <span class="status-text" style="color:${st.color}; font-weight:700;">${st.text}</span>
             </div>
@@ -292,11 +296,8 @@ export const dashboardRenderer = {
   renderHallRow(card, hall) {
     const { customer, flock } = card || {};
     const hSt = this.statusUI(hall.status);
-    const csafe = String(customer?.name || "").replace(/'/g, "");
-    const hname = String(hall.hallName || `سالن ${hall.hallId || ""}`).replace(
-      /'/g,
-      "",
-    );
+    const csafe = escapeJsAttr(customer?.name);
+    const hname = String(hall.hallName || `سالن ${hall.hallId || ""}`);
     const smsLog = hall.smsLog || null;
     const smsStatus = smsLog ? smsLog.status || "sent" : null;
     const smsInfo = smsStatus ? this.getSmsStatusInfo(smsStatus) : null;
@@ -309,7 +310,7 @@ export const dashboardRenderer = {
           .join(" ") || smsLog.sender.username || ""
       : "";
     const chipAttrs = smsLog?.message_id
-      ? ` data-message-id="${smsLog.message_id}" data-sender-name="${String(sender).replace(/"/g, "")}" data-sms-status="${smsStatus}"`
+      ? ` data-message-id="${smsLog.message_id}" data-sender-name="${escapeHtml(sender)}" data-sms-status="${smsStatus}"`
       : "";
     const fmtDateTime = (d) => {
       if (!d) return "";
@@ -329,7 +330,7 @@ export const dashboardRenderer = {
       ? fmtDateTime(smsLog.delivered_at)
       : "";
     const senderLine = sender
-      ? `<div style="font-size:9px; opacity:0.85;">فرستنده: ${sender}</div>`
+      ? `<div style="font-size:9px; opacity:0.85;">فرستنده: ${escapeHtml(sender)}</div>`
       : "";
     const deliveryLine = deliveredAtText
       ? `<div style="font-size:9px; opacity:0.85;">تحویل: ${deliveredAtText}</div>`
@@ -352,13 +353,13 @@ export const dashboardRenderer = {
            data-flock-id="${hall.id}"
            data-week-number="${hall.weekNumber ?? 0}"
            data-flock-number="${flock?.flockNumber ?? 0}"
-           onclick="event.stopPropagation(); window.selectFlockForChart(${customer?.id ?? 0}, ${hall.id}, '${csafe}', ${flock?.flockNumber ?? "null"}, ${hall.weekNumber ?? "null"}, '${hname}', ${flock?.id ?? 0})"
+           onclick="event.stopPropagation(); window.selectFlockForChart(${customer?.id ?? 0}, ${hall.id}, ${csafe}, ${flock?.flockNumber ?? "null"}, ${hall.weekNumber ?? "null"}, ${escapeJsAttr(hname)}, ${flock?.id ?? 0})"
            title="کلیک: نمایش نمودار این سالن">
         <div class="th-head">
         <div class="th-main">
           <span class="th-selected-tag"><i class="fas fa-eye"></i> در حال نمایش</span>
-          <span class="th-hall" style="font-weight:600; color:#1e293b;"><i class="fas fa-warehouse"></i> ${hname}</span>
-          ${hall.breedName ? `<span class="th-info"><i class="fas fa-dna"></i> ${hall.breedName}</span>` : ""}
+          <span class="th-hall" style="font-weight:600; color:#1e293b;"><i class="fas fa-warehouse"></i> ${escapeHtml(hname)}</span>
+          ${hall.breedName ? `<span class="th-info"><i class="fas fa-dna"></i> ${escapeHtml(hall.breedName)}</span>` : ""}
           <span class="th-info"><i class="fas fa-calendar-week"></i> هفته ${hall.weekNumber ?? "-"}</span>
           ${
             hall.weekStartDate
@@ -616,11 +617,11 @@ export const dashboardRenderer = {
     const halls = (flock?.halls || []).filter((h) => h.isActive);
     const st = this.statusUI(flock?.status);
     const defHall = halls[0] || null;
-    const csafe = String(customer?.name || "").replace(/'/g, "");
+    const csafe = escapeJsAttr(customer?.name);
     const customerInitial =
       String(customer?.name || "؟").trim().charAt(0) || "؟";
     const groupClick = flock?.id
-      ? `window.selectFlockGroupForChart(${customer?.id ?? 0}, ${flock.id}, '${csafe}', ${flock?.flockNumber ?? "null"}, ${flock?.weekNumber ?? "null"})`
+      ? `window.selectFlockGroupForChart(${customer?.id ?? 0}, ${flock.id}, ${csafe}, ${flock?.flockNumber ?? "null"}, ${flock?.weekNumber ?? "null"})`
       : "";
 
     // ── متادیتای فشرده هدر ──
@@ -642,9 +643,9 @@ export const dashboardRenderer = {
     const farmParts = [];
     const farmNameTxt = flock?.unitName || customer?.farmName || "";
     if (farmNameTxt)
-      farmParts.push(`<i class="fas fa-warehouse"></i> ${farmNameTxt}`);
+      farmParts.push(`<i class="fas fa-warehouse"></i> ${escapeHtml(farmNameTxt)}`);
     if (customer?.city)
-      farmParts.push(`<i class="fas fa-map-pin"></i> ${customer.city}`);
+      farmParts.push(`<i class="fas fa-map-pin"></i> ${escapeHtml(customer.city)}`);
     const farmHTML = farmParts.length
       ? `<div class="fc-farm-line">${farmParts.join('<span class="fc-sep">|</span>')}</div>`
       : "";

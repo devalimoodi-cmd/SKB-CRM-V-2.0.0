@@ -1,14 +1,13 @@
 import { bookmarksApi } from "./bookmarks.api.js";
 import { bookmarksRenderer } from "./bookmarks.renderer.js";
 import { bookmarksModalService } from "./bookmarks.modal.service.js";
-import { bookmarksDropdownService } from "./bookmarks.dropdown.service.js";
+import "./bookmarks.dropdown.service.js";
 import { bookmarksValidation } from "./bookmarks.validation.js";
 import { notificationService } from "../../core/services/notification.service.js";
 import { authService } from "../../core/services/auth.service.js";
 import { stateService } from "../../core/services/state.service.js";
 import {
   convertPersianToGregorian,
-  convertToPersianDate,
 } from "../../core/utils/date.utils.js";
 
 class BookmarksService {

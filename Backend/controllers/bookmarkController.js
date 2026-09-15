@@ -6,6 +6,7 @@ const User = require("../models/User");
 const Flock = require("../models/Flock");
 const Hall = require("../models/Hall");
 const { successResponse, errorResponse } = require("../utils/response");
+const { parsePagination } = require("../utils/pagination");
 const { Op } = require("sequelize");
 
 // include اشتراکی برای نمایش گله/دوره (flocks) + سالن اختیاری
@@ -36,9 +37,12 @@ const getBookmarks = async (req, res) => {
       flock_id,
       unit_id,
       search,
-      page = 1,
-      limit = 20,
     } = req.query;
+
+    // ✅ صفحه‌بندی با سقف (جلوگیری از درخواست سنگین مثل ?limit=999999)
+    const { page, limit, offset } = parsePagination(req.query, {
+      defaultLimit: 20,
+    });
 
     const where = {};
 
@@ -60,8 +64,6 @@ const getBookmarks = async (req, res) => {
 
     // فقط بوکمارک‌های کاربر جاری
     where.created_by = req.user.id;
-
-    const offset = (page - 1) * limit;
 
     const { count, rows } = await Bookmark.findAndCountAll({
       where,

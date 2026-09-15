@@ -256,9 +256,14 @@ export const visitReportRenderer = {
     const fixFileName = (name) => {
       if (!name) return name;
       try {
-        const fixed = Buffer.from(name, "latin1").toString("utf8");
+        // ✅ معادل مرورگریِ Buffer.from(name, "latin1").toString("utf8")
+        // (در مرورگر Buffer وجود ندارد و این تابع ReferenceError می‌داد)
+        const bytes = Uint8Array.from(name, (ch) => ch.charCodeAt(0) & 0xff);
+        const fixed = new TextDecoder("utf-8").decode(bytes);
         if (!fixed.includes("\uFFFD")) return fixed;
-      } catch (e) {}
+      } catch (e) {
+        /* در صورت خطا نام اصلی برگردانده می‌شود */
+      }
       return name;
     };
 

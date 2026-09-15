@@ -21,7 +21,7 @@
 // ⚠️ این اسکریپت را روی دیتابیس رسمیِ دارای داده‌ی واقعی اجرا نکنید.
 // ================================================================
 
-const { sequelize } = require("./config/database");
+const { sequelize } = require("../config/database");
 
 async function findAutoIncrementColumns() {
   // ۱) ستون‌های SERIAL / BIGSERIAL (دارای sequence)

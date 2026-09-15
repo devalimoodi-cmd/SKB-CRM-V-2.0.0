@@ -9,13 +9,23 @@ const smsController = require("../controllers/smsController");
 router.use(protect);
 
 // ============================================
-// مسیرهای عمومی (همه کاربران)
+// مسیرهای عمومی (همه کاربران لاگین‌شده)
 // ============================================
 router.get("/credit", smsController.getCredit);
-router.get("/lines", smsController.getLines);
-router.post("/verify", smsController.sendVerify);
 router.get("/status/:messageId", smsController.getMessageStatus);
-router.get("/received", smsController.getReceivedMessages);
+
+// ============================================
+// ✅ مسیرهای حساس پیامک (فقط ادمین‌ها)
+// - verify: ارسال کد تأیید به هر شماره‌ای که در body بیاید
+//   (اگر برای همه باز باشد، هر کارشناس می‌تواند با هزینهٔ سامانه پیامک اسپم بفرستد)
+// - lines: لیست خطوط سرویس پیامک
+// - received: صندوق پیام‌های دریافتی (ممکن است کد/اطلاعات خصوصی داشته باشد)
+// ============================================
+const ADMIN_ONLY = authorize("admin", "super_admin", "sub_admin");
+
+router.get("/lines", ADMIN_ONLY, smsController.getLines);
+router.post("/verify", ADMIN_ONLY, smsController.sendVerify);
+router.get("/received", ADMIN_ONLY, smsController.getReceivedMessages);
 
 // ============================================
 // مسیرهای اختصاصی (فقط ادمین)

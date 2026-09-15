@@ -1,6 +1,9 @@
 const { Sequelize } = require("sequelize");
 const path = require("path");
-require("dotenv").config({ path: path.join(__dirname, "../.env") });
+require("dotenv").config({
+  path: path.join(__dirname, "../.env"),
+  quiet: true, // بنر تبلیغاتی dotenv روی stdout چاپ نشود (خروجی JSON اسکریپت‌ها را خراب می‌کرد)
+});
 
 // تبدیل ایمن رمز عبور به رشته و حذف کوتیشن‌های اضافی
 const dbPassword = String(process.env.DB_PASSWORD || "").replace(/"/g, "");

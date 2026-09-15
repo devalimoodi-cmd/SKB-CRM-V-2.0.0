@@ -230,12 +230,6 @@ User.prototype.generateToken = function () {
   return token;
 };
 
-// بررسی انقضای توکن
-User.prototype.isTokenExpired = function () {
-  if (!this.token_expires_at) return true;
-  return new Date() > new Date(this.token_expires_at);
-};
-
 // بررسی قفل بودن حساب
 User.prototype.isLocked = function () {
   if (!this.locked_until) return false;
@@ -246,11 +240,15 @@ User.prototype.isLocked = function () {
 User.prototype.incrementFailedAttempts = async function () {
   const newAttempts = (this.failed_login_attempts || 0) + 1;
 
-  // بعد از 5 تلاش ناموفق، حساب را به مدت 30 دقیقه قفل کن
-  if (newAttempts >= 5) {
+  // ✅ آستانه‌ها قابل تنظیم با متغیرهای محیطی
+  const maxAttempts = Number(process.env.LOGIN_MAX_ATTEMPTS || 5);
+  const lockMinutes = Number(process.env.LOGIN_LOCK_MINUTES || 30);
+
+  // بعد از N تلاش ناموفق، حساب را به مدت M دقیقه قفل کن
+  if (newAttempts >= maxAttempts) {
     await this.update({
       failed_login_attempts: newAttempts,
-      locked_until: new Date(Date.now() + 30 * 60 * 1000), // 30 دقیقه
+      locked_until: new Date(Date.now() + lockMinutes * 60 * 1000),
     });
   } else {
     await this.update({ failed_login_attempts: newAttempts });

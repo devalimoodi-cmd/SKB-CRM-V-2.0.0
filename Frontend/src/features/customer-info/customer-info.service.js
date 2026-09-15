@@ -1,10 +1,8 @@
 import { apiService } from "../../core/services/api.service.js";
 import { stateService } from "../../core/services/state.service.js";
 import { notificationService } from "../../core/services/notification.service.js";
-import { authService } from "../../core/services/auth.service.js";
+import "../../core/services/auth.service.js";
 import {
-  convertToPersianDate,
-  formatDate,
 } from "../../core/utils/date.utils.js";
 import { animateCounter } from "../../core/utils/animate.utils.js";
 import { sectionHeaderService } from "./section-header/section-header.service.js";

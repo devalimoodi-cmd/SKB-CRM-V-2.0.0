@@ -157,7 +157,7 @@ class HeaderBookmarksService {
     }
 
     const priorityText = this.getPriorityText(bookmark.priority);
-    const priorityColor = this.getPriorityColor(bookmark.priority);
+    const _priorityColor = this.getPriorityColor(bookmark.priority);
     const customerName = bookmark.customer?.full_name || "بدون مشتری";
     const dueDate = bookmark.due_date
       ? convertToPersianDate(bookmark.due_date)
@@ -339,18 +339,20 @@ class HeaderBookmarksService {
   // ===== توابع کمکی =====
 
   closeBookmarkModal() {
-    if (typeof modalService !== "undefined") {
+    // ✅ سرویس مودال روی window ثبت می‌شود (مثل bookmarksModalService در همین فایل)
+    const modalService = window.bookmarksModalService;
+    if (modalService && typeof modalService.close === "function") {
       modalService.close("bookmarkDetailModal");
-      // حذف مودال از DOM
-      setTimeout(() => {
-        const modal = document.querySelector(
-          '.modal-overlay[data-modal-id="bookmarkDetailModal"]',
-        );
-        if (modal) {
-          modal.remove();
-        }
-      }, 300);
     }
+    // حذف مودال از DOM (همیشه اجرا می‌شود)
+    setTimeout(() => {
+      const modal = document.querySelector(
+        '.modal-overlay[data-modal-id="bookmarkDetailModal"]',
+      );
+      if (modal) {
+        modal.remove();
+      }
+    }, 300);
   }
 
   editBookmarkFromDetail(id) {

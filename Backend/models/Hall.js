@@ -30,10 +30,6 @@ const Hall = sequelize.define(
       type: DataTypes.STRING(50),
       allowNull: true,
     },
-    hall_order: {
-      type: DataTypes.INTEGER,
-      defaultValue: 0,
-    },
     nominal_capacity: {
       type: DataTypes.INTEGER,
       allowNull: true,

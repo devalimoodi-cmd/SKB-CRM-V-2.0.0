@@ -20,6 +20,7 @@ Frontend/.env.*.local
 *.env
 
 # ===== Logs =====
+logs/
 Backend/logs/
 Backend/npm-debug.log*
 Backend/yarn-debug.log*
@@ -86,3 +87,10 @@ Frontend/tmp/
 *.pid
 *.seed
 *.pid.lock
+# ==== debug artifacts ====
+syn-result.txt
+structure.txt
+*-check.txt
+
+# ==== backups ====
+backups/

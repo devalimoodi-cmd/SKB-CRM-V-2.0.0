@@ -11,6 +11,8 @@ import {
   convertToPersianDate,
   formatDate,
 } from "../../../../core/utils/date.utils.js";
+import { sanitizeHtmlDocument } from "../../../../core/utils/string.utils.js";
+
 
 // نمایش تاریخ کشتار به‌صورت بازه‌ای (شروع/پایان)؛ رکوردهای قدیمی تک‌تاریخی هم پشتیبانی می‌شوند
 const formatSlaughterRange = (completion) => {
@@ -302,7 +304,7 @@ class HatcheryReport {
       const source =
         this.dictionaries.sources?.find((s) => s.id === p.chick_source_id)
           ?.name || "-";
-      const completed = mode === "history";
+      const _completed = mode === "history";
       html += `
         <tr>
           <td>${i + 1}</td>
@@ -551,7 +553,8 @@ class HatcheryReport {
         alert("لطفاً باز شدن پنجره popup را مجاز کنید");
         return;
       }
-      printWindow.document.write(html);
+      // ✅ پاک‌سازی خروجی گزارش (جلوگیری از اجرای اسکریپت تزریق‌شده از دیتابیس)
+      printWindow.document.write(sanitizeHtmlDocument(html));
       printWindow.document.close();
     } catch (error) {
       console.error("Error generating flock report:", error);
@@ -597,7 +600,7 @@ class HatcheryReport {
         alert("لطفاً باز شدن پنجره popup را مجاز کنید");
         return;
       }
-      printWindow.document.write(html);
+      printWindow.document.write(sanitizeHtmlDocument(html));
       printWindow.document.close();
     } catch (error) {
       console.error("Error generating flock sms report:", error);
@@ -877,7 +880,7 @@ class HatcheryReport {
         </table>
         <script>
           window.onload = function() { window.print(); }
-        <\/script>
+        </script>
       </body>
       </html>
     `;
@@ -893,7 +896,8 @@ class HatcheryReport {
         alert("لطفاً باز شدن پنجره popup را مجاز کنید");
         return;
       }
-      printWindow.document.write(html);
+      // ✅ پاک‌سازی خروجی گزارش (جلوگیری از اجرای اسکریپت تزریق‌شده از دیتابیس)
+      printWindow.document.write(sanitizeHtmlDocument(html));
       printWindow.document.close();
     } catch (error) {
       console.error("❌ Error generating chick report:", error);

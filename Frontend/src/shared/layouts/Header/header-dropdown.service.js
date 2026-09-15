@@ -1,4 +1,4 @@
-import { dropdownService } from "../../components/Dropdown/dropdown.service.js";
+import "../../components/Dropdown/dropdown.service.js";
 
 class HeaderDropdownService {
   constructor() {

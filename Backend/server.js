@@ -1,10 +1,27 @@
+// ✅ محافظ‌های سراسری پروسه (خطای مدیریت‌نشده / Promise ردشده)
+// باید قبل از هر require دیگری نصب شود تا خطاهای زمان راه‌اندازی هم لاگ شوند.
+const { installProcessGuards } = require("./utils/processGuards");
+installProcessGuards();
+
 const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
+
+// ✅ بارگذاری .env در همان ابتدا (قبل از هر require دیگر)
+// بعضی ماژولها (مثل middleware/rateLimit) در زمان import از process.env میخوانند
+// و اگر dotenv دیرتر اجرا شود، مقادیر .env نادیده گرفته میشوند.
+// (dotenv در بالای فایل اجرا میشود)
+dotenv.config({ quiet: true });
+
 const { connectDB } = require("./config/database");
 const path = require("path");
 const os = require("os");
 const { protect, authorize } = require("./middleware/auth");
+const { errorResponse } = require("./utils/response");
+const {
+  applySecurityHeaders,
+  apiLimiter,
+} = require("./middleware/rateLimit");
 
 // Routes
 const customerRegistrationRoutes = require("./routes/customerRegistrationRoutes");
@@ -30,6 +47,8 @@ const bookmarkRoutes = require("./routes/bookmarkRoutes");
 const customerHeaderRoutes = require("./routes/customerHeaderRoutes");
 const flockCompletionRoutes = require("./routes/flockCompletionRoutes");
 const settingsRoutes = require("./routes/settingsRoutes");
+const visitReportRoutes = require("./routes/visitReportRoutes");
+const captchaRoutes = require("./routes/captchaRoutes");
 
 // ================== ###==========
 
@@ -37,15 +56,21 @@ const settingsRoutes = require("./routes/settingsRoutes");
 require("./models/associations");
 // ===
 
-dotenv.config();
-
 const app = express();
+
+// ✅ این سرور پشت پروکسی فرانت‌اند (هم‌ماشین) است
+// با این تنظیم، آی‌پی واقعی کاربر از X-Forwarded-For خوانده می‌شود
+// (لازم برای Rate Limit و لاگ‌های درست)
+app.set("trust proxy", "loopback");
 
 // ============================================
 // Middlewareها -
 // ============================================
 
 // CORS - باید اول باشد
+// ✅ هدرهای امنیتی (بدون پکیج خارجی - در middleware/rateLimit.js)
+app.use(applySecurityHeaders);
+
 app.use(
   cors({
     origin: [
@@ -64,16 +89,119 @@ app.use(
 );
 
 // برای دریافت JSON
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: "5mb" }));
+app.use(express.urlencoded({ extended: true, limit: "5mb" }));
 
-// برای سرو فایل‌های استاتیک (عکس‌ها)
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+// ✅ محدودیت نرخ درخواست برای همهٔ APIها (ضد Brute-force / سوءاستفاده)
+// قابل غیرفعال‌سازی در تست با RATE_LIMIT_DISABLED=true
+app.use("/api", apiLimiter);
+
+// ============================================
+// ✅ سرو فایل‌های آپلودی (تصاویر/پیوست‌های گزارش بازدید)
+// نکته: این مسیر «عمومی» است چون در <img>/<video>/<iframe> داخل برنامه
+// استفاده می‌شود و مرورگر روی این درخواست‌ها هدر Authorization نمی‌فرستد.
+// برای کم‌کردن ریسک:
+//   ۱) پسوندهای اجرایی/اسکریپتی هرگز سرو نمی‌شوند (۴۰۴)
+//   ۲) nosniff → مرورگر نوع فایل را حدس نزند
+//   ۳) انواع غیرتصویری به‌صورت دانلود (attachment) فرستاده می‌شوند تا
+//      محتوای آپلودشده داخل مبدأ برنامه اجرا نشود
+//   ۴) لیست‌کردن پوشه‌ها و فایل‌های مخفی غیرفعال است
+// ============================================
+const UPLOADS_BLOCKED_EXT = new Set([
+  ".html",
+  ".htm",
+  ".xhtml",
+  ".shtml",
+  ".js",
+  ".mjs",
+  ".cjs",
+  ".jsx",
+  ".ts",
+  ".tsx",
+  ".css",
+  ".xml",
+  ".xsl",
+  ".svg",
+  ".svgz",
+  ".php",
+  ".asp",
+  ".aspx",
+  ".jsp",
+  ".cgi",
+  ".pl",
+  ".py",
+  ".rb",
+  ".sh",
+  ".bat",
+  ".cmd",
+  ".ps1",
+  ".vbs",
+  ".wsf",
+  ".jar",
+  ".exe",
+  ".dll",
+  ".msi",
+  ".scr",
+  ".com",
+  ".pif",
+]);
+
+const UPLOADS_INLINE_EXT = new Set([
+  ".jpg",
+  ".jpeg",
+  ".png",
+  ".gif",
+  ".webp",
+  ".bmp",
+  ".ico",
+  ".avif",
+  ".pdf",
+  ".mp4",
+  ".webm",
+  ".mov",
+  ".m4v",
+  ".mp3",
+  ".wav",
+  ".ogg",
+  ".txt",
+  ".csv",
+]);
+
+app.use(
+  "/uploads",
+  (req, res, next) => {
+    let urlPath = (req.path || "").split("?")[0];
+    try {
+      urlPath = decodeURIComponent(urlPath);
+    } catch {
+      /* مسیر انکود‌نشده نامعتبر → مثل قبل ادامه بده */
+    }
+    const ext = path.extname(urlPath).toLowerCase();
+
+    if (UPLOADS_BLOCKED_EXT.has(ext)) {
+      return errorResponse(res, "این نوع فایل قابل سرو نیست", 404);
+    }
+
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    if (!UPLOADS_INLINE_EXT.has(ext)) {
+      // فایل‌های ناشناخته/غیرتصویری: دانلود به‌جای اجرا در مرورگر
+      res.setHeader("Content-Disposition", "attachment");
+    }
+    return next();
+  },
+  express.static(path.join(__dirname, "uploads"), {
+    index: false,
+    dotfiles: "deny",
+  }),
+);
 
 // ============================================
 // ✅ بررسی سلامت سرویس (عمومی - بدون احراز هویت)
 // برای تست پروکسی فرانت‌اند و دسترسی از بیرون شبکه
 // ============================================
+// ✅ کپچای صفحهٔ ورود (عمومی - بدون احراز هویت)
+app.use("/api/captcha", captchaRoutes);
+
 app.get("/api/ping", (req, res) => {
   res.json({
     success: true,
@@ -145,7 +273,6 @@ app.use("/api/breed-standards", breedStandardRoutes);
 // ===================================================================
 
 //================  گزارش بازدید ===================
-const visitReportRoutes = require("./routes/visitReportRoutes");
 app.use("/api/visit-reports", visitReportRoutes);
 
 // ================================================
@@ -223,9 +350,7 @@ app.use("/api/bookmarks", bookmarkRoutes);
 // ------------------بوکمارک ها#-----------
 
 // =============================== روت مربوط به اطلاعات هدر صفحه پروفایل =============
-app.use("/api/customers", customerRegistrationRoutes);
-app.use("/api/cities", cityRoutes);
-app.use("/api/users", userRoutes);
+// (mount دوبارهٔ /api/customers، /api/cities و /api/users حذف شد — قبلاً بالای فایل mount شده‌اند)
 app.use("/api/customer-header", customerHeaderRoutes);
 // =========
 
@@ -233,11 +358,59 @@ app.use("/api/customer-header", customerHeaderRoutes);
 app.use("/api/flock-completions", flockCompletionRoutes);
 // =========
 
+// ============================================
+// ✅ مدیریت خطاهای عمومی (به‌صورت JSON، نه HTML)
+// مخصوصاً خطاهای multer تا پیام واضح به کاربر برسد
+// ============================================
+app.use((error, req, res, next) => {
+  if (res.headersSent) return next(error);
+
+  // خطاهای آپلود فایل (multer)
+  if (error && error.name === "MulterError") {
+    const messages = {
+      LIMIT_FILE_SIZE: "حجم فایل بیش از حد مجاز است",
+      LIMIT_FILE_COUNT: "تعداد فایل‌های ارسالی بیش از حد مجاز است",
+      LIMIT_UNEXPECTED_FILE: `فیلد فایل ناشناخته: ${error.field || ""}`,
+      LIMIT_PART_COUNT: "تعداد بخش‌های درخواست بیش از حد مجاز است",
+      LIMIT_FIELD_COUNT: "تعداد فیلدهای درخواست بیش از حد مجاز است",
+    };
+    return errorResponse(res, messages[error.code] || "خطا در آپلود فایل", 400);
+  }
+
+  // خطای فیلتر نوع فایل (فرمت غیرمجاز)
+  if (error && /مجاز (نیست|است)/.test(String(error.message || ""))) {
+    return errorResponse(res, error.message, 400);
+  }
+
+  // بدنهٔ JSON نامعتبر یا خیلی بزرگ
+  if (error && error.type === "entity.parse.failed") {
+    return errorResponse(res, "ساختار دادهٔ ارسالی معتبر نیست", 400);
+  }
+  if (error && error.type === "entity.too.large") {
+    return errorResponse(res, "حجم دادهٔ ارسالی بیش از حد مجاز است", 413);
+  }
+
+  console.error("❌ Unhandled error:", error);
+  return errorResponse(res, error?.message || "خطای غیرمنتظره", 500);
+});
+
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`✅ Server running on port ${PORT}`);
   console.log(`💚 Health check: http://localhost:${PORT}/health`);
   console.log(`📊 Server status: http://localhost:${PORT}/api/server-status`);
+});
+
+// ✅ خطاهای سطح سرور (مثلاً پورت اشغال) با پیام واضح، نه خروج بی‌صدا
+server.on("error", (error) => {
+  if (error && error.code === "EADDRINUSE") {
+    console.error(
+      `❌ پورت ${PORT} در حال استفاده است. یک نمونهٔ دیگر از سرور در حال اجراست یا پورت را در .env تغییر دهید (PORT=5001).`,
+    );
+  } else {
+    console.error("❌ خطای سرور:", error);
+  }
+  process.exit(1);
 });
 
 // --------------------

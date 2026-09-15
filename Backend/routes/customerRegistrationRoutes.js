@@ -13,7 +13,13 @@ router.post(
 // ------------------------finsh new customer   Data Table-----------------
 
 // ------------------------Start get all  Customer  Data Table-----------------
-router.get("/", customerController.getAllCustomers);
+// ✅ نیاز به ورود (قبلاً باز بود و لیست کامل مشتری‌ها لو می‌رفت)
+router.get(
+  "/",
+  protect,
+  authorize("expert", "admin", "sub_admin", "super_admin"),
+  customerController.getAllCustomers,
+);
 // ------------------------finish get all  Customer  Data Table-----------------
 
 // ------------------------Start Deleted Customer btn In Data Table-----------------
@@ -31,7 +37,12 @@ router.put("/:id/enable", protect, customerController.toggleCustomerStatus);
 // -----------------------------------finish enable/disable customer  in data table--------------------
 
 // -----------------------------------start view data customer  in data table--------------------
-router.get("/:id", customerController.getCustomerById);
+router.get(
+  "/:id",
+  protect,
+  authorize("expert", "admin", "sub_admin", "super_admin"),
+  customerController.getCustomerById,
+);
 // -----------------------------------finish view data customer   in data table--------------------
 
 // ✅---------------------- start edit customer btn (با protect) -------------

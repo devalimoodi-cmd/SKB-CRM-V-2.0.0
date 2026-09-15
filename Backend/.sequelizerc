@@ -1,0 +1,12 @@
+// ------------------------------------------------------------
+// .sequelizerc  —  مسیرهای sequelize-cli
+// اجرا: npm run db:migrate  /  npm run db:status  /  npm run db:rollback
+// ------------------------------------------------------------
+const path = require("path");
+
+module.exports = {
+  config: path.resolve("config", "sequelize-cli.config.js"),
+  "models-path": path.resolve("models"),
+  "migrations-path": path.resolve("migrations"),
+  "seeders-path": path.resolve("seeders"),
+};

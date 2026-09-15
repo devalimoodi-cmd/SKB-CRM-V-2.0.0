@@ -3,8 +3,6 @@ const CustomerPersonalInfo = require("../models/CustomerPersonalInfo");
 const Unit = require("../models/Unit");
 const ChickPlacement = require("../models/ChickPlacement");
 const { successResponse, errorResponse } = require("../utils/response");
-const User = require("../models/User");
-const { Op } = require("sequelize");
 
 // ===== ایمپورت متغیر های دریافت  تمام  اطلاعات سالن
 const HallPhysicalInfo = require("../models/HallPhysicalInfo");

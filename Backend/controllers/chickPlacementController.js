@@ -8,15 +8,18 @@ const {
   validateChickPlacement,
 } = require("../validations/chickPlacementValidation");
 const { successResponse, errorResponse } = require("../utils/response");
+const { parsePagination } = require("../utils/pagination");
+const { sequelize } = require("../config/database");
 
 // ============================================
 // محاسبه شماره بعدی گله برای (مشتری + واحد)
 // ============================================
-const getNextFlockNumber = async (customer_id, unit_id) => {
+const getNextFlockNumber = async (customer_id, unit_id, transaction = null) => {
   const last = await Flock.findOne({
     where: { customer_id, unit_id },
     order: [["flock_number", "DESC"]],
     attributes: ["flock_number"],
+    transaction,
   });
   return (last ? parseInt(last.flock_number) : 0) + 1;
 };
@@ -24,15 +27,23 @@ const getNextFlockNumber = async (customer_id, unit_id) => {
 // ============================================
 // ساخت رکورد گله جدید
 // ============================================
-const createFlockRecord = async (customer_id, unit_id, placement_date) => {
-  const nextNumber = await getNextFlockNumber(customer_id, unit_id);
-  return Flock.create({
-    customer_id,
-    unit_id,
-    flock_number: nextNumber,
-    placement_date,
-    status: "active",
-  });
+const createFlockRecord = async (
+  customer_id,
+  unit_id,
+  placement_date,
+  transaction = null,
+) => {
+  const nextNumber = await getNextFlockNumber(customer_id, unit_id, transaction);
+  return Flock.create(
+    {
+      customer_id,
+      unit_id,
+      flock_number: nextNumber,
+      placement_date,
+      status: "active",
+    },
+    { transaction },
+  );
 };
 
 // ============================================
@@ -45,15 +56,19 @@ const resolveFlock = async ({
   placement_date,
   flock_id,
   start_new_flock,
+  transaction = null,
 }) => {
   // ۱) شروع صریح گله جدید (کنار گله‌های فعال موجود)
   if (start_new_flock) {
-    return createFlockRecord(customer_id, unit_id, placement_date);
+    return createFlockRecord(customer_id, unit_id, placement_date, transaction);
   }
 
   // ۲) اگر گله مشخص شده، بررسی اعتبار آن
   if (flock_id) {
-    const flock = await Flock.findOne({ where: { id: flock_id, customer_id } });
+    const flock = await Flock.findOne({
+      where: { id: flock_id, customer_id },
+      transaction,
+    });
     if (!flock) {
       const err = new Error("گله یافت نشد");
       err.status = 404;
@@ -77,22 +92,27 @@ const resolveFlock = async ({
   const activeFlocks = await Flock.findAll({
     where: { customer_id, unit_id, status: "active" },
     order: [["placement_date", "DESC"]],
+    transaction,
   });
   for (const f of activeFlocks) {
     const activeCnt = await ChickPlacement.count({
       where: { flock_id: f.id, is_active: true },
+      transaction,
     });
     if (activeCnt > 0) return f;
   }
 
   // ۴) ساخت گله جدید
-  return createFlockRecord(customer_id, unit_id, placement_date);
+  return createFlockRecord(customer_id, unit_id, placement_date, transaction);
 };
 
 // ============================================
 // ایجاد جوجه‌ریزی جدید (زیر یک گله)
 // ============================================
 const createChickPlacement = async (req, res) => {
+  // ✅ تراکنش: ممکن است گله جدید ساخته شود و سپس جوجه‌ریزی؛ اگر خطا رخ دهد
+  // گلهٔ بی‌استفاده و نیمه‌کاره در دیتابیس باقی نمی‌ماند.
+  let transaction = null;
   try {
     const validation = validateChickPlacement(req.body);
     if (!validation.isValid) {
@@ -153,6 +173,7 @@ const createChickPlacement = async (req, res) => {
     }
 
     // پیدا کردن / ساخت گله
+    transaction = await sequelize.transaction();
     let flock;
     try {
       flock = await resolveFlock({
@@ -161,8 +182,13 @@ const createChickPlacement = async (req, res) => {
         placement_date,
         flock_id,
         start_new_flock: !!start_new_flock,
+        transaction,
       });
     } catch (resolveError) {
+      if (transaction) {
+        await transaction.rollback();
+        transaction = null;
+      }
       return errorResponse(res, resolveError.message, resolveError.status || 400);
     }
 
@@ -180,7 +206,19 @@ const createChickPlacement = async (req, res) => {
       avg_initial_weight: avg_initial_weight || null,
       total_chicks_count: total_chicks_count || null,
       placement_density: placement_density || null,
-    });
+    }, { transaction });
+
+    // ✅ قلاب تست (فقط خارج از production): برای اثبات rollback تراکنش
+    // در سرور واقعی (NODE_ENV=production) هرگز فعال نمی‌شود.
+    if (
+      process.env.NODE_ENV !== "production" &&
+      process.env.TEST_FAIL_PLACEMENT === "true"
+    ) {
+      throw new Error("TEST_FAIL_PLACEMENT (fault injection)");
+    }
+
+    await transaction.commit();
+    transaction = null;
 
     successResponse(
       res,
@@ -189,6 +227,13 @@ const createChickPlacement = async (req, res) => {
       201,
     );
   } catch (error) {
+    if (transaction) {
+      try {
+        await transaction.rollback();
+      } catch {
+        /* اگر تراکنش قبلاً بسته شده باشد */
+      }
+    }
     console.error("خطا در ثبت جوجه‌ریزی:", error);
     errorResponse(res, error.message, 500);
   }
@@ -205,9 +250,12 @@ const getChickPlacements = async (req, res) => {
       hall_id,
       id,
       is_active,
-      page = 1,
-      limit = 20,
     } = req.query;
+
+    // ✅ صفحه‌بندی با سقف
+    const { page, limit, offset } = parsePagination(req.query, {
+      defaultLimit: 20,
+    });
     const where = {};
 
     if (id) where.id = id;
@@ -217,8 +265,6 @@ const getChickPlacements = async (req, res) => {
 
     if (is_active === "true") where.is_active = true;
     else if (is_active === "false") where.is_active = false;
-
-    const offset = (page - 1) * limit;
 
     const { count, rows } = await ChickPlacement.findAndCountAll({
       where,
@@ -342,6 +388,8 @@ const updateChickPlacement = async (req, res) => {
 // حذف یک «گله/دوره» کامل به همراه همه جوجه‌ریزی‌های سالن‌های عضو
 // ============================================
 const deleteFlockGroup = async (req, res) => {
+  // ✅ تراکنش: حذف گله و همهٔ جوجه‌ریزی‌های آن باید اتمیک باشد
+  let transaction = null;
   try {
     const flockId = parseInt(req.params.flockId);
     if (!flockId) {
@@ -359,11 +407,15 @@ const deleteFlockGroup = async (req, res) => {
     });
 
     // حذف جوجه‌ریزی‌های سالن‌های عضو (با cascade به رکوردهای هفتگی/وابسته)
+    transaction = await sequelize.transaction();
     for (const p of placements) {
-      await p.destroy();
+      await p.destroy({ transaction });
     }
 
-    await flock.destroy();
+    await flock.destroy({ transaction });
+
+    await transaction.commit();
+    transaction = null;
 
     successResponse(
       res,
@@ -371,6 +423,13 @@ const deleteFlockGroup = async (req, res) => {
       `گله شماره ${flock.flock_number} و ${placements.length} جوجه‌ریزی آن حذف شد`,
     );
   } catch (error) {
+    if (transaction) {
+      try {
+        await transaction.rollback();
+      } catch {
+        /* اگر تراکنش قبلاً بسته شده باشد */
+      }
+    }
     console.error("خطا در حذف گله:", error);
     errorResponse(res, error.message, 500);
   }
@@ -399,6 +458,8 @@ const deleteChickPlacement = async (req, res) => {
 // فعال کردن یک جوجه‌ریزی (و غیرفعال کردن قبلی همان سالن)
 // ============================================
 const activateChickPlacement = async (req, res) => {
+  // ✅ تراکنش: غیرفعال‌کردن دورهٔ قبلی + فعال‌کردن دورهٔ جدید باید اتمیک باشد
+  let transaction = null;
   try {
     const { id } = req.params;
     const newPlacement = await ChickPlacement.findByPk(id);
@@ -411,14 +472,19 @@ const activateChickPlacement = async (req, res) => {
       return errorResponse(res, "این جوجه‌ریزی قبلاً فعال شده است", 400);
     }
 
+    transaction = await sequelize.transaction();
+
     // غیرفعال کردن جوجه‌ریزی فعال قبلی همان سالن
     await ChickPlacement.update(
       { is_active: false },
-      { where: { hall_id: newPlacement.hall_id, is_active: true } },
+      { where: { hall_id: newPlacement.hall_id, is_active: true }, transaction },
     );
 
     // فعال کردن جوجه‌ریزی جدید
-    await newPlacement.update({ is_active: true });
+    await newPlacement.update({ is_active: true }, { transaction });
+
+    await transaction.commit();
+    transaction = null;
 
     successResponse(
       res,
@@ -426,6 +492,13 @@ const activateChickPlacement = async (req, res) => {
       "جوجه‌ریزی با موفقیت فعال شد و دوره قبلی غیرفعال گردید",
     );
   } catch (error) {
+    if (transaction) {
+      try {
+        await transaction.rollback();
+      } catch {
+        /* اگر تراکنش قبلاً بسته شده باشد */
+      }
+    }
     console.error("خطا در فعال‌سازی جوجه‌ریزی:", error);
     errorResponse(res, error.message, 500);
   }

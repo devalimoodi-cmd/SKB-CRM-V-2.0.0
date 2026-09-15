@@ -83,7 +83,7 @@ export function openSmsModal({
         .filter((c) => c.checked)
         .map((c) => available[parseInt(c.value, 10)] || null)
         .filter(Boolean);
-    const firstSelected = () => getSelectedRecipients()[0] || available[0];
+    const _firstSelected = () => getSelectedRecipients()[0] || available[0];
 
     if (typeof Swal !== "undefined") {
       Swal.fire({
@@ -135,6 +135,11 @@ export function openSmsModal({
           const textarea = document.getElementById("smsMessage");
           const charCount = document.getElementById("smsCharCount");
           const templateSelect = document.getElementById("smsTemplateSelect");
+          // ⚠️ این متغیر فعلاً فقط «نوشته» می‌شود (برای نگه‌داشتن متن خودکار)
+          // و جایی خوانده نمی‌شود؛ مانده است تا منطق «جلوگیری از بازنویسی
+          // ویرایش کاربر» بعداً کامل شود. حذفش رفتار را تغییر نمی‌دهد ولی
+          // برای حفظ خوانایی و ادامهٔ کار نگه داشته شده است.
+          // eslint-disable-next-line no-unused-vars
           let lastAuto = null;
 
           const updateCount = (t) => {

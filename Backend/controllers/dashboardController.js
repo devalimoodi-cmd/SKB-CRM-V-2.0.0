@@ -2,7 +2,7 @@
 // controllers/dashboardController.js
 // ================================================================
 
-const { sequelize } = require("../config/database");
+const { parsePagination } = require("../utils/pagination");
 const { Op } = require("sequelize");
 const CustomerPersonalInfo = require("../models/CustomerPersonalInfo");
 const ChickPlacement = require("../models/ChickPlacement");
@@ -13,7 +13,6 @@ const Unit = require("../models/Unit");
 const UnitExpert = require("../models/UnitExpert");
 const User = require("../models/User");
 const ChickenBreed = require("../models/ChickenBreed");
-const ChickSource = require("../models/ChickSource");
 
 // ================================================================
 // ✅ اضافه کردن مدل‌های مرتبط با مدیریت هفتگی
@@ -107,8 +106,11 @@ function calculateStatus(weekEndDate) {
 // ================================================================
 const getActiveFlocks = async (req, res) => {
   try {
-    const { status, search, page = 1, limit = 20 } = req.query;
-    const offset = (page - 1) * limit;
+    const { status, search } = req.query;
+    // ✅ صفحه‌بندی با سقف
+    const { page, limit, offset } = parsePagination(req.query, {
+      defaultLimit: 20,
+    });
 
     const whereCondition = { is_active: true };
 
@@ -949,7 +951,6 @@ const getCustomerDetails = async (req, res) => {
       const flockAge = calculateFlockAge(flock.placement_date);
       const currentWeek = calculateCurrentWeek(flock.placement_date);
       const weekRange = calculateWeekRange(flock.placement_date, currentWeek);
-      const status = calculateStatus(weekRange.weekEndDate);
 
       return {
         id: flock.id,

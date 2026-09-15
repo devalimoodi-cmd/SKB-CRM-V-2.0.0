@@ -3,7 +3,7 @@
 // ============================================
 const express = require("express");
 const router = express.Router();
-const upload = require("../middleware/upload");
+const { upload } = require("../middleware/upload");
 const visitReportController = require("../controllers/visitReportController");
 const { protect, authorize } = require("../middleware/auth");
 
@@ -14,16 +14,15 @@ router.post(
   "/",
   protect,
   authorize("admin", "expert", "sub_admin", "super_admin"),
-  upload.any(),
+  upload.array("files", 10),
   visitReportController.createVisitReport,
 );
-
 // ویرایش گزارش
 router.put(
   "/:id",
   protect,
   authorize("admin", "expert", "sub_admin", "super_admin"),
-  upload.any(),
+  upload.array("files", 10),
   visitReportController.updateVisitReport,
 );
 

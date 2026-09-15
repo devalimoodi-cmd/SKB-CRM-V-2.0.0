@@ -2,8 +2,24 @@ const User = require("../models/User");
 const { Op } = require("sequelize");
 const path = require("path");
 const fs = require("fs");
+const { ADMIN_ROLES } = require("../middleware/auth");
+const { getTokenExpiryDate } = require("../utils/token");
+const {
+  verifyChallenge,
+  isEnabled: isCaptchaEnabled,
+} = require("../utils/captcha");
 
 const { successResponse, errorResponse } = require("../utils/response");
+
+// ✅ تبدیل فایل آپلودشده به URL قابل دسترس
+// (قبلاً فقط نام فایل ساخته می‌شد و مسیر واقعی داخل uploads از دست می‌رفت)
+const fileToPublicUrl = (file) => {
+  if (!file) return null;
+  const relative = String(file.path || "").replace(/\\/g, "/");
+  const index = relative.indexOf("uploads/");
+  if (index >= 0) return `/${relative.slice(index)}`;
+  return `/uploads/${file.filename}`;
+};
 
 // ============================================
 // بررسی وجود ادمین
@@ -51,14 +67,8 @@ const setupAdmin = async (req, res) => {
       mobile_number = mobile_number || req.body.mobile_number;
     }
 
-    console.log("📝 داده دریافتی:", {
-      first_name,
-      last_name,
-      username,
-      email,
-      password,
-      mobile_number,
-    });
+    // ✅ رمز عبور هرگز لاگ نمی‌شود
+    console.log("📝 ساخت ادمین اولیه برای:", { username, email, mobile_number });
 
     // اعتبارسنجی
     if (
@@ -116,7 +126,7 @@ const setupAdmin = async (req, res) => {
     const token = newAdmin.generateToken();
     await newAdmin.update({
       token,
-      token_expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      token_expires_at: getTokenExpiryDate(),
     });
 
     const adminData = newAdmin.toJSON();
@@ -196,7 +206,25 @@ const registerUser = async (req, res) => {
     // آپلود عکس
     let profile_image = null;
     if (req.file) {
-      profile_image = `/uploads/${req.file.filename}`;
+      profile_image = fileToPublicUrl(req.file);
+    }
+
+    // ✅ کنترل سطح دسترسی: فقط نقش‌های مدیریتی اجازهٔ ساخت کاربر دارند
+    const requesterRole = req.user?.role;
+    if (!ADMIN_ROLES.includes(requesterRole)) {
+      if (req.file) fs.unlinkSync(req.file.path);
+      return errorResponse(res, "شما دسترسی به ساخت کاربر را ندارید", 403);
+    }
+
+    // ✅ فقط سوپرادمین می‌تواند سوپرادمین بسازد
+    const safeRole = role || "customer";
+    if (safeRole === "super_admin" && requesterRole !== "super_admin") {
+      if (req.file) fs.unlinkSync(req.file.path);
+      return errorResponse(
+        res,
+        "فقط مدیر اصلی می‌تواند مدیر اصلی ایجاد کند",
+        403,
+      );
     }
 
     // ایجاد کاربر جدید (توکن کاربر فعلی تغییری نمی‌کند)
@@ -207,7 +235,7 @@ const registerUser = async (req, res) => {
       email,
       password,
       mobile_number,
-      role: role || "customer",
+      role: safeRole,
       status: status || "pending",
       profile_image,
       created_by: req.user?.id || null,
@@ -217,11 +245,11 @@ const registerUser = async (req, res) => {
     let jwtToken = null;
     const rolesThatNeedToken = ["super_admin", "admin", "sub_admin", "expert"];
 
-    if (rolesThatNeedToken.includes(role)) {
+    if (rolesThatNeedToken.includes(safeRole)) {
       jwtToken = newUser.generateToken();
       await newUser.update({
         token: jwtToken,
-        token_expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        token_expires_at: getTokenExpiryDate(),
       });
     }
 
@@ -323,6 +351,43 @@ const updateUser = async (req, res) => {
 
     if (!user) return errorResponse(res, "کاربر یافت نشد", 404);
 
+    // ✅ کنترل سطح دسترسی روی فیلدهای حساس
+    const requesterRole = req.user?.role;
+    const isAdmin = ADMIN_ROLES.includes(requesterRole);
+
+    // فیلدهایی که کاربر عادی هرگز نمی‌تواند تغییر دهد (جلوگیری از ارتقای سطح دسترسی)
+    const protectedFields = [
+      "role",
+      "status",
+      "token",
+      "token_expires_at",
+      "password",
+      "created_by",
+      "is_online",
+      "last_seen",
+    ];
+
+    if (!isAdmin) {
+      protectedFields.forEach((field) => delete updateData[field]);
+    } else if (requesterRole !== "super_admin") {
+      if (updateData.role === "super_admin") {
+        if (req.file) fs.unlinkSync(req.file.path);
+        return errorResponse(
+          res,
+          "فقط مدیر اصلی می‌تواند نقش مدیر اصلی بدهد",
+          403,
+        );
+      }
+      if (user.role === "super_admin") {
+        if (req.file) fs.unlinkSync(req.file.path);
+        return errorResponse(
+          res,
+          "تغییر اطلاعات مدیر اصلی فقط توسط خودِ مدیر اصلی امکان‌پذیر است",
+          403,
+        );
+      }
+    }
+
     // بررسی تکراری
     if (updateData.email || updateData.username || updateData.mobile_number) {
       const whereConditions = [];
@@ -357,7 +422,7 @@ const updateUser = async (req, res) => {
         const oldPath = path.join(__dirname, "..", user.profile_image);
         if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
       }
-      updateData.profile_image = `/uploads/${req.file.filename}`;
+      updateData.profile_image = fileToPublicUrl(req.file);
     }
 
     await user.update(updateData);
@@ -370,7 +435,7 @@ const updateUser = async (req, res) => {
       const newToken = user.generateToken();
       await user.update({
         token: newToken,
-        token_expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        token_expires_at: getTokenExpiryDate(),
       });
     }
 
@@ -390,6 +455,18 @@ const deleteUser = async (req, res) => {
     const { id } = req.params;
     const user = await User.findByPk(id);
     if (!user) return errorResponse(res, "کاربر یافت نشد", 404);
+
+    // ✅ محافظت‌ها: حذف حساب خود و حذف مدیر اصلی توسط غیرِ مدیر اصلی ممنوع
+    if (String(req.user?.id) === String(id)) {
+      return errorResponse(res, "حذف حساب کاربری خودتان امکان‌پذیر نیست", 400);
+    }
+    if (user.role === "super_admin" && req.user?.role !== "super_admin") {
+      return errorResponse(
+        res,
+        "حذف مدیر اصلی فقط توسط خودِ مدیر اصلی امکان‌پذیر است",
+        403,
+      );
+    }
 
     if (user.profile_image) {
       const imagePath = path.join(__dirname, "..", user.profile_image);
@@ -416,7 +493,7 @@ const resetUserToken = async (req, res) => {
     const newToken = user.generateToken();
     await user.update({
       token: newToken,
-      token_expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      token_expires_at: getTokenExpiryDate(),
     });
     successResponse(res, { token: newToken }, "توکن با موفقیت بازنشانی شد");
   } catch (error) {
@@ -434,6 +511,29 @@ const loginUser = async (req, res) => {
     if (!username || !password)
       return errorResponse(res, "نام کاربری و رمز عبور الزامی است", 400);
 
+    // ✅ بررسی کپچا (ضد حملهٔ خودکار) — قبل از هر کار دیگری
+    // توجه: خطای کپچا شمارندهٔ قفل حساب را بالا نمی‌برد (تا کسی نتواند
+    // با پاسخ اشتباه، حساب کاربران را قفل کند).
+    if (isCaptchaEnabled()) {
+      const { captcha_id, captcha_answer } = req.body;
+      const captchaResult = verifyChallenge(captcha_id, captcha_answer);
+
+      if (!captchaResult.ok) {
+        const captchaMessages = {
+          missing: "کد امنیتی تصویر را وارد کنید",
+          expired: "کد امنیتی منقضی شده است؛ تصویر جدید را دریافت کنید",
+          invalid: "کد امنیتی نامعتبر است؛ تصویر جدید را دریافت کنید",
+          wrong: "کد امنیتی تصویر اشتباه است",
+        };
+
+        return errorResponse(
+          res,
+          captchaMessages[captchaResult.reason] || "کد امنیتی نامعتبر است",
+          400,
+        );
+      }
+    }
+
     const user = await User.findOne({
       where: { [Op.or]: [{ username }, { email: username }] },
     });
@@ -443,12 +543,60 @@ const loginUser = async (req, res) => {
     if (user.status !== "active")
       return errorResponse(res, "حساب کاربری شما فعال نیست", 403);
 
+    // ✅ قفل حساب پس از تلاش‌های ناموفق (ضد Brute-force در سطح هر کاربر)
+    if (user.isLocked()) {
+      const minutesLeft = Math.max(
+        1,
+        Math.ceil(
+          (new Date(user.locked_until).getTime() - Date.now()) / 60000,
+        ),
+      );
+      return errorResponse(
+        res,
+        `حساب کاربری شما به دلیل تلاش‌های ناموفق تا ${minutesLeft} دقیقهٔ دیگر قفل است`,
+        423,
+      );
+    }
+
     const isPasswordValid = await user.comparePassword(password);
-    if (!isPasswordValid)
-      return errorResponse(res, "نام کاربری یا رمز عبور اشتباه است", 401);
+    if (!isPasswordValid) {
+      await user.incrementFailedAttempts();
+
+      const maxAttempts = Number(process.env.LOGIN_MAX_ATTEMPTS || 5);
+      const lockMinutes = Number(process.env.LOGIN_LOCK_MINUTES || 30);
+
+      if (user.isLocked()) {
+        return errorResponse(
+          res,
+          `رمز عبور اشتباه است. حساب شما به دلیل ${maxAttempts} تلاش ناموفق، ${lockMinutes} دقیقه قفل شد`,
+          423,
+        );
+      }
+
+      const attemptsLeft = Math.max(
+        0,
+        maxAttempts - (user.failed_login_attempts || 0),
+      );
+      return errorResponse(
+        res,
+        `نام کاربری یا رمز عبور اشتباه است (${attemptsLeft} تلاش باقی مانده)`,
+        401,
+      );
+    }
+
+    // ✅ ورود موفق: شمارندهٔ تلاش‌های ناموفق و قفل پاک می‌شود
+    if (user.failed_login_attempts > 0 || user.locked_until) {
+      await user.resetFailedAttempts();
+    }
 
     const token = user.generateToken();
-    await user.update({ last_login: new Date() });
+    // ✅ توکن جاری در دیتابیس ذخیره می‌شود تا «خروج» بتواند نشست را واقعاً ببندد
+    // (و با ENFORCE_SINGLE_SESSION=true، هر کاربر یک نشست فعال داشته باشد)
+    await user.update({
+      last_login: new Date(),
+      token,
+      token_expires_at: getTokenExpiryDate(),
+    });
 
     successResponse(
       res,
@@ -467,7 +615,12 @@ const loginUser = async (req, res) => {
 const updateOnlineStatus = async (req, res) => {
   try {
     const { id } = req.params;
-    const { online_status } = req.body;
+    // ✅ پذیرش هر دو نام: online_status (auth.service) و status (login.service)
+    const online_status = req.body.online_status ?? req.body.status;
+
+    if (typeof online_status !== "boolean") {
+      return errorResponse(res, "وضعیت آنلاین باید true یا false باشد", 400);
+    }
 
     const user = await User.findByPk(id);
     if (!user) {
@@ -478,6 +631,42 @@ const updateOnlineStatus = async (req, res) => {
     successResponse(res, { online_status }, "وضعیت آنلاین بروزرسانی شد");
   } catch (error) {
     console.error("خطا:", error);
+    errorResponse(res, error.message, 500);
+  }
+};
+
+// ============================================
+// خروج کاربر (باطل کردن توکن ذخیرهشده در سرور)
+// ============================================
+const logoutUser = async (req, res) => {
+  try {
+    const user = await User.findByPk(req.user.id);
+    if (!user) return errorResponse(res, "کاربر یافت نشد", 404);
+
+    await user.update({ token: null, token_expires_at: null, online_status: false });
+    successResponse(res, null, "با موفقیت خارج شدید");
+  } catch (error) {
+    console.error("خطا در خروج:", error);
+    errorResponse(res, error.message, 500);
+  }
+};
+
+// ============================================
+// بازکردن قفل حساب کاربر (فقط نقش‌های مدیریتی)
+// ============================================
+const unlockUser = async (req, res) => {
+  try {
+    const user = await User.findByPk(req.params.id);
+    if (!user) return errorResponse(res, "کاربر یافت نشد", 404);
+
+    await user.resetFailedAttempts();
+    successResponse(
+      res,
+      { id: user.id, username: user.username },
+      `حساب «${user.username}» از قفل خارج شد`,
+    );
+  } catch (error) {
+    console.error("خطا در بازکردن قفل حساب:", error);
     errorResponse(res, error.message, 500);
   }
 };
@@ -494,4 +683,6 @@ module.exports = {
   resetUserToken,
   loginUser,
   updateOnlineStatus,
+  logoutUser,
+  unlockUser,
 };

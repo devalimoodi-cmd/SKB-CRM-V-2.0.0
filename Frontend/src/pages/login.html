@@ -344,6 +344,53 @@
                 padding: 10px 40px 10px 12px;
             }
         }
+
+        /* ===== کپچا (کد امنیتی) ===== */
+        .captcha-group {
+            display: none;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .captcha-group .form-control {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .captcha-box {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: #ffffff;
+            border: 1px solid #e2e8e4;
+            border-radius: 12px;
+            padding: 4px 8px;
+            justify-content: center;
+        }
+
+        .captcha-box img {
+            height: 40px;
+            width: auto;
+            display: block;
+            cursor: pointer;
+            border-radius: 6px;
+        }
+
+        .captcha-refresh {
+            border: none;
+            background: transparent;
+            color: #2c7a6e;
+            cursor: pointer;
+            font-size: 14px;
+            padding: 4px;
+            line-height: 1;
+        }
+
+        .captcha-refresh:hover {
+            color: #1f5d54;
+            transform: rotate(90deg);
+            transition: transform 0.2s ease;
+        }
     </style>
 </head>
 
@@ -377,6 +424,18 @@
                 <button type="button" class="password-toggle" id="togglePassword" tabindex="-1">
                     <i class="fas fa-eye-slash"></i>
                 </button>
+            </div>
+
+            <!-- ✅ کد امنیتی (کپچا) — در صورت فعال بودن در سرور نمایش داده می‌شود -->
+            <div class="form-group captcha-group" id="captchaGroup">
+                <input type="text" class="form-control" id="captchaAnswer" placeholder="کد امنیتی تصویر"
+                    autocomplete="off" maxlength="8">
+                <div class="captcha-box">
+                    <img id="captchaImage" alt="کد امنیتی" title="برای تصویر جدید کلیک کنید">
+                    <button type="button" class="captcha-refresh" id="captchaRefresh" title="تصویر جدید">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                </div>
             </div>
 
             <div class="login-options">
@@ -437,12 +496,61 @@
             const togglePassword = document.getElementById('togglePassword');
             const message = document.getElementById('loginMessage');
             const messageText = document.getElementById('messageText');
+            const captchaGroup = document.getElementById('captchaGroup');
+            const captchaImage = document.getElementById('captchaImage');
+            const captchaAnswer = document.getElementById('captchaAnswer');
+            const captchaRefresh = document.getElementById('captchaRefresh');
+
+            // ✅ وضعیت کپچا (از سرور خوانده می‌شود)
+            let captchaId = null;
+            let captchaEnabled = false;
+
+            async function loadCaptcha(clearMessage = true) {
+                try {
+                    const response = await fetch('/api/captcha', {
+                        headers: { Accept: 'application/json' },
+                        cache: 'no-store',
+                    });
+                    const json = await response.json().catch(() => null);
+                    const data = json && json.success ? json.data : null;
+
+                    if (data && data.enabled) {
+                        captchaEnabled = true;
+                        captchaId = data.id;
+                        captchaImage.src =
+                            'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(data.svg);
+                        captchaGroup.style.display = 'flex';
+                        captchaAnswer.setAttribute('required', 'required');
+                    } else {
+                        // سرور کپچا را غیرفعال کرده است
+                        captchaEnabled = false;
+                        captchaId = null;
+                        captchaGroup.style.display = 'none';
+                        captchaAnswer.removeAttribute('required');
+                    }
+
+                    captchaAnswer.value = '';
+                } catch (error) {
+                    // اگر گرفتن کپچا ممکن نبود، ورود را قفل نمی‌کنیم؛
+                    // سرور خودش تصمیم می‌گیرد و پیام مناسب را برمی‌گرداند.
+                    console.error('❌ خطا در دریافت کپچا:', error);
+                    captchaEnabled = false;
+                    captchaGroup.style.display = 'none';
+                    captchaAnswer.removeAttribute('required');
+                }
+
+                if (clearMessage) showMessage('');
+            }
 
             function showMessage(text, type = 'error') {
                 message.className = `login-message ${type}`;
                 messageText.textContent = text;
                 message.style.display = text ? 'flex' : 'none';
             }
+
+            captchaRefresh.addEventListener('click', () => loadCaptcha());
+            captchaImage.addEventListener('click', () => loadCaptcha());
+            captchaAnswer.addEventListener('input', () => showMessage(''));
 
             togglePassword.addEventListener('click', function () {
                 const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
@@ -460,6 +568,9 @@
                 }
             }
 
+            // ✅ دریافت کد امنیتی هنگام باز شدن صفحه
+            loadCaptcha(false);
+
             form.addEventListener('submit', async function (e) {
                 e.preventDefault();
 
@@ -472,13 +583,24 @@
                     return;
                 }
 
+                const captchaCode = captchaAnswer.value.trim();
+
+                if (captchaEnabled && !captchaCode) {
+                    showMessage('کد امنیتی تصویر را وارد کنید', 'error');
+                    captchaAnswer.focus();
+                    return;
+                }
+
                 loginBtn.disabled = true;
                 loginBtn.classList.add('loading');
 
                 try {
                     // ✅ استفاده از authService که به صورت module لود شده
                     const { authService } = await import('/core/services/auth.service.js');
-                    const result = await authService.login(user, pass);
+                    const result = await authService.login(user, pass, {
+                        id: captchaId,
+                        answer: captchaCode,
+                    });
 
                     if (result) {
                         showMessage('✅ ورود با موفقیت انجام شد', 'success');
@@ -504,6 +626,10 @@
                     }
                 } catch (error) {
                     showMessage(error.message || 'نام کاربری یا رمز عبور اشتباه است', 'error');
+
+                    // ✅ کد امنیتی یک‌بارمصرف است؛ تصویر جدید گرفته می‌شود
+                    if (captchaEnabled) await loadCaptcha(false);
+                    captchaAnswer.focus();
                 } finally {
                     loginBtn.disabled = false;
                     loginBtn.classList.remove('loading');
