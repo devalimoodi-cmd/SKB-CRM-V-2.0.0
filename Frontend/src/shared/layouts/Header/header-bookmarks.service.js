@@ -1,6 +1,7 @@
 import { apiService } from "../../../core/services/api.service.js";
 import { API_CONSTANTS } from "../../../core/constants/api.const.js";
 import { convertToPersianDate } from "../../../core/utils/date.utils.js";
+import { notificationService } from "../../../core/services/notification.service.js";
 
 class HeaderBookmarksService {
   constructor() {
@@ -152,7 +153,7 @@ class HeaderBookmarksService {
 
     const bookmark = this.bookmarks.find((b) => b.id === id);
     if (!bookmark) {
-      alert("⚠️ بوکمارک یافت نشد");
+      notificationService.warning("بوکمارک یافت نشد");
       return;
     }
 
@@ -310,7 +311,9 @@ class HeaderBookmarksService {
           if (window.showCreateBookmarkModal) {
             window.showCreateBookmarkModal(bookmark.id);
           } else {
-            alert("ویرایش بوکمارک - این قابلیت به زودی اضافه می‌شود");
+            notificationService.info(
+              "ویرایش بوکمارک - این قابلیت به زودی اضافه می‌شود",
+            );
           }
         } else if (result.dismiss === "cancel") {
           // ✅ استفاده از تابع deleteBookmark
@@ -331,9 +334,19 @@ class HeaderBookmarksService {
         }
       });
     } else {
-      alert(
-        `📌 ${bookmark.title}\n\n${bookmark.description || "بدون توضیح"}\n\n👤 ${customerName}\n📅 ${dueDate || "بدون تاریخ"}`,
-      );
+      // ✅ نمایش جزئیات با مودال SweetAlert2 (بدون دیالوگ بومی مرورگر)
+      Swal.fire({
+        icon: "info",
+        title: `📌 ${bookmark.title}`,
+        html: `
+          <div style="text-align:right; direction:rtl; font-size:13.5px; line-height:2;">
+            <div>${bookmark.description || "بدون توضیح"}</div>
+            <div style="margin-top:10px; color:#475569;">👤 ${customerName}</div>
+            <div style="color:#475569;">📅 ${dueDate || "بدون تاریخ"}</div>
+          </div>`,
+        confirmButtonText: "بستن",
+        confirmButtonColor: "#2c7a6e",
+      });
     }
   }
   // ===== توابع کمکی =====
@@ -361,7 +374,9 @@ class HeaderBookmarksService {
       window.showCreateBookmarkModal(id);
     } else {
       console.log("✏️ ویرایش بوکمارک:", id);
-      alert(`ویرایش بوکمارک ${id} - این قابلیت به زودی اضافه می‌شود`);
+      notificationService.info(
+        `ویرایش بوکمارک ${id} - این قابلیت به زودی اضافه می‌شود`,
+      );
     }
   }
 
@@ -371,7 +386,7 @@ class HeaderBookmarksService {
     try {
       const token = localStorage.getItem("adminToken");
       if (!token) {
-        alert("⚠️ لطفاً وارد شوید");
+        notificationService.warning("لطفاً وارد شوید");
         return;
       }
 
@@ -386,28 +401,20 @@ class HeaderBookmarksService {
         this.updateBadges();
 
         // نمایش پیام موفقیت
-        if (typeof Swal !== "undefined") {
-          Swal.fire({
-            icon: "success",
-            title: "✅ حذف شد",
-            text: "بوکمارک با موفقیت حذف شد",
-            timer: 2000,
-            showConfirmButton: false,
-          });
-        } else {
-          alert("✅ بوکمارک با موفقیت حذف شد");
-        }
+        notificationService.success("بوکمارک با موفقیت حذف شد");
 
         // اگر صفحه بوکمارک باز هست، رفرش کن
         if (window.bookmarksService) {
           window.bookmarksService.loadBookmarks();
         }
       } else {
-        alert("❌ خطا: " + (result.message || "حذف انجام نشد"));
+        notificationService.error(
+          "خطا: " + (result.message || "حذف انجام نشد"),
+        );
       }
     } catch (error) {
       console.error("❌ Error deleting bookmark:", error);
-      alert("❌ خطا در ارتباط با سرور");
+      notificationService.error("خطا در ارتباط با سرور");
     }
   }
 

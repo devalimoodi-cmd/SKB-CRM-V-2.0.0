@@ -1,6 +1,7 @@
 import { authService } from "../../../core/services/auth.service.js";
 import { headerBookmarksService } from "./header-bookmarks.service.js";
 import { headerDropdownService } from "./header-dropdown.service.js";
+import { messagesService } from "../../../features/messages/messages.service.js";
 
 class HeaderService {
   constructor() {
@@ -11,6 +12,12 @@ class HeaderService {
 
   async init() {
     if (this.initialized) return;
+
+    // ✅ گارد سراسری: اگر ماژول/سرویس دو نمونه شود، هدر دو بار ساخته/بایند نشود
+    if (typeof window !== "undefined") {
+      if (window.__skbHeaderInit) return;
+      window.__skbHeaderInit = true;
+    }
 
     // ===== 1. لود کردن HTML هدر =====
     try {
@@ -356,8 +363,8 @@ class HeaderService {
         emailBtn.classList.toggle("active");
 
         if (emailDropdown.classList.contains("show")) {
-          // بارگذاری پیام‌ها
-          await headerBookmarksService.loadBookmarks();
+          // ✅ بارگذاری «نظرات و پیشنهادات» (قبلاً اشتباهاً بوکمارک‌ها لود می‌شد)
+          await messagesService.refreshDropdown();
         }
       });
 

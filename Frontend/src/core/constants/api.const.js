@@ -110,8 +110,21 @@ export const API_CONSTANTS = {
     WEATHER: {
       GET: "/weather/customer/:customerId",
     },
-    CHAT: {
-      MESSAGES: "/chat/messages",
+    // ===== نظرات و پیشنهادات (گفتگوی کاربر ↔ ادمین) =====
+    SUGGESTIONS: {
+      CREATE: "/suggestions",
+      MINE: "/suggestions/mine",
+      UNREAD: "/suggestions/unread-count",
+      THREAD: "/suggestions/:id",
+      REPLY: "/suggestions/:id/reply",
+      READ: "/suggestions/:id/read",
+      ADMIN_LIST: "/suggestions",
+      ADMIN_THREAD: "/suggestions/:id/admin",
+      ADMIN_REPLY: "/suggestions/:id/admin-reply",
+      UPDATE: "/suggestions/:id",
+      DELETE: "/suggestions/:id",
+      // ✅ حذف یک پیام داخل گفتگو (فقط ادمین)
+      DELETE_MESSAGE: "/suggestions/:id/messages/:messageId",
     },
     CITIES: {
       PROVINCES: "/cities/provinces",

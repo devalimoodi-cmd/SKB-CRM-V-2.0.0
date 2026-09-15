@@ -214,29 +214,11 @@
   color: #cbd5e1;
 }
 
-/* ===== بارگذاری ===== */
-.table-loading {
-  text-align: center;
-  padding: 40px 20px;
-  color: #94a3b8;
-}
-
-.table-loading .spinner {
-  display: inline-block;
-  width: 30px;
-  height: 30px;
-  border: 3px solid #f1f5f9;
-  border-top-color: #2c7a6e;
-  border-radius: 50%;
-  animation: tableSpin 1s linear infinite;
-  margin-bottom: 12px;
-}
-
-@keyframes tableSpin {
-  to {
-    transform: rotate(360deg);
-  }
-}
+/* ===== بارگذاری =====
+   ⚠️ از لودر سیستمی استفاده کن (پیرو انتخاب ادمین):
+      <span data-skb-loader data-skb-loader-text="در حال بارگذاری..."></span>
+      یا  loaderService.inline({ text, size: "sm" })
+   (اسپینر اختصاصی قبلی حذف شد تا در کل سیستم یک لودر داشته باشیم) ===== */
 
 /* ===== اسکرول ===== */
 .table-container::-webkit-scrollbar {

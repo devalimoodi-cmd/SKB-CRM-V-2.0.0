@@ -131,13 +131,13 @@ const run = async () => {
     String(plain.headers.get("cache-control")),
   );
 
-  const dash = await waitFor(`${base}/dashboard`);
+  const dash = await waitFor(`${base}/`);
   const dashHtml = await dash.text();
   const dashVersioned = versionOf(dashHtml);
   check(
-    "صفحهٔ /dashboard هم نسخه‌دار سرو می‌شود",
-    dashVersioned.length >= 3,
-    `count=${dashVersioned.length}`,
+    "صفحهٔ داشبورد (/) نسخه‌دار سرو می‌شود",
+    dash.status === 200 && dashVersioned.length >= 3,
+    `status=${dash.status} count=${dashVersioned.length}`,
   );
   check(
     "نسخهٔ دارایی‌ها در همهٔ صفحات یکسان است",
@@ -147,6 +147,143 @@ const run = async () => {
 
   const notFound = await fetch(`${base}/this-page-does-not-exist`);
   check("مسیر ناشناخته → ۴۰۴", notFound.status === 404, `status=${notFound.status}`);
+
+  // ===== صفحه‌های اطلاعاتی (درباره ما / تماس با ما / راهنما) =====
+  const infoPages = [
+    ["/about", "درباره ما"],
+    ["/contact", "تماس با ما"],
+    ["/help", "راهنما"],
+  ];
+  for (const [path, label] of infoPages) {
+    const res = await waitFor(`${base}${path}`);
+    const body = await res.text();
+    check(
+      `صفحهٔ ${label} (${path}) سرو می‌شود`,
+      res.status === 200 && body.length > 500,
+      `status=${res.status} len=${body.length}`,
+    );
+    check(
+      `صفحهٔ ${label}: دارایی‌ها نسخه‌دار شده‌اند (?v=)`,
+      versionOf(body).length >= 3,
+      `count=${versionOf(body).length}`,
+    );
+  }
+
+  // ===== ✅ قاعدهٔ مهم: تگ‌های type="module" نباید نسخه‌دار شوند =====
+  // دلیل: URL یک ماژول ES هویت آن است؛ اگر در HTML `?v=` بگذاریم ولی همان
+  // فایل با `import "…/x.js"` (بدون ?v) هم صدا زده شود، مرورگر آن را دو ماژول
+  // جدا می‌بیند و **دو بار اجرا** می‌کند → دو سینگلتون، دو شنوندهٔ click روی
+  // یک دکمه و دو درخواست برای یک کلیک (باگ واقعی: ثبت دوبارهٔ پیام).
+  const contactRes = await waitFor(`${base}/contact`);
+  const contactHtml = await contactRes.text();
+  const moduleTags = [
+    ...contactHtml.matchAll(/<script\b[^>]*type="module"[^>]*>/gi),
+  ].map((m) => m[0]);
+  const versionedModules = moduleTags.filter((tag) => /\.js\?v=/.test(tag));
+  check(
+    'تگ‌های <script type="module"> نسخه‌دار نمی‌شوند (ضد اجرای دوبارهٔ ماژول)',
+    moduleTags.length >= 3 && versionedModules.length === 0,
+    `modules=${moduleTags.length} versioned=${versionedModules.length}`,
+  );
+  check(
+    "در عوض CSSهای صفحه همچنان نسخه‌دار می‌شوند (کش یک‌سالهٔ immutable)",
+    /<link\b[^>]*href="[^"]+\.css\?v=/.test(contactHtml),
+  );
+  check(
+    "اسکریپت‌های کلاسیک node_modules دست‌نخورده می‌مانند",
+    !/node_modules[^"]+\.js\?v=/.test(contactHtml),
+  );
+
+  // ===== ✅ لودر سیستمی (تزریق سمت سرور — بدون بک‌اند → پیش‌فرض classic) =====
+  const dashLoader = await waitFor(`${base}/`);
+  const dashLoaderHtml = await dashLoader.text();
+  check(
+    "لودر سیستمی در داشبورد تزریق شده (overlay + data-loader)",
+    dashLoader.status === 200 &&
+      dashLoaderHtml.includes('id="pageLoadingOverlay"') &&
+      dashLoaderHtml.includes('data-loader="classic"'),
+    `status=${dashLoader.status} overlay=${dashLoaderHtml.includes(
+      'id="pageLoadingOverlay"',
+    )}`,
+  );
+  check(
+    "هر دو حالت لودر (کلاسیک + لوگوی ستاره کیان) در HTML هست",
+    dashLoaderHtml.includes("skb-loader--classic") &&
+      dashLoaderHtml.includes("skb-loader--logo") &&
+      dashLoaderHtml.includes("skb-logo-svg"),
+  );
+  check(
+    "متن هر دو لودر یکسان است (در حال بارگذاری...)",
+    (dashLoaderHtml.match(/در حال بارگذاری\.\.\./g) || []).length >= 2,
+    `count=${(dashLoaderHtml.match(/در حال بارگذاری\.\.\./g) || []).length}`,
+  );
+  check(
+    "CSS لودر با نسخه (?v=) تزریق می‌شود",
+    /href="\/shared\/components\/Loader\/loader\.css\?v=/.test(dashLoaderHtml),
+  );
+  check(
+    "لودر فقط در صفحه‌های لیست سفید تزریق می‌شود (login بدون لودر)",
+    !(await (await waitFor(`${base}/login`)).text()).includes(
+      'id="pageLoadingOverlay"',
+    ),
+  );
+  const dashLogoOverride = await waitFor(`${base}/dashboard.html?loader=logo`);
+  const dashLogoHtml = await dashLogoOverride.text();
+  check(
+    "پارامتر ?loader=logo حالت لودر را تغییر می‌دهد (پیش‌نمایش)",
+    dashLogoOverride.status === 200 &&
+      dashLogoHtml.includes('data-loader="logo"') &&
+      dashLogoHtml.includes('id="pageLoadingOverlay"'),
+    `status=${dashLogoOverride.status}`,
+  );
+
+  // ===== ✅ یکدست‌سازی: همهٔ لودرهای داخل صفحه هم پیرو انتخاب ادمین هستند =====
+  const listPage = await waitFor(`${base}/customers`);
+  const listHtml = await listPage.text();
+  check(
+    "لودر داخل جدول مشتریان با placeholder مشترک است (نه اسپینر قدیمی)",
+    listPage.status === 200 &&
+      listHtml.includes('data-skb-loader') &&
+      !listHtml.includes("fa-spinner") &&
+      listHtml.includes("Loader/loader.css"),
+    `status=${listPage.status} placeholder=${listHtml.includes(
+      'data-skb-loader',
+    )} oldSpinner=${listHtml.includes("fa-spinner")}`,
+  );
+
+  const infoPage = await waitFor(`${base}/customer-info`);
+  const infoHtml = await infoPage.text();
+  const infoPlaceholders = (infoHtml.match(/data-skb-loader/g) || []).length;
+  check(
+    "لودرهای اطلاعات مشتری (هوا/وضعیت گله) پیرو لودر سیستم شده‌اند",
+    infoPage.status === 200 && infoPlaceholders >= 2 && !infoHtml.includes("fa-spinner"),
+    `status=${infoPage.status} placeholders=${infoPlaceholders}`,
+  );
+
+  const aboutPage = await waitFor(`${base}/about`);
+  const aboutHtml = await aboutPage.text();
+  check(
+    "صفحه‌های بدون لودر: نه اورلی، نه placeholder و نه CSS لودر",
+    aboutPage.status === 200 &&
+      !aboutHtml.includes('id="pageLoadingOverlay"') &&
+      !aboutHtml.includes("data-skb-loader") &&
+      !aboutHtml.includes("Loader/loader.css"),
+    `status=${aboutPage.status}`,
+  );
+
+  const adminPage = await waitFor(`${base}/admin`);
+  const adminHtml = await adminPage.text();
+  check(
+    "کارت‌های پیش‌نمایش پنل ادمین (div + دکمهٔ تمام‌صفحه) درست سرو می‌شوند",
+    adminPage.status === 200 &&
+      adminHtml.includes('role="button"') &&
+      adminHtml.includes('data-loader-preview="classic"') &&
+      adminHtml.includes('data-loader-preview="logo"') &&
+      adminHtml.includes("loaderPreviewClassic") &&
+      adminHtml.includes("loaderPreviewLogo") &&
+      adminHtml.includes("Loader/loader.css"),
+    `status=${adminPage.status}`,
+  );
 };
 
 run()

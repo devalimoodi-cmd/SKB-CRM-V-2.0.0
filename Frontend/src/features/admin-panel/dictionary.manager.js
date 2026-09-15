@@ -9,6 +9,7 @@ import {
   getAllDictionarySchemas,
   getDictionarySchema,
 } from "./dictionary.schemas.js";
+import { loaderService } from "../../shared/components/Loader/loader.service.js";
 
 // ایمن‌سازی خروجی HTML در برابر کاراکترهای ویژه (جلوگیری از شکستن مودال/XSS)
 const escapeHtml = (value) => {
@@ -311,11 +312,19 @@ class DictionaryManager {
     if (!wrapper) return;
 
     wrapper.innerHTML = `
-      <div class="dict-loading">
-        <i class="fas fa-spinner fa-spin"></i>
-        <span>در حال بارگذاری...</span>
+      <div class="dict-loading" id="dictLoadingBox">
+        <span class="text">در حال بارگذاری...</span>
       </div>
     `;
+
+    // ✅ لودر سیستمی (پیرو انتخاب ادمین)
+    const loadingBox = wrapper.querySelector("#dictLoadingBox");
+    if (loadingBox) {
+      loadingBox.innerHTML = await loaderService.inline({
+        text: "در حال بارگذاری...",
+        size: "sm",
+      });
+    }
 
     try {
       // ابتدا گزینه‌های فیلدهای select (مثلاً لیست نژادها) بارگذاری می‌شوند
@@ -579,7 +588,7 @@ class DictionaryManager {
   openCreateModal() {
     if (!this.schema) return;
     if (typeof Swal === "undefined") {
-      alert("SweetAlert در دسترس نیست");
+      console.error("❌ SweetAlert2 در دسترس نیست");
       return;
     }
 
@@ -630,7 +639,7 @@ class DictionaryManager {
   async openEditModal(id) {
     if (!this.schema) return;
     if (typeof Swal === "undefined") {
-      alert("SweetAlert در دسترس نیست");
+      console.error("❌ SweetAlert2 در دسترس نیست");
       return;
     }
 

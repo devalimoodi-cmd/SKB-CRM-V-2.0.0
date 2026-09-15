@@ -6,6 +6,7 @@
 import { hallsApi } from "./halls.api.js";
 import { apiService } from "../../../../core/services/api.service.js";
 import { stateService } from "../../../../core/services/state.service.js";
+import { notificationService } from "../../../../core/services/notification.service.js";
 import {
   formatDate,
 } from "../../../../core/utils/date.utils.js";
@@ -946,7 +947,7 @@ class HallsReport {
 
       const printWindow = window.open("", "_blank", "width=1100,height=800");
       if (!printWindow) {
-        alert("لطفاً باز شدن پنجره popup را مجاز کنید");
+        notificationService.warning("لطفاً باز شدن پنجره popup را مجاز کنید");
         return;
       }
       // ✅ پاک‌سازی خروجی گزارش (جلوگیری از اجرای اسکریپت تزریق‌شده از دیتابیس)
@@ -954,7 +955,7 @@ class HallsReport {
       printWindow.document.close();
     } catch (error) {
       console.error("❌ Error generating report:", error);
-      alert("خطا در تولید گزارش: " + error.message);
+      notificationService.error("خطا در تولید گزارش: " + error.message);
     }
   }
 }

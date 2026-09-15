@@ -1,4 +1,7 @@
-﻿class NotificationService {
+﻿
+import { loaderService } from "../../shared/components/Loader/loader.service.js";
+
+class NotificationService {
   constructor() {
     this.toastConfig = {
       success: {
@@ -98,6 +101,7 @@
     const swal = this._getSwal();
 
     if (!swal) {
+      // eslint-disable-next-line no-alert -- فالبک فقط وقتی SweetAlert2 در صفحه لود نشده باشد
       alert(message);
       return;
     }
@@ -169,9 +173,13 @@
     });
   }
 
+  // ===== تأیید عملیات با SweetAlert2 =====
+  // گزینه‌ها: title، text، html (به‌جای text برای متن چندخطی)،
+  //          confirmText، cancelText، icon، danger (دکمهٔ تأیید قرمز)
   async confirm(options = {}) {
     const swal = this._getSwal();
     if (!swal) {
+      // eslint-disable-next-line no-alert -- فالبک فقط وقتی SweetAlert2 در صفحه لود نشده باشد
       return confirm(options.text || "آیا مطمئن هستید؟");
     }
 
@@ -181,16 +189,17 @@
       confirmText: "بله",
       cancelText: "انصراف",
       icon: "question",
+      danger: false,
     };
 
     const merged = { ...defaultOptions, ...options };
 
     const result = await swal.fire({
       title: merged.title,
-      text: merged.text,
+      ...(merged.html ? { html: merged.html } : { text: merged.text }),
       icon: merged.icon,
       showCancelButton: true,
-      confirmButtonColor: "#2c7a6e",
+      confirmButtonColor: merged.danger ? "#dc2626" : "#2c7a6e",
       cancelButtonColor: "#94a3b8",
       confirmButtonText: merged.confirmText,
       cancelButtonText: merged.cancelText,
@@ -200,18 +209,25 @@
     return result.isConfirmed;
   }
 
-  showLoading(message = "در حال بارگذاری...") {
+  async showLoading(message = "در حال بارگذاری...") {
     const swal = this._getSwal();
-    if (swal) {
-      swal.fire({
-        title: message,
-        allowOutsideClick: false,
-        showConfirmButton: false,
-        willOpen: () => {
-          swal.showLoading();
-        },
-      });
-    }
+    if (!swal) return;
+
+    // ✅ لودر سیستمی (پیرو انتخاب ادمین) داخل مودال — به‌جای اسپینر پیش‌فرض سوئال
+    const markup = await loaderService.inline({ text: message, size: "md" });
+
+    swal.fire({
+      html:
+        markup ||
+        `<div style="padding:6px 0;font-size:14px;color:#475569;">${message}</div>`,
+      allowOutsideClick: false,
+      showConfirmButton: false,
+      width: "280px",
+      padding: "1.4rem 1rem",
+    });
+
+    // اگر مارک‌آپ لودر در دسترس نبود، همان اسپینر پیش‌فرض سوئال
+    if (!markup) swal.showLoading();
   }
 
   hideLoading() {

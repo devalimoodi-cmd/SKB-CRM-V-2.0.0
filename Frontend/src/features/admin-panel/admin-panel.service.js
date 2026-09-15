@@ -3,6 +3,13 @@ import { adminPanelRenderer } from "./admin-panel.renderer.js";
 import { adminPanelValidation } from "./admin-panel.validation.js";
 import { notificationService } from "../../core/services/notification.service.js";
 import { authService } from "../../core/services/auth.service.js";
+import {
+  messagesService,
+  statusBadge,
+  subjectLabel,
+} from "../messages/messages.service.js";
+import { escapeHtml } from "../../core/utils/string.utils.js";
+import { loaderService } from "../../shared/components/Loader/loader.service.js";
 import "../../core/services/state.service.js";
 import "../../core/utils/date.utils.js";
 
@@ -15,9 +22,15 @@ class AdminPanelService {
     this.editingUserRole = null;
     this.isEditing = false;
     this.selectedMenu = "super-admin-management";
-    this.chatPollingInterval = null;
-    this.lastMessageId = 0;
+    // ✅ «نظرات و پیشنهادات» (جای چت عمومی قبلی که بک‌اند نداشت)
+    this.suggestions = [];
+    this.suggestionCounts = {};
+    this.activeSuggestionId = null;
+    this.suggestionsPolling = null;
     this.initialized = false;
+    // ✅ لودر سیستمی (تنظیمات سیستم)
+    this.loaderStyle = "classic";
+    this.loaderPreviewsReady = false;
   }
 
   async init() {
@@ -28,10 +41,14 @@ class AdminPanelService {
     await this.loadData();
     this.setupSidebar();
     this.setupEvents();
-    this.setupChat();
+    this.setupSuggestions();
     this.loadSystemSettings();
+    this.loadSuggestionCounts();
     this.initialized = true;
     console.log("✅ AdminPanelService initialized");
+
+    // ✅ لودر سیستمی این صفحه تا آماده شدن پنل نمایش داده می‌شود
+    if (typeof window.hidePageLoader === "function") window.hidePageLoader();
   }
 
   async loadData() {
@@ -104,6 +121,127 @@ class AdminPanelService {
     } catch (error) {
       console.warn("⚠️ خطا در دریافت تنظیمات سیستم:", error.message);
       if (stateEl) stateEl.textContent = "نامشخص";
+    }
+
+    // ✅ لودر سیستمی (کلاسیک / لوگوی ستاره کیان)
+    await this.loadLoaderStyle();
+  }
+
+  // ===== لودر سیستمی: خواندن تنظیم + ساخت پیش‌نمایش‌ها =====
+  async loadLoaderStyle() {
+    const stateEl = document.getElementById("loaderStyleState");
+    await this.renderLoaderPreviews();
+    try {
+      const res = await adminPanelApi.getSettings();
+      const style = res?.success ? res.data?.loader_style : "classic";
+      this.applyLoaderSelection(style === "logo" ? "logo" : "classic");
+    } catch (error) {
+      console.warn("⚠️ خطا در دریافت تنظیم لودر سیستمی:", error.message);
+      if (stateEl) stateEl.textContent = "نامشخص";
+    }
+  }
+
+  // ساخت پیش‌نمایش هر دو لودر از منبع واحد
+  // (همان تابعی که لودرهای داخل صفحه را می‌سازد — shared/components/Loader)
+  async renderLoaderPreviews() {
+    const classicBox = document.getElementById("loaderPreviewClassic");
+    const logoBox = document.getElementById("loaderPreviewLogo");
+    if (!classicBox || !logoBox || this.loaderPreviewsReady) return;
+
+    const [classicHtml, logoHtml] = await Promise.all([
+      loaderService.inline({ style: "classic", size: "preview" }),
+      loaderService.inline({ style: "logo", size: "preview" }),
+    ]);
+
+    // اگر مارک‌آپ در دسترس نبود، بعداً دوباره تلاش می‌شود
+    if (!classicHtml || !logoHtml) return;
+
+    classicBox.innerHTML = classicHtml;
+    logoBox.innerHTML = logoHtml;
+    this.loaderPreviewsReady = true;
+  }
+
+  // پیش‌نمایش تمام‌صفحهٔ یک حالت (۳ ثانیه — تنظیم ذخیره نمی‌شود)
+  async previewFullscreen(style) {
+    const html = await loaderService.inline({ style, size: "md" });
+    if (!html) {
+      notificationService.warning("پیش‌نمایش لودر در دسترس نیست");
+      return;
+    }
+
+    const overlay = document.createElement("div");
+    overlay.className = "skb-page-loader";
+    overlay.title = "برای بستن کلیک کنید";
+    overlay.style.cursor = "pointer";
+    overlay.innerHTML = html;
+    overlay.addEventListener("click", () => overlay.remove());
+    document.body.appendChild(overlay);
+
+    setTimeout(() => overlay.remove(), 3000);
+  }
+
+  // مشخص کردن گزینهٔ فعال + بایند یک‌بارهٔ کلیک/کیبورد (کارت‌ها div هستند)
+  applyLoaderSelection(style) {
+    this.loaderStyle = style === "logo" ? "logo" : "classic";
+
+    document.querySelectorAll("[data-loader-style]").forEach((card) => {
+      const isSelected = card.dataset.loaderStyle === this.loaderStyle;
+      card.classList.toggle("selected", isSelected);
+      card.setAttribute("aria-pressed", isSelected ? "true" : "false");
+
+      if (!card.dataset.bound) {
+        card.addEventListener("click", (event) => {
+          // کلیک روی دکمهٔ پیش‌نمایش، نباید حالت را تغییر دهد
+          if (event.target.closest("[data-loader-preview]")) return;
+          this.saveLoaderStyle(card.dataset.loaderStyle);
+        });
+        card.addEventListener("keydown", (event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            this.saveLoaderStyle(card.dataset.loaderStyle);
+          }
+        });
+        card.dataset.bound = "1";
+      }
+    });
+
+    document.querySelectorAll("[data-loader-preview]").forEach((btn) => {
+      if (btn.dataset.bound) return;
+      btn.addEventListener("click", (event) => {
+        event.stopPropagation();
+        this.previewFullscreen(btn.dataset.loaderPreview);
+      });
+      btn.dataset.bound = "1";
+    });
+
+    const stateEl = document.getElementById("loaderStyleState");
+    if (stateEl) {
+      stateEl.textContent =
+        this.loaderStyle === "logo" ? "لوگوی ستاره کیان" : "کلاسیک";
+    }
+  }
+
+  // ذخیرهٔ لودر انتخاب‌شده (مثل سایر تنظیمات سیستم: ذخیرهٔ فوری)
+  async saveLoaderStyle(style) {
+    const target = style === "logo" ? "logo" : "classic";
+    if (target === this.loaderStyle) return;
+
+    try {
+      const res = await adminPanelApi.updateSetting("loader_style", target);
+      if (!res?.success) {
+        notificationService.error(res?.message || "خطا در ذخیره لودر سیستمی");
+        return;
+      }
+
+      this.applyLoaderSelection(target);
+      notificationService.success(
+        target === "logo"
+          ? "✅ لودر لوگوی ستاره کیان فعال شد (حداکثر تا ۱ دقیقه در همهٔ صفحه‌ها)"
+          : "✅ لودر کلاسیک فعال شد (حداکثر تا ۱ دقیقه در همهٔ صفحه‌ها)",
+      );
+    } catch (error) {
+      console.error("❌ saveLoaderStyle:", error);
+      notificationService.error(error.message || "خطا در ذخیره لودر سیستمی");
     }
   }
 
@@ -451,13 +589,13 @@ class AdminPanelService {
         await this.loadSuperAdmins();
         break;
       case "dictionary-management":
-        this.stopChatPolling();
+        this.stopSuggestionsPolling();
         await this.initDictionaryManager();
         break;
-      case "public-chat":
-        // چت عمومی هنوز در سمت سرور پیاده‌سازی نشده - فقط یک پیام اطلاع‌رسانی نمایش بده
-        this.stopChatPolling();
-        notificationService.info("⏳ بخش چت عمومی به‌زودی فعال خواهد شد");
+      case "suggestions":
+        // ✅ «نظرات و پیشنهادات» کاربران
+        await this.loadSuggestions();
+        this.startSuggestionsPolling();
         break;
       default:
         console.log("📌 بخش:", menuId);
@@ -674,77 +812,347 @@ class AdminPanelService {
     this.editingUserRole = null;
   }
 
-  // ===== چت عمومی =====
+  // ===== نظرات و پیشنهادات (جای چت عمومی قبلی) =====
 
-  setupChat() {
-    const sendBtn = document.getElementById("sendChatBtn");
-    const input = document.getElementById("chatMessageInput");
+  setupSuggestions() {
+    document
+      .getElementById("suggestionsRefreshBtn")
+      ?.addEventListener("click", () => this.loadSuggestions());
 
-    if (sendBtn) {
-      sendBtn.addEventListener("click", () => this.sendChatMessage());
+    document
+      .getElementById("suggestionStatusFilter")
+      ?.addEventListener("change", () => this.loadSuggestions());
+
+    document
+      .getElementById("suggestionUnreadOnly")
+      ?.addEventListener("change", () => this.loadSuggestions());
+
+    let searchTimer = null;
+    document.getElementById("suggestionSearch")?.addEventListener("input", () => {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(() => this.loadSuggestions(), 400);
+    });
+
+    document
+      .getElementById("suggestionSendBtn")
+      ?.addEventListener("click", () => this.sendSuggestionReply());
+
+    document
+      .getElementById("suggestionStatusBtn")
+      ?.addEventListener("click", () => this.changeSuggestionStatus());
+
+    // ✅ دکمهٔ حذف کل گفتگو (در فوتر گفتگو)
+    document
+      .getElementById("suggestionDeleteBtn")
+      ?.addEventListener("click", () => this.deleteSuggestion());
+  }
+
+  // فهرست «نظرات و پیشنهادات» + شمارنده‌ها + بج
+  async loadSuggestions() {
+    const list = document.getElementById("suggestionsList");
+    const params = { limit: 50 };
+    const status = document.getElementById("suggestionStatusFilter")?.value;
+    if (status) params.status = status;
+    if (document.getElementById("suggestionUnreadOnly")?.checked) {
+      params.unread = "true";
     }
+    const search = document.getElementById("suggestionSearch")?.value?.trim();
+    if (search) params.search = search;
 
-    if (input) {
-      input.addEventListener("keypress", (e) => {
-        if (e.key === "Enter") {
-          this.sendChatMessage();
-        }
+    if (list) {
+      // ✅ لودر سیستمی (پیرو انتخاب ادمین)
+      list.innerHTML = await loaderService.inline({
+        text: "در حال بارگذاری…",
+        size: "sm",
       });
     }
-  }
 
-  async loadChatMessages() {
     try {
-      const response = await adminPanelApi.getChatMessages(50);
-      if (response.success) {
-        const messages = response.data || [];
-        adminPanelRenderer.renderChatMessages(messages);
-        if (messages.length > 0) {
-          this.lastMessageId = messages[0].id;
+      const response = await adminPanelApi.getSuggestions(params);
+      if (!response?.success) {
+        if (list) {
+          list.innerHTML = `<div class="msg-list-empty">${escapeHtml(
+            response?.message || "خطا در دریافت نظرات",
+          )}</div>`;
         }
+        return;
+      }
+
+      this.suggestions = response.data?.items || [];
+      this.suggestionCounts = response.data?.counts || {};
+      this.renderSuggestionBadges();
+
+      if (list) {
+        list.innerHTML = messagesService.renderThreadList(this.suggestions, {
+          emptyText: "نظری ثبت نشده است",
+          onDelete: true,
+        });
+        list.querySelectorAll(".msg-list-item").forEach((el) => {
+          el.addEventListener("click", (event) => {
+            // ✅ کلیک روی دکمهٔ حذف، گفتگو را باز نکند
+            const delBtn = event.target.closest("[data-delete-suggestion-id]");
+            if (delBtn) {
+              event.stopPropagation();
+              this.deleteSuggestion(delBtn.dataset.deleteSuggestionId);
+              return;
+            }
+            this.openSuggestion(el.dataset.suggestionId);
+          });
+        });
       }
     } catch (error) {
-      // خطای 404 یعنی چت هنوز فعال نیست - ساکت باش و پیام اطلاع‌رسانی نمایش بده
-      if (error.message?.includes("404")) {
-        notificationService.info("⏳ بخش چت عمومی به‌زودی فعال خواهد شد");
-      } else {
-        console.error("❌ Error loading chat messages:", error);
+      if (list) {
+        list.innerHTML = `<div class="msg-list-empty">خطا در دریافت نظرات</div>`;
       }
+      console.error("❌ loadSuggestions:", error);
     }
   }
 
-  async sendChatMessage() {
-    const input = document.getElementById("chatMessageInput");
-    const content = input?.value?.trim();
+  // فقط شمارندهٔ نخوانده‌ها (برای بج منو/کارت + polling)
+  async loadSuggestionCounts() {
+    try {
+      const response = await adminPanelApi.getSuggestions({ limit: 1 });
+      if (response?.success) {
+        this.suggestionCounts = response.data?.counts || {};
+        this.renderSuggestionBadges();
+      }
+    } catch {
+      /* بی‌صدا */
+    }
+  }
 
-    if (!content) {
-      notificationService.warning("لطفاً متن پیام را وارد کنید");
+  renderSuggestionBadges() {
+    const count = Number(this.suggestionCounts?.admin_unread || 0);
+    ["suggestionsMenuBadge", "suggestionsBadge"].forEach((id) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.textContent = String(count);
+      el.style.display = count > 0 ? "" : "none";
+    });
+  }
+
+  // مشاهدهٔ یک گفتگو (با این کار برای ادمین «خوانده‌شده» ثبت می‌شود)
+  async openSuggestion(id) {
+    if (!id) return;
+    try {
+      const response = await adminPanelApi.getSuggestionThread(id);
+      if (!response?.success) {
+        notificationService.error(response?.message || "گفتگو دریافت نشد");
+        return;
+      }
+
+      const { suggestion, messages } = response.data;
+      this.activeSuggestionId = suggestion?.id || id;
+
+      const meta = document.getElementById("suggestionMeta");
+      if (meta) {
+        const user = suggestion?.user || {};
+        meta.innerHTML = `
+          ${statusBadge(suggestion?.status)}
+          <span><i class="fas fa-user"></i> ${escapeHtml(user.full_name || "کاربر")}</span>
+          ${user.mobile_number ? `<span dir="ltr">${escapeHtml(user.mobile_number)}</span>` : ""}
+          <span><i class="fas fa-tag"></i> ${escapeHtml(subjectLabel(suggestion?.subject))}</span>
+          <span><i class="fas fa-clock"></i> ${escapeHtml(
+            new Date(suggestion?.last_message_at || suggestion?.created_at || Date.now()).toLocaleString("fa-IR"),
+          )}</span>`;
+      }
+
+      const thread = document.getElementById("suggestionThread");
+      if (thread) {
+        thread.innerHTML = messagesService.renderBubbles(messages, {
+          viewer: "admin",
+          canDelete: true,
+        });
+        thread.scrollTop = thread.scrollHeight;
+
+        // ✅ حذف تکی پیام — با delegation (فقط یک بار بایند میشود)
+        if (thread.dataset.deleteBound !== "1") {
+          thread.dataset.deleteBound = "1";
+          thread.addEventListener("click", (event) => {
+            const delBtn = event.target.closest(".msg-del-btn[data-message-id]");
+            if (!delBtn) return;
+            event.stopPropagation();
+            this.deleteSuggestionMessage(delBtn.dataset.messageId);
+          });
+        }
+      }
+
+      const reply = document.getElementById("adminSuggestionReply");
+      if (reply) reply.value = "";
+
+      // وضعیت را در فهرست هم تازه کن (admin_unread از سمت سرور صفر شد)
+      await this.loadSuggestions();
+    } catch (error) {
+      notificationService.error("خطا در دریافت گفتگو");
+      console.error("❌ openSuggestion:", error);
+    }
+  }
+
+  // ارسال پاسخ ادمین (به کاربر در «پیام‌های» او نمایش داده می‌شود)
+  async sendSuggestionReply() {
+    const input = document.getElementById("adminSuggestionReply");
+    const body = input?.value?.trim();
+
+    if (!this.activeSuggestionId) {
+      notificationService.error("ابتدا یک گفتگو را از فهرست انتخاب کنید");
+      return;
+    }
+    if (!body || body.length < 5) {
+      notificationService.error("متن پاسخ را وارد کنید (حداقل ۵ حرف)");
       return;
     }
 
+    const btn = document.getElementById("suggestionSendBtn");
+    if (btn) btn.disabled = true;
     try {
-      const response = await adminPanelApi.sendChatMessage(content);
-      if (response.success) {
-        input.value = "";
-        await this.loadChatMessages();
-      } else {
-        notificationService.error(response.message || "خطا در ارسال پیام");
+      const response = await adminPanelApi.replySuggestion(
+        this.activeSuggestionId,
+        body,
+      );
+      if (!response?.success) {
+        notificationService.error(response?.message || "ارسال پاسخ ناموفق بود");
+        return;
       }
+      if (input) input.value = "";
+      notificationService.success("پاسخ ثبت و برای کاربر ارسال شد");
+      await this.openSuggestion(this.activeSuggestionId);
     } catch (error) {
-      console.error("❌ Error sending chat message:", error);
-      notificationService.error("خطا در ارتباط با سرور");
+      console.error("❌ sendSuggestionReply:", error);
+      notificationService.error("خطا در ارسال پاسخ");
+    } finally {
+      if (btn) btn.disabled = false;
     }
   }
 
-  startChatPolling() {
-    // polling غیرفعال شد چون چت عمومی هنوز در سرور پیاده‌سازی نشده
-    return;
+  // تغییر وضعیت گفتگو (چرخشی: جدید → در حال بررسی → پاسخ داده شده → بسته)
+  async changeSuggestionStatus() {
+    if (!this.activeSuggestionId) {
+      notificationService.error("ابتدا یک گفتگو را انتخاب کنید");
+      return;
+    }
+
+    const current =
+      this.suggestions.find((item) => String(item.id) === String(this.activeSuggestionId))
+        ?.status || "new";
+    const order = ["new", "in_progress", "answered", "closed"];
+    const next = order[(order.indexOf(current) + 1) % order.length];
+
+    try {
+      const response = await adminPanelApi.updateSuggestionStatus(
+        this.activeSuggestionId,
+        { status: next },
+      );
+      if (!response?.success) {
+        notificationService.error(response?.message || "تغییر وضعیت ناموفق بود");
+        return;
+      }
+      notificationService.success(
+        `وضعیت گفتگو: ${statusBadge(next).replace(/<[^>]+>/g, "")}`,
+      );
+      await this.loadSuggestions();
+    } catch (error) {
+      console.error("❌ changeSuggestionStatus:", error);
+      notificationService.error("خطا در تغییر وضعیت");
+    }
   }
 
-  stopChatPolling() {
-    if (this.chatPollingInterval) {
-      clearInterval(this.chatPollingInterval);
-      this.chatPollingInterval = null;
+  async deleteSuggestion(id = this.activeSuggestionId) {
+    if (!id) {
+      notificationService.error("ابتدا یک گفتگو را از فهرست انتخاب کنید");
+      return;
+    }
+
+    // ✅ تأیید با SweetAlert2 (هم‌سبک با بقیهٔ حذف‌های پنل — بدون دیالوگ بومی مرورگر)
+    const confirmed = await notificationService.confirm({
+      title: "🗑️ حذف گفتگو",
+      text: "این گفتگو و همهٔ پیام‌های آن حذف شود؟",
+      confirmText: "بله، حذف شود",
+      cancelText: "انصراف",
+    });
+    if (!confirmed) return;
+
+    try {
+      const response = await adminPanelApi.deleteSuggestion(id);
+      if (!response?.success) {
+        notificationService.error(response?.message || "حذف ناموفق بود");
+        return;
+      }
+      notificationService.success("گفتگو حذف شد");
+      this.activeSuggestionId = null;
+      const thread = document.getElementById("suggestionThread");
+      if (thread) {
+        thread.innerHTML = `<div class="msg-list-empty">برای مشاهدهٔ گفتگو، یک مورد را از فهرست انتخاب کنید</div>`;
+      }
+      await this.loadSuggestions();
+    } catch (error) {
+      console.error("❌ deleteSuggestion:", error);
+      notificationService.error("خطا در حذف گفتگو");
+    }
+  }
+
+  // ✅ حذف یک پیام از گفتگو (پیام اول قابل حذف نیست → پیام خطای سرور)
+  async deleteSuggestionMessage(messageId) {
+    if (!this.activeSuggestionId || !messageId) return;
+
+    // ✅ تأیید با SweetAlert2 (بدون دیالوگ بومی مرورگر)
+    const confirmed = await notificationService.confirm({
+      title: "🗑️ حذف پیام",
+      text: "آیا از حذف این پیام اطمینان دارید؟ این پیام برای همیشه پاک می‌شود.",
+      confirmText: "بله، حذف شود",
+      cancelText: "انصراف",
+    });
+    if (!confirmed) return;
+
+    try {
+      const response = await adminPanelApi.deleteSuggestionMessage(
+        this.activeSuggestionId,
+        messageId,
+      );
+      if (!response?.success) {
+        notificationService.error(response?.message || "حذف پیام ناموفق بود");
+        return;
+      }
+
+      notificationService.success(response.message || "پیام حذف شد");
+
+      // اگر آخرین پیام حذف شد، کل گفتگو پاک شده است
+      if (response.data?.thread_deleted) {
+        this.activeSuggestionId = null;
+        const emptyThread = document.getElementById("suggestionThread");
+        if (emptyThread) {
+          emptyThread.innerHTML = `<div class="msg-list-empty">برای مشاهدهٔ گفتگو، یک مورد را از فهرست انتخاب کنید</div>`;
+        }
+        await this.loadSuggestions();
+        return;
+      }
+
+      const thread = document.getElementById("suggestionThread");
+      if (thread && response.data?.messages) {
+        thread.innerHTML = messagesService.renderBubbles(
+          response.data.messages,
+          { viewer: "admin", canDelete: true },
+        );
+        thread.scrollTop = thread.scrollHeight;
+      }
+      await this.loadSuggestions();
+    } catch (error) {
+      console.error("❌ deleteSuggestionMessage:", error);
+      notificationService.error("خطا در حذف پیام");
+    }
+  }
+
+  // بررسی دوره‌ای نظرات تازه (برای بج)
+  startSuggestionsPolling() {
+    this.stopSuggestionsPolling();
+    this.suggestionsPolling = setInterval(() => {
+      this.loadSuggestionCounts();
+    }, 45 * 1000);
+  }
+
+  stopSuggestionsPolling() {
+    if (this.suggestionsPolling) {
+      clearInterval(this.suggestionsPolling);
+      this.suggestionsPolling = null;
     }
   }
 
@@ -868,7 +1276,7 @@ class AdminPanelService {
   // ===== دیستروی =====
 
   destroy() {
-    this.stopChatPolling();
+    this.stopSuggestionsPolling();
   }
 }
 

@@ -398,6 +398,250 @@ const run = async () => {
     `status=${r.status}`,
   );
 
+  // ===== نظرات و پیشنهادات (گفتگوی کاربر ↔ ادمین) =====
+  let suggestionId = null;
+
+  r = await fetch(`${base}/api/suggestions`, {
+    method: "POST",
+    headers: authHeaders(lowToken),
+    body: JSON.stringify({
+      subject: "suggestion",
+      title: "تست خودکار — پیشنهاد",
+      body: "این پیام توسط تست خودکار ساخته شده است.",
+    }),
+  });
+  const suggestionBody = await r.json().catch(() => ({}));
+  suggestionId = suggestionBody?.data?.id || null;
+  check(
+    "کاربر: ثبت نظر/پیشنهاد → ۲۰۱",
+    r.status === 201 && Boolean(suggestionId),
+    `status=${r.status} id=${suggestionId}`,
+  );
+
+  r = await fetch(`${base}/api/suggestions`, { headers: authHeaders(lowToken) });
+  check(
+    "کاربر کم‌دسترسی: فهرست ادمینِ نظرات ممنوع (۴۰۳)",
+    r.status === 403,
+    `status=${r.status}`,
+  );
+
+  r = await fetch(`${base}/api/suggestions/mine`, {
+    headers: authHeaders(lowToken),
+  });
+  const mineBody = await r.json().catch(() => ({}));
+  check(
+    "کاربر: فهرست پیام‌های خودش → ۲۰۰",
+    r.status === 200 &&
+      Array.isArray(mineBody?.data?.items) &&
+      mineBody.data.items.length >= 1,
+    `status=${r.status} items=${mineBody?.data?.items?.length}`,
+  );
+
+  r = await fetch(`${base}/api/suggestions/${admin.id}`, {
+    headers: authHeaders(adminToken),
+  });
+  check(
+    "ادمین نمی‌تواند از روت کاربریِ گفتگوی دیگری استفاده کند (۴۰۴)",
+    r.status === 404,
+    `status=${r.status}`,
+  );
+
+  if (suggestionId) {
+    r = await fetch(`${base}/api/suggestions`, { headers: authHeaders(adminToken) });
+    const adminListBody = await r.json().catch(() => ({}));
+    check(
+      "ادمین: فهرست نظرات + شمارندهٔ نخوانده → ۲۰۰",
+      r.status === 200 &&
+        Array.isArray(adminListBody?.data?.items) &&
+        Number(adminListBody?.data?.counts?.admin_unread || 0) >= 1,
+      `status=${r.status} unread=${adminListBody?.data?.counts?.admin_unread}`,
+    );
+
+    r = await fetch(`${base}/api/suggestions/${suggestionId}/admin`, {
+      headers: authHeaders(adminToken),
+    });
+    const adminThreadBody = await r.json().catch(() => ({}));
+    check(
+      "ادمین: مشاهدهٔ گفتگو + علامت خوانده‌شدن → ۲۰۰",
+      r.status === 200 &&
+        adminThreadBody?.data?.suggestion?.admin_unread === false,
+      `status=${r.status} admin_unread=${adminThreadBody?.data?.suggestion?.admin_unread}`,
+    );
+
+    r = await fetch(`${base}/api/suggestions/${suggestionId}/admin-reply`, {
+      method: "POST",
+      headers: authHeaders(adminToken),
+      body: JSON.stringify({ body: "پاسخ تست خودکار به کاربر." }),
+    });
+    check(
+      "ادمین: ارسال پاسخ → ۲۰۱",
+      r.status === 201,
+      `status=${r.status}`,
+    );
+
+    r = await fetch(`${base}/api/suggestions/unread-count`, {
+      headers: authHeaders(lowToken),
+    });
+    const unreadBody = await r.json().catch(() => ({}));
+    check(
+      "بج پاکت کاربر با پاسخ ادمین بالا می‌رود (user_unread)",
+      r.status === 200 && Number(unreadBody?.data?.count || 0) >= 1,
+      `count=${unreadBody?.data?.count}`,
+    );
+
+    r = await fetch(`${base}/api/suggestions/${suggestionId}/read`, {
+      method: "POST",
+      headers: authHeaders(lowToken),
+      body: JSON.stringify({}),
+    });
+    check("کاربر: علامت خوانده‌شدن → ۲۰۰", r.status === 200, `status=${r.status}`);
+
+    r = await fetch(`${base}/api/suggestions/unread-count`, {
+      headers: authHeaders(lowToken),
+    });
+    const unreadAfter = await r.json().catch(() => ({}));
+    check(
+      "پس از خواندن، بج کاربر صفر می‌شود",
+      Number(unreadAfter?.data?.count || 0) === 0,
+      `count=${unreadAfter?.data?.count}`,
+    );
+
+    // ===== ✅ حذف پیام‌های گفتگو (قابلیت جدید پنل ادمین) =====
+    r = await fetch(`${base}/api/suggestions/${suggestionId}/admin`, {
+      headers: authHeaders(adminToken),
+    });
+    const threadNow = (await r.json().catch(() => ({})))?.data?.messages || [];
+    const firstUserMsgId = threadNow.find((m) => m.sender_type === "user")?.id;
+    const adminMsgId = [...threadNow]
+      .reverse()
+      .find((m) => m.sender_type === "admin")?.id;
+
+    r = await fetch(
+      `${base}/api/suggestions/${suggestionId}/messages/${adminMsgId}`,
+      { method: "DELETE", headers: authHeaders(lowToken) },
+    );
+    check(
+      "کاربر کم‌دسترسی: حذف پیام گفتگو ممنوع (۴۰۳)",
+      r.status === 403,
+      `status=${r.status}`,
+    );
+
+    r = await fetch(
+      `${base}/api/suggestions/${suggestionId}/messages/${firstUserMsgId}`,
+      { method: "DELETE", headers: authHeaders(adminToken) },
+    );
+    check(
+      "ادمین: حذف پیام اول گفتگو ممنوع (۴۰۰)",
+      r.status === 400,
+      `status=${r.status}`,
+    );
+
+    r = await fetch(
+      `${base}/api/suggestions/${suggestionId}/messages/${adminMsgId}`,
+      { method: "DELETE", headers: authHeaders(adminToken) },
+    );
+    const delMsgBody = await r.json().catch(() => ({}));
+    check(
+      "ادمین: حذف یک پیام گفتگو → ۲۰۰ و کاهش messages_count",
+      r.status === 200 &&
+        delMsgBody?.data?.thread_deleted === false &&
+        Number(delMsgBody?.data?.suggestion?.messages_count || 0) === 1,
+      `status=${r.status} count=${delMsgBody?.data?.suggestion?.messages_count}`,
+    );
+
+    r = await fetch(`${base}/api/suggestions/${suggestionId}/messages/999999`, {
+      method: "DELETE",
+      headers: authHeaders(adminToken),
+    });
+    check(
+      "ادمین: حذف پیام ناموجود در گفتگو → ۴۰۴",
+      r.status === 404,
+      `status=${r.status}`,
+    );
+
+    // ===== ✅ ضد تکرار: همان پیام دوباره ثبت نشود (باگ ارسال دوبار) =====
+    r = await fetch(`${base}/api/suggestions`, {
+      method: "POST",
+      headers: authHeaders(lowToken),
+      body: JSON.stringify({
+        subject: "suggestion",
+        title: "تست خودکار — پیشنهاد",
+        body: "این پیام توسط تست خودکار ساخته شده است.",
+      }),
+    });
+    const duplicateBody = await r.json().catch(() => ({}));
+    check(
+      "ثبت دوبارهٔ همان پیام → رکورد تکراری ساخته نمی‌شود",
+      r.status === 200 &&
+        duplicateBody?.data?.duplicate === true &&
+        Number(duplicateBody?.data?.id) === Number(suggestionId),
+      `status=${r.status} id=${duplicateBody?.data?.id} dup=${duplicateBody?.data?.duplicate}`,
+    );
+
+    r = await fetch(`${base}/api/suggestions/${suggestionId}`, {
+      method: "DELETE",
+      headers: authHeaders(adminToken),
+    });
+    check(
+      "ادمین: حذف گفتگوی تستی → ۲۰۰ (پاک‌سازی)",
+      r.status === 200,
+      `status=${r.status}`,
+    );
+  }
+
+  // ===== ✅ تنظیمات نمایشی: لودر سیستمی (کلاسیک / لوگوی ستاره کیان) =====
+  r = await fetch(`${base}/api/public/ui-settings`);
+  const publicBefore = await r.json().catch(() => ({}));
+  check(
+    "تنظیمات نمایشی (لودر) بدون ورود در دسترس است",
+    r.status === 200 &&
+      ["classic", "logo"].includes(publicBefore?.data?.loader_style),
+    `status=${r.status} loader=${publicBefore?.data?.loader_style}`,
+  );
+
+  r = await fetch(`${base}/api/settings/loader_style`, {
+    method: "PUT",
+    headers: authHeaders(lowToken),
+    body: JSON.stringify({ value: "logo" }),
+  });
+  check(
+    "کاربر کم‌دسترسی: تغییر لودر سیستمی ممنوع (۴۰۳)",
+    r.status === 403,
+    `status=${r.status}`,
+  );
+
+  r = await fetch(`${base}/api/settings/loader_style`, {
+    method: "PUT",
+    headers: authHeaders(adminToken),
+    body: JSON.stringify({ value: "logo" }),
+  });
+  const logoBody = await r.json().catch(() => ({}));
+  check(
+    "ادمین: فعال‌سازی لودر لوگوی ستاره کیان → ۲۰۰",
+    r.status === 200 && logoBody?.data?.value === "logo",
+    `status=${r.status} value=${logoBody?.data?.value}`,
+  );
+
+  r = await fetch(`${base}/api/public/ui-settings`);
+  const publicAfter = await r.json().catch(() => ({}));
+  check(
+    "تنظیم جدید لودر در اندپوینت عمومی منعکس می‌شود",
+    publicAfter?.data?.loader_style === "logo",
+    `loader=${publicAfter?.data?.loader_style}`,
+  );
+
+  r = await fetch(`${base}/api/settings/loader_style`, {
+    method: "PUT",
+    headers: authHeaders(adminToken),
+    body: JSON.stringify({ value: "مقدار-نامعتبر" }),
+  });
+  const invalidLoaderBody = await r.json().catch(() => ({}));
+  check(
+    "مقدار نامعتبر لودر → بازگشت به پیش‌فرض (classic)",
+    r.status === 200 && invalidLoaderBody?.data?.value === "classic",
+    `status=${r.status} value=${invalidLoaderBody?.data?.value}`,
+  );
+
   r = await fetch(`${base}/api/users/${admin.id}/online-status`, {
     method: "PUT",
     headers: authHeaders(lowToken),

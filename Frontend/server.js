@@ -41,12 +41,16 @@ const srcPath = path.join(__dirname, "src");
 // (و هر رفرش) مرورگر همهٔ ~۴۰ فایل را دوباره دانلود می‌کرد → روی اینترنت
 // ضعیف کارخانه بسیار کند بود.
 // راه‌حل:
-//   ۱) هنگام سرو HTML، به آدرس همهٔ JS/CSSهای محلی یک `?v=<نسخه>` اضافه می‌شود
-//      (نسخه از جدیدترین زمان تغییر فایل‌ها ساخته می‌شود) → بدون تغییر فایل‌های HTML
+//   ۱) هنگام سرو HTML، به آدرس CSSها و اسکریپت‌های کلاسیک محلی یک `?v=<نسخه>`
+//      اضافه می‌شود (نسخه از جدیدترین زمان تغییر فایل‌ها ساخته می‌شود)
 //   ۲) فایل‌های نسخه‌دار: کش یک‌سالهٔ immutable (بدون درخواست دوباره)
-//   ۳) فایل‌های بدون نسخه (import‌های داخلی ماژول‌ها): کش ۶۰ ثانیه‌ای + ETag
-//      (هم سرعت خوب، هم به‌روزرسانی سریع بعد از استقرار)
-//   ۴) HTML: همیشه no-cache (با ETag → پاسخ ۳۰۴ سبک)
+//   ۳) ⛔ تگ‌های <script type="module"> هرگز نسخه‌دار نمی‌شوند
+//      URL یک ماژول ES «هویت» آن است؛ اگر در HTML `?v=` بگذاریم ولی همان فایل
+//      با `import "…/x.js"` (بدون ?v) هم صدا زده شود، مرورگر آن را ماژول دوم
+//      می‌بیند و **دو بار اجرا** می‌کند → دو سینگلتون، دو شنوندهٔ click روی یک
+//      دکمه و دو درخواست برای یک کلیک (باگ واقعی: ثبت دوبارهٔ پیام تماس با ما)
+//   ۴) ماژول‌ها و importهای داخلی: کش ۶۰ ثانیه‌ای + ETag (پاسخ ۳۰۴ سبک)
+//   ۵) HTML: همیشه no-cache (با ETag → پاسخ ۳۰۴ سبک)
 // ============================================
 const ASSET_VERSION = computeAssetVersion();
 
@@ -156,23 +160,198 @@ app.use(
 // ============================================
 // ✅ نسخه‌دهی خودکار آدرس دارایی‌ها در صفحات HTML
 // به‌جای تغییر دستی ~۲۵۰ تگ <script>/<link> در فایل‌های HTML، هنگام سرو هر
-// صفحه به آدرس JS/CSSهای محلی یک `?v=<ASSET_VERSION>` اضافه می‌شود.
-// نتیجه: مرورگر فایل‌های نسخه‌دار را یک‌ساله کش می‌کند و با هر استقرار نسخه
-// عوض می‌شود → هم سرعت بالا، هم بدون «کش کهنه».
+// صفحه به آدرس CSSها و اسکریپت‌های کلاسیک محلی یک `?v=<ASSET_VERSION>` اضافه
+// می‌شود. نتیجه: مرورگر آن‌ها را یک‌ساله کش می‌کند و با هر استقرار نسخه عوض
+// می‌شود → هم سرعت بالا، هم بدون «کش کهنه».
+//
+// ⛔ اما تگ‌های `type="module"` نسخه‌دار **نمی‌شوند**:
+// ماژول‌های ES با URL شناسایی می‌شوند؛ اگر تگ HTML آدرس نسخه‌دار
+// (`x.service.js?v=1`) بدهد و همان فایل با `import "../x.service.js"` هم
+// استفاده شده باشد، مرورگر دو ماژول جدا می‌سازد و فایل **دو بار اجرا** می‌شود.
+// نتیجهٔ آن: دو نمونهٔ سینگلتون → دو شنوندهٔ click روی یک دکمه → دو درخواست
+// برای یک کلیک (همین باگ باعث ثبت دوبارهٔ پیام در صفحهٔ «تماس با ما» شده بود).
+// کش ماژول‌ها از مسیر «۶۰ ثانیه + ETag» تأمین می‌شود که هم سریع است و هم بعد از
+// استقرار، حداکثر تا ۶۰ ثانیه با یک ۳۰۴ سبک به‌روز می‌شود.
 // ============================================
 const LOCAL_ASSET_PATH = /\/(core|features|shared|styles|assets|vendor)\//;
 
-const rewriteAssetUrls = (html) =>
-  String(html).replace(
-    /(\b(?:src|href)\s*=\s*)(["'])([^"']+?\.(?:js|css)(?:\?[^"']*)?)\2/gi,
-    (match, prefix, quote, url) => {
-      if (/^(?:[a-z]+:)?\/\//i.test(url)) return match; // آدرس خارجی
-      if (/(?:^|[?&])v=/.test(url)) return match; // قبلاً نسخه خورده
-      if (url.includes("node_modules/")) return match; // کتابخانه‌های npm
-      if (!LOCAL_ASSET_PATH.test(url)) return match;
-      return `${prefix}${quote}${url}?v=${ASSET_VERSION}${quote}`;
-    },
+const isModuleScriptTag = (tag) =>
+  /\btype\s*=\s*(?:"module"|'module'|module)(?=\s|>|$)/i.test(tag);
+
+const versionizeAssetUrl = (match, prefix, quote, url) => {
+  if (/^(?:[a-z]+:)?\/\//i.test(url)) return match; // آدرس خارجی
+  if (/(?:^|[?&])v=/.test(url)) return match; // قبلاً نسخه خورده
+  if (url.includes("node_modules/")) return match; // کتابخانه‌های npm
+  if (!LOCAL_ASSET_PATH.test(url)) return match;
+  return `${prefix}${quote}${url}?v=${ASSET_VERSION}${quote}`;
+};
+
+const rewriteAssetUrls = (html) => {
+  let output = String(html);
+
+  // ۱) تگ‌های <script …> — فقط اسکریپت‌های کلاسیک (نه module)
+  output = output.replace(/<script\b[^>]*>/gi, (tag) => {
+    if (isModuleScriptTag(tag)) return tag;
+    return tag.replace(
+      /(\bsrc\s*=\s*)(["'])([^"']+?\.js(?:\?[^"']*)?)\2/i,
+      versionizeAssetUrl,
+    );
+  });
+
+  // ۲) لینک‌های CSS (و هر href دیگر) — ماژول ES از این مسیر لود نمی‌شود
+  output = output.replace(
+    /(\bhref\s*=\s*)(["'])([^"']+?\.(?:js|css)(?:\?[^"']*)?)\2/gi,
+    versionizeAssetUrl,
   );
+
+  return output;
+};
+
+// ============================================
+// ✅ لودر سیستمی (تنظیم از پنل ادمین → تنظیمات سیستم)
+// ------------------------------------------------------------
+//  • دو حالت: classic (دایرهٔ چرخان) و logo (لوگوی ستاره کیان)
+//    مارک‌آپ هر دو در shared/components/Loader/loader.html و
+//    CSS آن‌ها در shared/components/Loader/loader.css است.
+//  • مقدار loader_style از اندپوینت عمومی بک‌اند خوانده و کش می‌شود
+//    (/api/public/ui-settings) و هر ۶۰ ثانیه تازه می‌شود.
+//  • اتریبیوت data-loader روی تگ <html> و بلوک لودر بلافاصله بعد از
+//    <body> تزریق می‌شود → نمایش فوری و بدون فلاش (نیازی به JS نیست).
+//  • فقط در صفحه‌های سنگین سیستم تزریق می‌شود (LOADER_PAGES).
+// ============================================
+const LOADER_PAGES = new Set([
+  "dashboard.html",
+  "customer-list.html",
+  "customer-info.html",
+  "admin-panel.html",
+]);
+const LOADER_STYLE_DEFAULT = "classic";
+const LOADER_CSS_URL = "/shared/components/Loader/loader.css";
+const UI_SETTINGS_REFRESH_MS = 60 * 1000;
+
+let uiSettings = { loader_style: LOADER_STYLE_DEFAULT };
+let loaderMarkup = "";
+try {
+  loaderMarkup = fs.readFileSync(
+    path.join(srcPath, "shared", "components", "Loader", "loader.html"),
+    "utf8",
+  );
+} catch {
+  console.warn("⚠️ مارک‌آپ لودر پیدا نشد؛ لودر سیستمی تزریق نمی‌شود");
+}
+
+const normalizeLoaderStyle = (value) =>
+  String(value || "")
+    .toLowerCase()
+    .trim() === "logo"
+    ? "logo"
+    : LOADER_STYLE_DEFAULT;
+
+// خواندن تنظیمات نمایشی از بک‌اند — اگر بک‌اند خواب بود، مقدار قبلی می‌ماند
+const refreshUiSettings = async () => {
+  // در حالت strict فقط API_URL استفاده می‌شود (مثل پروکسی) — تست‌ها هم
+  // همین حالت را می‌گیرند تا به بک‌اند واقعی وصلی نشوند
+  const targets = PROXY_STRICT
+    ? [process.env.API_URL].filter(Boolean)
+    : [
+        process.env.API_URL,
+        "http://127.0.0.1:5000/api",
+        "http://localhost:5000/api",
+      ].filter(Boolean);
+
+  for (const target of targets) {
+    try {
+      const response = await fetch(`${target}/public/ui-settings`, {
+        signal: AbortSignal.timeout(3000),
+        headers: { Accept: "application/json" },
+      });
+      if (!response.ok) continue;
+      const body = await response.json();
+      if (body?.success && body.data) {
+        uiSettings = { ...uiSettings, ...body.data };
+        return true;
+      }
+    } catch {
+      /* این تارگت در دسترس نیست → تارگت بعدی */
+    }
+  }
+  return false;
+};
+
+const startUiSettingsRefresh = () => {
+  refreshUiSettings();
+  setInterval(refreshUiSettings, UI_SETTINGS_REFRESH_MS);
+};
+
+// تزریق اتریبیوت لودر + CSS + بلوک لودر در HTML صفحه
+//  • صفحه‌های لیست سفید (LOADER_PAGES): اورلی تمام‌صفحه + حالت + CSS
+//  • صفحه‌های دیگر: اگر لودر داخلی (data-skb-loader) داشته باشند،
+//    فقط CSS + حالت تزریق می‌شود (بدون اورلی تمام‌صفحه)
+const injectPageLoader = (html, filePath, overrideStyle) => {
+  const fileName = path.basename(String(filePath)).toLowerCase();
+  const isFullPageLoader = LOADER_PAGES.has(fileName);
+  const hasInlineLoader = html.includes("data-skb-loader");
+
+  if (!isFullPageLoader && !hasInlineLoader) return html;
+
+  const style = normalizeLoaderStyle(overrideStyle || uiSettings.loader_style);
+
+  // ۱) انتخاب حالت لودر روی تگ <html>
+  // ✅ همیشه ست/اصلاح می‌شود — چون لودرهای داخل صفحه هم از همین حالت پیروی
+  //    می‌کنند (shared/components/Loader/loader.service.js)
+  let output = html.replace(/<html\b([^>]*)>/i, (match, attrs) => {
+    if (/\bdata-loader\s*=/i.test(attrs)) {
+      return match.replace(
+        /\bdata-loader\s*=\s*("[^"]*"|'[^']*')/i,
+        `data-loader="${style}"`,
+      );
+    }
+    return `<html${attrs} data-loader="${style}">`;
+  });
+
+  // ۲) CSS لودر (نسخه‌دار → کش یک‌ساله)
+  if (!output.includes(LOADER_CSS_URL)) {
+    output = output.replace(
+      /<\/head>/i,
+      `    <link rel="stylesheet" href="${LOADER_CSS_URL}?v=${ASSET_VERSION}">\n</head>`,
+    );
+  }
+
+  // ۳) اورلی تمام‌صفحه فقط برای صفحه‌های لیست سفید
+  //    (اگر صفحه خودش اورلی داشته باشد یا مارک‌آپ در دسترس نباشد، تزریق نمی‌شود)
+  if (!isFullPageLoader) return output;
+  if (output.includes('id="pageLoadingOverlay"') || !loaderMarkup) return output;
+
+  // ۳) بلوک لودر + مخفی‌کنندهٔ امن (بدون دیالوگ/وابستگی به JS)
+  const loaderBlock = `
+    <!-- ===== لودر سیستمی (تزریق خودکار — shared/components/Loader) ===== -->
+    <div class="skb-page-loader" id="pageLoadingOverlay">
+${loaderMarkup}
+    </div>
+    <script>
+      // ✅ مخفی‌کنندهٔ امن: صفحه‌های خودشان هم می‌توانند window.hidePageLoader() را صدا بزنند
+      (function () {
+        var MAX_MS = 15000;
+        window.hidePageLoader = function () {
+          var el = document.getElementById("pageLoadingOverlay");
+          if (!el || el.dataset.hidden === "1") return;
+          el.dataset.hidden = "1";
+          el.style.opacity = "0";
+          setTimeout(function () {
+            el.style.display = "none";
+          }, 500);
+        };
+        setTimeout(window.hidePageLoader, MAX_MS);
+      })();
+    </script>
+`;
+
+  output = output.replace(/<body\b[^>]*>/i, (match) => `${match}\n${loaderBlock}`);
+  return output;
+};
+
+const renderPageHtml = (html, filePath, overrideStyle) =>
+  injectPageLoader(rewriteAssetUrls(html), filePath, overrideStyle);
 
 app.use((req, res, next) => {
   const originalSendFile = res.sendFile.bind(res);
@@ -182,10 +361,25 @@ app.use((req, res, next) => {
     if (!isPageHtml) return originalSendFile(filePath, options, callback);
 
     return fs.readFile(filePath, "utf8", (error, html) => {
-      if (error) return originalSendFile(filePath, options, callback);
+      if (error) {
+        // ✅ اگر فایل صفحه وجود نداشت (مثلاً مسیر قدیمی/حذف‌شده) →
+        // به‌جای خطای سرور، صفحهٔ ۴۰۴ نمایش داده شود
+        const fallback = path.join(srcPath, "pages", "404.html");
+        if (fs.existsSync(fallback) && filePath !== fallback) {
+          return fs.readFile(fallback, "utf8", (fallbackError, fallbackHtml) => {
+            if (fallbackError) return originalSendFile(filePath, options, callback);
+            res.status(404);
+            res.setHeader("Content-Type", "text/html; charset=utf-8");
+            res.setHeader("Cache-Control", "no-cache");
+            return res.send(rewriteAssetUrls(fallbackHtml));
+          });
+        }
+        return originalSendFile(filePath, options, callback);
+      }
       res.setHeader("Content-Type", "text/html; charset=utf-8");
       res.setHeader("Cache-Control", "no-cache");
-      return res.send(rewriteAssetUrls(html));
+      // ✅ لودر سیستمی هم تزریق می‌شود (تنظیم از پنل ادمین)
+      return res.send(renderPageHtml(html, filePath, req.query?.loader));
     });
   };
   next();
@@ -455,6 +649,19 @@ app.get("/customer-list.html", (req, res) => {
   res.sendFile(path.join(srcPath, "pages", "customer-list.html"));
 });
 
+// ===== صفحه‌های اطلاعاتی (عمومی، بدون نیاز به ورود) =====
+app.get(["/about", "/about.html"], (req, res) => {
+  res.sendFile(path.join(srcPath, "pages", "about.html"));
+});
+
+app.get(["/contact", "/contact.html"], (req, res) => {
+  res.sendFile(path.join(srcPath, "pages", "contact.html"));
+});
+
+app.get(["/help", "/help.html"], (req, res) => {
+  res.sendFile(path.join(srcPath, "pages", "help.html"));
+});
+
 // بوکمارک‌ها
 app.get("/bookmarks", (req, res) => {
   res.sendFile(path.join(srcPath, "pages", "bookmarks.html"));
@@ -495,6 +702,9 @@ app.use((req, res) => {
 // ============================================
 // ✅ شروع سرور
 // ============================================
+// ✅ شروع به‌روزرسانی دوره‌ای تنظیمات نمایشی (لودر سیستمی)
+startUiSettingsRefresh();
+
 app.listen(PORT, () => {
   console.log(`\n✅ Server is running on http://localhost:${PORT}`);
   console.log(`\n📁 Source path: ${srcPath}`);

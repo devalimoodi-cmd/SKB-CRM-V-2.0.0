@@ -2307,11 +2307,11 @@ SKB-CRM.IR`,
           }
         });
       } else {
-        const message = prompt(
-          `متن پیامک برای ${customerName}:`,
-          defaultMessage,
+        // ✅ بدون دیالوگ بومی: اگر SweetAlert2 در صفحه لود نشده باشد، پیام خطا نشان بده
+        notificationService.showError(
+          "امکان گرفتن متن پیامک نیست (SweetAlert2 لود نشده است)",
         );
-        resolve(message);
+        resolve(null);
       }
     });
   }

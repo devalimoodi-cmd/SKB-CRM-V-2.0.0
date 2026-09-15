@@ -165,28 +165,11 @@
   font-size: 14px;
 }
 
-/* ===== لودینگ ===== */
-.chart-loading {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 150px;
-}
-
-.chart-loading .spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid #f1f5f9;
-  border-top-color: #2c7a6e;
-  border-radius: 50%;
-  animation: chartSpin 1s linear infinite;
-}
-
-@keyframes chartSpin {
-  to {
-    transform: rotate(360deg);
-  }
-}
+/* ===== لودینگ =====
+   ⚠️ از لودر سیستمی استفاده کن (پیرو انتخاب ادمین):
+      <span data-skb-loader data-skb-loader-text="..."></span>
+      یا  loaderService.inline({ text, size: "sm" })
+   (اسپینر اختصاصی قبلی حذف شد تا در کل سیستم یک لودر داشته باشیم) ===== */
 
 /* ===== ریسپانسیو ===== */
 @media (max-width: 768px) {

@@ -1,0 +1,163 @@
+<!-- pages/contact.html — تماس با ما و ارسال نظرات -->
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تماس با ما | سامانه مدیریت مشتریان ستاره کیان بیرجند</title>
+
+    <link rel="stylesheet" href="./../../node_modules/@fortawesome/fontawesome-free/css/all.min.css">
+    <link rel="stylesheet" href="./../../node_modules/bootstrap/dist/css/bootstrap.min.css">
+
+    <link rel="stylesheet" href="/styles/reset.css">
+    <link rel="stylesheet" href="/styles/variables.css">
+    <link rel="stylesheet" href="/styles/global.css">
+
+    <link rel="stylesheet" href="./../shared/layouts/Header/header.css">
+    <link rel="stylesheet" href="./../shared/layouts/Footer/footer.css">
+    <link rel="stylesheet" href="/styles/info-pages.css">
+
+    <link rel="icon" type="image/png" href="/assets/images/favicon.ico">
+</head>
+
+<body>
+    <header id="main-header"></header>
+
+    <main class="info-page">
+        <section class="info-hero">
+            <img src="/assets/images/skb-logo.png" alt="لوگوی ستاره کیان بیرجند">
+            <div>
+                <h1>تماس با ما</h1>
+                <p>
+                    <span id="contactCompanyName"></span> — برای ارتباط با کارخانه یا ارسال
+                    نظر، پیشنهاد و گزارش اشکال، از راه‌های زیر استفاده کنید.
+                </p>
+            </div>
+        </section>
+
+        <section class="info-grid">
+            <article class="info-card">
+                <h3><i class="fas fa-address-book"></i> راه‌های ارتباطی</h3>
+
+                <div id="contactPhones"></div>
+
+                <div class="contact-item">
+                    <i class="fas fa-globe"></i>
+                    <div>
+                        <strong>وب‌سایت شرکت</strong>
+                        <a id="contactWebsite" href="#" target="_blank" rel="noopener"></a>
+                    </div>
+                </div>
+
+                <div class="contact-item">
+                    <i class="fas fa-location-dot"></i>
+                    <div>
+                        <strong>نشانی کارخانه</strong>
+                        <span id="contactAddress"></span>
+                    </div>
+                </div>
+
+                <div class="contact-item">
+                    <i class="fas fa-envelope"></i>
+                    <div>
+                        <strong>ایمیل پشتیبانی نرم‌افزار</strong>
+                        <a id="contactSupportEmail" href="#"></a>
+                    </div>
+                </div>
+
+                <div class="contact-item">
+                    <i class="fab fa-github"></i>
+                    <div>
+                        <strong>گیت‌هاب</strong>
+                        <a id="contactGithub" href="#" target="_blank" rel="noopener"></a>
+                    </div>
+                </div>
+
+                <button type="button" class="btn-ghost-info" id="contactCopyAddress" style="margin-top:12px;">
+                    <i class="fas fa-copy"></i> کپی آدرس
+                </button>
+            </article>
+
+            <article class="info-card" id="contactMsgCard" style="display:none;">
+                <h3><i class="fas fa-comment-dots"></i> ارسال نظر، پیشنهاد یا گزارش اشکال</h3>
+                <p style="margin-top:-4px;">
+                    پیام شما مستقیماً برای مدیران سامانه ارسال می‌شود و پاسخ ایشان در
+                    <strong>«پیام‌ها» (آیکون پاکت در هدر)</strong> نمایش داده می‌شود.
+                </p>
+
+                <div class="info-form">
+                    <label for="contactMsgSubject">نوع پیام</label>
+                    <select id="contactMsgSubject">
+                        <option value="suggestion">پیشنهاد</option>
+                        <option value="complaint">انتقاد</option>
+                        <option value="bug">اشکال فنی</option>
+                        <option value="question">سؤال</option>
+                        <option value="other">سایر</option>
+                    </select>
+
+                    <label for="contactMsgTitle">موضوع</label>
+                    <input type="text" id="contactMsgTitle" maxlength="150" placeholder="خلاصهٔ پیام">
+
+                    <label for="contactMsgBody">متن پیام</label>
+                    <textarea id="contactMsgBody" maxlength="2000" placeholder="متن پیام خود را بنویسید..."></textarea>
+
+                    <div id="contactMsgError" class="info-error" style="display:none; margin-top:10px;"></div>
+                    <div id="contactMsgSuccess" class="info-success" style="display:none; margin-top:10px;"></div>
+
+                    <button type="button" class="btn-primary-info" id="contactMsgSend">
+                        <i class="fas fa-paper-plane"></i> ارسال پیام
+                    </button>
+                </div>
+
+                <h3 style="margin-top:22px;"><i class="fas fa-inbox"></i> پیام‌های من</h3>
+                <div class="msg-list" id="contactMyThreads"></div>
+            </article>
+
+            <article class="info-card" id="contactGuestCard" style="display:none;">
+                <h3><i class="fas fa-lock"></i> برای ارسال پیام وارد شوید</h3>
+                <p>
+                    امکان ارسال نظر و پیشنهاد فقط برای کاربران سامانه فعال است تا پاسخ مدیران
+                    به‌صورت امن در حساب خودتان دریافت شود.
+                </p>
+                <a class="btn-primary-info" href="/login" style="text-decoration:none;">
+                    <i class="fas fa-right-to-bracket"></i> ورود به سامانه
+                </a>
+            </article>
+        </section>
+    </main>
+
+    <footer id="main-footer"></footer>
+
+    <!-- ===== Vendor Scripts ===== -->
+    <script src="./../../node_modules/jquery/dist/jquery.min.js"></script>
+    <script src="./../../node_modules/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="./../../node_modules/sweetalert2/dist/sweetalert2.all.min.js"></script>
+
+    <!-- ===== Core ===== -->
+    <script type="module" src="/core/constants/api.const.js"></script>
+    <script type="module" src="/core/constants/config.const.js"></script>
+    <script type="module" src="/core/services/cache.service.js"></script>
+    <script type="module" src="/core/services/api.service.js"></script>
+    <script type="module" src="/core/services/auth.service.js"></script>
+    <script type="module" src="/core/services/state.service.js"></script>
+    <script type="module" src="/core/services/notification.service.js"></script>
+    <script type="module" src="/core/utils/date.utils.js"></script>
+    <script type="module" src="/core/utils/string.utils.js"></script>
+    <script type="module" src="/core/utils/dom.utils.js"></script>
+
+    <!-- ===== Layouts ===== -->
+    <script type="module" src="/shared/layouts/Header/header.service.js"></script>
+    <script type="module" src="/shared/layouts/Header/header-bookmarks.service.js"></script>
+    <script type="module" src="/shared/layouts/Header/header-dropdown.service.js"></script>
+    <script type="module" src="/shared/layouts/Footer/footer.service.js"></script>
+
+    <!-- ===== Messages (نظرات و پیشنهادات) ===== -->
+    <script type="module" src="/features/messages/messages.api.js"></script>
+    <script type="module" src="/features/messages/messages.service.js"></script>
+
+    <!-- ===== Page script ===== -->
+    <script type="module" src="/features/info-pages/info-pages.service.js"></script>
+</body>
+
+</html>

@@ -49,6 +49,8 @@ const flockCompletionRoutes = require("./routes/flockCompletionRoutes");
 const settingsRoutes = require("./routes/settingsRoutes");
 const visitReportRoutes = require("./routes/visitReportRoutes");
 const captchaRoutes = require("./routes/captchaRoutes");
+const suggestionRoutes = require("./routes/suggestionRoutes");
+const publicRoutes = require("./routes/publicRoutes");
 
 // ================== ###==========
 
@@ -201,6 +203,17 @@ app.use(
 // ============================================
 // ✅ کپچای صفحهٔ ورود (عمومی - بدون احراز هویت)
 app.use("/api/captcha", captchaRoutes);
+
+// ============================================
+// ✅ تنظیمات نمایشی UI (عمومی — بدون احراز هویت)
+// فقط کلیدهای غیرحساس مثل loader_style (لودر سیستمی)
+// ============================================
+app.use("/api/public", publicRoutes);
+
+// ============================================
+// ✅ «نظرات و پیشنهادات» (فقط کاربران لاگین‌شده)
+// ============================================
+app.use("/api/suggestions", suggestionRoutes);
 
 app.get("/api/ping", (req, res) => {
   res.json({

@@ -35,6 +35,8 @@ const ChickSource = require("./ChickSource");
 const SmsLog = require("./SmsLog");
 const BreedWeightStandard = require("./BreedWeightStandard");
 const Flock = require("./Flock");
+const Suggestion = require("./Suggestion");
+const SuggestionMessage = require("./SuggestionMessage");
 
 // ================================================================
 // ✅ ارتباطات با CASCADE برای حذف آبشاری
@@ -766,4 +768,30 @@ Bookmark.belongsTo(Flock, {
 Bookmark.belongsTo(ChickPlacement, {
   foreignKey: "hall_id",
   as: "hallPlacement",
+});
+
+// ================================================================
+// ✅ ارتباطات «نظرات و پیشنهادات» (Suggestion / SuggestionMessage)
+// ================================================================
+
+User.hasMany(Suggestion, {
+  foreignKey: "user_id",
+  as: "suggestions",
+  onDelete: "CASCADE",
+  hooks: true,
+});
+Suggestion.belongsTo(User, {
+  foreignKey: "user_id",
+  as: "user",
+});
+
+Suggestion.hasMany(SuggestionMessage, {
+  foreignKey: "suggestion_id",
+  as: "messages",
+  onDelete: "CASCADE",
+  hooks: true,
+});
+SuggestionMessage.belongsTo(Suggestion, {
+  foreignKey: "suggestion_id",
+  as: "suggestion",
 });

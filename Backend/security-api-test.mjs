@@ -261,6 +261,59 @@ const run = async () => {
       }
     }
   }
+
+  // ۷) «نظرات و پیشنهادات» — همهٔ روت‌ها نیاز به ورود دارند
+  const sugCreate = await fetch(`${base}/api/suggestions`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ title: "تست", body: "متن تست" }),
+  });
+  check(
+    "POST /api/suggestions بدون توکن → ۴۰۱",
+    sugCreate.status === 401,
+    `status=${sugCreate.status}`,
+  );
+
+  const sugMine = await fetch(`${base}/api/suggestions/mine`);
+  check(
+    "GET /api/suggestions/mine بدون توکن → ۴۰۱",
+    sugMine.status === 401,
+    `status=${sugMine.status}`,
+  );
+
+  const sugUnread = await fetch(`${base}/api/suggestions/unread-count`);
+  check(
+    "GET /api/suggestions/unread-count بدون توکن → ۴۰۱",
+    sugUnread.status === 401,
+    `status=${sugUnread.status}`,
+  );
+
+  const sugAdminList = await fetch(`${base}/api/suggestions`);
+  check(
+    "GET /api/suggestions (فهرست ادمین) بدون توکن → ۴۰۱",
+    sugAdminList.status === 401,
+    `status=${sugAdminList.status}`,
+  );
+
+  const sugDeleteMessage = await fetch(
+    `${base}/api/suggestions/1/messages/1`,
+    { method: "DELETE" },
+  );
+  check(
+    "DELETE /api/suggestions/:id/messages/:messageId بدون توکن → ۴۰۱",
+    sugDeleteMessage.status === 401,
+    `status=${sugDeleteMessage.status}`,
+  );
+
+  // ۸) تنظیمات نمایشی عمومی (لودر سیستمی) — باید بدون توکن در دسترس باشند
+  const uiSettings = await fetch(`${base}/api/public/ui-settings`);
+  const uiBody = await uiSettings.json().catch(() => ({}));
+  check(
+    "GET /api/public/ui-settings بدون توکن → ۲۰۰ (لودر معتبر)",
+    uiSettings.status === 200 &&
+      ["classic", "logo"].includes(uiBody?.data?.loader_style),
+    `status=${uiSettings.status} loader=${uiBody?.data?.loader_style}`,
+  );
 };
 
 run()

@@ -15,6 +15,7 @@
     <link rel="stylesheet" href="/styles/reset.css">
     <link rel="stylesheet" href="/styles/variables.css">
     <link rel="stylesheet" href="/styles/global.css">
+    <link rel="stylesheet" href="/styles/info-pages.css">
 
     <!-- ===== Shared Components Styles (اصلاح شده) ===== -->
     <link rel="stylesheet" href="./../shared/layouts/Header/header.css">
@@ -216,13 +217,17 @@
                             <i class="fas fa-chevron-left menu-arrow"></i>
                         </div>
 
-                        <div class="sidebar-menu-item" data-menu="public-chat">
+                        <div class="sidebar-menu-item" data-menu="suggestions">
                             <div class="menu-icon-wrapper">
                                 <i class="fas fa-comments menu-icon"></i>
                             </div>
                             <div class="menu-content">
-                                <span class="menu-title">چت عمومی</span>
-                                <span class="menu-description">ارسال پیام به سایر کاربران</span>
+                                <span class="menu-title">
+                                    نظرات و پیشنهادات
+                                    <span id="suggestionsMenuBadge" class="quantity"
+                                        style="display:none;background:#ef4444;color:#fff;border-radius:999px;padding:0 7px;font-size:11px;margin-inline-start:6px;">0</span>
+                                </span>
+                                <span class="menu-description">پیام‌های کاربران و پاسخ‌دهی</span>
                             </div>
                             <i class="fas fa-chevron-left menu-arrow"></i>
                         </div>
@@ -391,31 +396,122 @@
                                     </div>
                                 </div>
                             </div>
+
+                            <!-- ✅ لودر سیستمی (انتخاب بین حالت کلاسیک و لوگوی ستاره کیان) -->
+                            <div style="background:#fff;border-radius:12px;border:1px solid #e8edf3;padding:22px;margin-top:18px;">
+                                <h3 style="margin:0 0 6px;font-size:15px;color:#0f172a;">
+                                    <i class="fas fa-spinner" style="color:#2c7a6e;"></i> لودر سیستمی
+                                </h3>
+                                <p style="margin:0 0 16px;font-size:12px;color:#64748b;line-height:1.9;">
+                                    لودری که هنگام باز شدن صفحه‌های سنگین (داشبورد، مشتریان، اطلاعات مشتری و همین پنل)
+                                    نمایش داده می‌شود. متن هر دو حالت یکسان است: «در حال بارگذاری...»
+                                </p>
+
+                                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;">
+                                    <!-- ✅ کارت انتخاب با div (نه button) تا لودر داخل آن سالم رندر شود -->
+                                    <div class="skb-loader-option" data-loader-style="classic" role="button" tabindex="0"
+                                        aria-pressed="false" aria-label="انتخاب لودر کلاسیک">
+                                        <span class="skb-loader-option-title">لودر کلاسیک (فعلی)</span>
+                                        <span class="skb-loader-preview" id="loaderPreviewClassic"></span>
+                                        <button type="button" class="skb-loader-preview-btn" data-loader-preview="classic">
+                                            <i class="fas fa-expand"></i> نمایش تمام‌صفحه
+                                        </button>
+                                    </div>
+
+                                    <div class="skb-loader-option" data-loader-style="logo" role="button" tabindex="0"
+                                        aria-pressed="false" aria-label="انتخاب لودر لوگوی ستاره کیان">
+                                        <span class="skb-loader-option-title">لودر لوگوی ستاره کیان</span>
+                                        <span class="skb-loader-preview is-logo" id="loaderPreviewLogo"></span>
+                                        <button type="button" class="skb-loader-preview-btn" data-loader-preview="logo">
+                                            <i class="fas fa-expand"></i> نمایش تمام‌صفحه
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:16px;flex-wrap:wrap;background:#f8fafc;border:1px solid #eef2f6;border-radius:10px;padding:12px 16px;">
+                                    <div style="font-size:12.5px;color:#475569;">
+                                        لودر فعال سیستم:
+                                        <strong id="loaderStyleState" style="color:#1e293b;">در حال بارگذاری...</strong>
+                                    </div>
+                                    <div style="font-size:11.5px;color:#94a3b8;">
+                                        تغییر روی همهٔ کاربران اعمال می‌شود (حداکثر تا ۱ دقیقه پس از ذخیره).
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Public Chat -->
-                    <div id="public-chat" class="content-section">
-                        <div class="chat-container"
-                            style="background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); overflow: hidden;">
-                            <div class="chat-header"
-                                style="background: linear-gradient(135deg, #2c7a6e 0%, #035552 100%); padding: 15px 20px; color: white;">
-                                <h3 style="margin: 0; font-size: 16px;"><i class="fas fa-comments"></i> گفتگوی عمومی
-                                </h3>
-                                <p style="margin: 5px 0 0; font-size: 12px; opacity: 0.9;">پیام‌های شما برای همه کاربران
-                                    قابل مشاهده است</p>
+                    <!-- نظرات و پیشنهادات (به‌جای «گفتگوی عمومی» قبلی) -->
+                    <div id="suggestions" class="content-section">
+                        <div style="background:white;border-radius:12px;border:1px solid #e8edf3;overflow:hidden;">
+                            <div
+                                style="background:linear-gradient(135deg,#2c7a6e 0%,#035552 100%);padding:15px 20px;color:#fff;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+                                <div>
+                                    <h3 style="margin:0;font-size:16px;">
+                                        <i class="fas fa-comments"></i> نظرات و پیشنهادات
+                                        <span id="suggestionsBadge"
+                                            style="display:none;background:#ef4444;border-radius:999px;padding:1px 8px;font-size:12px;margin-inline-start:6px;">0</span>
+                                    </h3>
+                                    <p style="margin:5px 0 0;font-size:12px;opacity:.9;">
+                                        پاسخ شما مستقیماً در «پیام‌های» همان کاربر نمایش داده می‌شود
+                                    </p>
+                                </div>
+                                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                                    <select id="suggestionStatusFilter"
+                                        style="margin:0;padding:6px 10px;font-size:12.5px;border-radius:8px;border:none;">
+                                        <option value="">همهٔ وضعیت‌ها</option>
+                                        <option value="new">جدید</option>
+                                        <option value="in_progress">در حال بررسی</option>
+                                        <option value="answered">پاسخ داده شده</option>
+                                        <option value="closed">بسته شده</option>
+                                    </select>
+                                    <label style="display:inline-flex;align-items:center;gap:6px;font-size:12.5px;">
+                                        <input type="checkbox" id="suggestionUnreadOnly"
+                                            style="width:16px;height:16px;accent-color:#2c7a6e;">
+                                        فقط نخوانده‌ها
+                                    </label>
+                                    <input type="text" id="suggestionSearch" placeholder="جستجو (عنوان/کاربر)"
+                                        style="margin:0;padding:6px 10px;font-size:12.5px;border-radius:8px;border:none;min-width:170px;">
+                                    <button type="button" id="suggestionsRefreshBtn"
+                                        style="margin:0;padding:7px 14px;border:none;border-radius:8px;background:#ffffff22;color:#fff;cursor:pointer;font-family:inherit;">
+                                        <i class="fas fa-rotate"></i> بروزرسانی
+                                    </button>
+                                </div>
                             </div>
-                            <div id="chatMessages" class="chat-messages"
-                                style="height: 450px; overflow-y: auto; padding: 20px; background: #f9fafb; display: flex; flex-direction: column; gap: 12px;">
-                                <div style="text-align: center; color: #888;">در حال بارگذاری پیام‌ها...</div>
-                            </div>
-                            <div class="chat-input-area"
-                                style="padding: 15px 20px; border-top: 1px solid #eef2f6; background: white; display: flex; gap: 12px;">
-                                <input type="text" id="chatMessageInput" class="float-input" style="flex: 1; margin: 0;"
-                                    placeholder="پیام خود را بنویسید...">
-                                <button id="sendChatBtn" class="submit-btn" style="margin: 0; padding: 0 20px;">
-                                    <i class="fas fa-paper-plane"></i> ارسال
-                                </button>
+
+                            <div style="display:grid;grid-template-columns:minmax(260px,1fr) 2fr;">
+                                <div style="border-inline-end:1px solid #eef2f6;max-height:600px;overflow-y:auto;padding:12px;">
+                                    <div class="msg-list" id="suggestionsList">
+                                        <div class="msg-list-empty">در حال بارگذاری…</div>
+                                    </div>
+                                </div>
+
+                                <div style="padding:14px;display:flex;flex-direction:column;min-height:460px;">
+                                    <div class="msg-modal-meta" id="suggestionMeta"></div>
+                                    <div class="msg-thread" id="suggestionThread" style="flex:1;">
+                                        <div class="msg-list-empty">
+                                            برای مشاهدهٔ گفتگو، یک مورد را از فهرست انتخاب کنید
+                                        </div>
+                                    </div>
+                                    <div style="margin-top:12px;">
+                                        <textarea id="adminSuggestionReply" maxlength="2000"
+                                            placeholder="پاسخ خود را بنویسید..."
+                                            style="width:100%;min-height:80px;border:1px solid #d8e0e8;border-radius:10px;padding:10px 12px;font-family:inherit;font-size:13.5px;box-sizing:border-box;"></textarea>
+                                        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px;flex-wrap:wrap;">
+                                            <button type="button" class="btn-ghost-info danger" id="suggestionDeleteBtn"
+                                                title="حذف گفتگو و همهٔ پیام‌های آن">
+                                                <i class="fas fa-trash-can"></i> حذف گفتگو
+                                            </button>
+                                            <button type="button" class="btn-ghost-info" id="suggestionStatusBtn">
+                                                <i class="fas fa-list-check"></i> تغییر وضعیت
+                                            </button>
+                                            <button type="button" class="btn-primary-info" id="suggestionSendBtn"
+                                                style="margin-top:0;">
+                                                <i class="fas fa-paper-plane"></i> ارسال پاسخ
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>

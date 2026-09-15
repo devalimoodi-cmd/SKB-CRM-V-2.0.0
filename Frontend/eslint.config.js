@@ -1,6 +1,6 @@
 // ============================================================
 // eslint.config.js (Flat config - ESLint 9/10) — Frontend
-// هدف: گرفتن خطاهای واقعی در کد مرورگر (متغیر تعریف‌نشده، کلید تکراری، کد مرده)
+// هدف: گرفتن خطاهای واقعی در کد مرورگر (متغیر تعریف‌نشده، کلید تکراری، کد مرده، دیالوگ بومی)
 // اجرا: npm run lint   (در پوشهٔ Frontend)
 // ⚠️ این پروژه عمداً CSP سخت‌گیرانه ندارد چون صفحات اسکریپت/هندلر inline دارند؛
 //    بنابراین برای «متغیرهای سراسری» فقط موارد شناخته‌شده تعریف می‌شوند.
@@ -108,6 +108,10 @@ const COMMON_RULES = {
   "no-useless-escape": "warn",
   "no-unsafe-finally": "error",
   "no-async-promise-executor": "warn",
+  // ⛔ دیالوگ بومی مرورگر (alert / confirm / prompt) ممنوع است.
+  // به‌جای آن از notificationService استفاده کن (SweetAlert2) تا همهٔ پیام‌ها یکدست باشند.
+  // تنها استثنا: فالبک‌های مستند داخل src/core/services/notification.service.js
+  "no-alert": "error",
 };
 
 module.exports = [

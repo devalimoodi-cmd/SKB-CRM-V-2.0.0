@@ -19,6 +19,7 @@
     <link rel="stylesheet" href="./../styles/reset.css">
     <link rel="stylesheet" href="./../styles/variables.css">
     <link rel="stylesheet" href="./../styles/global.css">
+    <link rel="stylesheet" href="./../styles/info-pages.css">
     <link rel="stylesheet" href="./../styles/notification.css">
 
     <!-- ===== Shared Components Styles ===== -->
@@ -47,50 +48,10 @@
 
 <body>
 
-    <!-- ===== FULL PAGE LOADING OVERLAY ===== -->
-    <div id="pageLoadingOverlay" style="
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: #f5f7fb;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        z-index: 999999;
-        transition: opacity 0.5s ease;
-    ">
-        <div style="
-            width: 60px;
-            height: 60px;
-            border: 4px solid #e2e8f0;
-            border-top-color: #2c7a6e;
-            border-radius: 50%;
-            animation: pageLoaderSpin 0.8s linear infinite;
-            margin-bottom: 20px;
-        "></div>
-        <div style="
-            font-family: 'Vazir', sans-serif;
-            color: #2c7a6e;
-            font-size: 16px;
-            font-weight: 600;
-        ">در حال بارگذاری...</div>
-        <div style="
-            font-family: 'Vazir', sans-serif;
-            color: #94a3b8;
-            font-size: 12px;
-            margin-top: 8px;
-        ">سامانه مدیریت مشتریان گوشتی کارخانه تولید خوراک دام و طیور ستاره کیان بیرجند</div>
-        <style>
-            @keyframes pageLoaderSpin {
-                to {
-                    transform: rotate(360deg);
-                }
-            }
-        </style>
-    </div>
+    <!-- ===== لودر سیستمی =====
+         به‌صورت خودکار توسط Frontend/server.js تزریق می‌شود
+         (shared/components/Loader — حالت «کلاسیک» یا «لوگوی ستاره کیان» طبق تنظیمات سیستم)
+         و با اسکریپت پایین همین صفحه (overlay#pageLoadingOverlay) مخفی می‌شود. ===== -->
 
     <!-- ===== HEADER ===== -->
     <header id="main-header"></header>
@@ -308,8 +269,9 @@
                                             </div>
                                         </div>
                                         <div class="weather-loading" id="weatherLoading" style="display: none;">
-                                            <i class="fas fa-spinner fa-spin"></i>
-                                            <span>در حال دریافت...</span>
+                                            <!-- ✅ لودر سیستمی (پیرو انتخاب ادمین) -->
+                                            <span data-skb-loader data-skb-loader-size="sm"
+                                                data-skb-loader-text="در حال دریافت..."></span>
                                         </div>
                                         <div class="weather-content" id="weatherContent" style="display: block;"></div>
                                         <div class="weather-error" id="weatherError" style="display: none;"></div>
@@ -813,8 +775,11 @@
 
                             <div id="chickRegisterTab" class="tab-content active">
                                 <div id="flockStatusPanel" class="flock-status-panel">
-                                    <div class="flock-panel-loading"><i
-                                            class="fas fa-spinner fa-spin"></i> در حال بررسی وضعیت گله...</div>
+                                    <div class="flock-panel-loading">
+                                        <!-- ✅ لودر سیستمی (پیرو انتخاب ادمین) -->
+                                        <span data-skb-loader data-skb-loader-size="sm"
+                                            data-skb-loader-text="در حال بررسی وضعیت گله..."></span>
+                                    </div>
                                 </div>
                                 <div class="form-section">
                                     <h3 class="form-section-title">ثبت دوره جوجه ریزی جدید</h3>

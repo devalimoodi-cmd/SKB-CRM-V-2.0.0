@@ -1,4 +1,5 @@
 import { SMS_TEMPLATES } from "./sms.templates.js";
+import { notificationService } from "../../core/services/notification.service.js";
 
 const applyTemplateVars = (template, vars = {}) => {
   let msg = template;
@@ -232,21 +233,11 @@ export function openSmsModal({
         }
       });
     } else {
-      const recipient = available[0];
-      const message = prompt(
-        `متن پیامک برای ${recipient?.name || "گیرنده"}:`,
-        buildDefaultRaw(),
+      // ✅ بدون دیالوگ بومی: اگر SweetAlert2 در صفحه لود نشده باشد، پیام خطا نشان بده
+      notificationService.showError(
+        "امکان گرفتن متن پیامک نیست (SweetAlert2 لود نشده است)",
       );
-      resolve(
-        message
-          ? {
-              message,
-              recipient,
-              recipients: [recipient],
-              messages: [{ recipient, message }],
-            }
-          : null,
-      );
+      resolve(null);
     }
   });
 }

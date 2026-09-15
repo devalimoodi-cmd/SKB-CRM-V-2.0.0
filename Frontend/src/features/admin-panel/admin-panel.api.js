@@ -78,14 +78,50 @@ export const adminPanelApi = {
 
   // ===== مدیریت چت عمومی =====
 
-  // دریافت پیام‌های چت
-  async getChatMessages(limit = 50) {
-    return apiService.get(API_CONSTANTS.ENDPOINTS.CHAT.MESSAGES, { limit });
+  // ===== نظرات و پیشنهادات (جای «چت عمومی» قبلی) =====
+  // فهرست گفتگوهای کاربران
+  async getSuggestions(params = {}) {
+    return apiService.get(API_CONSTANTS.ENDPOINTS.SUGGESTIONS.ADMIN_LIST, params);
   },
 
-  // ارسال پیام در چت
-  async sendChatMessage(content) {
-    return apiService.post(API_CONSTANTS.ENDPOINTS.CHAT.MESSAGES, { content });
+  // یک گفتگو + علامت خوانده‌شدن توسط ادمین
+  async getSuggestionThread(id) {
+    return apiService.get(
+      API_CONSTANTS.ENDPOINTS.SUGGESTIONS.ADMIN_THREAD.replace(":id", id),
+    );
+  },
+
+  // پاسخ ادمین
+  async replySuggestion(id, body) {
+    return apiService.post(
+      API_CONSTANTS.ENDPOINTS.SUGGESTIONS.ADMIN_REPLY.replace(":id", id),
+      { body },
+    );
+  },
+
+  // تغییر وضعیت گفتگو
+  async updateSuggestionStatus(id, payload) {
+    return apiService.patch(
+      API_CONSTANTS.ENDPOINTS.SUGGESTIONS.UPDATE.replace(":id", id),
+      payload,
+    );
+  },
+
+  // حذف گفتگو
+  async deleteSuggestion(id) {
+    return apiService.delete(
+      API_CONSTANTS.ENDPOINTS.SUGGESTIONS.DELETE.replace(":id", id),
+    );
+  },
+
+  // ✅ حذف یک پیام از گفتگو
+  async deleteSuggestionMessage(id, messageId) {
+    return apiService.delete(
+      API_CONSTANTS.ENDPOINTS.SUGGESTIONS.DELETE_MESSAGE.replace(
+        ":id",
+        id,
+      ).replace(":messageId", messageId),
+    );
   },
 
   // ===== بررسی ادمین =====

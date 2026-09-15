@@ -138,49 +138,8 @@ export const adminPanelRenderer = {
   },
 
   // ===== رندر پیام‌های چت =====
-
-  renderChatMessages(messages) {
-    const container = document.getElementById("chatMessages");
-    if (!container) return;
-
-    if (!messages || messages.length === 0) {
-      container.innerHTML = `
-                <div style="text-align: center; color: #888; padding: 20px;">
-                    <i class="fas fa-comments" style="font-size: 30px; display: block; margin-bottom: 10px;"></i>
-                    <span>هیچ پیامی وجود ندارد. اولین پیام را شما بفرستید!</span>
-                </div>
-            `;
-      return;
-    }
-
-    const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
-    const currentUserId = currentUser?.id;
-
-    let html = "";
-    messages.forEach((msg) => {
-      const isMine = msg.sender_id === currentUserId;
-      const senderName =
-        msg.sender_name ||
-        (msg.sender
-          ? `${msg.sender.first_name} ${msg.sender.last_name}`
-          : "کاربر");
-      const time = new Date(msg.created_at).toLocaleTimeString("fa-IR", {
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-
-      html += `
-                <div class="chat-bubble ${isMine ? "me" : "other"}">
-                    <div><strong class="chat-sender">${isMine ? "من" : escapeHtml(senderName)}</strong></div>
-                    <div>${this.escapeHtml(msg.content)}</div>
-                    <div class="chat-meta"><span>${time}</span></div>
-                </div>
-            `;
-    });
-
-    container.innerHTML = html;
-    container.scrollTop = container.scrollHeight;
-  },
+  // (حذف شد: «چت عمومی» با «نظرات و پیشنهادات» جایگزین شده و رندر آن
+  //  از طریق messagesService.renderBubbles انجام می‌شود)
 
   // ===== مودال توکن =====
 

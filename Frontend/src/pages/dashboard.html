@@ -16,6 +16,7 @@
     <link rel="stylesheet" href="/styles/reset.css">
     <link rel="stylesheet" href="/styles/variables.css">
     <link rel="stylesheet" href="/styles/global.css">
+    <link rel="stylesheet" href="/styles/info-pages.css">
 
     <!-- ===== Shared Components Styles ===== -->
     <link rel="stylesheet" href="./../shared/layouts/Header/header.css">
@@ -48,50 +49,10 @@
 
 <body>
 
-    <!-- ===== FULL PAGE LOADING OVERLAY ===== -->
-    <div id="pageLoadingOverlay" style="
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: #f5f7fb;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        z-index: 999999;
-        transition: opacity 0.5s ease;
-    ">
-        <div style="
-            width: 60px;
-            height: 60px;
-            border: 4px solid #e2e8f0;
-            border-top-color: #2c7a6e;
-            border-radius: 50%;
-            animation: pageLoaderSpin 0.8s linear infinite;
-            margin-bottom: 20px;
-        "></div>
-        <div style="
-            font-family: 'Vazir', sans-serif;
-            color: #2c7a6e;
-            font-size: 16px;
-            font-weight: 600;
-        ">در حال بارگذاری...</div>
-        <div style="
-            font-family: 'Vazir', sans-serif;
-            color: #94a3b8;
-            font-size: 12px;
-            margin-top: 8px;
-        ">سامانه مدیریت مشتریان گوشتی کارخانه تولید خوراک دام و طیور ستاره کیان بیرجند</div>
-        <style>
-            @keyframes pageLoaderSpin {
-                to {
-                    transform: rotate(360deg);
-                }
-            }
-        </style>
-    </div>
+    <!-- ===== لودر سیستمی =====
+         به‌صورت خودکار توسط Frontend/server.js تزریق می‌شود
+         (shared/components/Loader — حالت «کلاسیک» یا «لوگوی ستاره کیان» طبق تنظیمات سیستم)
+         و با اسکریپت پایین همین صفحه (overlay#pageLoadingOverlay) مخفی می‌شود. ===== -->
 
     <!-- ===== HEADER ===== -->
     <header id="main-header"></header>
@@ -124,10 +85,8 @@
                 <span id="chartSelectionLabel">هنوز گله یا سالنی انتخاب نشده — از لیست تسک‌ها انتخاب کنید</span>
             </div>
             <div class="dashboard-chart-loading" id="chartLoadingOverlay" style="display:none;">
-                <div class="dc-loader">
-                    <span class="dc-spinner"></span>
-                    <span>در حال بارگذاری داده‌های نمودار…</span>
-                </div>
+                <!-- ✅ لودر سیستمی (پیرو انتخاب ادمین — loader.service.js آن را پر می‌کند) -->
+                <span data-skb-loader data-skb-loader-text="در حال بارگذاری داده‌های نمودار…"></span>
             </div>
 
             <div class="chart-card">

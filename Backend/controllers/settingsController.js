@@ -10,7 +10,18 @@ const KEY_DEFS = {
     default: true,
     title: "ارسال خودکار پیامک خوش‌آمدگویی پس از ثبت مشتری",
   },
+  // ✅ لودر سیستمی: کلاسیک (دایرهٔ چرخان) یا لوگوی ستاره کیان
+  loader_style: {
+    type: "enum",
+    options: ["classic", "logo"],
+    default: "classic",
+    title: "لودر سیستمی (کلاسیک / لوگوی ستاره کیان)",
+  },
 };
+
+// کلیدهایی که برای کاربران مهمان (بدون ورود) هم قابل خواندن‌اند
+// ⚠️ فقط تنظیمات نمایشی اینجا بیایند — هیچ دادهٔ حساسی نباید اضافه شود
+const PUBLIC_KEYS = ["loader_style"];
 
 const toStoredValue = (def, raw) => {
   if (def.type === "boolean") {
@@ -18,11 +29,19 @@ const toStoredValue = (def, raw) => {
       ? "true"
       : "false";
   }
+  if (def.type === "enum") {
+    const value = String(raw ?? "").trim();
+    return def.options.includes(value) ? value : String(def.default);
+  }
   return String(raw ?? "");
 };
 
 const toApiValue = (def, stored) => {
   if (def.type === "boolean") return stored === "true";
+  if (def.type === "enum") {
+    const value = String(stored ?? "").trim();
+    return def.options.includes(value) ? value : String(def.default);
+  }
   return stored;
 };
 
@@ -87,8 +106,36 @@ const updateSetting = async (req, res) => {
   }
 };
 
+// ================================================================
+// دریافت تنظیمات نمایشی برای همه (بدون احراز هویت)
+// ----------------------------------------------------------------
+// دلیل وجود: سرور فرانت‌اند باید «لودر سیستمی» را قبل از اجرای هر JS
+// و برای کاربران واردنشده هم بداند (تزریق در HTML).
+// اگر دیتابیس در دسترس نباشد، به‌جای خطا مقدار پیش‌فرض برگردانده می‌شود
+// تا صفحه‌ها بدون لودر نمانند.
+// ================================================================
+const getPublicSettings = async (req, res) => {
+  try {
+    const all = await buildSettingsObject();
+    const output = {};
+    PUBLIC_KEYS.forEach((key) => {
+      output[key] = all[key];
+    });
+    successResponse(res, output, "تنظیمات نمایشی دریافت شد");
+  } catch (error) {
+    console.warn("⚠️ تنظیمات نمایشی خوانده نشد، پیش‌فرض ارسال شد:", error.message);
+    const fallback = {};
+    PUBLIC_KEYS.forEach((key) => {
+      fallback[key] = KEY_DEFS[key]?.default;
+    });
+    successResponse(res, fallback, "تنظیمات نمایشی (پیش‌فرض) دریافت شد");
+  }
+};
+
 module.exports = {
   getSettings,
+  getPublicSettings,
   updateSetting,
   KEY_DEFS,
+  PUBLIC_KEYS,
 };

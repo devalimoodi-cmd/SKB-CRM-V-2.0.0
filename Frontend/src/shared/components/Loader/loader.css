@@ -1,0 +1,387 @@
+/* ============================================================
+   shared/components/Loader/loader.css
+   لودر سیستمی — دو حالت (انتخاب از پنل ادمین → تنظیمات سیستم)
+     • classic : دایرهٔ چرخان (حالت قبلی سیستم)
+     • logo    : لوگوی ستاره کیان + حلقه‌های چرخان
+   متن در هر دو حالت یکسان است: «در حال بارگذاری...»
+   ------------------------------------------------------------
+   انتخاب حالت با اتریبیوت روی تگ <html> انجام می‌شود:
+       <html data-loader="classic">   یا   <html data-loader="logo">
+   مقدار این اتریبیوت را سرور فرانت‌اند (server.js) از تنظیمات
+   سیستمی می‌خواند و تزریق می‌کند → بدون فلاش و بدون نیاز به JS.
+   ============================================================ */
+
+/* ===== اورلی تمام‌صفحه ===== */
+.skb-page-loader {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f5f7fb;
+  z-index: 999999;
+  transition: opacity 0.5s ease;
+}
+
+/* ===== فقط حالت انتخاب‌شده نمایش داده می‌شود ===== */
+.skb-loader {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+}
+
+html:not([data-loader="logo"]) .skb-loader--classic,
+html[data-loader="logo"] .skb-loader--logo {
+  display: flex;
+}
+
+/* نمایش اجباری (برای پیش‌نمایش داخل پنل ادمین) */
+.skb-loader--force-show {
+  display: flex !important;
+}
+
+/* ===== متن مشترک هر دو حالت ===== */
+.skb-loader-text {
+  font-family: "Vazir", "Vazirmatn", sans-serif;
+  color: #2c7a6e;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.skb-loader-tagline {
+  font-family: "Vazir", "Vazirmatn", sans-serif;
+  color: #94a3b8;
+  font-size: 12px;
+  margin-top: 8px;
+  text-align: center;
+  line-height: 1.9;
+}
+
+/* ============================================================
+   حالت ۱ — کلاسیک (همان لودر قبلی سیستم)
+   ============================================================ */
+.skb-classic-spinner {
+  width: 60px;
+  height: 60px;
+  border: 4px solid #e2e8f0;
+  border-top-color: #2c7a6e;
+  border-radius: 50%;
+  animation: skb-page-spin 0.8s linear infinite;
+  margin-bottom: 20px;
+}
+
+@keyframes skb-page-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ============================================================
+   حالت ۲ — لوگوی ستاره کیان
+   ============================================================ */
+.skb-loader--logo {
+  gap: 24px;
+}
+
+.skb-logo-wrap {
+  position: relative;
+  width: 140px;
+  height: 140px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* حلقهٔ چرخان بیرونی */
+.skb-logo-ring {
+  position: absolute;
+  inset: 0;
+  border: 3px solid transparent;
+  border-top-color: #2c7a6e;
+  border-right-color: #2c7a6e;
+  border-radius: 50%;
+  animation: skb-spin 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+}
+
+/* حلقهٔ چرخان داخلی (معکوس) */
+.skb-logo-ring-2 {
+  position: absolute;
+  inset: 14px;
+  border: 2px solid transparent;
+  border-bottom-color: #4a9e8f;
+  border-left-color: #4a9e8f;
+  border-radius: 50%;
+  animation: skb-spin-reverse 1.8s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+}
+
+/* حلقهٔ سوم (نقطه‌چین) */
+.skb-logo-ring-3 {
+  position: absolute;
+  inset: 28px;
+  border: 1.5px dashed rgba(44, 122, 110, 0.2);
+  border-radius: 50%;
+  animation: skb-spin 8s linear infinite;
+}
+
+/* هالهٔ نوری */
+.skb-logo-glow {
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(44, 122, 110, 0.2) 0%,
+    transparent 70%
+  );
+  animation: skb-glow 2.5s ease-in-out infinite;
+}
+
+/* لوگوی SVG ستاره کیان */
+.skb-logo-svg {
+  width: 80px;
+  height: 80px;
+  z-index: 2;
+  position: relative;
+  animation: skb-pulse 2.5s ease-in-out infinite;
+  filter: drop-shadow(0 4px 16px rgba(44, 122, 110, 0.3));
+}
+
+.skb-logo-svg path {
+  fill: #2c7a6e;
+  stroke: #2c7a6e;
+  transition: all 0.3s ease;
+}
+
+/* متن حالت لوگو (با محو شدن ملایم) */
+.skb-loader--logo .skb-loader-text {
+  animation: skb-text-fade 2.5s ease-in-out infinite;
+}
+
+/* نقطه‌های متحرک */
+.skb-logo-dots {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.skb-logo-dots span {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #2c7a6e;
+  animation: skb-dot 1.4s ease-in-out infinite;
+}
+
+.skb-logo-dots span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.skb-logo-dots span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+/* ============================================================
+   انیمیشن‌ها
+   ============================================================ */
+@keyframes skb-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes skb-spin-reverse {
+  to {
+    transform: rotate(-360deg);
+  }
+}
+
+@keyframes skb-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    filter: drop-shadow(0 4px 16px rgba(44, 122, 110, 0.3));
+  }
+  50% {
+    transform: scale(1.06);
+    filter: drop-shadow(0 8px 24px rgba(44, 122, 110, 0.5));
+  }
+}
+
+@keyframes skb-glow {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  50% {
+    transform: scale(1.4);
+    opacity: 0;
+  }
+}
+
+@keyframes skb-text-fade {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
+@keyframes skb-dot {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.4;
+  }
+  50% {
+    transform: scale(1.5);
+    opacity: 1;
+  }
+}
+
+/* ============================================================
+   اندازه‌ها (همه پیرو حالت انتخاب‌شدهٔ ادمین)
+     • --sm : داخل جدول/کارت/پنل و لیست‌ها
+     • --md : داخل کارت‌های بزرگ و مودال سوئال
+   ============================================================ */
+.skb-loader--md {
+  gap: 14px;
+}
+
+.skb-loader--sm {
+  gap: 8px;
+}
+
+.skb-loader--md .skb-loader-text {
+  font-size: 14px;
+}
+
+.skb-loader--sm .skb-loader-text {
+  font-size: 12.5px;
+}
+
+.skb-loader--md .skb-loader-tagline,
+.skb-loader--sm .skb-loader-tagline {
+  display: none;
+}
+
+/* دایرهٔ چرخان در اندازه‌های کوچک */
+.skb-loader--md .skb-classic-spinner {
+  width: 36px;
+  height: 36px;
+  border-width: 3px;
+  margin-bottom: 0;
+}
+
+.skb-loader--sm .skb-classic-spinner {
+  width: 24px;
+  height: 24px;
+  border-width: 3px;
+  margin-bottom: 0;
+}
+
+/* لوگوی ستاره کیان در اندازه‌های کوچک */
+.skb-loader--md .skb-logo-wrap {
+  width: 64px;
+  height: 64px;
+}
+
+.skb-loader--md .skb-logo-svg {
+  width: 34px;
+  height: 34px;
+}
+
+.skb-loader--md .skb-logo-ring-2 {
+  inset: 7px;
+}
+
+.skb-loader--md .skb-logo-ring-3 {
+  inset: 14px;
+}
+
+.skb-loader--md .skb-logo-glow {
+  width: 46px;
+  height: 46px;
+}
+
+.skb-loader--md .skb-logo-dots span {
+  width: 5px;
+  height: 5px;
+}
+
+.skb-loader--sm .skb-logo-wrap {
+  width: 42px;
+  height: 42px;
+}
+
+.skb-loader--sm .skb-logo-svg {
+  width: 24px;
+  height: 24px;
+}
+
+.skb-loader--sm .skb-logo-ring {
+  border-width: 2px;
+}
+
+.skb-loader--sm .skb-logo-ring-2 {
+  inset: 5px;
+  border-width: 1.5px;
+}
+
+.skb-loader--sm .skb-logo-ring-3,
+.skb-loader--sm .skb-logo-dots {
+  display: none;
+}
+
+.skb-loader--sm .skb-logo-glow {
+  width: 32px;
+  height: 32px;
+}
+
+/* میزبان لودرهای داخل صفحه (placeholderهای data-skb-loader) */
+.skb-loader-host {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.skb-loader-host:empty {
+  min-height: 64px;
+}
+
+/* حالت پیش‌نمایش داخل پنل ادمین (بدون شعار و بدون نقطه‌ها) */
+.skb-loader--preview {
+  gap: 10px;
+}
+
+.skb-loader--preview .skb-loader-tagline {
+  display: none;
+}
+
+/* ============================================================
+   ریسپانسیو
+   ============================================================ */
+@media (max-width: 480px) {
+  .skb-logo-wrap {
+    width: 110px;
+    height: 110px;
+  }
+
+  .skb-logo-svg {
+    width: 62px;
+    height: 62px;
+  }
+
+  .skb-loader-text {
+    font-size: 13px;
+  }
+
+  .skb-logo-glow {
+    width: 80px;
+    height: 80px;
+  }
+}

@@ -23,6 +23,7 @@
     "db:status": "sequelize-cli db:migrate:status",
     "db:seed": "sequelize-cli db:seed:all",
     "db:schema": "node scripts/dump-schema.js",
+    "db:verify": "node scripts/verify-db.js",
     "db:sync": "node scripts/sync-db.js",
     "db:reset-sequences": "node scripts/reset-sequences.js",
     "db:seed-unit-statuses": "node scripts/seed-unit-statuses.js"

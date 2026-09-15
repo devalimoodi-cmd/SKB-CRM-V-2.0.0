@@ -71,3 +71,62 @@
 
     </div>
 </header>
+
+<!-- ===== مودال «نظرات و پیشنهادات» (گفتگو با ادمین) ===== -->
+<div class="msg-modal-overlay" id="messageThreadModal">
+    <div class="msg-modal">
+        <div class="msg-modal-header">
+            <h3>
+                <i class="fas fa-comments"></i>
+                <span id="messageThreadTitle">نظرات و پیشنهادات</span>
+            </h3>
+            <button type="button" id="messageThreadClose" aria-label="بستن">&times;</button>
+        </div>
+
+        <div class="msg-modal-body">
+            <!-- حالت ارسال پیام جدید -->
+            <div id="messageComposeWrap" style="display:none;">
+                <div class="info-form">
+                    <label for="messageSubject">نوع پیام</label>
+                    <select id="messageSubject">
+                        <option value="suggestion">پیشنهاد</option>
+                        <option value="complaint">انتقاد</option>
+                        <option value="bug">اشکال فنی</option>
+                        <option value="question">سؤال</option>
+                        <option value="other">سایر</option>
+                    </select>
+
+                    <label for="messageTitle">موضوع</label>
+                    <input type="text" id="messageTitle" maxlength="150" placeholder="خلاصهٔ پیام">
+
+                    <label for="messageBody">متن پیام</label>
+                    <textarea id="messageBody" maxlength="2000" placeholder="متن پیام خود را بنویسید..."></textarea>
+
+                    <div id="messageError" class="info-error" style="display:none;"></div>
+
+                    <button type="button" class="btn-primary-info" id="messageSend">
+                        <i class="fas fa-paper-plane"></i> ارسال پیام
+                    </button>
+                </div>
+            </div>
+
+            <!-- حالت مشاهدهٔ گفتگو -->
+            <div id="messageThreadWrap">
+                <div class="msg-modal-meta" id="messageThreadMeta"></div>
+                <div class="msg-thread" id="messageThreadBody">
+                    <div class="msg-list-empty">در حال بارگذاری…</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="msg-modal-footer">
+            <textarea id="messageReplyInput" maxlength="2000" placeholder="پاسخ خود را بنویسید..."></textarea>
+            <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:8px;">
+                <button type="button" class="btn-ghost-info" id="messageReplyCancel">بستن</button>
+                <button type="button" class="btn-primary-info" id="messageReplySend" style="margin-top:0;">
+                    <i class="fas fa-paper-plane"></i> ارسال پاسخ
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

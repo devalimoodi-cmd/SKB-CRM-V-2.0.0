@@ -1170,12 +1170,11 @@ class HatcheryService {
       if (!res.isConfirmed) return;
       chosen = res.value;
     } else {
-      const title = window.prompt("عنوان بوکمارک گله:");
-      if (!title) return;
-      const hall = window.prompt(
-        "شناسه سالن (اختیاری؛ خالی = کل گله):",
+      // ✅ بدون دیالوگ بومی: اگر SweetAlert2 در صفحه لود نشده باشد، پیام خطا نشان بده
+      notificationService.showError(
+        "امکان ساخت بوکمارک نیست (SweetAlert2 لود نشده است)",
       );
-      chosen = { title, hall: hall || null };
+      return;
     }
 
     try {
@@ -1358,23 +1357,16 @@ class HatcheryService {
       notificationService.error("گله فعالی برای پایان وجود ندارد");
       return;
     }
-    if (typeof Swal !== "undefined") {
-      const result = await Swal.fire({
-        icon: "question",
-        title: "پایان گله",
-        html: `آیا از پایان گله شماره <b>${flock.flock_number}</b> اطمینان دارید؟<br>سالن‌های این گله بسته شده و برای شروع گله جدید آزاد می‌شوند.`,
-        showCancelButton: true,
-        confirmButtonText: "بله، پایان گله",
-        cancelButtonText: "انصراف",
-        confirmButtonColor: "#dc2626",
-        reverseButtons: true,
-      });
-      if (!result.isConfirmed) return;
-    } else if (
-      !window.confirm(`پایان گله شماره ${flock.flock_number}؟`)
-    ) {
-      return;
-    }
+    // ✅ تأیید پایان گله با SweetAlert2 (سرویس مشترک — بدون دیالوگ بومی مرورگر)
+    const confirmed = await notificationService.confirm({
+      title: "🏁 پایان گله",
+      html: `آیا از پایان گله شماره <b>${flock.flock_number}</b> اطمینان دارید؟<br>سالن‌های این گله بسته شده و برای شروع گله جدید آزاد می‌شوند.`,
+      confirmText: "بله، پایان گله",
+      cancelText: "انصراف",
+      icon: "question",
+      danger: true,
+    });
+    if (!confirmed) return;
 
     try {
       const hasPlacements = (flock.placements?.length || 0) > 0;

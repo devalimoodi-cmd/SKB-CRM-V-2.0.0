@@ -7,6 +7,7 @@
 import { hatcheryApi } from "./hatchery.api.js";
 import { apiService } from "../../../../core/services/api.service.js";
 import { stateService } from "../../../../core/services/state.service.js";
+import { notificationService } from "../../../../core/services/notification.service.js";
 import {
   convertToPersianDate,
   formatDate,
@@ -513,13 +514,15 @@ class HatcheryReport {
 
       const flockRes = await apiService.get(`/flocks/${flockId}`);
       if (!flockRes?.success || !flockRes.data) {
-        alert("گله یافت نشد");
+        notificationService.warning("گله یافت نشد");
         return;
       }
       const flock = flockRes.data;
 
       if (flock.status !== "completed") {
-        alert("برای این گله هنوز اطلاعات پایان دوره ثبت نشده است");
+        notificationService.warning(
+          "برای این گله هنوز اطلاعات پایان دوره ثبت نشده است",
+        );
         return;
       }
 
@@ -531,7 +534,9 @@ class HatcheryReport {
         completionData = null;
       }
       if (!completionData) {
-        alert("برای این گله هنوز اطلاعات پایان دوره ثبت نشده است");
+        notificationService.warning(
+          "برای این گله هنوز اطلاعات پایان دوره ثبت نشده است",
+        );
         return;
       }
 
@@ -550,7 +555,7 @@ class HatcheryReport {
       const html = this.generateHTML(reportData);
       const printWindow = window.open("", "_blank", "width=1100,height=800");
       if (!printWindow) {
-        alert("لطفاً باز شدن پنجره popup را مجاز کنید");
+        notificationService.warning("لطفاً باز شدن پنجره popup را مجاز کنید");
         return;
       }
       // ✅ پاک‌سازی خروجی گزارش (جلوگیری از اجرای اسکریپت تزریق‌شده از دیتابیس)
@@ -558,7 +563,7 @@ class HatcheryReport {
       printWindow.document.close();
     } catch (error) {
       console.error("Error generating flock report:", error);
-      alert("خطا در تولید گزارش گله: " + error.message);
+      notificationService.error("خطا در تولید گزارش گله: " + error.message);
     }
   }
 
@@ -571,7 +576,7 @@ class HatcheryReport {
 
       const flockRes = await apiService.get(`/flocks/${flockId}`);
       if (!flockRes?.success || !flockRes.data) {
-        alert("گله یافت نشد");
+        notificationService.warning("گله یافت نشد");
         return;
       }
       const flock = flockRes.data;
@@ -597,14 +602,16 @@ class HatcheryReport {
       const html = this.buildFlockSmsReportHTML(customer, flock, logs);
       const printWindow = window.open("", "_blank", "width=1100,height=800");
       if (!printWindow) {
-        alert("لطفاً باز شدن پنجره popup را مجاز کنید");
+        notificationService.warning("لطفاً باز شدن پنجره popup را مجاز کنید");
         return;
       }
       printWindow.document.write(sanitizeHtmlDocument(html));
       printWindow.document.close();
     } catch (error) {
       console.error("Error generating flock sms report:", error);
-      alert("خطا در تولید گزارش پیامک‌های گله: " + error.message);
+      notificationService.error(
+        "خطا در تولید گزارش پیامک‌های گله: " + error.message,
+      );
     }
   }
 
@@ -893,7 +900,7 @@ class HatcheryReport {
       const html = this.generateHTML(reportData);
       const printWindow = window.open("", "_blank", "width=1100,height=800");
       if (!printWindow) {
-        alert("لطفاً باز شدن پنجره popup را مجاز کنید");
+        notificationService.warning("لطفاً باز شدن پنجره popup را مجاز کنید");
         return;
       }
       // ✅ پاک‌سازی خروجی گزارش (جلوگیری از اجرای اسکریپت تزریق‌شده از دیتابیس)
@@ -901,7 +908,7 @@ class HatcheryReport {
       printWindow.document.close();
     } catch (error) {
       console.error("❌ Error generating chick report:", error);
-      alert("خطا در تولید گزارش: " + error.message);
+      notificationService.error("خطا در تولید گزارش: " + error.message);
     }
   }
 
