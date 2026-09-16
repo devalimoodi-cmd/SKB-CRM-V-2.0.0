@@ -157,6 +157,8 @@ echo   1. پنجرهٔ بک‌اند را ببند و start-backend.bat را ا�
 echo   2. پنجرهٔ فرانت را ببند و start-frontend.bat را اجرا کن
 echo   تست بک‌اند : http://127.0.0.1:5000/api/ping
 echo   تست فرانت  : http://127.0.0.1:3000/api/ping
+echo   عیب‌یابی خطای 500 در صفحات: در پوشهٔ Backend دستور  npm run db:verify  را اجرا کن
+echo     (اگر FAIL داد:  npm run db:migrate  سپس دوباره db:verify و ری‌استارت بک‌اند)
 echo ============================================
 echo [%date% %time%] deploy finished OK >> "%LOG%"
 if "%DO_PAUSE%"=="1" pause

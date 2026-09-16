@@ -642,6 +642,21 @@ const run = async () => {
     `status=${r.status} value=${invalidLoaderBody?.data?.value}`,
   );
 
+  r = await fetch(`${base}/api/server-status`, {
+    headers: authHeaders(adminToken),
+  });
+  const statusBody = await r.json().catch(() => ({}));
+  check(
+    "GET /api/server-status → ساختار دیتابیس سالم گزارش می‌شود",
+    r.status === 200 &&
+      statusBody?.data?.schema?.ok === true &&
+      Array.isArray(statusBody?.data?.schema?.missingTables) &&
+      statusBody.data.schema.missingTables.length === 0,
+    `status=${r.status} ok=${statusBody?.data?.schema?.ok} missing=${JSON.stringify(
+      statusBody?.data?.schema?.missingTables,
+    )}`,
+  );
+
   r = await fetch(`${base}/api/users/${admin.id}/online-status`, {
     method: "PUT",
     headers: authHeaders(lowToken),

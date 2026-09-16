@@ -13,7 +13,8 @@ const dotenv = require("dotenv");
 // (dotenv در بالای فایل اجرا میشود)
 dotenv.config({ quiet: true });
 
-const { connectDB } = require("./config/database");
+const { connectDB, sequelize } = require("./config/database");
+const fs = require("fs");
 const path = require("path");
 const os = require("os");
 const { protect, authorize } = require("./middleware/auth");
@@ -197,6 +198,69 @@ app.use(
   }),
 );
 
+// ============================================================
+// ✅ وضعیت ساختار دیتابیس (برای عیب‌یابی سریع پس از استقرار)
+// ------------------------------------------------------------
+// فقط برای ادمین‌ها در /api/server-status نمایش داده می‌شود.
+// توجه: بررسی کامل (ستون‌ها/ایندکس‌ها/مایگریشن‌ها) با:
+//     npm run db:verify
+// ============================================================
+const CRITICAL_TABLES = [
+  "users",
+  "customer_personal_information",
+  "app_settings",
+  "suggestions",
+  "suggestion_messages",
+  "SequelizeMeta",
+];
+
+const getSchemaStatus = async () => {
+  try {
+    const [tableRows] = await sequelize.query(
+      "SELECT tablename AS name FROM pg_tables WHERE schemaname='public'",
+    );
+    const tables = new Set(tableRows.map((row) => row.name));
+    const missingTables = CRITICAL_TABLES.filter((name) => !tables.has(name));
+
+    let applied = [];
+    if (tables.has("SequelizeMeta")) {
+      const [rows] = await sequelize.query('SELECT name FROM "SequelizeMeta"');
+      applied = rows.map((row) => String(row.name));
+    }
+
+    let migrationFiles = [];
+    try {
+      migrationFiles = fs
+        .readdirSync(path.join(__dirname, "migrations"))
+        .filter((file) => file.endsWith(".js"));
+    } catch {
+      /* پوشه در دسترس نیست */
+    }
+
+    const pendingMigrations = migrationFiles.filter(
+      (file) => !applied.includes(file),
+    );
+
+    return {
+      ok: missingTables.length === 0 && pendingMigrations.length === 0,
+      missingTables,
+      appliedMigrations: applied.length,
+      totalMigrations: migrationFiles.length,
+      pendingMigrations,
+      hint:
+        missingTables.length || pendingMigrations.length
+          ? "روی سرور اجرا کن:  npm run db:migrate  سپس  npm run db:verify"
+          : null,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error.message,
+      hint: "اتصال به دیتابیس برقرار نشد؛ Backend/.env را بررسی کن",
+    };
+  }
+};
+
 // ============================================
 // ✅ بررسی سلامت سرویس (عمومی - بدون احراز هویت)
 // برای تست پروکسی فرانت‌اند و دسترسی از بیرون شبکه
@@ -297,7 +361,7 @@ app.get(
   "/api/server-status",
   protect,
   authorize("admin", "super_admin", "sub_admin"),
-  (req, res) => {
+  async (req, res) => {
   const totalMem = os.totalmem();
   const freeMem = os.freemem();
   const usedMem = totalMem - freeMem;
@@ -311,6 +375,9 @@ app.get(
     success: true,
     timestamp: new Date().toISOString(),
     data: {
+      // ✅ وضعیت ساختار دیتابیس (عیب‌یابی سریع پس از استقرار)
+      //    اگر جدولی غایب بود یا مایگریشنی اجرا نشده باشد، همینجا دیده می‌شود.
+      schema: await getSchemaStatus(),
       uptime: {
         seconds: uptime,
         human: `${days} روز ${hours} ساعت ${minutes} دقیقه ${seconds} ثانیه`,
