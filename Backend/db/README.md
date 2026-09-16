@@ -233,6 +233,18 @@ GET /api/server-status
 از `deploy.sh` (لینوکس/PM2) یا `deploy.bat` (ویندوز) استفاده کنید؛ آن‌ها `db:migrate` + `db:verify`
 را با توقف روی خطا اجرا می‌کنند.
 
+## جدول‌های «تغییرات جدید / What's New»
+
+| جدول | کار |
+|---|---|
+| `release_notes` | هر بیانیهٔ تغییرات (نسخه): `version` (یکتا)، `title`، `description`، `status` (`draft`/`published`/`archived`)، `audience`، `published_at`، `created_by`/`updated_by` |
+| `release_note_items` | آیتم‌های دسته‌بندی‌شدهٔ هر نسخه: `category` (`new`/`improved`/`fixed`/`security`)، `title`، `description`، `tag`، `sort_order` |
+| `release_note_views` | رسید دیدن هر کاربر: `release_note_id` + `user_id` (ایندکس **یکتا**)، `seen_at`، `dont_show_again` |
+
+- `npm run db:verify` وجود این جدول‌ها/ستون‌ها/ایندکس‌ها را هم چک می‌کند.
+- حذف یک نسخه، آیتم‌ها و رسیدهای دیدنش را **آبشاری** پاک می‌کند (`ON DELETE CASCADE`).
+- مایگریشن مربوطه idempotent است؛ اجرای دوباره روی سرور خطا نمی‌دهد.
+
 ## پس `db:sync` به چه کار می‌آید؟
 فقط برای **دیتابیس‌های خیلی قدیمی (legacy)** و به‌صورت یک‌باره، آن هم **بعد از بکاپ**:
 - اصلاح رکوردهایی که `created_by/updated_by` آن‌ها به کاربر ناموجود اشاره می‌کند

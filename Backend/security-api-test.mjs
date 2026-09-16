@@ -305,7 +305,77 @@ const run = async () => {
     `status=${sugDeleteMessage.status}`,
   );
 
-  // ۸) تنظیمات نمایشی عمومی (لودر سیستمی) — باید بدون توکن در دسترس باشند
+  // ۸) «تغییرات جدید / What's New» — همهٔ روت‌ها نیاز به ورود دارند
+  const relUnseen = await fetch(`${base}/api/releases/unseen`);
+  check(
+    "GET /api/releases/unseen بدون توکن → ۴۰۱",
+    relUnseen.status === 401,
+    `status=${relUnseen.status}`,
+  );
+
+  const relHistory = await fetch(`${base}/api/releases/history`);
+  check(
+    "GET /api/releases/history بدون توکن → ۴۰۱",
+    relHistory.status === 401,
+    `status=${relHistory.status}`,
+  );
+
+  const relSeen = await fetch(`${base}/api/releases/1/seen`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ dont_show_again: true }),
+  });
+  check(
+    "POST /api/releases/:id/seen بدون توکن → ۴۰۱",
+    relSeen.status === 401,
+    `status=${relSeen.status}`,
+  );
+
+  const relList = await fetch(`${base}/api/releases`);
+  check(
+    "GET /api/releases (فهرست مدیریتی) بدون توکن → ۴۰۱",
+    relList.status === 401,
+    `status=${relList.status}`,
+  );
+
+  const relCreate = await fetch(`${base}/api/releases`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      version: "9.9.9",
+      items: [{ category: "new", title: "تست" }],
+    }),
+  });
+  check(
+    "POST /api/releases بدون توکن → ۴۰۱",
+    relCreate.status === 401,
+    `status=${relCreate.status}`,
+  );
+
+  const relPublish = await fetch(`${base}/api/releases/1/publish`, {
+    method: "POST",
+  });
+  check(
+    "POST /api/releases/:id/publish بدون توکن → ۴۰۱",
+    relPublish.status === 401,
+    `status=${relPublish.status}`,
+  );
+
+  const relStats = await fetch(`${base}/api/releases/1/stats`);
+  check(
+    "GET /api/releases/:id/stats بدون توکن → ۴۰۱",
+    relStats.status === 401,
+    `status=${relStats.status}`,
+  );
+
+  const relDelete = await fetch(`${base}/api/releases/1`, { method: "DELETE" });
+  check(
+    "DELETE /api/releases/:id بدون توکن → ۴۰۱",
+    relDelete.status === 401,
+    `status=${relDelete.status}`,
+  );
+
+  // ۹) تنظیمات نمایشی عمومی (لودر سیستمی) — باید بدون توکن در دسترس باشند
   const uiSettings = await fetch(`${base}/api/public/ui-settings`);
   const uiBody = await uiSettings.json().catch(() => ({}));
   check(

@@ -17,6 +17,7 @@ const check = (name, ok, extra = "") => {
   console.log(`${ok ? "PASS" : "FAIL"} - ${name}${extra ? " :: " + extra : ""}`);
 };
 
+
 const child = spawn(process.execPath, ["server.js"], {
   cwd: import.meta.dirname,
   env: {
@@ -282,6 +283,56 @@ const run = async () => {
       adminHtml.includes("loaderPreviewClassic") &&
       adminHtml.includes("loaderPreviewLogo") &&
       adminHtml.includes("Loader/loader.css"),
+    `status=${adminPage.status}`,
+  );
+
+  // ===== ✅ «تغییرات جدید / What's New» (مودال کاربر + بخش پنل ادمین) =====
+  const headerPartial = await waitFor(`${base}/shared/layouts/Header/header.html`);
+  const headerPartialHtml = await headerPartial.text();
+  check(
+    "مودال «تغییرات جدید» و دکمهٔ هدر در header.html موجودند",
+    headerPartial.status === 200 &&
+      headerPartialHtml.includes('id="whatsNewOverlay"') &&
+      headerPartialHtml.includes('id="whatsNewModal"') &&
+      headerPartialHtml.includes('id="whatsNewBtn"') &&
+      headerPartialHtml.includes('id="whatsNewCount"'),
+    `status=${headerPartial.status}`,
+  );
+
+  const headerCss = await waitFor(`${base}/shared/layouts/Header/header.css`);
+  const headerCssText = await headerCss.text();
+  check(
+    "استایل مودال تغییرات در header.css سرو می‌شود",
+    headerCss.status === 200 &&
+      headerCssText.includes(".wn-overlay") &&
+      headerCssText.includes(".wn-modal") &&
+      headerCssText.includes(".wn-section-icon"),
+    `status=${headerCss.status}`,
+  );
+
+  const whatsNewAssets = [
+    "/features/whats-new/whats-new.api.js",
+    "/features/whats-new/whats-new.renderer.js",
+    "/features/whats-new/whats-new.service.js",
+    "/features/whats-new/whats-new.manager.js",
+  ];
+  const assetStatuses = [];
+  for (const assetPath of whatsNewAssets) {
+    const res = await waitFor(`${base}${assetPath}`);
+    assetStatuses.push(`${assetPath.split("/").pop()}=${res.status}`);
+  }
+  check(
+    "فایل‌های ماژول تغییرات درست سرو می‌شوند (۲۰۰)",
+    assetStatuses.every((item) => item.endsWith("=200")),
+    assetStatuses.join(" "),
+  );
+
+  check(
+    "بخش «تغییرات و اطلاع‌رسانی» در پنل ادمین موجود است",
+    adminPage.status === 200 &&
+      adminHtml.includes('data-menu="release-notes"') &&
+      adminHtml.includes('id="releaseNotesContainer"') &&
+      adminHtml.includes('id="release-notes"'),
     `status=${adminPage.status}`,
   );
 };

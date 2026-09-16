@@ -60,6 +60,10 @@ const EXPECTED_TABLES = [
   "cities",
   "suggestions",
   "suggestion_messages",
+  // ✅ «تغییرات جدید / What's New»
+  "release_notes",
+  "release_note_items",
+  "release_note_views",
   "SequelizeMeta",
 ];
 
@@ -108,6 +112,30 @@ const EXPECTED_COLUMNS = {
     "body",
     "read_at",
   ],
+  release_notes: [
+    "version",
+    "title",
+    "description",
+    "status",
+    "audience",
+    "published_at",
+    "created_by",
+    "updated_by",
+  ],
+  release_note_items: [
+    "release_note_id",
+    "category",
+    "title",
+    "description",
+    "tag",
+    "sort_order",
+  ],
+  release_note_views: [
+    "release_note_id",
+    "user_id",
+    "seen_at",
+    "dont_show_again",
+  ],
 };
 
 const EXPECTED_INDEXES = [
@@ -118,9 +146,24 @@ const EXPECTED_INDEXES = [
   "suggestions_last_message_at",
   "suggestion_messages_suggestion_id",
   "suggestion_messages_created_at",
+  // ✅ «تغییرات جدید / What's New»
+  "release_notes_status",
+  "release_notes_audience",
+  "release_notes_published_at",
+  "release_note_items_release_note_id",
+  "release_note_items_category",
+  "release_note_views_release_note_id",
+  "release_note_views_user_id",
+  "release_note_views_release_user_unique",
 ];
 
-const COUNT_TABLES = ["suggestions", "suggestion_messages"];
+const COUNT_TABLES = [
+  "suggestions",
+  "suggestion_messages",
+  "release_notes",
+  "release_note_items",
+  "release_note_views",
+];
 
 // ============================================
 // ابزار گزارش

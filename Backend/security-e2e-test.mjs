@@ -26,6 +26,9 @@ if (process.env.ALLOW_DB_TESTS !== "true" || process.env.NODE_ENV === "productio
 
 const { sequelize } = require("./config/database.js");
 const User = require("./models/User.js");
+// ✅ «تغییرات جدید / What's New»
+const ReleaseNoteItem = require("./models/ReleaseNoteItem.js");
+const ReleaseNoteView = require("./models/ReleaseNoteView.js");
 
 let dbReady = false;
 try {
@@ -641,6 +644,276 @@ const run = async () => {
     r.status === 200 && invalidLoaderBody?.data?.value === "classic",
     `status=${r.status} value=${invalidLoaderBody?.data?.value}`,
   );
+
+  // ============================================
+  // ✅ «تغییرات جدید / What's New»
+  // ============================================
+  const superAdmin = await User.findOne({ where: { role: "super_admin" } });
+  const otherAdmin = await User.findOne({
+    where: { role: ["admin", "sub_admin"] },
+  });
+
+  if (!superAdmin) {
+    info("⚠️  سوپر ادمین در دیتابیس پیدا نشد → تست «تغییرات جدید» رد شد");
+  } else {
+    const saToken = tokenFor(superAdmin);
+    const testVersion = `9.${(Date.now() % 900) + 100}.0`;
+    let releaseId = null;
+
+    // ۱) ساخت نسخه (پیش‌نویس) — فقط سوپر ادمین
+    r = await fetch(`${base}/api/releases`, {
+      method: "POST",
+      headers: authHeaders(saToken),
+      body: JSON.stringify({
+        version: testVersion,
+        title: "تست خودکار تغییرات",
+        description: "این نسخه توسط تست خودکار ساخته شده است",
+        audience: "all",
+        items: [
+          { category: "new", title: "آیتم تست ۱", description: "توضیح تست", tag: "جدید" },
+          { category: "fixed", title: "آیتم تست ۲", description: "توضیح تست", tag: "رفع باگ" },
+        ],
+      }),
+    });
+    const createBody = await r.json().catch(() => ({}));
+    releaseId = createBody?.data?.release?.id || null;
+    check(
+      "سوپر ادمین: ساخت نسخهٔ تغییرات (پیش‌نویس) → ۲۰۱",
+      r.status === 201 && !!releaseId && createBody?.data?.release?.status === "draft",
+      `status=${r.status} id=${releaseId}`,
+    );
+
+    // ۲) نسخهٔ تکراری → ۴۰۹
+    r = await fetch(`${base}/api/releases`, {
+      method: "POST",
+      headers: authHeaders(saToken),
+      body: JSON.stringify({
+        version: testVersion,
+        items: [{ category: "new", title: "تکراری" }],
+      }),
+    });
+    check("سوپر ادمین: شمارهٔ نسخهٔ تکراری → ۴۰۹", r.status === 409, `status=${r.status}`);
+
+    // ۳) نسخهٔ بدون آیتم → ۴۰۰
+    r = await fetch(`${base}/api/releases`, {
+      method: "POST",
+      headers: authHeaders(saToken),
+      body: JSON.stringify({ version: "8.8.8", items: [] }),
+    });
+    check("سوپر ادمین: نسخهٔ بدون آیتم → ۴۰۰", r.status === 400, `status=${r.status}`);
+
+    // ۴) شمارهٔ نسخهٔ نامعتبر → ۴۰۰
+    r = await fetch(`${base}/api/releases`, {
+      method: "POST",
+      headers: authHeaders(saToken),
+      body: JSON.stringify({
+        version: "abc",
+        items: [{ category: "new", title: "x" }],
+      }),
+    });
+    check("سوپر ادمین: شمارهٔ نسخهٔ نامعتبر → ۴۰۰", r.status === 400, `status=${r.status}`);
+
+    // ۵) پیش‌نویس برای کاربر دیده نمی‌شود
+    r = await fetch(`${base}/api/releases/unseen`, { headers: authHeaders(lowToken) });
+    const draftUnseen = await r.json().catch(() => ({}));
+    check(
+      "کاربر: نسخهٔ پیش‌نویس در /unseen دیده نمی‌شود",
+      r.status === 200 && draftUnseen?.data?.release?.version !== testVersion,
+      `version=${draftUnseen?.data?.release?.version}`,
+    );
+
+    // ۶) کاربر عادی: فهرست مدیریتی و ساخت ممنوع
+    r = await fetch(`${base}/api/releases`, { headers: authHeaders(lowToken) });
+    check(
+      "کاربر عادی: فهرست مدیریتی نسخه‌ها ممنوع (۴۰۳)",
+      r.status === 403,
+      `status=${r.status}`,
+    );
+
+    r = await fetch(`${base}/api/releases`, {
+      method: "POST",
+      headers: authHeaders(lowToken),
+      body: JSON.stringify({
+        version: "8.8.7",
+        items: [{ category: "new", title: "x" }],
+      }),
+    });
+    check(
+      "کاربر عادی: ساخت نسخهٔ تغییرات ممنوع (۴۰۳)",
+      r.status === 403,
+      `status=${r.status}`,
+    );
+
+    if (releaseId) {
+      // ۷) انتشار نسخه
+      r = await fetch(`${base}/api/releases/${releaseId}/publish`, {
+        method: "POST",
+        headers: authHeaders(saToken),
+        body: JSON.stringify({}),
+      });
+      const pubBody = await r.json().catch(() => ({}));
+      check(
+        "سوپر ادمین: انتشار نسخه → ۲۰۰",
+        r.status === 200 &&
+          pubBody?.data?.release?.status === "published" &&
+          pubBody?.data?.scheduled === false,
+        `status=${r.status}`,
+      );
+
+      // ۸) کاربر: نسخه در /unseen می‌آید (با آیتم‌ها)
+      r = await fetch(`${base}/api/releases/unseen`, { headers: authHeaders(lowToken) });
+      const unseenBody = await r.json().catch(() => ({}));
+      check(
+        "کاربر: پس از انتشار، نسخه در /unseen می‌آید",
+        r.status === 200 &&
+          unseenBody?.data?.release?.version === testVersion &&
+          (unseenBody?.data?.release?.items || []).length === 2,
+        `version=${unseenBody?.data?.release?.version} items=${(unseenBody?.data?.release?.items || []).length}`,
+      );
+
+      // ۹) ثبت بازدید
+      r = await fetch(`${base}/api/releases/${releaseId}/seen`, {
+        method: "POST",
+        headers: authHeaders(lowToken),
+        body: JSON.stringify({}),
+      });
+      check("کاربر: ثبت بازدید نسخه → ۲۰۰", r.status === 200, `status=${r.status}`);
+
+      // ۱۰) پس از دیدن، دیگر خودکار نمایش داده نمی‌شود
+      r = await fetch(`${base}/api/releases/unseen`, { headers: authHeaders(lowToken) });
+      const afterSeenBody = await r.json().catch(() => ({}));
+      check(
+        "کاربر: پس از دیدن، نسخه دیگر خودکار نمایش داده نمی‌شود",
+        afterSeenBody?.data?.release?.version !== testVersion,
+        `version=${afterSeenBody?.data?.release?.version}`,
+      );
+
+      // ۱۱) تاریخچه: seen = true
+      r = await fetch(`${base}/api/releases/history`, { headers: authHeaders(lowToken) });
+      const historyBody = await r.json().catch(() => ({}));
+      const histItem = (historyBody?.data?.items || []).find(
+        (item) => item.version === testVersion,
+      );
+      check(
+        "کاربر: نسخهٔ دیده‌شده در تاریخچه با seen=true",
+        r.status === 200 && histItem?.seen === true,
+        `status=${r.status} seen=${histItem?.seen}`,
+      );
+
+      // ۱۲) «دیگر نشان نده»
+      r = await fetch(`${base}/api/releases/${releaseId}/seen`, {
+        method: "POST",
+        headers: authHeaders(lowToken),
+        body: JSON.stringify({ dont_show_again: true }),
+      });
+      const dismissBody = await r.json().catch(() => ({}));
+      check(
+        "کاربر: ثبت «دیگر نشان نده» → dont_show_again=true",
+        r.status === 200 && dismissBody?.data?.dont_show_again === true,
+        `dont_show_again=${dismissBody?.data?.dont_show_again}`,
+      );
+
+      // ۱۳) انتشار مجدد (resend) → رسیدهای دیدن پاک می‌شوند
+      r = await fetch(`${base}/api/releases/${releaseId}/publish`, {
+        method: "POST",
+        headers: authHeaders(saToken),
+        body: JSON.stringify({ resend: true }),
+      });
+      const resendBody = await r.json().catch(() => ({}));
+      check(
+        "سوپر ادمین: «انتشار مجدد» رسیدهای دیدن را پاک می‌کند",
+        r.status === 200 && Number(resendBody?.data?.views_reset || 0) >= 1,
+        `views_reset=${resendBody?.data?.views_reset}`,
+      );
+
+      // ۱۴) مخاطب admins → برای کاربر نامرئی
+      r = await fetch(`${base}/api/releases/${releaseId}`, {
+        method: "PATCH",
+        headers: authHeaders(saToken),
+        body: JSON.stringify({ audience: "admins" }),
+      });
+      check("سوپر ادمین: تغییر مخاطب به «ادمین‌ها» → ۲۰۰", r.status === 200, `status=${r.status}`);
+
+      r = await fetch(`${base}/api/releases/unseen`, { headers: authHeaders(lowToken) });
+      const audienceBody = await r.json().catch(() => ({}));
+      check(
+        "مخاطب admins: نسخه برای مشتری/کارشناس نامرئی است",
+        audienceBody?.data?.release?.version !== testVersion,
+        `version=${audienceBody?.data?.release?.version}`,
+      );
+
+      // ۱۵) آمار نسخه با ادمین ساده
+      r = await fetch(`${base}/api/releases/${releaseId}/stats`, {
+        headers: authHeaders(adminToken),
+      });
+      check("ادمین: مشاهدهٔ آمار یک نسخه → ۲۰۰", r.status === 200, `status=${r.status}`);
+
+      // ۱۶) ادمین غیر سوپر: نوشتن ممنوع / خواندن مجاز
+      if (otherAdmin) {
+        const oaToken = tokenFor(otherAdmin);
+
+        r = await fetch(`${base}/api/releases/${releaseId}`, {
+          method: "PATCH",
+          headers: authHeaders(oaToken),
+          body: JSON.stringify({ title: "دستکاری" }),
+        });
+        check(
+          "ادمین غیر سوپر: ویرایش نسخه ممنوع (۴۰۳)",
+          r.status === 403,
+          `status=${r.status}`,
+        );
+
+        r = await fetch(`${base}/api/releases/${releaseId}/publish`, {
+          method: "POST",
+          headers: authHeaders(oaToken),
+          body: JSON.stringify({}),
+        });
+        check(
+          "ادمین غیر سوپر: انتشار نسخه ممنوع (۴۰۳)",
+          r.status === 403,
+          `status=${r.status}`,
+        );
+
+        r = await fetch(`${base}/api/releases/${releaseId}`, {
+          method: "DELETE",
+          headers: authHeaders(oaToken),
+        });
+        check(
+          "ادمین غیر سوپر: حذف نسخه ممنوع (۴۰۳)",
+          r.status === 403,
+          `status=${r.status}`,
+        );
+
+        r = await fetch(`${base}/api/releases`, { headers: authHeaders(oaToken) });
+        check(
+          "ادمین غیر سوپر: فهرست نسخه‌ها (فقط خواندن) → ۲۰۰",
+          r.status === 200,
+          `status=${r.status}`,
+        );
+      } else {
+        info("ℹ️  ادمین غیر سوپر (admin/sub_admin) در دیتابیس نبود → برخی بررسی‌ها رد شد");
+      }
+
+      // ۱۷) پاکسازی: حذف نسخه + بررسی حذف آبشاری
+      r = await fetch(`${base}/api/releases/${releaseId}`, {
+        method: "DELETE",
+        headers: authHeaders(saToken),
+      });
+      check("سوپر ادمین: حذف نسخه → ۲۰۰", r.status === 200, `status=${r.status}`);
+
+      const leftItems = await ReleaseNoteItem.count({
+        where: { release_note_id: releaseId },
+      });
+      const leftViews = await ReleaseNoteView.count({
+        where: { release_note_id: releaseId },
+      });
+      check(
+        "حذف نسخه: آیتم‌ها و رسیدهای دیدن هم پاک شدند",
+        leftItems === 0 && leftViews === 0,
+        `items=${leftItems} views=${leftViews}`,
+      );
+    }
+  }
 
   r = await fetch(`${base}/api/server-status`, {
     headers: authHeaders(adminToken),

@@ -37,6 +37,10 @@ const BreedWeightStandard = require("./BreedWeightStandard");
 const Flock = require("./Flock");
 const Suggestion = require("./Suggestion");
 const SuggestionMessage = require("./SuggestionMessage");
+// ✅ «تغییرات جدید / What's New»
+const ReleaseNote = require("./ReleaseNote");
+const ReleaseNoteItem = require("./ReleaseNoteItem");
+const ReleaseNoteView = require("./ReleaseNoteView");
 
 // ================================================================
 // ✅ ارتباطات با CASCADE برای حذف آبشاری
@@ -794,4 +798,51 @@ Suggestion.hasMany(SuggestionMessage, {
 SuggestionMessage.belongsTo(Suggestion, {
   foreignKey: "suggestion_id",
   as: "suggestion",
+});
+
+// ================================================================
+// ✅ ارتباطات «تغییرات جدید / What's New»
+//    (ReleaseNote / ReleaseNoteItem / ReleaseNoteView)
+// ================================================================
+
+ReleaseNote.hasMany(ReleaseNoteItem, {
+  foreignKey: "release_note_id",
+  as: "items",
+  onDelete: "CASCADE",
+  hooks: true,
+});
+ReleaseNoteItem.belongsTo(ReleaseNote, {
+  foreignKey: "release_note_id",
+  as: "releaseNote",
+});
+
+ReleaseNote.hasMany(ReleaseNoteView, {
+  foreignKey: "release_note_id",
+  as: "views",
+  onDelete: "CASCADE",
+  hooks: true,
+});
+ReleaseNoteView.belongsTo(ReleaseNote, {
+  foreignKey: "release_note_id",
+  as: "releaseNote",
+});
+
+User.hasMany(ReleaseNoteView, {
+  foreignKey: "user_id",
+  as: "releaseNoteViews",
+  onDelete: "CASCADE",
+  hooks: true,
+});
+ReleaseNoteView.belongsTo(User, {
+  foreignKey: "user_id",
+  as: "user",
+});
+
+ReleaseNote.belongsTo(User, {
+  foreignKey: "created_by",
+  as: "creator",
+});
+ReleaseNote.belongsTo(User, {
+  foreignKey: "updated_by",
+  as: "updater",
 });

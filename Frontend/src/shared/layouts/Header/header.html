@@ -44,6 +44,13 @@
                 <div class="wra_bookmarks_content dropdown-menu-bookmark" id="bookmarkDropdown">
                     <div class="dropdown-body"></div>
                 </div>
+
+                <!-- ✅ دکمه «تغییرات جدید / What's New» (مودال اطلاع‌رسانی نسخه‌ها) -->
+                <button type="button" class="wra_button_items wn-header-btn" id="whatsNewBtn"
+                    title="تغییرات جدید" aria-label="تغییرات جدید">
+                    <i class="fas fa-gift"></i>
+                    <span class="quantity" id="whatsNewCount">0</span>
+                </button>
             </div>
         </div>
 
@@ -129,4 +136,10 @@
             </div>
         </div>
     </div>
+</div>
+
+<!-- ===== مودال «تغییرات جدید / What's New» ===== -->
+<!-- محتوای مودال با whats-new.service.js ساخته می‌شود -->
+<div class="wn-overlay" id="whatsNewOverlay" role="dialog" aria-modal="true" aria-label="تغییرات جدید">
+    <div class="wn-modal" id="whatsNewModal"></div>
 </div>

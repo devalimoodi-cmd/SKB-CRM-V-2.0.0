@@ -51,6 +51,8 @@ const settingsRoutes = require("./routes/settingsRoutes");
 const visitReportRoutes = require("./routes/visitReportRoutes");
 const captchaRoutes = require("./routes/captchaRoutes");
 const suggestionRoutes = require("./routes/suggestionRoutes");
+// ✅ «تغییرات جدید / What's New»
+const releaseNoteRoutes = require("./routes/releaseNoteRoutes");
 const publicRoutes = require("./routes/publicRoutes");
 
 // ================== ###==========
@@ -211,6 +213,10 @@ const CRITICAL_TABLES = [
   "app_settings",
   "suggestions",
   "suggestion_messages",
+  // ✅ «تغییرات جدید / What's New»
+  "release_notes",
+  "release_note_items",
+  "release_note_views",
   "SequelizeMeta",
 ];
 
@@ -278,6 +284,12 @@ app.use("/api/public", publicRoutes);
 // ✅ «نظرات و پیشنهادات» (فقط کاربران لاگین‌شده)
 // ============================================
 app.use("/api/suggestions", suggestionRoutes);
+
+// ============================================
+// ✅ «تغییرات جدید / What's New»
+//    - مودال کاربر + مدیریت در پنل (فقط سوپر ادمین برای تغییرات)
+// ============================================
+app.use("/api/releases", releaseNoteRoutes);
 
 app.get("/api/ping", (req, res) => {
   res.json({

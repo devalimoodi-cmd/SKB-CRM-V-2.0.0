@@ -126,6 +126,23 @@ export const API_CONSTANTS = {
       // ✅ حذف یک پیام داخل گفتگو (فقط ادمین)
       DELETE_MESSAGE: "/suggestions/:id/messages/:messageId",
     },
+    // ===== تغییرات جدید / What's New =====
+    RELEASES: {
+      // کاربر
+      UNSEEN: "/releases/unseen",
+      HISTORY: "/releases/history",
+      MARK_SEEN: "/releases/:id/seen",
+      // مدیریت (خواندن: همهٔ ادمین‌ها)
+      ADMIN_LIST: "/releases",
+      DETAIL: "/releases/:id",
+      STATS: "/releases/:id/stats",
+      // مدیریت (نوشتن: فقط سوپر ادمین)
+      CREATE: "/releases",
+      UPDATE: "/releases/:id",
+      PUBLISH: "/releases/:id/publish",
+      ARCHIVE: "/releases/:id/archive",
+      DELETE: "/releases/:id",
+    },
     CITIES: {
       PROVINCES: "/cities/provinces",
       EDUCATION_LEVELS: "/cities/education-levels",

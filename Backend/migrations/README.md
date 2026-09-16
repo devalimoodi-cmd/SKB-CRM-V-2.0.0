@@ -25,12 +25,28 @@ npm run db:schema       # گرفتن اسنپ‌شات ساختار فعلی د�
 
 ## چک‌لیست استقرار روی سرور
 ```bat
+:: ویندوز
 backup.bat          :: ۱) بکاپ
 deploy.bat          :: ۲) کد + پکیج‌ها + db:migrate + db:verify
                     ::    (روی سرور آفلاین:  deploy.bat --no-git --no-npm)
 npm run db:verify   :: ۳) تأیید ساختار دیتابیس
 :: ۴) ری‌استارت بک‌اند و فرانت
 ```
+
+```bash
+# لینوکس / PM2 (توصیه‌شده)
+bash deploy.sh      # git pull + npm ci + db:migrate + db:verify + pm2 restart
+npm run db:verify   # فقط تأیید ساختار
+```
+
+## مایگریشن‌های فعال (خلاصه)
+
+| فایل | ساختار |
+|---|---|
+| `20260915120000-create-suggestions.js` | `suggestions` + `suggestion_messages` (گفتگوی کاربر ↔ ادمین) |
+| `20260916130000-create-release-notes.js` | `release_notes` + `release_note_items` + `release_note_views` («تغییرات جدید / What's New») |
+
+هر دو مایگریشن **idempotent** هستند (اگر جدول موجود باشد، دست نمی‌زنند) تا اجرای دوباره روی سرور خطا ندهد.
 
 ## ساخت مایگریشن جدید
 

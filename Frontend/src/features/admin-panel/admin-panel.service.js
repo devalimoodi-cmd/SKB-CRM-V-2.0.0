@@ -597,6 +597,11 @@ class AdminPanelService {
         await this.loadSuggestions();
         this.startSuggestionsPolling();
         break;
+      case "release-notes":
+        // ✅ «تغییرات جدید / What's New» — اطلاع‌رسانی نسخه‌ها
+        this.stopSuggestionsPolling();
+        await this.initReleaseNotesManager();
+        break;
       default:
         console.log("📌 بخش:", menuId);
     }
@@ -619,6 +624,27 @@ class AdminPanelService {
     } catch (error) {
       console.error("❌ Error initializing dictionary manager:", error);
       notificationService.error("خطا در راه‌اندازی مدیریت دیکشنری‌ها");
+    }
+  }
+
+  // ===== مدیریت «تغییرات جدید / What's New» =====
+
+  async initReleaseNotesManager() {
+    try {
+      // اگر ماژول تغییرات هنوز لود نشده، به‌صورت داینامیک لود کن
+      if (!window.whatsNewManager) {
+        await import("../whats-new/whats-new.manager.js");
+      }
+
+      if (window.whatsNewManager) {
+        await window.whatsNewManager.init("#releaseNotesContainer");
+      } else {
+        console.warn("⚠️ WhatsNewManager در دسترس نیست");
+        notificationService.error("ماژول مدیریت تغییرات یافت نشد");
+      }
+    } catch (error) {
+      console.error("❌ Error initializing whats-new manager:", error);
+      notificationService.error("خطا در راه‌اندازی بخش تغییرات");
     }
   }
 

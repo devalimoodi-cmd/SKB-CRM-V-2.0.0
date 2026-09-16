@@ -2,6 +2,8 @@ import { authService } from "../../../core/services/auth.service.js";
 import { headerBookmarksService } from "./header-bookmarks.service.js";
 import { headerDropdownService } from "./header-dropdown.service.js";
 import { messagesService } from "../../../features/messages/messages.service.js";
+// ✅ «تغییرات جدید / What's New» (مودال اطلاع‌رسانی نسخه‌ها)
+import { whatsNewService } from "../../../features/whats-new/whats-new.service.js";
 
 class HeaderService {
   constructor() {
@@ -71,6 +73,9 @@ class HeaderService {
 
     // ===== 7. راه‌اندازی دکمه‌های نوتیفیکیشن =====
     this.initNotificationButtons();
+
+    // ===== 8. دکمهٔ «تغییرات جدید / What's New» =====
+    this.initWhatsNewButton();
 
     this.initialized = true;
     console.log("✅ HeaderService initialized");
@@ -397,6 +402,32 @@ class HeaderService {
           .forEach((el) => el.classList.remove("active"));
       }
     });
+  }
+
+  // ===== دکمهٔ «تغییرات جدید / What's New» =====
+  initWhatsNewButton() {
+    const btn = document.getElementById("whatsNewBtn");
+
+    if (btn && btn.dataset.wnBound !== "1") {
+      btn.dataset.wnBound = "1";
+      btn.addEventListener("click", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+
+        // بستن دراپ‌داون‌های باز هدر
+        document
+          .querySelectorAll(".show")
+          .forEach((el) => el.classList.remove("show"));
+        document
+          .querySelectorAll(".active")
+          .forEach((el) => el.classList.remove("active"));
+
+        whatsNewService.open();
+      });
+    }
+
+    // ✅ بررسی خودکار «نسخهٔ جدید» + بج شمارنده (داخل سرویس، بی‌صدا)
+    whatsNewService.init();
   }
 
   // ===== توابع کمکی =====
