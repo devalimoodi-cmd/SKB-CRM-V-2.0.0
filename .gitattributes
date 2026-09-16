@@ -1,0 +1,23 @@
+# ============================================================
+#  .gitattributes — جلوگیری از خراب شدن اسکریپت‌های شل در ویندوز
+#  (اگر گیت فایل‌های .sh را CRLF کند، روی لینوکس اجرا نمی‌شوند)
+# ============================================================
+*.sh text eol=lf
+*.bash text eol=lf
+
+# فایل‌های بچ ویندوز: CRLF
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# باینری‌ها را دست نزن
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.zip binary
+*.gz binary
+*.dump binary

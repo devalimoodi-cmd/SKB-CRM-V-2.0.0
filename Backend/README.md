@@ -32,7 +32,9 @@ npm run db:migrate        # اعمال
 npm run db:verify         # تأیید
 ```
 
-- `npm run db:sync` (که `{ alter: true }` می‌زند) **فقط** برای دیتابیس‌های خیلی قدیمی (legacy) و **فقط بعد از بکاپ** است؛ روی دیتابیس سالم اجرا نکن.
+- `npm run db:sync` (که `{ alter: true }` می‌زند) **مسدود شده** است: بدون `ALLOW_DB_SYNC=true` اجرا
+  نمی‌شود و روی production (`NODE_ENV=production`) **هرگز** اجرا نمی‌شود؛ فقط برای دیتابیس‌های خیلی قدیمی
+  (legacy) و **فقط بعد از بکاپ**: `ALLOW_DB_SYNC=true npm run db:sync`.
 - جزئیات: `migrations/README.md` و `db/README.md`.
 
 ---
@@ -65,6 +67,34 @@ npm run db:verify         # تأیید
 > ```
 > بدون این متغیر، تست‌ها پیام `⏭️ SKIPPED` چاپ می‌کنند و با کد ۰ خارج می‌شوند (اجرای واقعی ندارند).
 > روی سرور production (`NODE_ENV=production`) هرگز اجرا نمی‌شوند.
+
+---
+
+## استقرار روی لینوکس (PM2)
+
+روی سرور لینوکسی از `deploy.sh` استفاده کن (معادل `deploy.bat`):
+
+```bash
+cd ~/projects/SKB-CRM-V-2.0.0
+bash deploy.sh              # git pull + npm ci + db:migrate + db:verify + pm2 restart
+bash deploy.sh --no-git     # وقتی با کپی فایل به‌روزرسانی می‌کنی
+bash deploy.sh --no-npm     # سرور آفلاین (node_modules کپی‌شده)
+bash deploy.sh --no-pm2     # فقط مایگریشن/تأیید، بدون ری‌استارت
+bash deploy.sh --help
+```
+
+- نام سرویس‌های PM2 قابل تغییر است:
+  `PM2_BACKEND=skb-backend PM2_FRONTEND=skb-frontend bash deploy.sh`
+- لاگ: `logs/deploy.log` — و در صورت هر خطا، اسکریپت با کد `1` متوقف می‌شود
+  (هیچ خطایی بی‌صدا رد نمی‌شود).
+- ⛔ `deploy.sh` **هرگز** `sequelize.sync` اجرا نمی‌کند؛ فقط `db:migrate` + `db:verify`.
+
+### عیب‌یابی روی سرور
+- `pm2 logs skb-backend --lines 100` → خطای واقعی (پیام‌های ۵xx در production ماسک می‌شوند).
+- `cd Backend && npm run db:verify` → اگر `FAIL` داد: `npm run db:migrate` و دوباره verify.
+- با توکن ادمین: `GET /api/server-status` → بلوک `schema` می‌گوید کدام جدول/مایگریشن غایب است.
+- ⚠️ اسکریپت‌های قدیمی که `node sync-db.js` (در ریشهٔ `Backend`) را صدا می‌زدند **دیگر کار نمی‌کنند**؛
+  مسیر درست `Backend/scripts/sync-db.js` است و آن هم فقط با `ALLOW_DB_SYNC=true` و نه روی production اجرا می‌شود.
 
 ---
 

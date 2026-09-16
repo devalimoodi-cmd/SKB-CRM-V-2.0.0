@@ -1,4 +1,31 @@
-// BackEnd/sync-db.js
+// scripts/sync-db.js   (قبلاً: BackEnd/sync-db.js — آن مسیر قدیمی دیگر معتبر نیست)
+// ------------------------------------------------------------
+// ⛔ هشدار جدی: این اسکریپت legacy است و از sequelize.sync({ alter: true })
+//    استفاده می‌کند که می‌تواند ستون/ایندکس را حذف یا نوع را تغییر دهد.
+//    در همهٔ مسیرهای عادی (استقرار، افزودن جدول/ستون) «مایگریشن» اجرا کن:
+//        npm run db:migrate   &&   npm run db:verify
+//    اجرای این اسکریپت فقط با اجازهٔ صریح و بعد از بکاپ:
+//        ALLOW_DB_SYNC=true npm run db:sync
+// ------------------------------------------------------------
+const syncAllowed =
+  String(process.env.ALLOW_DB_SYNC || "").toLowerCase() === "true" &&
+  process.env.NODE_ENV !== "production";
+
+if (!syncAllowed) {
+  console.error("⛔ اجرای sync-db مسدود شد.");
+  console.error(
+    "   این اسکریپت legacy است (alter: true) و ممکن است ساختار دیتابیس را تغییر دهد.",
+  );
+  console.error("   برای ساخت/به‌روزرسانی جدول‌ها:");
+  console.error("       npm run db:migrate  &&  npm run db:verify");
+  console.error("   اگر واقعاً لازم است (فقط بعد از بکاپ):");
+  console.error("       ALLOW_DB_SYNC=true npm run db:sync");
+  if (String(process.env.NODE_ENV || "") === "production") {
+    console.error("   ⚠️ روی سرور production این اسکریپت هرگز اجرا نمی‌شود.");
+  }
+  process.exit(1);
+}
+
 const { sequelize } = require("../config/database");
 require("../models/associations");
 require("../models/AppSetting"); // اطمینان از ساخت جدول app_settings در sync

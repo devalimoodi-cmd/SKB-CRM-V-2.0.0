@@ -160,6 +160,7 @@ echo   تست فرانت  : http://127.0.0.1:3000/api/ping
 echo   عیب‌یابی خطای 500 در صفحات: در پوشهٔ Backend دستور  npm run db:verify  را اجرا کن
 echo     (اگر FAIL داد:  npm run db:migrate  سپس دوباره db:verify و ری‌استارت بک‌اند)
 echo ============================================
+echo   سرور لینوکسی؟ به‌جای این فایل:  bash deploy.sh   اجرا کن
 echo [%date% %time%] deploy finished OK >> "%LOG%"
 if "%DO_PAUSE%"=="1" pause
 exit /b 0
