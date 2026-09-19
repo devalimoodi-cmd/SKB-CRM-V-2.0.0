@@ -338,12 +338,64 @@ const run = async () => {
 
   // ===== ✅ جدول لیست مشتریان: عرض ستون‌ها + بدون اسکرول افقی =====
   check(
-    "جدول مشتریان: colgroup با ۱۳ ستون عرض‌دار + سرستون «شماره مشتری»",
+    "جدول مشتریان: colgroup با ۱۴ ستون عرض‌دار + سرستون «شماره مشتری» و «نوع مشتری»",
     listPage.status === 200 &&
       listHtml.includes("<colgroup>") &&
       listHtml.includes("<th>شماره مشتری</th>") &&
-      (listHtml.match(/<col class="col-/g) || []).length === 13,
+      listHtml.includes("<th>نوع مشتری</th>") &&
+      (listHtml.match(/<col class="col-/g) || []).length === 14,
     `cols=${(listHtml.match(/<col class="col-/g) || []).length}`,
+  );
+
+  check(
+    "فرم مشتریان: فیلد «کد ملی» + سلکت «نوع مشتری» + فیلتر نوع مشتری موجود است",
+    listPage.status === 200 &&
+      listHtml.includes('id="national-code"') &&
+      listHtml.includes('id="customer-type"') &&
+      listHtml.includes('id="customerTypeFilter"') &&
+      listHtml.includes('<option value="12">نوع مشتری</option>'),
+    `nationalCode=${listHtml.includes('id="national-code"')} filter=${listHtml.includes('id="customerTypeFilter"')}`,
+  );
+
+  // ✅ هم‌ترازی ستون‌ها: تعداد <th> سرستون‌ها باید با تعداد <col>ها یکی باشد
+  // (بود: <colgroup> و سرستون‌ها ۱۴ ستون شدند ولی سطر لودر/فوتر/جستجو
+  //  `colspan="13"` مانده بود و کلیدهای عملیات زیر ستون «نوع مشتری» می‌افتاد)
+  const listTheadHtml = (listHtml.match(/<thead>[\s\S]*?<\/thead>/) || [""])[0];
+  const listThCount = (listTheadHtml.match(/<th>/g) || []).length;
+  const listColCount = (listHtml.match(/<col class="col-/g) || []).length;
+  check(
+    "جدول مشتریان: تعداد <th> با تعداد <col>ها برابر است (۱۴)",
+    listThCount === 14 && listColCount === 14,
+    `th=${listThCount} col=${listColCount}`,
+  );
+
+  check(
+    'جدول مشتریان: هیچ سطر `colspan="13"` نمانده است',
+    listPage.status === 200 &&
+      !listHtml.includes('colspan="13"') &&
+      listHtml.includes('colspan="14"'),
+    `has13=${listHtml.includes('colspan="13"')} has14=${listHtml.includes('colspan="14"')}`,
+  );
+
+  const listService = await waitFor(
+    `${base}/features/customer-list/customer-list.service.js`,
+  );
+  const listServiceText = await listService.text();
+  check(
+    "سرویس جدول مشتریان: سطرهای خالی/«در حال جستجو» با colspan=14 هم‌خوان‌اند",
+    listService.status === 200 &&
+      !listServiceText.includes('colspan="13"') &&
+      listServiceText.includes('colspan="14"'),
+    `status=${listService.status} has13=${listServiceText.includes('colspan="13"')}`,
+  );
+
+  // ✅ منبع واحد رندر: سرویس باید ردیف‌ها را از رندرر بگیرد (نه inline)
+  // (بود: سرویس ردیف ۱۳سلولی خودش را می‌ساخت و ستون «نوع مشتری» خالی می‌ماند)
+  check(
+    "سرویس جدول مشتریان: ردیف‌ها از customerListRenderer.renderTable ساخته می‌شوند",
+    listService.status === 200 &&
+      listServiceText.includes("customerListRenderer.renderTable("),
+    `usesRenderer=${listServiceText.includes("customerListRenderer.renderTable(")}`,
   );
 
   const listCss = await waitFor(`${base}/features/customer-list/customer-list.css`);
@@ -354,7 +406,7 @@ const run = async () => {
   check(
     "CSS جدول مشتریان: عرض ستون‌ها درصدی است (بدون min-width سنگین)",
     listCss.status === 200 &&
-      colWidthRules === 13 &&
+      colWidthRules === 14 &&
       !listCssText.includes("min-width: 1510px") &&
       /\.data-table\s*\{[^}]*table-layout:\s*fixed/.test(listCssText),
     `status=${listCss.status} widthRules=${colWidthRules} heavyMinWidth=${listCssText.includes("min-width: 1510px")}`,

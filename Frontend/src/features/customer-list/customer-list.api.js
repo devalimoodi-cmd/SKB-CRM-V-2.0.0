@@ -84,6 +84,11 @@ export const customerListApi = {
     return apiService.get(API_CONSTANTS.ENDPOINTS.CITIES.EDUCATION_LEVELS);
   },
 
+  // دریافت انواع مشتری (جدول دیکشنری)
+  async getCustomerTypes() {
+    return apiService.get(API_CONSTANTS.ENDPOINTS.DICTIONARY.CUSTOMER_TYPES);
+  },
+
   // دریافت دپارتمان‌ها
   async getDepartments() {
     return apiService.get(API_CONSTANTS.ENDPOINTS.CITIES.DEPARTMENTS);

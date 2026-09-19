@@ -14,6 +14,27 @@ const CustomerPersonalInfo = sequelize.define(
       allowNull: true,
       comment: "کد پایدار مشتری (کسب‌وکاری) - از سکوئنس جداگانه و هرگز بازاستفاده نمی‌شود",
     },
+    national_code: {
+      type: DataTypes.STRING(10),
+      allowNull: true,
+      field: "national_code",
+      comment: "کد ملی ۱۰ رقمی مشتری (اختیاری) — در صورت وارد شدن باید ۱۰ رقم باشد",
+      validate: {
+        isNationalCode(value) {
+          if (value === null || value === undefined || value === "") return;
+          if (!/^[0-9]{10}$/.test(String(value).trim())) {
+            throw new Error("کد ملی باید ۱۰ رقم باشد");
+          }
+        },
+      },
+    },
+    customer_type_id: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      field: "customer_type_id",
+      comment:
+        "نوع مشتری (کلید خارجی به customer_types) — اجباری‌بودن در سطح API/فرم اعمال می‌شود؛ رکوردهای قدیمی ممکن است خالی باشند",
+    },
     collection_name: {
       type: DataTypes.STRING(200),
       allowNull: true,

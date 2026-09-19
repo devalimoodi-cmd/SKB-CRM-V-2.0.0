@@ -9,6 +9,7 @@ import {
   isValidPhone,
   isValidPostalCode,
   isValidEmail,
+  isValidNationalCode,
 } from "../../../../core/utils/string.utils.js";
 
 class BasicInfoService {
@@ -55,17 +56,33 @@ class BasicInfoService {
       }
 
       // بارگذاری دیکشنری‌ها
-      const [provinces, education, departments] = await Promise.all([
-        basicInfoApi.getProvinces(),
-        basicInfoApi.getEducationLevels(),
-        basicInfoApi.getDepartments(),
-      ]);
+      const [provinces, education, departments, customerTypes] =
+        await Promise.all([
+          basicInfoApi.getProvinces(),
+          basicInfoApi.getEducationLevels(),
+          basicInfoApi.getDepartments(),
+          basicInfoApi.getCustomerTypes(),
+        ]);
 
       this.dictionaries = {
         provinces: provinces.success ? provinces.data : [],
         education: education.success ? education.data : [],
         departments: departments.success ? departments.data : [],
+        // ✅ انواع مشتری (گوشتی / تخم‌گذار / مرغ مادر / سایر)
+        customerTypes: customerTypes.success ? customerTypes.data : [],
       };
+
+      // ✅ اگر دیکشنری «انواع مشتری» خالی/در دسترس نباشد، به‌جای سلکت خالیِ
+      // بی‌صدا یک‌بار هشدار بده تا کاربر علت خطای «نوع مشتری الزامی است» را بداند
+      if (
+        this.dictionaries.customerTypes.length === 0 &&
+        !this.customerTypeWarningShown
+      ) {
+        this.customerTypeWarningShown = true;
+        notificationService.error(
+          "نوعی برای مشتری تعریف نشده است؛ از تنظیمات سیستم ← مدیریت دیکشنری ← «انواع مشتری» اضافه کنید.",
+        );
+      }
 
       // رندر فرم
       basicInfoRenderer.renderForm(this.customerData, this.dictionaries);
@@ -97,6 +114,11 @@ class BasicInfoService {
   }
 
   setupEvents() {
+    // ✅ جلوگیری از نصب دوبارهٔ شنونده‌ها (اگر init دو بار صدا زده شود،
+    // دو بار کلیک روی دکمه ⇒ دکمه در حالت اسپینر «گیر» میکرد)
+    if (this.eventsBound) return;
+    this.eventsBound = true;
+
     // رویداد تغییر استان
     const provinceSelect = document.getElementById("skb-province");
     if (provinceSelect) {
@@ -160,6 +182,11 @@ class BasicInfoService {
   }
 
   async updateCustomer() {
+    // ✅ جلوگیری از ارسال دوبارهٔ همزمان (هر بار کلیک/Enter باعث دو درخواست
+    // و در نتیجه «گیر کردن» دکمه در حالت اسپینر میشد)
+    if (this.saving) return;
+    this.saving = true;
+
     const formData = basicInfoRenderer.getFormData();
 
     // ✅ Trim تمام مقادیر رشته‌ای
@@ -184,7 +211,6 @@ class BasicInfoService {
     }
 
     const submitBtn = document.getElementById("skb-submit-btn");
-    const originalText = submitBtn?.innerHTML;
 
     if (submitBtn) {
       submitBtn.disabled = true;
@@ -209,9 +235,12 @@ class BasicInfoService {
       console.error("❌ Update error:", error);
       notificationService.error("خطا در ارتباط با سرور");
     } finally {
+      this.saving = false;
       if (submitBtn) {
         submitBtn.disabled = false;
-        submitBtn.innerHTML = originalText;
+        // ✅ متن ثابت (نه متن لحظهٔ کلیک) تا هیچوقت در حالت اسپینر گیر نکند
+        submitBtn.innerHTML =
+          '<i class="fas fa-save"></i> بروزرسانی اطلاعات';
       }
     }
   }
@@ -265,6 +294,22 @@ class BasicInfoService {
 
     if (!data.gender) {
       errors.push("جنسیت الزامی است");
+    }
+
+    // ✅ نوع مشتری (اجباری — از جدول دیکشنری «انواع مشتری»)
+    if (
+      data.customer_type_id === undefined ||
+      data.customer_type_id === null ||
+      Number(data.customer_type_id) <= 0
+    ) {
+      errors.push("نوع مشتری الزامی است");
+    }
+
+    // ✅ کد ملی (اختیاری — در صورت ورود باید ۱۰ رقم و معتبر باشد)
+    if (data.national_code && String(data.national_code).trim() !== "") {
+      if (!isValidNationalCode(data.national_code)) {
+        errors.push("کد ملی باید ۱۰ رقم و معتبر باشد");
+      }
     }
 
     return errors;

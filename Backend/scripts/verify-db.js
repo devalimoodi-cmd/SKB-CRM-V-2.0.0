@@ -64,6 +64,8 @@ const EXPECTED_TABLES = [
   "release_notes",
   "release_note_items",
   "release_note_views",
+  // ✅ «نوع مشتری» (جدول دیکشنری)
+  "customer_types",
   "SequelizeMeta",
 ];
 
@@ -82,6 +84,9 @@ const EXPECTED_COLUMNS = {
     "active",
     "province",
     "county",
+    // ✅ فیلدهای جدید (مایگریشن 20260919120000)
+    "national_code",
+    "customer_type_id",
   ],
   units: ["customer_personal_information_id", "unit_name", "is_active"],
   halls: ["unit_id", "is_active"],
@@ -136,6 +141,7 @@ const EXPECTED_COLUMNS = {
     "seen_at",
     "dont_show_again",
   ],
+  customer_types: ["name", "description", "sort_order", "active"],
 };
 
 const EXPECTED_INDEXES = [
@@ -163,6 +169,7 @@ const COUNT_TABLES = [
   "release_notes",
   "release_note_items",
   "release_note_views",
+  "customer_types",
 ];
 
 // ============================================
@@ -299,6 +306,47 @@ const main = async () => {
       }
     } catch (error) {
       bad(`بررسی شمارهٔ مشتری انجام نشد: ${error.message}`);
+    }
+  }
+
+  // ===== ۴ج) نوع مشتری (جدول دیکشنری customer_types) =====
+  // ✅ چهار نوع پیش‌فرض باید موجود باشد و هیچ مشتری به نوع ناموجود ارجاع ندهد
+  if (tables.has("customer_types")) {
+    try {
+      const [typeRows] = await query(
+        `SELECT COUNT(*)::int AS total,
+                COUNT(*) FILTER (WHERE active)::int AS active_count
+           FROM customer_types`,
+      );
+      const row = typeRows[0] || {};
+      const total = Number(row.total || 0);
+      const activeCount = Number(row.active_count || 0);
+
+      if (total > 0) {
+        ok(`انواع مشتری: ${total} نوع ثبت شده (${activeCount} فعال)`);
+      } else {
+        bad("جدول customer_types خالی است (۴ نوع پیش‌فرض باید وجود داشته باشد)");
+        info("راهنما: npm run db:migrate");
+      }
+
+      if (tables.has("customer_personal_information")) {
+        const [refRows] = await query(
+          `SELECT COUNT(*)::int AS broken
+             FROM customer_personal_information c
+            WHERE c.customer_type_id IS NOT NULL
+              AND NOT EXISTS (
+                SELECT 1 FROM customer_types t WHERE t.id = c.customer_type_id
+              )`,
+        );
+        const broken = Number(refRows[0]?.broken || 0);
+        if (broken === 0) {
+          ok("ارجاع‌های «نوع مشتری» مشتریان معتبر است");
+        } else {
+          bad(`ارجاع «نوع مشتری» نامعتبر برای ${broken} مشتری`);
+        }
+      }
+    } catch (error) {
+      bad(`بررسی نوع مشتری انجام نشد: ${error.message}`);
     }
   }
 

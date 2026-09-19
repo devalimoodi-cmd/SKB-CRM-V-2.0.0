@@ -413,4 +413,29 @@ router.delete(
 );
 // --------------------finish routes Unit Statuses dictionary tables-------------
 
+// --------------------start routes Customer Types (نوع مشتری) dictionary tables-------------
+// ==================== مسیرهای عمومی (با ورود کاربر) ====================
+router.get("/customer-types", dictionaryController.getCustomerTypes);
+
+// ==================== مسیرهای محافظت شده (فقط مدیران) ====================
+router.post(
+  "/customer-types",
+  protect,
+  authorize("admin", "super_admin"),
+  dictionaryController.createCustomerType,
+);
+router.put(
+  "/customer-types/:id",
+  protect,
+  authorize("admin", "super_admin"),
+  dictionaryController.updateCustomerType,
+);
+router.delete(
+  "/customer-types/:id",
+  protect,
+  authorize("admin", "super_admin"),
+  dictionaryController.deleteCustomerType,
+);
+// --------------------finish routes Customer Types (نوع مشتری) dictionary tables-------------
+
 module.exports = router;

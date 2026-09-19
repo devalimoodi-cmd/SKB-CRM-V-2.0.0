@@ -1,3 +1,6 @@
+// ✅ پیاده‌سازی مرجع اعتبارسنجی کد ملی در core/utils/string.utils.js است
+import { isValidNationalCode as isValidNationalCodeUtil } from "../../core/utils/string.utils.js";
+
 export const customerListValidation = {
   validate(data) {
     const errors = [];
@@ -6,7 +9,6 @@ export const customerListValidation = {
     if (!data.full_name || data.full_name.trim().length < 3) {
       errors.push("نام و نام خانوادگی باید حداقل 3 کاراکتر باشد");
     }
-
     // نام فارم
     if (!data.farm_name || data.farm_name.trim().length < 2) {
       errors.push("نام فارم الزامی است");
@@ -57,6 +59,22 @@ export const customerListValidation = {
       errors.push("جنسیت الزامی است");
     }
 
+    // ✅ نوع مشتری (اجباری — از جدول دیکشنری «انواع مشتری»)
+    if (
+      data.customer_type_id === undefined ||
+      data.customer_type_id === null ||
+      String(data.customer_type_id).trim() === ""
+    ) {
+      errors.push("نوع مشتری الزامی است");
+    }
+
+    // ✅ کد ملی (اختیاری — در صورت ورود باید ۱۰ رقم و معتبر باشد)
+    if (data.national_code && String(data.national_code).trim() !== "") {
+      if (!this.isValidNationalCode(data.national_code)) {
+        errors.push("کد ملی باید ۱۰ رقم و معتبر باشد");
+      }
+    }
+
     return errors;
   },
 
@@ -66,6 +84,20 @@ export const customerListValidation = {
 
   isValidPostalCode(code) {
     return /^[0-9]{10}$/.test(code);
+  },
+
+  // تبدیل ارقام فارسی/عربی به انگلیسی
+  toEnglishDigits(value) {
+    if (value === null || value === undefined) return "";
+    return String(value)
+      .replace(/[۰-۹]/g, (d) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(d)))
+      .replace(/[٠-٩]/g, (d) => String("٠١٢٣٤٥٦٧٨٩".indexOf(d)));
+  },
+
+  // اعتبارسنجی کد ملی ایران (۱۰ رقم + رقم کنترلی)
+  // (پیاده‌سازی مرجع در core/utils/string.utils.js است)
+  isValidNationalCode(code) {
+    return isValidNationalCodeUtil(code);
   },
 
   isValidEmail(email) {

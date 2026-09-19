@@ -1,5 +1,7 @@
 import {
 } from "../../core/utils/date.utils.js";
+// ✅ ایمن‌سازی متن‌های نمایشی (نام‌ها از دیتابیس می‌آیند)
+import { escapeHtml } from "../../core/utils/string.utils.js";
 
 export const customerListRenderer = {
   // ===== رندر جدول =====
@@ -8,7 +10,7 @@ export const customerListRenderer = {
     if (!customers || customers.length === 0) {
       return `
                 <tr>
-                    <td colspan="13" style="text-align: center; padding: 40px; color: #94a3b8;">
+                    <td colspan="14" style="text-align: center; padding: 40px; color: #94a3b8;">
                         <i class="fas fa-users" style="font-size: 32px; display: block; margin-bottom: 10px;"></i>
                         <span>هیچ مشتری‌ای ثبت نشده است</span>
                         <p style="font-size: 12px; margin-top: 8px;">برای شروع، یک مشتری جدید ثبت کنید</p>
@@ -56,33 +58,55 @@ export const customerListRenderer = {
       const onlineStatus =
         customer.online_status === true ? "online" : "offline";
 
+      // ✅ متن‌ها ایمن‌سازی می‌شوند (نام‌ها از دیتابیس می‌آیند) و متن کامل
+      // برای ستون‌های کوتاه‌شده در `title` می‌آید تا با هاور دیده شود
+      const collectionName = escapeHtml(customer.collection_name || "-");
+      const fullName = escapeHtml(customer.full_name || "-");
+      const farmName = escapeHtml(customer.farm_name || "-");
+      const educationLevel = escapeHtml(customer.education_level || "-");
+      const provinceName = escapeHtml(customer.province || "-");
+      const countyName = escapeHtml(customer.county || "-");
+      // ✅ شمارهٔ مشتری (کد کسب‌وکاری) — به‌جای آیدی داخلی
+      const customerCode = escapeHtml(
+        customer.customer_code ?? customer.id ?? "-",
+      );
+      // ✅ نوع مشتری (از دیکشنری customer_types — در include بک‌اند می‌آید)
+      const customerTypeName = escapeHtml(
+        customer.customer_type?.name || customer.customer_type_name || "—",
+      );
+
       html += `
-                <tr data-customer-id="${customer.id}">
-                    <td>${customer.customer_code ?? customer.id ?? "-"}</td>
-                    <td>${customer.collection_name || "-"}</td>
+                <tr data-customer-id="${customer.id}" title="نوع مشتری: ${customerTypeName} | پیام‌رسان: ${escapeHtml(
+                  customer.messaging_number || "-",
+                )} | تحصیلات: ${educationLevel} | جنسیت: ${escapeHtml(
+                  customer.gender || "-",
+                )} | استان: ${provinceName} | شهر: ${countyName}">
+                    <td title="شناسهٔ داخلی: ${customer.id}">${customerCode}</td>
+                    <td title="${collectionName}">${collectionName}</td>
                     <td>
                         <div class="customer-info">
                             <div class="customer-avatar ${onlineStatus}">
                                 ${
                                   customer.profile_image
-                                    ? `<img src="${window.API_URL}${customer.profile_image}" alt="${customer.full_name}">`
+                                    ? `<img src="${window.API_URL}${customer.profile_image}" alt="${fullName}">`
                                     : `<i class="fa fa-user"></i>`
                                 }
                             </div>
-                            <span>${customer.full_name || "-"}</span>
+                            <span title="${fullName}">${fullName}</span>
                         </div>
                     </td>
-                    <td>${customer.farm_name || "-"}</td>
-                    <td>${customer.mobile_number || "-"}</td>
-                    <td>${customer.messaging_number || "-"}</td>
-                    <td>${customer.education_level || "-"}</td>
-                    <td>${customer.gender || "-"}</td>
-                    <td>${customer.province || "-"}</td>
-                    <td>${customer.county || "-"}</td>
+                    <td title="${farmName}">${farmName}</td>
+                    <td>${escapeHtml(customer.mobile_number || "-")}</td>
+                    <td>${escapeHtml(customer.messaging_number || "-")}</td>
+                    <td title="${educationLevel}">${educationLevel}</td>
+                    <td>${escapeHtml(customer.gender || "-")}</td>
+                    <td title="${provinceName}">${provinceName}</td>
+                    <td title="${countyName}">${countyName}</td>
                     <td>${createdDate}</td>
                     <td>
                         <span class="status-badge ${statusClass}">${statusText}</span>
                     </td>
+                    <td title="نوع مشتری: ${customerTypeName}">${customerTypeName}</td>
                     <td>
                         <div class="action-buttons">
                             <button class="action-btn view" onclick="window.viewCustomer(${customer.id})" title="مشاهده">

@@ -924,6 +924,23 @@ const run = async () => {
   // ============================================
   const codeStamp = String(Date.now()).slice(-7);
   const createdCustomerIds = [];
+
+  // ✅ «نوع مشتری» اجباری است ⇒ id را از دیکشنری می‌گیریم
+  const typesListRes = await fetch(`${base}/api/dictionary/customer-types`, {
+    headers: authHeaders(adminToken),
+  });
+  const typesListBody = await typesListRes.json().catch(() => ({}));
+  const customerTypes = Array.isArray(typesListBody?.data)
+    ? typesListBody.data
+    : [];
+  const customerTypeId = customerTypes[0]?.id ?? null;
+
+  check(
+    "دیکشنری «انواع مشتری»: لیست با توکن ادمین برمی‌گردد",
+    typesListRes.status === 200 && customerTypes.length > 0,
+    `status=${typesListRes.status} count=${customerTypes.length}`,
+  );
+
   const testMobile = (index) =>
     `09${codeStamp}${String(index).padStart(2, "0")}`;
   const customerPayload = (index) => ({
@@ -940,6 +957,8 @@ const run = async () => {
     education_level: "کارشناسی",
     sales_department: "فروش",
     gender: "مرد",
+    // ✅ نوع مشتری (اجباری) — کد ملی اختیاری (برای بعضی سناریوها اضافه می‌شود)
+    customer_type_id: customerTypeId,
   });
   const registerTestCustomer = (index) =>
     fetch(`${base}/api/customers/register`, {
@@ -1051,6 +1070,300 @@ const run = async () => {
       left === 0,
       `deleted=${createdCustomerIds.length}`,
     );
+  }
+
+  // ============================================
+  // ✅ «نوع مشتری» (دیکشنری) + «کد ملی» مشتری
+  // (جدول customer_types + national_code/customer_type_id)
+  // ============================================
+  {
+    // ۱) چهار نوع پیش‌فرض
+    const defaultTypeNames = ["گوشتی", "تخم‌گذار", "مرغ مادر", "سایر"];
+    check(
+      "دیکشنری «انواع مشتری»: چهار نوع پیش‌فرض موجود است",
+      defaultTypeNames.every((n) => customerTypes.some((t) => t.name === n)),
+      `names=${customerTypes.map((t) => t.name).join(" | ")}`,
+    );
+
+    const activeTypeId = customerTypes[0]?.id;
+
+    // ۲) ثبت مشتری بدون «نوع مشتری» → ۴۰۰ (اجباری)
+    let typeRes = await fetch(`${base}/api/customers/register`, {
+      method: "POST",
+      headers: authHeaders(adminToken),
+      body: JSON.stringify({
+        ...customerPayload(11),
+        customer_type_id: null,
+      }),
+    });
+    let typeBody = await typeRes.json().catch(() => ({}));
+    check(
+      "ثبت مشتری بدون «نوع مشتری» → ۴۰۰ (اجباری)",
+      typeRes.status === 400,
+      `status=${typeRes.status} msg=${JSON.stringify(
+        typeBody?.errors || typeBody?.message,
+      )}`,
+    );
+
+    // ۳) نوع مشتری ناموجود → ۴۰۰
+    typeRes = await fetch(`${base}/api/customers/register`, {
+      method: "POST",
+      headers: authHeaders(adminToken),
+      body: JSON.stringify({
+        ...customerPayload(12),
+        customer_type_id: 999999,
+      }),
+    });
+    typeBody = await typeRes.json().catch(() => ({}));
+    check(
+      "ثبت مشتری با «نوع مشتری» ناموجود → ۴۰۰",
+      typeRes.status === 400,
+      `status=${typeRes.status} msg=${typeBody?.message}`,
+    );
+
+    // ۴) کد ملی نامعتبر → ۴۰۰ (رقم کنترلی)
+    typeRes = await fetch(`${base}/api/customers/register`, {
+      method: "POST",
+      headers: authHeaders(adminToken),
+      body: JSON.stringify({
+        ...customerPayload(13),
+        national_code: "1234567890",
+      }),
+    });
+    typeBody = await typeRes.json().catch(() => ({}));
+    check(
+      "ثبت مشتری با «کد ملی» نامعتبر → ۴۰۰",
+      typeRes.status === 400,
+      `status=${typeRes.status} msg=${JSON.stringify(
+        typeBody?.errors || typeBody?.message,
+      )}`,
+    );
+
+    // ۵) ثبت موفق با نوع مشتری + کد ملی معتبر (ارقام فارسی هم پذیرفته می‌شود)
+    typeRes = await fetch(`${base}/api/customers/register`, {
+      method: "POST",
+      headers: authHeaders(adminToken),
+      body: JSON.stringify({
+        ...customerPayload(14),
+        national_code: "۱۲۳۴۵۶۷۸۹۱",
+      }),
+    });
+    typeBody = await typeRes.json().catch(() => ({}));
+    const typedCustomer = typeBody?.data || {};
+    if (typedCustomer.id) createdCustomerIds.push(typedCustomer.id);
+    check(
+      "ثبت مشتری با نوع مشتری + کد ملی معتبر → ۲۰۱ (کد ملی نرمال‌سازی می‌شود)",
+      typeRes.status === 201 &&
+        Number(typedCustomer.customer_type_id) === Number(activeTypeId) &&
+        typedCustomer.national_code === "1234567891",
+      `status=${typeRes.status} type=${typedCustomer.customer_type_id} national=${typedCustomer.national_code}`,
+    );
+
+    // ۶) جزئیات مشتری: نوع مشتری (با نام) و کد ملی برمی‌گردد
+    typeRes = await fetch(`${base}/api/customers/${typedCustomer.id}`, {
+      headers: authHeaders(adminToken),
+    });
+    typeBody = await typeRes.json().catch(() => ({}));
+    check(
+      "جزئیات مشتری: نوع مشتری (با نام) و کد ملی برگردانده می‌شود",
+      typeRes.status === 200 &&
+        typeBody?.data?.national_code === "1234567891" &&
+        !!typeBody?.data?.customer_type?.name,
+      `status=${typeRes.status} type=${typeBody?.data?.customer_type?.name}`,
+    );
+
+    // ۷) فیلتر «نوع مشتری» در لیست + جستجو در ستون ۱۲
+    typeRes = await fetch(
+      `${base}/api/customers?limit=50&customer_type_id=${activeTypeId}`,
+      { headers: authHeaders(adminToken) },
+    );
+    typeBody = await typeRes.json().catch(() => ({}));
+    const filteredRows = typeBody?.data?.customers || [];
+    check(
+      "فیلتر لیست بر اساس «نوع مشتری» درست کار می‌کند",
+      typeRes.status === 200 &&
+        filteredRows.length > 0 &&
+        filteredRows.every(
+          (c) => Number(c.customer_type_id) === Number(activeTypeId),
+        ),
+      `status=${typeRes.status} rows=${filteredRows.length}`,
+    );
+
+    // ۸) جستجو در ستون ۱۲ (نوع مشتری)
+    typeRes = await fetch(
+      `${base}/api/customers?limit=50&search=${encodeURIComponent(
+        customerTypes[0]?.name || "",
+      )}&searchColumn=12`,
+      { headers: authHeaders(adminToken) },
+    );
+    typeBody = await typeRes.json().catch(() => ({}));
+    const searchedRows = typeBody?.data?.customers || [];
+    check(
+      "جستجو در ستون «نوع مشتری» (searchColumn=12) نتیجه می‌دهد",
+      typeRes.status === 200 &&
+        searchedRows.length > 0 &&
+        searchedRows.every(
+          (c) => Number(c.customer_type_id) === Number(activeTypeId),
+        ),
+      `status=${typeRes.status} rows=${searchedRows.length}`,
+    );
+
+    // ۹) مشتری قدیمی (بدون نوع): ویرایش بدون تعیین نوع → ۴۰۰
+    //    (customer_code در دیتابیس NOT NULL است، پس عدد ترتیبی می‌دهیم)
+    const legacyCustomer = await CustomerPersonalInfo.create({
+      customer_code:
+        (Number(await CustomerPersonalInfo.max("customer_code")) || 1000) + 1,
+      full_name: `مشتری قدیمی تست ${codeStamp}`,
+      email: `legacy-${codeStamp}@e2e.local`,
+      mobile_number: testMobile(15),
+      status: "active",
+    });
+    createdCustomerIds.push(legacyCustomer.id);
+
+    const legacyBase = {
+      full_name: `مشتری قدیمی تست ${codeStamp}`,
+      farm_name: "فارم قدیمی",
+      mobile_number: testMobile(15),
+      province: "خراسان جنوبی",
+      county: "بیرجند",
+      farm_address: "آدرس قدیمی تست",
+      postal_code: "9876543210",
+      experience_years: 3,
+      education_level: "کارشناسی",
+      sales_department: "فروش",
+      gender: "مرد",
+    };
+
+    typeRes = await fetch(`${base}/api/customers/${legacyCustomer.id}`, {
+      method: "PUT",
+      headers: authHeaders(adminToken),
+      body: JSON.stringify(legacyBase),
+    });
+    typeBody = await typeRes.json().catch(() => ({}));
+    check(
+      "ویرایش مشتری قدیمی بدون تعیین «نوع مشتری» → ۴۰۰",
+      typeRes.status === 400,
+      `status=${typeRes.status} msg=${typeBody?.message}`,
+    );
+
+    // ۱۰) همان مشتری با تعیین نوع + کد ملی → ۲۰۰
+    typeRes = await fetch(`${base}/api/customers/${legacyCustomer.id}`, {
+      method: "PUT",
+      headers: authHeaders(adminToken),
+      body: JSON.stringify({
+        ...legacyBase,
+        customer_type_id: activeTypeId,
+        national_code: "2234567890",
+      }),
+    });
+    typeBody = await typeRes.json().catch(() => ({}));
+    check(
+      "ویرایش مشتری قدیمی با تعیین «نوع مشتری» + کد ملی → ۲۰۰",
+      typeRes.status === 200 &&
+        Number(typeBody?.data?.customer_type_id) === Number(activeTypeId) &&
+        typeBody?.data?.national_code === "2234567890",
+      `status=${typeRes.status} type=${typeBody?.data?.customer_type_id}`,
+    );
+
+    // ۱۱) CRUD دیکشنری «انواع مشتری»
+    // ⚠️ نوشتن در دیکشنری فقط برای admin/super_admin است (مثل بقیه دیکشنری‌ها)
+    const superAdminUser = await User.findOne({
+      where: { role: "super_admin" },
+    });
+    const saToken = superAdminUser ? tokenFor(superAdminUser) : null;
+
+    if (!saToken) {
+      info("⚠️  سوپر ادمین پیدا نشد → بررسی نوشتن دیکشنری «انواع مشتری» رد شد");
+    } else {
+      // ۱۱-۰) نقش کم‌دسترسی نباید بتواند نوع مشتری بسازد
+      typeRes = await fetch(`${base}/api/dictionary/customer-types`, {
+        method: "POST",
+        headers: authHeaders(adminToken),
+        body: JSON.stringify({ name: `نوع غیرمجاز ${codeStamp}` }),
+      });
+      check(
+        "دیکشنری نوع مشتری: نقش کم‌دسترسی (sub_admin) نمی‌تواند بسازد → ۴۰۳",
+        typeRes.status === 403,
+        `status=${typeRes.status}`,
+      );
+
+      typeRes = await fetch(`${base}/api/dictionary/customer-types`, {
+        method: "POST",
+        headers: authHeaders(saToken),
+        body: JSON.stringify({ name: "" }),
+      });
+      check(
+        "دیکشنری نوع مشتری: نام خالی → ۴۰۰",
+        typeRes.status === 400,
+        `status=${typeRes.status}`,
+      );
+
+      typeRes = await fetch(`${base}/api/dictionary/customer-types`, {
+        method: "POST",
+        headers: authHeaders(saToken),
+        body: JSON.stringify({
+          name: `نوع تستی ${codeStamp}`,
+          sort_order: 99,
+        }),
+      });
+      typeBody = await typeRes.json().catch(() => ({}));
+      const newTypeId = typeBody?.data?.id;
+      check(
+        "دیکشنری نوع مشتری: ساخت نوع جدید ← ۲۰۱",
+        typeRes.status === 201 && Number.isInteger(Number(newTypeId)),
+        `status=${typeRes.status} id=${newTypeId}`,
+      );
+
+      typeRes = await fetch(
+        `${base}/api/dictionary/customer-types/${newTypeId}`,
+        {
+          method: "PUT",
+          headers: authHeaders(saToken),
+          body: JSON.stringify({ name: `نوع ویرایش‌شده ${codeStamp}` }),
+        },
+      );
+      typeBody = await typeRes.json().catch(() => ({}));
+      check(
+        "دیکشنری نوع مشتری: ویرایش نوع → ۲۰۰",
+        typeRes.status === 200 &&
+          typeBody?.data?.name === `نوع ویرایش‌شده ${codeStamp}`,
+        `status=${typeRes.status} name=${typeBody?.data?.name}`,
+      );
+
+      // ۱۲) حذف نوعی که در حال استفاده است → ۴۰۰ (داده مشتریان سالم می‌ماند)
+      typeRes = await fetch(
+        `${base}/api/dictionary/customer-types/${activeTypeId}`,
+        { method: "DELETE", headers: authHeaders(saToken) },
+      );
+      typeBody = await typeRes.json().catch(() => ({}));
+      check(
+        "دیکشنری نوع مشتری: حذف نوع در حال استفاده → ۴۰۰",
+        typeRes.status === 400,
+        `status=${typeRes.status} msg=${typeBody?.message}`,
+      );
+
+      // ۱۳) حذف نوع بی‌استفاده → ۲۰۰
+      typeRes = await fetch(
+        `${base}/api/dictionary/customer-types/${newTypeId}`,
+        { method: "DELETE", headers: authHeaders(saToken) },
+      );
+      check(
+        "دیکشنری نوع مشتری: حذف نوع بی‌استفاده → ۲۰۰",
+        typeRes.status === 200,
+        `status=${typeRes.status}`,
+      );
+    }
+
+    // ۱۴) پاکسازی مشتریان تستی این بخش
+    if (createdCustomerIds.length) {
+      await CustomerPersonalInfo.destroy({
+        where: { id: createdCustomerIds },
+      });
+      const left = await CustomerPersonalInfo.count({
+        where: { id: createdCustomerIds },
+      });
+      check("پاکسازی: مشتریان تستی فیلدهای جدید حذف شدند", left === 0);
+    }
   }
 
   // ============================================

@@ -8,7 +8,8 @@
     "lint": "eslint src",
     "test:cache": "node frontend-server-test.mjs",
     "test:weekly": "node weekly-calculations-test.mjs",
-    "test:weekly:report": "node weekly-report-render-smoke.mjs"
+    "test:weekly:report": "node weekly-report-render-smoke.mjs",
+    "test:customer-fields": "node customer-fields-test.mjs"
   },
   "devDependencies": {
     "eslint": "^10.10.0"

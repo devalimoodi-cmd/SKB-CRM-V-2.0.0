@@ -1,7 +1,9 @@
 const CustomerPersonalInfo = require("../models/CustomerPersonalInfo.js");
 const User = require("../models/User.js");
+const CustomerType = require("../models/CustomerType.js");
 const {
   validateCustomerData,
+  toEnglishDigits,
 } = require("../validations/customerValidation.js");
 const { Op } = require("sequelize");
 const { successResponse, errorResponse } = require("../utils/response");
@@ -31,14 +33,60 @@ function getDefaultEmail(fullName, mobileNumber) {
 }
 
 // ============================================
+// نرمال‌سازی کد ملی
+// ارقام فارسی/عربی → انگلیسی، حذف فاصله و خط تیره
+// خروجی: رشته ۱۰ رقمی یا null (اگر خالی باشد)
+// ============================================
+function normalizeNationalCode(value) {
+  if (value === null || value === undefined) return null;
+  const digits = toEnglishDigits(String(value)).replace(/\D/g, "");
+  if (digits === "") return null;
+  return digits.slice(0, 10);
+}
+
+// ============================================
+// بررسی معتبر بودن «نوع مشتری» (وجود + فعال بودن)
+// خروجی: { ok, message?, value? }
+// ============================================
+async function resolveCustomerType(customerTypeId) {
+  if (
+    customerTypeId === undefined ||
+    customerTypeId === null ||
+    String(customerTypeId).trim() === ""
+  ) {
+    return { ok: false, message: "فیلد 'نوع مشتری' الزامی است" };
+  }
+
+  const id = Number(toEnglishDigits(String(customerTypeId)).trim());
+  if (!Number.isInteger(id) || id <= 0) {
+    return { ok: false, message: "فیلد 'نوع مشتری' باید از فهرست انتخاب شود" };
+  }
+
+  const customerType = await CustomerType.findByPk(id);
+  if (!customerType) {
+    return { ok: false, message: "نوع مشتری انتخاب‌شده یافت نشد" };
+  }
+  if (customerType.active === false) {
+    return {
+      ok: false,
+      message: "نوع مشتری انتخاب‌شده غیرفعال است؛ نوع دیگری انتخاب کنید",
+    };
+  }
+
+  return { ok: true, value: customerType.id };
+}
+
+// ============================================
 // ثبت مشتری جدید
 // ============================================
 const registerCustomer = async (req, res) => {
   try {
     console.log("📝 دریافت درخواست ثبت مشتری:", req.body);
 
-    // 1. اعتبارسنجی داده‌ها
-    const validation = validateCustomerData(req.body);
+    // 1. اعتبارسنجی داده‌ها (نوع مشتری اجباری است)
+    const validation = validateCustomerData(req.body, {
+      requireCustomerType: true,
+    });
     if (!validation.isValid) {
       return errorResponse(
         res,
@@ -61,6 +109,12 @@ const registerCustomer = async (req, res) => {
       );
     }
 
+    // 2ب) بررسی معتبر بودن «نوع مشتری» انتخاب‌شده (وجود + فعال بودن)
+    const customerType = await resolveCustomerType(req.body.customer_type_id);
+    if (!customerType.ok) {
+      return errorResponse(res, customerType.message, 400);
+    }
+
     // ✅ دریافت userId از توکن
     const userId = req.user?.id || null;
     console.log(`👤 کاربر ثبت‌کننده: ${userId}`);
@@ -81,6 +135,8 @@ const registerCustomer = async (req, res) => {
     //    (برخلاف nextval سکانس که rollback نمی‌شود).
     const customerPayload = {
       collection_name: req.body.collection_name || null,
+      national_code: normalizeNationalCode(req.body.national_code),
+      customer_type_id: customerType.value,
       full_name: req.body.full_name,
       farm_name: req.body.farm_name,
       email: email,
@@ -168,6 +224,8 @@ const registerCustomer = async (req, res) => {
         email: customer.email,
         mobile_number: customer.mobile_number,
         date_of_birth: customer.date_of_birth,
+        national_code: customer.national_code,
+        customer_type_id: customer.customer_type_id,
         created_by: customer.created_by,
         updated_by: customer.updated_by,
       },
@@ -206,8 +264,18 @@ const getAllCustomers = async (req, res) => {
       req.query.searchColumn,
     );
 
+    // ✅ فیلتر مستقل «نوع مشتری» (فیلتر کنار نوار جستجو)
+    // نکته: کلیدهای شرط جستجو از نوع Symbol هستند (Op.or/Op.and)، پس برای
+    // تشخیص «خالی نبودن» نباید از Object.keys استفاده کرد؛ به‌جای آن فقط در
+    // صورت وجود فیلتر، شرط جدید ساخته می‌شود تا فیلتر جستجو از دست نرود.
+    const typeFilter = Number(req.query.customer_type_id);
+    let where = searchWhere || undefined;
+    if (Number.isInteger(typeFilter) && typeFilter > 0) {
+      where = { ...(searchWhere || {}), customer_type_id: typeFilter };
+    }
+
     const { count, rows } = await CustomerPersonalInfo.findAndCountAll({
-      where: searchWhere || undefined,
+      where,
       distinct: true,
       limit,
       offset,
@@ -217,6 +285,12 @@ const getAllCustomers = async (req, res) => {
           model: User,
           as: "creator",
           attributes: ["id", "first_name", "last_name", "username"],
+        },
+        {
+          model: CustomerType,
+          as: "customer_type",
+          attributes: ["id", "name"],
+          required: false,
         },
       ],
     });
@@ -358,6 +432,12 @@ const getCustomerById = async (req, res) => {
           as: "updater",
           attributes: ["id", "first_name", "last_name", "username", "email"],
         },
+        {
+          model: CustomerType,
+          as: "customer_type",
+          attributes: ["id", "name", "active"],
+          required: false,
+        },
       ],
     });
 
@@ -387,7 +467,11 @@ const updateCustomer = async (req, res) => {
     }
 
     // ✅ اعتبارسنجی داده‌های بروزرسانی
-    const validation = validateCustomerData(updateData);
+    // (اجباری بودن «نوع مشتری» در این مسیر جداگانه و با درنظرگرفتن
+    //  مقدار فعلی مشتری بررسی می‌شود تا ویرایش مشتریان قدیمی قفل نشود)
+    const validation = validateCustomerData(updateData, {
+      requireCustomerType: false,
+    });
     if (!validation.isValid) {
       return errorResponse(
         res,
@@ -427,6 +511,35 @@ const updateCustomer = async (req, res) => {
       }
     }
 
+    // ✅ بررسی «نوع مشتری» در ویرایش:
+    //   • اگر در ورودی آمده باشد ⇒ باید معتبر و فعال باشد
+    //   • اگر نیامده باشد و مشتری هم نوعی نداشته باشد ⇒ اجباری است
+    //     (مشتریان قدیمی در اولین ویرایش باید نوع خود را تعیین کنند)
+    const rawCustomerTypeId = updateData.customer_type_id;
+    const sentCustomerType =
+      rawCustomerTypeId !== undefined &&
+      rawCustomerTypeId !== null &&
+      String(rawCustomerTypeId).trim() !== "";
+
+    if (sentCustomerType) {
+      const resolvedType = await resolveCustomerType(rawCustomerTypeId);
+      if (!resolvedType.ok) {
+        return errorResponse(res, resolvedType.message, 400);
+      }
+      updateData.customer_type_id = resolvedType.value;
+    } else if (!customer.customer_type_id) {
+      return errorResponse(res, "فیلد 'نوع مشتری' الزامی است", 400);
+    } else {
+      delete updateData.customer_type_id;
+    }
+
+    // ✅ نرمال‌سازی کد ملی (در صورت ارسال؛ خالی = حذف مقدار)
+    if (updateData.national_code !== undefined) {
+      updateData.national_code = normalizeNationalCode(
+        updateData.national_code,
+      );
+    }
+
     // ✅ تنظیم updated_by
     updateData.updated_by = userId;
 
@@ -445,6 +558,12 @@ const updateCustomer = async (req, res) => {
           model: User,
           as: "updater",
           attributes: ["id", "first_name", "last_name", "username"],
+        },
+        {
+          model: CustomerType,
+          as: "customer_type",
+          attributes: ["id", "name"],
+          required: false,
         },
       ],
     });

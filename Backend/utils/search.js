@@ -8,7 +8,7 @@
 //  • ورودی کاربر نباید به wildcard تبدیل شود (`%` و `_`).
 //  • ستون‌های «نام» باید بدون حساسیت به فاصله/نیم‌فاصله هم پیدا شوند.
 // ============================================================
-const { Op, fn, col, where: sqlWhere, cast } = require("sequelize");
+const { Op, fn, col, where: sqlWhere, cast, literal } = require("sequelize");
 
 const MAX_TERM_LENGTH = 100;
 const ZWNJ = "\u200c"; // نیم‌فاصله
@@ -75,6 +75,8 @@ const CUSTOMER_SEARCH_COLUMNS = {
   "9": { field: "county", type: "text" },
   "10": { field: "created_at", type: "date" },
   "11": { field: "active", type: "boolean" },
+  // ✅ ستون ۱۲: «نوع مشتری» (جدول دیکشنری customer_types)
+  "12": { field: "customer_type_id", type: "customer_type" },
 };
 
 // ستون‌هایی که در حالت «همه ستون‌ها» جستجو می‌شوند
@@ -89,6 +91,8 @@ const CUSTOMER_SEARCH_ALL_FIELDS = [
   "gender",
   "province",
   "county",
+  "national_code",
+  "customer_type_id",
 ];
 
 // ============================================
@@ -244,6 +248,21 @@ const idCondition = (field = "id") => (term) => {
   return sqlWhere(cast(col(field), "TEXT"), { [Op.iLike]: `%${digits}%` });
 };
 
+// ===== نوع مشتری =====
+// نام نوع مشتری در جدول dictionary «customer_types» است؛ برای اینکه
+// صفحه‌بندی و distinct سالم بماند، از زیرپرس‌وجو استفاده می‌کنیم (بدون join).
+const customerTypeCondition = (term) => {
+  // امن‌سازی: کاراکترهای LIKE و کوتیشن تک
+  const safe = escapeLike(term).replace(/'/g, "''");
+  return {
+    customer_type_id: {
+      [Op.in]: literal(
+        `(SELECT ct.id FROM customer_types ct WHERE ct.name ILIKE '%${safe}%')`,
+      ),
+    },
+  };
+};
+
 const booleanCondition = (term) => {
   const text = term.toLowerCase();
   const truthy = ["فعال", "بله", "true", "1", "yes", "active"];
@@ -279,6 +298,7 @@ const buildCustomerSearchWhere = (searchValue, searchColumnValue) => {
     }
     if (column.type === "boolean") return booleanCondition(term);
     if (column.type === "date") return dateCondition(term);
+    if (column.type === "customer_type") return customerTypeCondition(term);
 
     const conditions =
       column.type === "name"
@@ -312,6 +332,10 @@ const buildCustomerSearchWhere = (searchValue, searchColumnValue) => {
     if (type === "id") {
       const condition = idCondition(field)(term);
       if (condition) or.push(condition);
+      return;
+    }
+    if (type === "customer_type") {
+      or.push(customerTypeCondition(term));
       return;
     }
     or.push({ [field]: { [Op.iLike]: `%${escapeLike(term)}%` } });

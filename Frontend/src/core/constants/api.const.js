@@ -74,6 +74,8 @@ export const API_CONSTANTS = {
     },
     DICTIONARY: {
       BASE: "/dictionary",
+      // ✅ انواع مشتری (گوشتی / تخم‌گذار / مرغ مادر / سایر) — جدول دیکشنری
+      CUSTOMER_TYPES: "/dictionary/customer-types",
     },
     BOOKMARKS: {
       LIST: "/bookmarks",

@@ -46,6 +46,30 @@ export function isValidPostalCode(code) {
   return /^[0-9]{10}$/.test(code);
 }
 
+// ===== ✅ ارقام فارسی/عربی → انگلیسی =====
+export function toEnglishDigits(value) {
+  if (value === null || value === undefined) return "";
+  return String(value)
+    .replace(/[۰-۹]/g, (d) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(d)))
+    .replace(/[٠-٩]/g, (d) => String("٠١٢٣٤٥٦٧٨٩".indexOf(d)));
+}
+
+// ===== ✅ اعتبارسنجی کد ملی ایران (۱۰ رقم + رقم کنترلی) =====
+// ورودی با ارقام فارسی هم پذیرفته می‌شود.
+export function isValidNationalCode(code) {
+  const value = toEnglishDigits(code).trim();
+  if (!/^[0-9]{10}$/.test(value)) return false;
+  if (/^(\d)\1{9}$/.test(value)) return false; // ۱۱۱۱۱۱۱۱۱۱
+
+  const check = Number(value[9]);
+  let sum = 0;
+  for (let i = 0; i < 9; i++) {
+    sum += Number(value[i]) * (10 - i);
+  }
+  const remainder = sum % 11;
+  return remainder < 2 ? check === remainder : check === 11 - remainder;
+}
+
 // ===== ✅ ایمن‌سازی متن برای قرار دادن در innerHTML =====
 // نکته: علاوه بر < و > و &، کوتیشن‌ها هم escape می‌شوند
 // تا استفاده در اتریبیوت‌ها (value="...") هم ایمن باشد.

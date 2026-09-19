@@ -263,6 +263,21 @@ export const DICTIONARY_SCHEMAS = {
     ],
   },
 
+  // ==================== انواع مشتری ====================
+  // مقدار پیش‌فرض: گوشتی / تخم‌گذار / مرغ مادر / سایر
+  // (در مایگریشن 20260919120000 seed شده و از همین‌جا کم/زیاد می‌شود)
+  "customer-types": {
+    title: "انواع مشتری",
+    icon: "fa-drumstick-bite",
+    canToggle: true,
+    fields: [
+      { key: "name", label: "نام نوع مشتری", type: "text", required: true },
+      { key: "description", label: "توضیحات", type: "textarea" },
+      { key: "sort_order", label: "ترتیب", type: "number" },
+      { key: "active", label: "فعال", type: "boolean" },
+    ],
+  },
+
   // ==================== استانداردهای وزنی نژاد ====================
   // این جدول از API مستقل /api/breed-standards استفاده می‌کند (نه /api/dictionary)
   // توجه: apiBase بدون پیشوند /api نوشته می‌شود چون apiService خودش آن را اضافه می‌کند

@@ -45,8 +45,9 @@ npm run db:verify   # فقط تأیید ساختار
 |---|---|
 | `20260915120000-create-suggestions.js` | `suggestions` + `suggestion_messages` (گفتگوی کاربر ↔ ادمین) |
 | `20260916130000-create-release-notes.js` | `release_notes` + `release_note_items` + `release_note_views` («تغییرات جدید / What's New») |
+| `20260919120000-customer-type-and-national-code.js` | `customer_types` (دیکشنری «انواع مشتری» + ۴ آیتم پیش‌فرض: گوشتی/تخم‌گذار/مرغ مادر/سایر) و افزودن `national_code` و `customer_type_id` به `customer_personal_information` |
 
-هر دو مایگریشن **idempotent** هستند (اگر جدول موجود باشد، دست نمی‌زنند) تا اجرای دوباره روی سرور خطا ندهد.
+هر سه مایگریشن **idempotent** هستند (اگر جدول/ستون موجود باشد، دست نمی‌زنند) تا اجرای دوباره روی سرور خطا ندهد.
 
 ## ساخت مایگریشن جدید
 

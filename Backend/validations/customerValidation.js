@@ -1,7 +1,43 @@
 // BackEnd/validations/customerValidation.js
 
-const validateCustomerData = (data) => {
+// ============================================
+// نرمال‌سازی ورودی‌های متنی
+// ============================================
+
+// تبدیل ارقام فارسی/عربی به انگلیسی و حذف فاصله‌ها
+// (کاربر ممکن است کد ملی/کد پستی را با ارقام فارسی وارد کند)
+const toEnglishDigits = (value) => {
+  if (value === null || value === undefined) return value;
+  return String(value)
+    .replace(/[۰-۹]/g, (d) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(d)))
+    .replace(/[٠-٩]/g, (d) => String("٠١٢٣٤٥٦٧٨٩".indexOf(d)));
+};
+
+// اعتبارسنجی کد ملی ایران (۱۰ رقم + رقم کنترلی)
+// ورودی با ارقام فارسی/عربی هم پذیرفته می‌شود.
+const isValidIranNationalCode = (value) => {
+  const code = toEnglishDigits(String(value ?? "")).trim();
+  if (!/^[0-9]{10}$/.test(code)) return false;
+  if (/^(\d)\1{9}$/.test(code)) return false; // ارقام تکراری مثل ۱۱۱۱۱۱۱۱۱۱
+
+  const check = Number(code[9]);
+  let sum = 0;
+  for (let i = 0; i < 9; i++) {
+    sum += Number(code[i]) * (10 - i);
+  }
+  const remainder = sum % 11;
+  return remainder < 2 ? check === remainder : check === 11 - remainder;
+};
+
+// ============================================
+// اعتبارسنجی اطلاعات مشتری
+// @param {Object} data
+// @param {{ requireCustomerType?: boolean }} [options]
+// ============================================
+
+const validateCustomerData = (data, options = {}) => {
   const errors = [];
+  const requireCustomerType = options.requireCustomerType === true;
 
   // ============================================
   // فیلدهای اجباری
@@ -94,10 +130,39 @@ const validateCustomerData = (data) => {
     }
   }
 
+  // 15. نوع مشتری (اجباری — در مسیر ویرایش با options کنترل می‌شود)
+  const rawCustomerType = data.customer_type_id;
+  const hasCustomerType =
+    rawCustomerType !== undefined &&
+    rawCustomerType !== null &&
+    String(rawCustomerType).trim() !== "";
+
+  if (requireCustomerType && !hasCustomerType) {
+    errors.push("فیلد 'نوع مشتری' الزامی است");
+  }
+  if (hasCustomerType && !/^[0-9]+$/.test(String(rawCustomerType).trim())) {
+    errors.push("فیلد 'نوع مشتری' باید از فهرست انتخاب شود");
+  }
+
+  // 16. کد ملی - اختیاری (در صورت ورود باید ۱۰ رقم و معتبر باشد)
+  if (data.national_code && String(data.national_code).trim() !== "") {
+    const nationalCode = toEnglishDigits(data.national_code).trim();
+    if (!/^[0-9]{10}$/.test(nationalCode)) {
+      errors.push("فیلد 'کد ملی' باید ۱۰ رقم باشد");
+    } else if (!isValidIranNationalCode(nationalCode)) {
+      errors.push("فیلد 'کد ملی' معتبر نیست (ارقام وارد شده صحیح نیستند)");
+    }
+  }
+
   return {
     isValid: errors.length === 0,
     errors,
   };
 };
 
-module.exports = { validateCustomerData };
+module.exports = {
+  validateCustomerData,
+  // برای استفاده در کنترلر (نرمال‌سازی ورودی‌ها)
+  toEnglishDigits,
+  isValidIranNationalCode,
+};

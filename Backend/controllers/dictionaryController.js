@@ -1779,6 +1779,112 @@ const deleteUnitStatus = async (req, res) => {
 };
 // --------------------FINISH routes Unit Status DropDown dictionary tables-------------
 
+// --------------------START routes Customer Type (نوع مشتری) dictionary tables-------------
+const CustomerType = require("../models/CustomerType");
+const CustomerPersonalInfo = require("../models/CustomerPersonalInfo");
+
+// دریافت همه انواع مشتری
+const getCustomerTypes = async (req, res) => {
+  try {
+    const { active } = req.query;
+    let where = { active: true };
+    if (active === "false") where = { active: false };
+    else if (active === "all") where = {};
+
+    const data = await CustomerType.findAll({
+      where,
+      order: [
+        ["sort_order", "ASC"],
+        ["name", "ASC"],
+      ],
+      attributes: ["id", "name", "description", "sort_order", "active"],
+    });
+
+    successResponse(res, data, "لیست انواع مشتری دریافت شد");
+  } catch (error) {
+    errorResponse(res, error.message);
+  }
+};
+
+// ایجاد نوع مشتری جدید
+const createCustomerType = async (req, res) => {
+  try {
+    const { name, description, sort_order, active } = req.body;
+    if (!name || String(name).trim() === "") {
+      return errorResponse(res, "نام نوع مشتری الزامی است", 400);
+    }
+
+    const customerType = await CustomerType.create({
+      name: String(name).trim(),
+      description: description || null,
+      sort_order: sort_order || 0,
+      active: active !== undefined ? active : true,
+    });
+
+    successResponse(res, customerType, "نوع مشتری با موفقیت ایجاد شد", 201);
+  } catch (error) {
+    if (error.name === "SequelizeUniqueConstraintError") {
+      return errorResponse(res, "این نام قبلاً ثبت شده است", 400);
+    }
+    errorResponse(res, error.message);
+  }
+};
+
+// بروزرسانی نوع مشتری
+const updateCustomerType = async (req, res) => {
+  try {
+    const customerType = await CustomerType.findByPk(req.params.id);
+    if (!customerType) return errorResponse(res, "نوع مشتری یافت نشد", 404);
+
+    const { name, description, sort_order, active } = req.body;
+    await customerType.update({
+      name:
+        name && String(name).trim() !== ""
+          ? String(name).trim()
+          : customerType.name,
+      description:
+        description !== undefined ? description : customerType.description,
+      sort_order:
+        sort_order !== undefined ? sort_order : customerType.sort_order,
+      active: active !== undefined ? active : customerType.active,
+    });
+
+    successResponse(res, customerType, "نوع مشتری با موفقیت بروزرسانی شد");
+  } catch (error) {
+    if (error.name === "SequelizeUniqueConstraintError") {
+      return errorResponse(res, "این نام قبلاً ثبت شده است", 400);
+    }
+    errorResponse(res, error.message);
+  }
+};
+
+// حذف نوع مشتری
+// ⚠️ اگر نوعی برای مشتری‌ها ثبت شده باشد حذف نمی‌شود (به‌جای خالی‌شدن نوع مشتریان)
+const deleteCustomerType = async (req, res) => {
+  try {
+    const customerType = await CustomerType.findByPk(req.params.id);
+    if (!customerType) return errorResponse(res, "نوع مشتری یافت نشد", 404);
+
+    const usedCount = await CustomerPersonalInfo.count({
+      where: { customer_type_id: customerType.id },
+    });
+
+    if (usedCount > 0) {
+      return errorResponse(
+        res,
+        `این نوع مشتری برای ${usedCount} مشتری ثبت شده است و قابل حذف نیست؛ برای حذف از فرم‌ها آن را «غیرفعال» کنید.`,
+        400,
+      );
+    }
+
+    await customerType.destroy();
+    successResponse(res, null, "نوع مشتری با موفقیت حذف شد");
+  } catch (error) {
+    errorResponse(res, error.message);
+  }
+};
+// --------------------FINISH routes Customer Type (نوع مشتری) dictionary tables-------------
+
 module.exports = {
   getHallTypes,
   createHallType,
@@ -1849,4 +1955,9 @@ module.exports = {
   createUnitStatus,
   updateUnitStatus,
   deleteUnitStatus,
+  // ✅ نوع مشتری (جدول دیکشنری)
+  getCustomerTypes,
+  createCustomerType,
+  updateCustomerType,
+  deleteCustomerType,
 };

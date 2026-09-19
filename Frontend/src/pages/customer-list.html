@@ -121,6 +121,28 @@
                                 </div>
                             </div>
                         </div>
+                        <div class="form-row">
+                            <div class="filed-wraper">
+                                <div class="filed-flot-input">
+                                    <i class="fas fa-id-card float-icon"></i>
+                                    <input type="text" id="national-code" class="float-input" placeholder=" "
+                                        maxlength="10">
+                                    <label class="float-label">کد ملی</label>
+                                    <span class="field-help" tabindex="0"
+                                        data-help="کد ملی ۱۰ رقمی مشتری — این فیلد اختیاری است.">؟</span>
+                                </div>
+                            </div>
+                            <div class="filed-wraper">
+                                <div class="filed-flot-input select-input">
+                                    <i class="fas fa-drumstick-bite float-icon"></i>
+                                    <select id="customer-type" class="float-input float-select">
+                                        <option value="">انتخاب نوع مشتری</option>
+                                    </select>
+                                    <label class="float-label">نوع مشتری</label>
+                                    <i class="fas fa-chevron-down select-arrow"></i>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- ستون دوم -->
@@ -318,6 +340,13 @@
                                 <option value="9">شهر</option>
                                 <option value="10">تاریخ ثبت</option>
                                 <option value="11">وضعیت</option>
+                                <option value="12">نوع مشتری</option>
+                            </select>
+                        </div>
+                        <div class="search-filter-group">
+                            <select id="customerTypeFilter" class="search-column-select"
+                                title="فیلتر بر اساس نوع مشتری">
+                                <option value="">همه انواع مشتری</option>
                             </select>
                         </div>
                     </div>
@@ -342,6 +371,7 @@
                             <col class="col-city">
                             <col class="col-date">
                             <col class="col-status">
+                            <col class="col-type">
                             <col class="col-actions">
                         </colgroup>
                         <thead>
@@ -358,12 +388,13 @@
                                 <th>شهر</th>
                                 <th>تاریخ ثبت</th>
                                 <th>وضعیت</th>
+                                <th>نوع مشتری</th>
                                 <th>عملیات</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr>
-                                <td colspan="13" style="text-align: center; padding: 40px; color: #94a3b8;">
+                                <td colspan="14" style="text-align: center; padding: 40px; color: #94a3b8;">
                                     <!-- ✅ لودر سیستمی (پیرو انتخاب ادمین — loader.service.js آن را پر می‌کند) -->
                                     <span data-skb-loader data-skb-loader-text="در حال بارگذاری..."></span>
                                 </td>
@@ -371,7 +402,7 @@
                         </tbody>
                         <tfoot>
                             <tr>
-                                <td colspan="13">
+                                <td colspan="14">
                                     <div class="table-footer">
                                         <div class="table-info">
                                             نمایش <span id="startRow">0</span> تا <span id="endRow">0</span>

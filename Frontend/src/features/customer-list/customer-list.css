@@ -384,15 +384,15 @@
 }
 
 .data-table col.col-collection {
-  width: 10%;
+  width: 9%;
 }
 
 .data-table col.col-name {
-  width: 14%;
+  width: 13%;
 }
 
 .data-table col.col-farm {
-  width: 9%;
+  width: 8%;
 }
 
 .data-table col.col-phone {
@@ -412,23 +412,28 @@
 }
 
 .data-table col.col-province {
-  width: 6.5%;
+  width: 6%;
 }
 
 .data-table col.col-city {
-  width: 6.5%;
+  width: 6%;
 }
 
 .data-table col.col-date {
-  width: 9%;
+  width: 8.5%;
 }
 
 .data-table col.col-status {
   width: 6%;
 }
 
+/* ✅ ستون «نوع مشتری» (پس از وضعیت و پیش از عملیات) */
+.data-table col.col-type {
+  width: 6%;
+}
+
 .data-table col.col-actions {
-  width: 9%;
+  width: 7%;
 }
 
 .data-table thead {
@@ -551,10 +556,13 @@
   /* شماره پیامرسان (۶) و تاریخ ثبت (۱۱) */
   .data-table col.col-messenger,
   .data-table col.col-date,
+  .data-table col.col-type,
   .data-table th:nth-child(6),
   .data-table td:nth-child(6),
   .data-table th:nth-child(11),
-  .data-table td:nth-child(11) {
+  .data-table td:nth-child(11),
+  .data-table th:nth-child(13),
+  .data-table td:nth-child(13) {
     display: none;
   }
 }

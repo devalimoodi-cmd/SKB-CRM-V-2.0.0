@@ -1,5 +1,5 @@
 import { customerListApi } from "./customer-list.api.js";
-import "./customer-list.renderer.js";
+import { customerListRenderer } from "./customer-list.renderer.js";
 import { customerListValidation } from "./customer-list.validation.js";
 import { notificationService } from "../../core/services/notification.service.js";
 import { authService } from "../../core/services/auth.service.js";
@@ -9,8 +9,6 @@ import {
   convertGregorianToPersian,
 } from "../../core/utils/date.utils.js";
 import { SMS_TEMPLATES } from "../sms/sms.templates.js";
-// ✅ ایمن‌سازی متن‌های نمایشی (نام‌ها از دیتابیس می‌آیند)
-import { escapeHtml } from "../../core/utils/string.utils.js";
 // ✅ بازخورد «در حال جستجو…» با همان لودر سیستمی پروژه
 import { loaderService } from "../../shared/components/Loader/loader.service.js";
 
@@ -23,6 +21,8 @@ class CustomerListService {
     this.totalItems = 0;
     this.searchTerm = "";
     this.searchColumn = "all";
+    // ✅ فیلتر «نوع مشتری» (خالی = همه انواع)
+    this.customerTypeId = "";
     this.selectedCustomer = null;
     this.isEditing = false;
     this.editingCustomerId = null;
@@ -32,6 +32,8 @@ class CustomerListService {
       provinces: [],
       educationLevels: [],
       departments: [],
+      // ✅ انواع مشتری (گوشتی / تخم‌گذار / مرغ مادر / سایر) — جدول دیکشنری
+      customerTypes: [],
     };
   }
 
@@ -69,11 +71,13 @@ class CustomerListService {
 
   async loadDictionaries() {
     try {
-      const [provincesRes, educationRes, departmentsRes] = await Promise.all([
-        customerListApi.getProvinces(),
-        customerListApi.getEducationLevels(),
-        customerListApi.getDepartments(),
-      ]);
+      const [provincesRes, educationRes, departmentsRes, customerTypesRes] =
+        await Promise.all([
+          customerListApi.getProvinces(),
+          customerListApi.getEducationLevels(),
+          customerListApi.getDepartments(),
+          customerListApi.getCustomerTypes(),
+        ]);
 
       this.dictionaries.provinces = provincesRes.success
         ? provincesRes.data
@@ -84,6 +88,9 @@ class CustomerListService {
       this.dictionaries.departments = departmentsRes.success
         ? departmentsRes.data
         : [];
+      this.dictionaries.customerTypes = customerTypesRes.success
+        ? customerTypesRes.data
+        : [];
 
       // ذخیره در state
       stateService.setDictionary("provinces", this.dictionaries.provinces);
@@ -92,6 +99,22 @@ class CustomerListService {
         this.dictionaries.educationLevels,
       );
       stateService.setDictionary("departments", this.dictionaries.departments);
+      stateService.setDictionary(
+        "customerTypes",
+        this.dictionaries.customerTypes,
+      );
+
+      // ✅ اگر دیکشنری «انواع مشتری» خالی/در دسترس نباشد، به‌جای سلکت خالیِ
+      // بی‌صدا یک‌بار هشدار بده (وگرنه کاربر نمی‌داند چرا ثبت/ویرایش خطا می‌دهد)
+      if (
+        this.dictionaries.customerTypes.length === 0 &&
+        !this.customerTypeWarningShown
+      ) {
+        this.customerTypeWarningShown = true;
+        notificationService.error(
+          "نوعی برای مشتری تعریف نشده است؛ از تنظیمات سیستم ← مدیریت دیکشنری ← «انواع مشتری» اضافه کنید.",
+        );
+      }
     } catch (error) {
       console.error("❌ Error loading dictionaries:", error);
     }
@@ -112,6 +135,11 @@ class CustomerListService {
         if (this.searchColumn && this.searchColumn !== "all") {
           params.searchColumn = this.searchColumn;
         }
+      }
+
+      // ✅ فیلتر «نوع مشتری» (کنار نوار جستجو)
+      if (this.customerTypeId) {
+        params.customer_type_id = this.customerTypeId;
       }
 
       const response = await customerListApi.getCustomers(params);
@@ -143,7 +171,7 @@ class CustomerListService {
     if (this.customers.length === 0) {
       tbody.innerHTML = `
                 <tr>
-                    <td colspan="13" style="text-align: center; padding: 40px; color: #94a3b8;">
+                    <td colspan="14" style="text-align: center; padding: 40px; color: #94a3b8;">
                         <i class="fas fa-users" style="font-size: 32px; display: block; margin-bottom: 10px;"></i>
                         <span>هیچ مشتری‌ای ثبت نشده است</span>
                         <p style="font-size: 12px; margin-top: 8px;">برای شروع، یک مشتری جدید ثبت کنید</p>
@@ -155,108 +183,13 @@ class CustomerListService {
 
     const isSuperAdmin = authService.isAdmin();
 
-    let html = "";
-    this.customers.forEach((customer, index) => {
-      const statusClass = customer.active ? "active" : "inactive";
-      const statusText = customer.active ? "فعال" : "غیرفعال";
-      const actionIcon = customer.active ? "fa-toggle-on" : "fa-toggle-off";
-      const actionClass = customer.active ? "disable" : "enable";
-
-      // تاریخ ثبت به شمسی
-      let createdDate = "-";
-      if (customer.created_at) {
-        try {
-          const date = new Date(customer.created_at);
-          if (!isNaN(date.getTime())) {
-            createdDate = new Intl.DateTimeFormat("fa-IR", {
-              year: "numeric",
-              month: "2-digit",
-              day: "2-digit",
-              hour: "2-digit",
-              minute: "2-digit",
-            }).format(date);
-          }
-        } catch (e) {
-          createdDate = "-";
-        }
-      }
-
-      // فقط سوپرادمین می‌تواند حذف کند
-      const deleteButton = isSuperAdmin
-        ? `
-                <button class="action-btn delete" onclick="window.deleteCustomer(${customer.id})" title="حذف">
-                    <i class="fas fa-trash-alt"></i>
-                </button>
-            `
-        : "";
-
-      // نمایش وضعیت آنلاین
-      const onlineStatus =
-        customer.online_status === true ? "online" : "offline";
-
-      // ✅ متن‌ها ایمن‌سازی می‌شوند (نام‌ها از دیتابیس می‌آیند) و متن کامل
-      // برای ستون‌های کوتاه‌شده در `title` می‌آید تا با هاور دیده شود
-      const collectionName = escapeHtml(customer.collection_name || "-");
-      const fullName = escapeHtml(customer.full_name || "-");
-      const farmName = escapeHtml(customer.farm_name || "-");
-      const educationLevel = escapeHtml(customer.education_level || "-");
-      const provinceName = escapeHtml(customer.province || "-");
-      const countyName = escapeHtml(customer.county || "-");
-      // ✅ شمارهٔ مشتری (کد کسب‌وکاری) — به‌جای آیدی داخلی
-      const customerCode = escapeHtml(
-        customer.customer_code ?? customer.id ?? "-",
-      );
-
-      html += `
-                <tr data-customer-id="${customer.id}" title="پیام‌رسان: ${escapeHtml(
-                  customer.messaging_number || "-",
-                )} | تحصیلات: ${educationLevel} | جنسیت: ${escapeHtml(
-                  customer.gender || "-",
-                )} | استان: ${provinceName} | شهر: ${countyName}">
-                    <td title="شناسهٔ داخلی: ${customer.id}">${customerCode}</td>
-                    <td title="${collectionName}">${collectionName}</td>
-                    <td>
-                        <div class="customer-info">
-                            <div class="customer-avatar ${onlineStatus}">
-                                ${
-                                  customer.profile_image
-                                    ? `<img src="${window.API_URL}${customer.profile_image}" alt="${fullName}">`
-                                    : `<i class="fa fa-user"></i>`
-                                }
-                            </div>
-                            <span title="${fullName}">${fullName}</span>
-                        </div>
-                    </td>
-                    <td title="${farmName}">${farmName}</td>
-                    <td>${escapeHtml(customer.mobile_number || "-")}</td>
-                    <td>${escapeHtml(customer.messaging_number || "-")}</td>
-                    <td title="${educationLevel}">${educationLevel}</td>
-                    <td>${escapeHtml(customer.gender || "-")}</td>
-                    <td title="${provinceName}">${provinceName}</td>
-                    <td title="${countyName}">${countyName}</td>
-                    <td>${createdDate}</td>
-                    <td>
-                        <span class="status-badge ${statusClass}">${statusText}</span>
-                    </td>
-                    <td>
-                        <div class="action-buttons">
-                            <button class="action-btn view" onclick="window.viewCustomer(${customer.id})" title="مشاهده">
-                                <i class="fas fa-eye"></i>
-                            </button>
-                            <button class="action-btn edit" onclick="window.editCustomer(${customer.id})" title="ویرایش">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button class="action-btn ${actionClass}" onclick="window.toggleCustomerStatus(${customer.id}, ${customer.active})" title="${customer.active ? "غیرفعال" : "فعال"} سازی">
-                                <i class="fas ${actionIcon}"></i>
-                            </button>
-                            ${deleteButton}
-                        </div>
-                    </td>
-                </tr>
-            `;
-    });
-
-    tbody.innerHTML = html;
+    // ✅ منبع واحد رندر جدول: customer-list.renderer.js
+    // (۱۴ ستون — شامل «نوع مشتری»؛ رندر inline قبلی در همین متد ۱۳ سلول داشت
+    //  و به همین دلیل دکمه‌های عملیات زیر ستون «نوع مشتری» می‌افتادند)
+    tbody.innerHTML = customerListRenderer.renderTable(
+      this.customers,
+      isSuperAdmin,
+    );
   }
 
   // ===== صفحه‌بندی =====
@@ -428,7 +361,7 @@ class CustomerListService {
       });
       tbody.innerHTML = `
         <tr>
-          <td colspan="13" style="text-align:center;padding:26px;color:#94a3b8;">
+          <td colspan="14" style="text-align:center;padding:26px;color:#94a3b8;">
             ${markup}
           </td>
         </tr>`;
@@ -510,6 +443,48 @@ class CustomerListService {
       } else if (currentValue) {
         deptSelect.value = currentValue;
       }
+    }
+
+    // ✅ نوع مشتری (فرم ثبت/ویرایش مشتری)
+    this.populateCustomerTypeSelect(
+      "customer-type",
+      customer?.customer_type_id,
+      "انتخاب نوع مشتری",
+    );
+
+    // ✅ فیلتر «نوع مشتری» (نوار جستجو)
+    this.populateCustomerTypeSelect(
+      "customerTypeFilter",
+      this.customerTypeId,
+      "همه انواع مشتری",
+    );
+  }
+
+  // پر کردن سلکت «نوع مشتری» (هم فرم و هم فیلتر جدول)
+  populateCustomerTypeSelect(selectId, selectedValue, placeholder) {
+    const select = document.getElementById(selectId);
+    if (!select) return;
+
+    const previousValue = select.value;
+    const items = this.dictionaries.customerTypes || [];
+
+    select.innerHTML = `<option value="">${placeholder}</option>`;
+    items.forEach((item) => {
+      const option = document.createElement("option");
+      option.value = item.id;
+      option.textContent = item.name;
+      select.appendChild(option);
+    });
+
+    const target =
+      selectedValue !== undefined &&
+      selectedValue !== null &&
+      selectedValue !== ""
+        ? selectedValue
+        : previousValue;
+
+    if (target && String(target) !== "") {
+      select.value = String(target);
     }
   }
 
@@ -653,8 +628,13 @@ class CustomerListService {
   }
 
   async registerCustomer(data) {
+    // ✅ جلوگیری از ارسال دوبارهٔ همزمان (دو کلیک سریع = دو درخواست)
+    if (this.saving) return;
+    this.saving = true;
+
     const errors = customerListValidation.validate(data);
     if (errors.length > 0) {
+      this.saving = false;
       notificationService.showValidationErrors(errors);
       return;
     }
@@ -672,7 +652,6 @@ class CustomerListService {
     };
 
     const btn = document.querySelector(".submit-btn");
-    const originalText = btn?.innerHTML;
 
     if (btn) {
       btn.disabled = true;
@@ -719,9 +698,14 @@ class CustomerListService {
       // نشون دادن پیغام واقعی خطا از سرور
       notificationService.error(error.message);
     } finally {
+      this.saving = false;
       if (btn) {
         btn.disabled = false;
-        btn.innerHTML = originalText;
+        // ✅ متن ثابت بر اساس حالت فعلی (نه متن لحظهٔ کلیک) تا دکمه
+        // هیچوقت در حالت «در حال ثبت/بروزرسانی…» گیر نکند
+        btn.innerHTML = this.isEditing
+          ? '<i class="fas fa-save"></i> بروزرسانی مشتری'
+          : '<i class="fas fa-check-circle"></i> ثبت نام مشتری';
       }
     }
   }
@@ -759,6 +743,9 @@ class CustomerListService {
       document.getElementById("postal-code").value = customer.postal_code || "";
       document.getElementById("farm-address").value =
         customer.farm_address || "";
+      // ✅ کد ملی (اختیاری)
+      document.getElementById("national-code").value =
+        customer.national_code || "";
 
       if (customer.date_of_birth) {
         document.getElementById("birthdate").value = convertGregorianToPersian(
@@ -908,6 +895,7 @@ class CustomerListService {
       "email",
       "postal-code",
       "farm-address",
+      "national-code",
     ].forEach((id) => {
       const el = document.getElementById(id);
       if (el) el.value = "";
@@ -921,6 +909,7 @@ class CustomerListService {
       "gender",
       "how-know",
       "poultry-experience",
+      "customer-type",
     ].forEach((id) => {
       const el = document.getElementById(id);
       if (el) el.value = "";
@@ -944,6 +933,11 @@ class CustomerListService {
   // ===== رویدادها =====
 
   setupEvents() {
+    // ✅ جلوگیری از نصب دوبارهٔ شنونده‌ها (اگر init دو بار اجرا شود، دو درخواست
+    // همزمان فرستاده میشد و دکمه در حالت اسپینر «گیر» میکرد)
+    if (this.eventsBound) return;
+    this.eventsBound = true;
+
     // دکمه ثبت مشتری
     const submitBtn = document.querySelector(".submit-btn");
     if (submitBtn) {
@@ -970,6 +964,16 @@ class CustomerListService {
         if (selected) {
           await this.loadCitiesByProvince(selected);
         }
+      });
+    }
+
+    // ✅ فیلتر «نوع مشتری» (نوار جستجو) — تغییر ⇒ بارگذاری مجدد فهرست
+    const customerTypeFilter = document.getElementById("customerTypeFilter");
+    if (customerTypeFilter) {
+      customerTypeFilter.addEventListener("change", (e) => {
+        this.customerTypeId = e.target.value || "";
+        this.currentPage = 1;
+        this.loadCustomers();
       });
     }
 
@@ -1039,6 +1043,10 @@ class CustomerListService {
       postal_code: document.getElementById("postal-code")?.value || null,
       farm_address: document.getElementById("farm-address")?.value || null,
       skb_how_know: document.getElementById("how-know")?.value || null,
+      // ✅ کد ملی (اختیاری) و نوع مشتری (اجباری - id از دیکشنری)
+      national_code: document.getElementById("national-code")?.value || null,
+      customer_type_id:
+        Number(document.getElementById("customer-type")?.value) || null,
     };
   }
 

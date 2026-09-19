@@ -31,6 +31,8 @@ export const basicInfoRenderer = {
       "skb-email": customer.email,
       "skb-postal-code": customer.postal_code,
       "skb-farm-address": customer.farm_address,
+      // ✅ کد ملی (اختیاری)
+      "skb-national-code": customer.national_code,
     };
 
     Object.entries(fields).forEach(([id, value]) => {
@@ -64,6 +66,14 @@ export const basicInfoRenderer = {
       dictionaries.departments,
       "title",
       customer?.sales_department,
+    );
+
+    // ✅ نوع مشتری (جدول دیکشنری — مقدار = id)
+    this.populateSelect(
+      "skb-customer-type",
+      dictionaries.customerTypes,
+      "id",
+      customer?.customer_type_id ? String(customer.customer_type_id) : null,
     );
 
     // سابقه مرغداری (مقادیر ثابت)
@@ -235,6 +245,11 @@ export const basicInfoRenderer = {
       postal_code: document.getElementById("skb-postal-code")?.value || null,
       farm_address: document.getElementById("skb-farm-address")?.value || null,
       skb_how_know: document.getElementById("skb-how-know")?.value || null,
+      // ✅ کد ملی (اختیاری) و نوع مشتری (اجباری — id از دیکشنری)
+      national_code:
+        document.getElementById("skb-national-code")?.value || null,
+      customer_type_id:
+        Number(document.getElementById("skb-customer-type")?.value) || null,
     };
   },
 

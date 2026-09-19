@@ -41,6 +41,8 @@ const SuggestionMessage = require("./SuggestionMessage");
 const ReleaseNote = require("./ReleaseNote");
 const ReleaseNoteItem = require("./ReleaseNoteItem");
 const ReleaseNoteView = require("./ReleaseNoteView");
+// ✅ «نوع مشتری» (جدول دیکشنری)
+const CustomerType = require("./CustomerType");
 
 // ================================================================
 // ✅ ارتباطات با CASCADE برای حذف آبشاری
@@ -63,6 +65,16 @@ CustomerPersonalInfo.belongsTo(User, {
 User.hasMany(CustomerPersonalInfo, {
   foreignKey: "updated_by",
   as: "updated_customers",
+});
+
+// ===== CustomerPersonalInfo → CustomerType (نوع مشتری — جدول دیکشنری) =====
+CustomerType.hasMany(CustomerPersonalInfo, {
+  foreignKey: "customer_type_id",
+  as: "customers",
+});
+CustomerPersonalInfo.belongsTo(CustomerType, {
+  foreignKey: "customer_type_id",
+  as: "customer_type",
 });
 
 // ===== CustomerPersonalInfo → Unit =====

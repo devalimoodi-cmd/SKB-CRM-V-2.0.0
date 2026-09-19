@@ -2,6 +2,11 @@ import { apiService } from "../../../../core/services/api.service.js";
 import { API_CONSTANTS } from "../../../../core/constants/api.const.js";
 
 export const basicInfoApi = {
+  // دریافت انواع مشتری (جدول دیکشنری)
+  async getCustomerTypes() {
+    return apiService.get(API_CONSTANTS.ENDPOINTS.DICTIONARY.CUSTOMER_TYPES);
+  },
+
   // دریافت اطلاعات مشتری
   async getCustomer(id) {
     const endpoint = API_CONSTANTS.ENDPOINTS.CUSTOMERS.DETAIL.replace(
