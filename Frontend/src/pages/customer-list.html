@@ -306,7 +306,7 @@
                         <div class="search-filter-group">
                             <select id="searchColumnSelect" class="search-column-select">
                                 <option value="all">همه ستون‌ها</option>
-                                <option value="0">ID</option>
+                                <option value="0">شماره مشتری</option>
                                 <option value="1">نام مجموعه</option>
                                 <option value="2">نام مشتری</option>
                                 <option value="3">نام فارم</option>
@@ -326,9 +326,27 @@
                 <!-- Table -->
                 <div class="table-container">
                     <table class="data-table">
+                        <!-- ✅ عرض ستون‌ها — هم‌راستا با نگاشت searchColumn در customer-list.service.js
+                             (0=شماره مشتری، 1=نام مجموعه، 2=نام مشتری، 3=نام فارم، 4=تماس، 5=پیامرسان،
+                              6=تحصیلات، 7=جنسیت، 8=استان، 9=شهر، 10=تاریخ ثبت، 11=وضعیت) -->
+                        <colgroup>
+                            <col class="col-code">
+                            <col class="col-collection">
+                            <col class="col-name">
+                            <col class="col-farm">
+                            <col class="col-phone">
+                            <col class="col-messenger">
+                            <col class="col-education">
+                            <col class="col-gender">
+                            <col class="col-province">
+                            <col class="col-city">
+                            <col class="col-date">
+                            <col class="col-status">
+                            <col class="col-actions">
+                        </colgroup>
                         <thead>
                             <tr>
-                                <th>ID</th>
+                                <th>شماره مشتری</th>
                                 <th>نام مجموعه</th>
                                 <th>نام مشتری</th>
                                 <th>نام فارم</th>

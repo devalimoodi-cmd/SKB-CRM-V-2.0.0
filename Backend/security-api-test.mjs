@@ -305,6 +305,16 @@ const run = async () => {
     `status=${sugDeleteMessage.status}`,
   );
 
+  // ۸ب) جستجوی لیست مشتریان — پارامترهای جستجو نباید مسیر را باز کنند
+  const customersSearch = await fetch(
+    `${base}/api/customers?search=test&searchColumn=all&page=1&limit=5`,
+  );
+  check(
+    "GET /api/customers?search=… بدون توکن → ۴۰۱",
+    customersSearch.status === 401,
+    `status=${customersSearch.status}`,
+  );
+
   // ۸) «تغییرات جدید / What's New» — همهٔ روت‌ها نیاز به ورود دارند
   const relUnseen = await fetch(`${base}/api/releases/unseen`);
   check(

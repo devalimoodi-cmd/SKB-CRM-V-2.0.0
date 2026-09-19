@@ -270,6 +270,38 @@ const main = async () => {
     info("راهنما: npm run db:migrate");
   }
 
+  // ===== ۴ب) شمارهٔ مشتری (customer_code) =====
+  // ✅ ترتیبی‌سازی: هیچ مشتری بدون شماره نباشد و هیچ شماره‌ای تکراری نباشد
+  if (tables.has("customer_personal_information")) {
+    try {
+      const [rows] = await query(
+        `SELECT COUNT(*)::int AS total,
+                COUNT("customer_code")::int AS with_code,
+                COUNT(DISTINCT "customer_code")::int AS distinct_codes,
+                COALESCE(MIN("customer_code"), 0)::int AS min_code,
+                COALESCE(MAX("customer_code"), 0)::int AS max_code
+           FROM customer_personal_information`,
+      );
+      const row = rows[0] || {};
+      const total = Number(row.total || 0);
+      const withCode = Number(row.with_code || 0);
+      const distinctCodes = Number(row.distinct_codes || 0);
+
+      if (total === withCode && withCode === distinctCodes) {
+        ok(
+          `شمارهٔ مشتری: هر ${total} مشتری شمارهٔ یکتا دارد (${row.min_code} تا ${row.max_code})`,
+        );
+      } else {
+        bad(
+          `شمارهٔ مشتری: بدون‌شماره=${total - withCode} تکراری=${withCode - distinctCodes}`,
+        );
+        info("راهنما: npm run db:migrate  (ترتیبی‌سازی شمارهٔ مشتری)");
+      }
+    } catch (error) {
+      bad(`بررسی شمارهٔ مشتری انجام نشد: ${error.message}`);
+    }
+  }
+
   // ===== ۵) شمارنده‌های اطلاعاتی =====
   for (const table of COUNT_TABLES) {
     if (!tables.has(table)) continue;

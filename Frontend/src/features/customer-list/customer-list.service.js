@@ -9,6 +9,10 @@ import {
   convertGregorianToPersian,
 } from "../../core/utils/date.utils.js";
 import { SMS_TEMPLATES } from "../sms/sms.templates.js";
+// ✅ ایمن‌سازی متن‌های نمایشی (نام‌ها از دیتابیس می‌آیند)
+import { escapeHtml } from "../../core/utils/string.utils.js";
+// ✅ بازخورد «در حال جستجو…» با همان لودر سیستمی پروژه
+import { loaderService } from "../../shared/components/Loader/loader.service.js";
 
 class CustomerListService {
   constructor() {
@@ -98,9 +102,17 @@ class CustomerListService {
       const params = {
         page: this.currentPage,
         limit: this.pageSize,
-        search: this.searchTerm,
-        searchColumn: this.searchColumn,
       };
+
+      // ✅ فقط پارامترهای غیرخالی ارسال می‌شوند؛ سرور خودش پیش‌فرض‌ها را
+      // اعمال می‌کند ("all" = همهٔ ستون‌ها)
+      const term = String(this.searchTerm || "").trim();
+      if (term) {
+        params.search = term;
+        if (this.searchColumn && this.searchColumn !== "all") {
+          params.searchColumn = this.searchColumn;
+        }
+      }
 
       const response = await customerListApi.getCustomers(params);
       if (response.success) {
@@ -112,6 +124,8 @@ class CustomerListService {
         this.renderTable();
         this.updatePaginationInfo();
         this.renderPagination();
+        // ✅ «X نتیجه یافت شد» باید با نتیجهٔ فیلترشده هم‌خوان باشد
+        this.updateSearchStats();
       }
     } catch (error) {
       console.error("❌ Error loading customers:", error);
@@ -180,29 +194,46 @@ class CustomerListService {
       const onlineStatus =
         customer.online_status === true ? "online" : "offline";
 
+      // ✅ متن‌ها ایمن‌سازی می‌شوند (نام‌ها از دیتابیس می‌آیند) و متن کامل
+      // برای ستون‌های کوتاه‌شده در `title` می‌آید تا با هاور دیده شود
+      const collectionName = escapeHtml(customer.collection_name || "-");
+      const fullName = escapeHtml(customer.full_name || "-");
+      const farmName = escapeHtml(customer.farm_name || "-");
+      const educationLevel = escapeHtml(customer.education_level || "-");
+      const provinceName = escapeHtml(customer.province || "-");
+      const countyName = escapeHtml(customer.county || "-");
+      // ✅ شمارهٔ مشتری (کد کسب‌وکاری) — به‌جای آیدی داخلی
+      const customerCode = escapeHtml(
+        customer.customer_code ?? customer.id ?? "-",
+      );
+
       html += `
-                <tr data-customer-id="${customer.id}">
-                    <td>${customer.id || index + 1}</td>
-                    <td>${customer.collection_name || "-"}</td>
+                <tr data-customer-id="${customer.id}" title="پیام‌رسان: ${escapeHtml(
+                  customer.messaging_number || "-",
+                )} | تحصیلات: ${educationLevel} | جنسیت: ${escapeHtml(
+                  customer.gender || "-",
+                )} | استان: ${provinceName} | شهر: ${countyName}">
+                    <td title="شناسهٔ داخلی: ${customer.id}">${customerCode}</td>
+                    <td title="${collectionName}">${collectionName}</td>
                     <td>
                         <div class="customer-info">
                             <div class="customer-avatar ${onlineStatus}">
                                 ${
                                   customer.profile_image
-                                    ? `<img src="${window.API_URL}${customer.profile_image}" alt="${customer.full_name}">`
+                                    ? `<img src="${window.API_URL}${customer.profile_image}" alt="${fullName}">`
                                     : `<i class="fa fa-user"></i>`
                                 }
                             </div>
-                            <span>${customer.full_name || "-"}</span>
+                            <span title="${fullName}">${fullName}</span>
                         </div>
                     </td>
-                    <td>${customer.farm_name || "-"}</td>
-                    <td>${customer.mobile_number || "-"}</td>
-                    <td>${customer.messaging_number || "-"}</td>
-                    <td>${customer.education_level || "-"}</td>
-                    <td>${customer.gender || "-"}</td>
-                    <td>${customer.province || "-"}</td>
-                    <td>${customer.county || "-"}</td>
+                    <td title="${farmName}">${farmName}</td>
+                    <td>${escapeHtml(customer.mobile_number || "-")}</td>
+                    <td>${escapeHtml(customer.messaging_number || "-")}</td>
+                    <td title="${educationLevel}">${educationLevel}</td>
+                    <td>${escapeHtml(customer.gender || "-")}</td>
+                    <td title="${provinceName}">${provinceName}</td>
+                    <td title="${countyName}">${countyName}</td>
                     <td>${createdDate}</td>
                     <td>
                         <span class="status-badge ${statusClass}">${statusText}</span>
@@ -342,10 +373,12 @@ class CustomerListService {
       let debounceTimer;
       searchInput.addEventListener("input", () => {
         clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(() => {
+        // ✅ بازخورد فوری به کاربر (حتی قبل از پاسخ سرور)
+        this.showSearchingRow();
+        debounceTimer = setTimeout(async () => {
           this.searchTerm = searchInput.value;
           this.currentPage = 1;
-          this.loadCustomers();
+          await this.loadCustomers();
           this.updateSearchStats();
         }, 300);
       });
@@ -379,6 +412,28 @@ class CustomerListService {
           clearBtn.style.display = searchInput.value ? "flex" : "none";
         }
       });
+    }
+  }
+
+  // ✅ نمایش حالت «در حال جستجو» در بدنهٔ جدول
+  // (از همان لودر سیستمی استفاده می‌کند تا با انتخاب ادمین هم‌خوان باشد)
+  async showSearchingRow() {
+    const tbody = document.querySelector(".data-table tbody");
+    if (!tbody) return;
+
+    try {
+      const markup = await loaderService.inline({
+        text: "در حال جستجو…",
+        size: "sm",
+      });
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="13" style="text-align:center;padding:26px;color:#94a3b8;">
+            ${markup}
+          </td>
+        </tr>`;
+    } catch {
+      /* اگر لودر آماده نبود، جدول را دست نزن */
     }
   }
 

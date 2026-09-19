@@ -299,12 +299,21 @@ export function calculateWeekMetrics({ flock, weeks, weekNumber, formValues }) {
   const weeklyFeedPerBird =
     birdsStart > 0 && weeklyFeed > 0 ? weeklyFeed / birdsStart : null;
 
+  // ✅ «سرانه» مطابق تعریف کارفرما:
+  //    مجموع دان مصرفی همین سالن تا این هفته ÷ جمعیت ابتدای همین هفته
+  //    (نکته: در هفتهٔ ۱ برابر سرانهٔ هفتگی است، چون مجموع = همان هفته)
+  const cumulativeFeedPerBird =
+    birdsStart > 0 && feedTotal > 0 ? feedTotal / birdsStart : null;
+
   return {
     weekNumber: parseInt(weekNumber),
     initialChicks,
     initialWeightKg,
     birdsStartOfWeek: round(birdsStart),
     birdsEndOfWeek: round(birdsEnd),
+    // ✅ «تعداد تلفات همان هفته» و «سرانهٔ مصرف هفتگی (kg/قطعه)»
+    // در جدول «📈 شاخص‌های عملکردی هفتگی» نمایش داده میشوند (weekly.renderer.js)
+    // سرانه = دان همان هفته ÷ جمعیت ابتدای هفته
     mortalityThisWeek: mortalityMap[weekNumber] || 0,
     weeklyMortalityPercent: round(
       weeklyMortalityPercent(initialChicks, mortalityMap, weekNumber),
@@ -322,6 +331,8 @@ export function calculateWeekMetrics({ flock, weeks, weekNumber, formValues }) {
     dailyGainGrams: round(dailyGainGrams, 1),
     cumulativeAdg: round(cumulativeAdg, 1),
     cumulativeFeed: round(feedTotal),
+    // ✅ ستون «سرانه (kg)» جدول شاخص‌ها (weekly.renderer.js)
+    cumulativeFeedPerBird: round(cumulativeFeedPerBird, 3),
     dailyFeedPerBird: round(dailyFeedPerBird, 1),
     weeklyFeedPerBird: round(weeklyFeedPerBird, 3),
     fcr: round(fcr, 3),

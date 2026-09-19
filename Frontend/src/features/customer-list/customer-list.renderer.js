@@ -58,7 +58,7 @@ export const customerListRenderer = {
 
       html += `
                 <tr data-customer-id="${customer.id}">
-                    <td>${customer.id || index + 1}</td>
+                    <td>${customer.customer_code ?? customer.id ?? "-"}</td>
                     <td>${customer.collection_name || "-"}</td>
                     <td>
                         <div class="customer-info">
@@ -301,7 +301,7 @@ export const customerListRenderer = {
                     <div class="search-filter-group">
                         <select id="searchColumnSelect" class="search-column-select">
                             <option value="all" ${searchColumn === "all" ? "selected" : ""}>همه ستون‌ها</option>
-                            <option value="0" ${searchColumn === "0" ? "selected" : ""}>ID</option>
+                            <option value="0" ${searchColumn === "0" ? "selected" : ""}>شماره مشتری</option>
                             <option value="1" ${searchColumn === "1" ? "selected" : ""}>نام مجموعه</option>
                             <option value="2" ${searchColumn === "2" ? "selected" : ""}>نام مشتری</option>
                             <option value="3" ${searchColumn === "3" ? "selected" : ""}>نام فارم</option>

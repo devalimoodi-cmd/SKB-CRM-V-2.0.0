@@ -5,6 +5,17 @@ const {
 } = require("../validations/customerValidation.js");
 const { Op } = require("sequelize");
 const { successResponse, errorResponse } = require("../utils/response");
+// ✅ جستجوی زندهٔ لیست مشتریان (نرمال‌سازی فارسی + ستون‌محور)
+const {
+  buildCustomerSearchWhere,
+} = require("../utils/search.js");
+
+const sequelize = CustomerPersonalInfo.sequelize;
+
+// ✅ شمارهٔ مشتری از این عدد شروع میشود (ترتیبی و پشت‌سرهم)
+const CUSTOMER_CODE_START = Number(process.env.CUSTOMER_CODE_START || 1000);
+// تعداد تلاش مجدد در صورت تداخل همزمانیِ شماره
+const CUSTOMER_CODE_ATTEMPTS = 3;
 
 // ============================================
 // مقدار پیش‌فرض برای تاریخ تولد
@@ -50,17 +61,6 @@ const registerCustomer = async (req, res) => {
       );
     }
 
-    // ✅ دریافت کد پایدار مشتری از سکوئنس اختصاصی (حتی بعد از حذف رکوردها بازاستفاده نمی‌شود)
-    let customerCode = null;
-    try {
-      const [seqRows] = await CustomerPersonalInfo.sequelize.query(
-        "SELECT nextval('customer_code_seq') AS code",
-      );
-      customerCode = Number(seqRows?.[0]?.code);
-    } catch (e) {
-      console.error("❌ خطا در دریافت کد مشتری از سکوئنس:", e.message);
-    }
-
     // ✅ دریافت userId از توکن
     const userId = req.user?.id || null;
     console.log(`👤 کاربر ثبت‌کننده: ${userId}`);
@@ -76,8 +76,10 @@ const registerCustomer = async (req, res) => {
     const dateOfBirth = req.body.date_of_birth || DEFAULT_BIRTHDATE;
 
     // ایجاد مشتری جدید
-    const customer = await CustomerPersonalInfo.create({
-      customer_code: customerCode,
+    // ✅ شمارهٔ مشتری ترتیبی = بزرگ‌ترین شمارهٔ موجود + ۱، داخل تراکنش؛
+    //    پس اگر ثبت ناموفق شود هیچ شماره‌ای «سوخته» نمی‌شود
+    //    (برخلاف nextval سکانس که rollback نمی‌شود).
+    const customerPayload = {
       collection_name: req.body.collection_name || null,
       full_name: req.body.full_name,
       farm_name: req.body.farm_name,
@@ -98,9 +100,63 @@ const registerCustomer = async (req, res) => {
       created_by: userId,
       updated_by: userId,
       skb_how_know: req.body.skb_how_know || null,
-    });
+    };
 
-    console.log("✅ مشتری با موفقیت ثبت شد، ID:", customer.id);
+    let customer = null;
+    let lastError = null;
+
+    for (
+      let attempt = 1;
+      attempt <= CUSTOMER_CODE_ATTEMPTS && !customer;
+      attempt += 1
+    ) {
+      const transaction = await sequelize.transaction();
+      try {
+        // قفل جدول: از گرفتن شمارهٔ یکسان در ثبت‌های همزمان جلوگیری می‌کند
+        await sequelize.query(
+          "LOCK TABLE customer_personal_information IN SHARE ROW EXCLUSIVE MODE",
+          { transaction },
+        );
+
+        const [codeRows] = await sequelize.query(
+          `SELECT COALESCE(MAX(customer_code), :start - 1) + 1 AS code
+             FROM customer_personal_information`,
+          {
+            replacements: { start: CUSTOMER_CODE_START },
+            transaction,
+          },
+        );
+        const customerCode = Number(codeRows?.[0]?.code);
+
+        customer = await CustomerPersonalInfo.create(
+          { ...customerPayload, customer_code: customerCode },
+          { transaction },
+        );
+
+        await transaction.commit();
+      } catch (error) {
+        await transaction.rollback();
+        lastError = error;
+
+        // فقط تداخل شماره را دوباره تلاش کن؛ بقیهٔ خطاها بالا می‌روند
+        const isCodeRace =
+          error?.name === "SequelizeUniqueConstraintError" &&
+          String(error?.errors?.[0]?.path || "").includes("customer_code");
+        if (!isCodeRace) throw error;
+
+        console.warn(
+          `⚠️ تلاش ${attempt}: شمارهٔ مشتری تکراری شد؛ دوباره تلاش می‌شود`,
+        );
+      }
+    }
+
+    if (!customer) {
+      throw lastError || new Error("خطا در ثبت مشتری");
+    }
+
+    console.log(
+      `✅ مشتری با موفقیت ثبت شد — شماره: ${customer.customer_code} / ID: ${customer.id}`,
+    );
     console.log(`👤 ثبت‌کننده: ${userId}`);
 
     successResponse(
@@ -115,7 +171,7 @@ const registerCustomer = async (req, res) => {
         created_by: customer.created_by,
         updated_by: customer.updated_by,
       },
-      `مشتری با شناسه ${customer.id} با موفقیت ثبت شد`,
+      `مشتری با شماره ${customer.customer_code} با موفقیت ثبت شد`,
       201,
     );
   } catch (error) {
@@ -143,7 +199,16 @@ const getAllCustomers = async (req, res) => {
     const limit = Math.min(parseInt(req.query.limit) || 10, 100); // ✅ سقف ۱۰۰ رکورد در هر درخواست
     const offset = (page - 1) * limit;
 
+    // ✅ جستجوی زنده: پیش‌تر پارامترهای search/searchColumn نادیده
+    // گرفته می‌شدند و جدول فیلتر نمی‌شد (بودِ «سرچ کار نمی‌کند»).
+    const searchWhere = buildCustomerSearchWhere(
+      req.query.search,
+      req.query.searchColumn,
+    );
+
     const { count, rows } = await CustomerPersonalInfo.findAndCountAll({
+      where: searchWhere || undefined,
+      distinct: true,
       limit,
       offset,
       order: [["created_at", "DESC"]],

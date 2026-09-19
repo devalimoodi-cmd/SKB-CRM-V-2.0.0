@@ -6,7 +6,9 @@
   "scripts": {
     "start": "node server.js",
     "lint": "eslint src",
-    "test:cache": "node frontend-server-test.mjs"
+    "test:cache": "node frontend-server-test.mjs",
+    "test:weekly": "node weekly-calculations-test.mjs",
+    "test:weekly:report": "node weekly-report-render-smoke.mjs"
   },
   "devDependencies": {
     "eslint": "^10.10.0"

@@ -1,6 +1,7 @@
 import {
   convertToPersianDate,
 } from "../../../../core/utils/date.utils.js";
+import { flockGroupKey } from "./weekly.aggregation.js";
 
 // ================================================================
 // توابع کمکی گزارش
@@ -287,6 +288,11 @@ export const REPORT_STYLES = `
     .week-table .has-data { background: #d1fae5 !important; color: #065f46; }
     .week-table .highlight { font-weight: 600; color: #2c7a6e; }
     .metrics-table td { font-weight: 600; }
+    /* ✅ جدول شاخص‌ها اکنون ۱۳ ستون دارد: فشرده ولی خوانا می‌ماند و
+       در صفحه‌های باریک به‌جای به‌هم‌ریختن، اسکرول می‌خورد */
+    .table-scroll { overflow-x: auto; }
+    .metrics-table th, .metrics-table td { padding: 6px 6px; font-size: 11.5px; white-space: nowrap; }
+    .metrics-table th { font-size: 10.5px; }
     .status-badge { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 11px; font-weight: 500; }
     .status-active { background: #d1fae5; color: #065f46; }
     .status-pending { background: #fed7aa; color: #9a3412; }
@@ -329,7 +335,7 @@ export const REPORT_STYLES = `
     .history-completion-strip { margin-top: 10px; }
     .history-completion-strip .label-chip { display: inline-block; background: #fff; border: 1px solid #a7f3d0; color: #065f46; padding: 1px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
     .history-done-badge { background: #d1fae5; color: #065f46; }
-    @media print { body { background: white; padding: 10px; } .flock-section, .week-report-block { box-shadow: none; border: 1px solid #e2e8f0; } .report-header { background: #2c7a6e !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; } .summary-stat { box-shadow: none; border: 1px solid #e2e8f0; } }
+    @media print { body { background: white; padding: 10px; } .flock-section, .week-report-block { box-shadow: none; border: 1px solid #e2e8f0; } .report-header { background: #2c7a6e !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; } .summary-stat { box-shadow: none; border: 1px solid #e2e8f0; } .metrics-table th, .metrics-table td { font-size: 9px; padding: 4px 4px; } .table-scroll { overflow: visible; } }
     @media (max-width: 768px) { .week-table { font-size: 10px; } .week-table th, .week-table td { padding: 4px 6px; } .flock-header { flex-direction: column; align-items: flex-start; gap: 8px; } .summary-stats { grid-template-columns: repeat(2, 1fr); } .wc-groups { grid-template-columns: 1fr; } }
 `;
 
@@ -513,7 +519,7 @@ export const weeklyRenderer = {
 
   // ===== گزارش کامل =====
 
-  renderFullReport(customer, flocks, periods) {
+  renderFullReport(customer, flocks, periods, groups = []) {
     const now = new Date().toLocaleDateString("fa-IR");
     const nowTime = new Date().toLocaleTimeString("fa-IR");
 
@@ -555,8 +561,70 @@ export const weeklyRenderer = {
       }
     };
 
-    let flocksHTML = "";
-    flocks.forEach((flock, index) => {
+    // ===== جدول ۱۴ستونی شاخص‌های عملکردی (مشترک بین «کل گله» و هر سالن) =====
+
+    const renderMetricsTable = (savedWeeks, title) => {
+      const rows = (savedWeeks || []).filter((week) => week.metrics);
+      if (rows.length === 0) return "";
+
+      return `
+                        <h4 class="metrics-title">${title}</h4>
+                        <div class="table-scroll">
+                        <table class="week-table metrics-table">
+                            <thead>
+                                <tr>
+                                    <th>هفته</th>
+                                    <th title="جمعیت زنده در ابتدای همین هفته (جوجه‌ریزی اولیه منهای تلفات هفته‌های قبل)">جمعیت ابتدای هفته</th>
+                                    <th>جمعیت مانده</th>
+                                    <th>زنده‌مانی ٪</th>
+                                    <th>تلفات ٪</th>
+                                    <th title="تعداد تلفات ثبت‌شده در همین هفته (قطعه)">تلفات (قطعه)</th>
+                                    <th>وزن (kg)</th>
+                                    <th>وزن کل (kg)</th>
+                                    <th>افزایش وزن (kg)</th>
+                                    <th>ADG (g)</th>
+                                    <th>دان کل (kg)</th>
+                                    <th title="مجموع دان مصرفی تا این هفته ÷ جمعیت ابتدای هفته (کیلوگرم به ازای هر قطعه)">سرانه (kg)</th>
+                                    <th title="(دان مصرفی همان هفته ÷ ۷) ÷ جمعیت ابتدای هفته (گرم به ازای هر قطعه در روز)">سرانه روزانه (g)</th>
+                                    <th>FCR</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${rows
+                                  .map((week) => {
+                                    const m = week.metrics;
+                                    return `<tr>
+                                        <td>هفته ${week.week_number}</td>
+                                        <td>${fmtNum(m.birdsStartOfWeek, 0)}</td>
+                                        <td>${fmtNum(m.birdsEndOfWeek, 0)}</td>
+                                        <td>${fmtPct(m.weeklySurvivalPercent)}</td>
+                                        <td>${fmtPct(m.weeklyMortalityPercent)}</td>
+                                        <td>${fmtNum(m.mortalityThisWeek, 0)}</td>
+                                        <td>${fmtNum(m.weight, 3)}</td>
+                                        <td>${fmtNum(m.totalLiveWeight, 1)}</td>
+                                        <td>${fmtNum(m.weightGain, 3)}</td>
+                                        <td>${fmtNum(m.dailyGainGrams, 1)}</td>
+                                        <td>${fmtNum(m.cumulativeFeed, 1)}</td>
+                                        <td>${fmtNum(m.cumulativeFeedPerBird, 3)}</td>
+                                        <td>${fmtNum(m.dailyFeedPerBird, 1)}</td>
+                                        <td>${fmtNum(m.fcr, 3)}</td>
+                                    </tr>`;
+                                  })
+                                  .join("")}
+                            </tbody>
+                        </table>
+                        </div>`;
+    };
+
+    // بخش‌های هر سالن بر اساس کلید گله جمع می‌شوند تا زیر جدول «کل گله» بچینند
+    const hallSections = new Map();
+    const pushHallSection = (flock, html) => {
+      const key = flockGroupKey(flock);
+      if (!hallSections.has(key)) hallSections.set(key, []);
+      hallSections.get(key).push(html);
+    };
+
+    flocks.forEach((flock) => {
       const weeksHTML = flock.weeks
         .map(
           (week, i) => `
@@ -589,7 +657,7 @@ export const weeklyRenderer = {
         )
         .join("");
 
-      flocksHTML += `
+      pushHallSection(flock, `
                 <div class="flock-section">
                     <div class="flock-header">
                         <div>
@@ -620,45 +688,7 @@ export const weeklyRenderer = {
                     ${
                       flock.savedWeeks.length > 0
                         ? `
-                        <h4 class="metrics-title">📈 شاخص‌های عملکردی هفتگی</h4>
-                        <table class="week-table metrics-table">
-                            <thead>
-                                <tr>
-                                    <th>هفته</th>
-                                    <th>جمعیت مانده</th>
-                                    <th>زنده‌مانی ٪</th>
-                                    <th>تلفات ٪</th>
-                                    <th>وزن (kg)</th>
-                                    <th>وزن کل (kg)</th>
-                                    <th>افزایش وزن (kg)</th>
-                                    <th>ADG (g)</th>
-                                    <th>دان کل (kg)</th>
-                                    <th>سرانه روزانه (g)</th>
-                                    <th>FCR</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${flock.savedWeeks
-                                  .map((week) => {
-                                    const m = week.metrics;
-                                    if (!m) return "";
-                                    return `<tr>
-                                        <td>هفته ${week.week_number}</td>
-                                        <td>${fmtNum(m.birdsEndOfWeek, 0)}</td>
-                                        <td>${fmtPct(m.weeklySurvivalPercent)}</td>
-                                        <td>${fmtPct(m.weeklyMortalityPercent)}</td>
-                                        <td>${fmtNum(m.weight, 3)}</td>
-                                        <td>${fmtNum(m.totalLiveWeight, 1)}</td>
-                                        <td>${fmtNum(m.weightGain, 3)}</td>
-                                        <td>${fmtNum(m.dailyGainGrams, 1)}</td>
-                                        <td>${fmtNum(m.cumulativeFeed, 1)}</td>
-                                        <td>${fmtNum(m.dailyFeedPerBird, 1)}</td>
-                                        <td>${fmtNum(m.fcr, 3)}</td>
-                                    </tr>`;
-                                  })
-                                  .join("")}
-                            </tbody>
-                        </table>
+                        ${renderMetricsTable(flock.savedWeeks, "📈 شاخص‌های عملکردی هفتگی")}
                         <h4 class="metrics-title">📋 جزئیات ثبت هفتگی</h4>
                     `
                         : ""
@@ -699,7 +729,82 @@ export const weeklyRenderer = {
                     `
                     }
                 </div>
+            `);
+    });
+
+    // ===== سرصفحه + خلاصه + جدول تجمعی «کل گله» (فقط گله‌های چندسالنه) =====
+
+    const renderGroupSection = (group, aggregate) => {
+      const stats = aggregate.statistics || {};
+      const hallNames = (group.halls || [])
+        .map((h) => h.hall_name || `سالن ${h.hall_id}`)
+        .join("، ");
+      const fcrText =
+        stats.fcr !== null && stats.fcr !== undefined ? fmtNum(stats.fcr, 3) : "-";
+
+      return `
+                <div class="flock-section flock-group-section">
+                    <div class="flock-header">
+                        <div>
+                            <div class="flock-title">🐔 گله ${group.flockNumber ?? "—"} — کل ${group.halls.length} سالن</div>
+                            <div style="font-size: 13px; color: #64748b;">
+                                ${hallNames || "-"} | ${group.breed_name || "-"} | ${toPersian(group.placement_date)}
+                            </div>
+                        </div>
+                        <div class="flock-meta">
+                            <span>🧮 ${fmtNum(group.total_chicks_count, 0)} قطعه</span>
+                            <span>📊 ${stats.weekCount || 0} هفته</span>
+                            <span class="status-badge ${group.isActive ? "status-active" : "status-inactive"}">
+                                ${group.isActive ? "فعال" : "غیرفعال"}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="flock-summary-strip">
+                        <span><strong>تلفات کل گله:</strong> ${fmtNum(stats.totalMortality, 0)} قطعه</span>
+                        <span><strong>جمعیت مانده:</strong> ${fmtNum(stats.finalMetrics?.birdsEndOfWeek, 0)} قطعه</span>
+                        <span><strong>زنده‌مانی:</strong> ${fmtPct(stats.finalMetrics?.cumulativeSurvivalPercent)}</span>
+                        <span><strong>وزن کل گله:</strong> ${fmtNum(stats.finalMetrics?.totalLiveWeight, 1)} کیلوگرم</span>
+                        <span><strong>کل خوراک:</strong> ${fmtNum(stats.totalFeed, 1)} کیلوگرم</span>
+                        <span><strong>🐔 ضریب تبدیل:</strong> ${fcrText}</span>
+                        <span><strong>هفته‌های تکمیل شده:</strong> ${stats.weekCount || 0}</span>
+                    </div>
+
+                    ${renderMetricsTable(aggregate.savedWeeks, "📈 شاخص‌های عملکردی هفتگی — کل گله")}
+                </div>
             `;
+    };
+
+    // ترتیب نهایی: برای هر گلهٔ چندسالنه اول جدول «کل گله»، بعد بخش‌های تفکیک سالن‌ها
+    const renderUnits =
+      groups && groups.length
+        ? groups.map((group) => ({ group, halls: group.halls || [] }))
+        : flocks.map((flock) => ({ group: null, halls: [flock] }));
+
+    const renderedKeys = new Set();
+    let flocksHTML = "";
+    renderUnits.forEach((unit) => {
+      const aggregate = unit.group?.aggregate;
+      if (unit.group && aggregate && unit.halls.length > 1) {
+        flocksHTML += renderGroupSection(unit.group, aggregate);
+      }
+      // کلیدهای همین واحد یک‌بار پردازش می‌شوند تا بخش‌ها تکراری نشوند
+      const unitKeys = new Set(unit.halls.map((flock) => flockGroupKey(flock)));
+      unitKeys.forEach((key) => {
+        renderedKeys.add(key);
+        (hallSections.get(key) || []).forEach((html) => {
+          flocksHTML += html;
+        });
+      });
+    });
+
+    // اگر سالنی خارج از گروه‌ها مانده باشد، در پایان نمایش داده می‌شود
+    flocks.forEach((flock) => {
+      const key = flockGroupKey(flock);
+      if (renderedKeys.has(key)) return;
+      (hallSections.get(key) || []).forEach((html) => {
+        flocksHTML += html;
+      });
     });
 
     return `

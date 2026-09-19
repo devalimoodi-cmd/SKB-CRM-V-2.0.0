@@ -365,6 +365,157 @@ check(
     /Uncaught Exception/.test(String(exceptionRun.stderr)),
 );
 
+// ===== ۷) جستجوی لیست مشتریان (utils/search.js) =====
+// ✅ این ماژول علت اصلی «کار نکردن سرچ زنده» بود: پارامترهای
+// search/searchColumn در بک‌اند نادیده گرفته می‌شدند.
+const { Op } = require("sequelize");
+const search = require("./utils/search.js");
+
+check(
+  "search: ارقام فارسی → لاتین",
+  search.normalizeSearchText("۰۹۱۲۳۴۵۶۷۸۹") === "09123456789",
+  search.normalizeSearchText("۰۹۱۲۳۴۵۶۷۸۹"),
+);
+check(
+  "search: ارقام عربی → لاتین",
+  search.normalizeSearchText("٠٩١٢") === "0912",
+  search.normalizeSearchText("٠٩١٢"),
+);
+check(
+  "search: ي/ك عربی → ی/ک فارسی",
+  search.normalizeSearchText("يك") === "یک",
+  search.normalizeSearchText("يك"),
+);
+check(
+  "search: فاصله‌های تکراری یکی می‌شوند",
+  search.normalizeSearchText("  علی   رضا ") === "علی رضا",
+  search.normalizeSearchText("  علی   رضا "),
+);
+check(
+  "search: عبارت خیلی طولانی بریده می‌شود",
+  search.normalizeSearchText("x".repeat(200)).length ===
+    search.MAX_TERM_LENGTH,
+);
+check(
+  "search: escapeLike کاراکترهای wildcard را بی‌اثر می‌کند",
+  search.escapeLike("50%_a\\b") === "50\\%\\_a\\\\b",
+  search.escapeLike("50%_a\\b"),
+);
+check(
+  "search: تاریخ شمسی ۱۴۰۳/۰۱/۰۱ → 2024-03-20",
+  (() => {
+    const g = search.jalaliToGregorian(1403, 1, 1);
+    return g.gy === 2024 && g.gm === 3 && g.gd === 20;
+  })(),
+  JSON.stringify(search.jalaliToGregorian(1403, 1, 1)),
+);
+check(
+  "search: بازهٔ روز شمسی درست ساخته می‌شود",
+  (() => {
+    const range = search.parseJalaliDayRange("۱۴۰۳/۰۱/۰۱");
+    return (
+      !!range &&
+      range.start.toISOString().startsWith("2024-03-20T00:00:00") &&
+      range.end.toISOString().startsWith("2024-03-21T00:00:00")
+    );
+  })(),
+);
+check(
+  "search: بازهٔ روز میلادی (ISO) هم پذیرفته می‌شود",
+  (() => {
+    const range = search.parseIsoDayRange("2026-03-21");
+    return (
+      !!range && range.start.toISOString().startsWith("2026-03-21T00:00:00")
+    );
+  })(),
+);
+check(
+  "search: عبارت خالی → بدون فیلتر (null)",
+  search.buildCustomerSearchWhere("", "all") === null &&
+    search.buildCustomerSearchWhere("   ", "2") === null,
+);
+check(
+  "search: حالت «همه ستون‌ها» شرط OR می‌سازد",
+  (() => {
+    const w = search.buildCustomerSearchWhere("رضا", "all");
+    return !!w && Object.getOwnPropertySymbols(w).length > 0;
+  })(),
+);
+check(
+  "search: ستون «وضعیت» فعال/غیرفعال را می‌فهمد",
+  (() => {
+    const on = search.buildCustomerSearchWhere("فعال", "11");
+    const off = search.buildCustomerSearchWhere("غیرفعال", "11");
+    return on?.active === true && off?.active === false;
+  })(),
+);
+check(
+  "search: ستون تاریخ، ورودی شمسی را به بازهٔ میلادی تبدیل می‌کند",
+  (() => {
+    const w = search.buildCustomerSearchWhere("۱۴۰۳/۰۱/۰۱", "10");
+    const range = w?.created_at;
+    return (
+      !!range &&
+      range[Op.gte]?.toISOString().startsWith("2024-03-20") &&
+      range[Op.lt]?.toISOString().startsWith("2024-03-21")
+    );
+  })(),
+);
+check(
+  "search: ستون تلفن، عدد فارسی را به لاتین تبدیل و پیدا می‌کند",
+  (() => {
+    const w = search.buildCustomerSearchWhere("۰۹۱۲", "4");
+    const pattern = w?.mobile_number?.[Op.iLike];
+    return pattern === "%0912%";
+  })(),
+);
+check(
+  "search: ستون تلفن با فاصله/خط تیره هم پیدا می‌کند (دو شرط)",
+  (() => {
+    const spaced = search.buildCustomerSearchWhere("0912 345", "4");
+    const dashed = search.buildCustomerSearchWhere("0912-345", "5");
+    return (
+      (spaced?.[Op.or] || []).length >= 2 &&
+      (dashed?.[Op.or] || []).length >= 2
+    );
+  })(),
+);
+check(
+  "search: ورودی شامل % و _ به wildcard تبدیل نمی‌شود",
+  (() => {
+    const w = search.buildCustomerSearchWhere("100%", "1");
+    const pattern = w?.collection_name?.[Op.iLike];
+    return typeof pattern === "string" && pattern.includes("\\%") && pattern !== "%100%%";
+  })(),
+);
+check(
+  "search: ستون نامعتبر → مثل «همه ستون‌ها» فیلتر می‌کند",
+  (() => {
+    const w = search.buildCustomerSearchWhere("رضا", "999");
+    return !!w && Object.getOwnPropertySymbols(w).length > 0;
+  })(),
+);
+
+check(
+  "search: نگاشت ستون ۰ = شماره مشتری (customer_code)",
+  search.CUSTOMER_SEARCH_COLUMNS["0"].field === "customer_code",
+  search.CUSTOMER_SEARCH_COLUMNS["0"].field,
+);
+check(
+  "search: جستجوی «شماره مشتری» شرط عددی روی customer_code می‌سازد",
+  (() => {
+    const w = search.buildCustomerSearchWhere("1001", "0");
+    return !!w && Object.getOwnPropertySymbols(w).length > 0 && !!w[Op.and];
+  })(),
+);
+check(
+  "search: شمارهٔ مشتری در حالت «همه ستون‌ها» هم جستجو می‌شود",
+  (() => {
+    const w = search.buildCustomerSearchWhere("1002", "all");
+    return !!w && (w[Op.or] || []).length > 0;
+  })(),
+);
+
 const failed = results.filter((x) => !x).length;
 console.log(failed === 0 ? "\n✅ ALL PASS" : `\n❌ ${failed} FAILED`);
 process.exit(failed === 0 ? 0 : 1);

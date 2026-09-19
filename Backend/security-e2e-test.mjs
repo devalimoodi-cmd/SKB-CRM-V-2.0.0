@@ -29,6 +29,8 @@ const User = require("./models/User.js");
 // ✅ «تغییرات جدید / What's New»
 const ReleaseNoteItem = require("./models/ReleaseNoteItem.js");
 const ReleaseNoteView = require("./models/ReleaseNoteView.js");
+// ✅ مشتریان (برای بررسی شمارهٔ مشتری و پاکسازی داده تستی)
+const CustomerPersonalInfo = require("./models/CustomerPersonalInfo.js");
 
 let dbReady = false;
 try {
@@ -913,6 +915,289 @@ const run = async () => {
         `items=${leftItems} views=${leftViews}`,
       );
     }
+  }
+
+  // ============================================
+  // ✅ شمارهٔ مشتری: ترتیبی بودن + نسوختن شماره در ثبت ناموفق
+  // (بود: کد از nextval سکانس می‌آمد و هر ثبت ناموفق/حذف، یک شماره را
+  //  برای همیشه می‌سوزاند ⇒ شماره‌ها غیرترتیبی می‌شدند)
+  // ============================================
+  const codeStamp = String(Date.now()).slice(-7);
+  const createdCustomerIds = [];
+  const testMobile = (index) =>
+    `09${codeStamp}${String(index).padStart(2, "0")}`;
+  const customerPayload = (index) => ({
+    full_name: `مشتری تست شماره ${index}`,
+    collection_name: `مجموعه تست ${index}`,
+    farm_name: `فارم تست ${index}`,
+    email: `e2e-customer-${index}-${codeStamp}@e2e.local`,
+    mobile_number: testMobile(index),
+    province: "خراسان جنوبی",
+    county: "بیرجند",
+    farm_address: "آدرس تست برای بررسی شمارهٔ مشتری",
+    postal_code: String(9876543210 + index),
+    experience_years: 3,
+    education_level: "کارشناسی",
+    sales_department: "فروش",
+    gender: "مرد",
+  });
+  const registerTestCustomer = (index) =>
+    fetch(`${base}/api/customers/register`, {
+      method: "POST",
+      headers: authHeaders(adminToken),
+      body: JSON.stringify(customerPayload(index)),
+    });
+
+  const maxCodeBefore = Number(
+    (await CustomerPersonalInfo.max("customer_code")) || 0,
+  );
+
+  // ۱) مشتری اول → بزرگ‌ترین شماره + ۱
+  let codeRes = await registerTestCustomer(1);
+  const custABody = await codeRes.json().catch(() => ({}));
+  const custA = custABody?.data || {};
+  if (custA.id) createdCustomerIds.push(custA.id);
+  check(
+    "شمارهٔ مشتری: مشتری جدید «بزرگ‌ترین شماره + ۱» می‌گیرد",
+    codeRes.status === 201 &&
+      Number(custA.customer_code) === maxCodeBefore + 1,
+    `status=${codeRes.status} code=${custA.customer_code} (قبل: ${maxCodeBefore})`,
+  );
+
+  // ۲) مشتری دوم → شمارهٔ بعدی (پشت‌سرهم)
+  codeRes = await registerTestCustomer(2);
+  const custBBody = await codeRes.json().catch(() => ({}));
+  const custB = custBBody?.data || {};
+  if (custB.id) createdCustomerIds.push(custB.id);
+  check(
+    "شمارهٔ مشتری: شمارهٔ بعدی پشت‌سرهم است (بدون پرش)",
+    codeRes.status === 201 &&
+      Number(custB.customer_code) === Number(custA.customer_code) + 1,
+    `first=${custA.customer_code} second=${custB.customer_code}`,
+  );
+
+  // ۳) ثبت ناموفق (موبایل تکراری) نباید شماره بسوزاند
+  const duplicateRes = await registerTestCustomer(1);
+  check(
+    "شمارهٔ مشتری: ثبت با موبایل تکراری رد می‌شود (۴۰۰)",
+    duplicateRes.status === 400,
+    `status=${duplicateRes.status}`,
+  );
+
+  codeRes = await registerTestCustomer(3);
+  const custCBody = await codeRes.json().catch(() => ({}));
+  const custC = custCBody?.data || {};
+  if (custC.id) createdCustomerIds.push(custC.id);
+  check(
+    "شمارهٔ مشتری: ثبت ناموفق هیچ شماره‌ای را نمی‌سوزاند",
+    codeRes.status === 201 &&
+      Number(custC.customer_code) === Number(custB.customer_code) + 1,
+    `second=${custB.customer_code} third=${custC.customer_code}`,
+  );
+
+  // ۴) جستجو با «شمارهٔ مشتری» (ستون ۰)
+  r = await fetch(
+    `${base}/api/customers?limit=50&search=${custA.customer_code}&searchColumn=0`,
+    { headers: authHeaders(adminToken) },
+  );
+  const byCodeBody = await r.json().catch(() => ({}));
+  const byCodeRows = byCodeBody?.data?.customers || [];
+  check(
+    "جستجو با «شمارهٔ مشتری» همان مشتری را برمی‌گرداند",
+    r.status === 200 &&
+      byCodeRows.length >= 1 &&
+      byCodeRows.every((row) =>
+        String(row.customer_code ?? "").includes(String(custA.customer_code)),
+      ),
+    `status=${r.status} rows=${byCodeRows.length}`,
+  );
+
+  r = await fetch(
+    `${base}/api/customers?limit=50&search=${custB.customer_code}&searchColumn=all`,
+    { headers: authHeaders(adminToken) },
+  );
+  const allByCodeBody = await r.json().catch(() => ({}));
+  check(
+    "حالت «همه ستون‌ها» هم با شمارهٔ مشتری پیدا می‌کند",
+    r.status === 200 &&
+      Number(allByCodeBody?.data?.pagination?.total || 0) >= 1,
+    `total=${allByCodeBody?.data?.pagination?.total}`,
+  );
+
+  // ۵) فهرست، شمارهٔ مشتری را برمی‌گرداند (ستون اول جدول)
+  r = await fetch(`${base}/api/customers?limit=5`, {
+    headers: authHeaders(adminToken),
+  });
+  const listedBody = await r.json().catch(() => ({}));
+  const listedRows = listedBody?.data?.customers || [];
+  check(
+    "فهرست مشتریان شامل «شمارهٔ مشتری» است (ستون اول جدول)",
+    r.status === 200 &&
+      listedRows.length > 0 &&
+      listedRows.every((row) => Number.isFinite(Number(row.customer_code))),
+    `rows=${listedRows.length}`,
+  );
+
+  // ۶) پاکسازی مشتریان تستی
+  if (createdCustomerIds.length) {
+    await CustomerPersonalInfo.destroy({
+      where: { id: createdCustomerIds },
+    });
+    const left = await CustomerPersonalInfo.count({
+      where: { id: createdCustomerIds },
+    });
+    check(
+      "پاکسازی: مشتریان تستی حذف شدند",
+      left === 0,
+      `deleted=${createdCustomerIds.length}`,
+    );
+  }
+
+  // ============================================
+  // ✅ جستجوی زندهٔ لیست مشتریان
+  // (بود: پارامترهای search/searchColumn در بک‌اند نادیده گرفته می‌شدند
+  //  و جدول هرگز فیلتر نمی‌شد)
+  // ============================================
+  r = await fetch(`${base}/api/customers?limit=5`, {
+    headers: authHeaders(adminToken),
+  });
+  const allCustomersBody = await r.json().catch(() => ({}));
+  const baselineTotal = Number(allCustomersBody?.data?.pagination?.total || 0);
+  const sampleCustomer = (allCustomersBody?.data?.customers || [])[0] || null;
+
+  check(
+    "ادمین: فهرست مشتریان (بدون فیلتر) → ۲۰۰",
+    r.status === 200 && Array.isArray(allCustomersBody?.data?.customers),
+    `status=${r.status} total=${baselineTotal}`,
+  );
+
+  if (sampleCustomer && baselineTotal > 0) {
+    const needle = String(
+      sampleCustomer.full_name || sampleCustomer.collection_name || "",
+    )
+      .trim()
+      .slice(0, 4);
+
+    // ۱) جستجوی عمومی در همهٔ ستون‌ها
+    r = await fetch(
+      `${base}/api/customers?limit=50&search=${encodeURIComponent(needle)}&searchColumn=all`,
+      { headers: authHeaders(adminToken) },
+    );
+    const searchAllBody = await r.json().catch(() => ({}));
+    const searchAllTotal = Number(
+      searchAllBody?.data?.pagination?.total || 0,
+    );
+    const searchAllRows = searchAllBody?.data?.customers || [];
+    check(
+      "جستجوی زنده: فیلتر اعمال می‌شود (فقط ردیف‌های منطبق)",
+      r.status === 200 &&
+        searchAllTotal > 0 &&
+        searchAllTotal <= baselineTotal,
+      `status=${r.status} needle=${needle} total=${searchAllTotal} (بی‌فیلتر=${baselineTotal})`,
+    );
+    check(
+      "جستجوی زنده: ردیف‌های برگشتی شامل عبارت هستند",
+      searchAllRows.length > 0 &&
+        searchAllRows.every((row) =>
+          [
+            row.id,
+            row.collection_name,
+            row.full_name,
+            row.farm_name,
+            row.mobile_number,
+            row.messaging_number,
+            row.education_level,
+            row.gender,
+            row.province,
+            row.county,
+          ]
+            .filter((value) => value !== null && value !== undefined)
+            .some((value) => String(value).includes(needle)),
+        ),
+      `rows=${searchAllRows.length}`,
+    );
+
+    // ۲) جستجو در یک ستون مشخص (نام مشتری = ۲)
+    r = await fetch(
+      `${base}/api/customers?limit=50&search=${encodeURIComponent(needle)}&searchColumn=2`,
+      { headers: authHeaders(adminToken) },
+    );
+    const columnBody = await r.json().catch(() => ({}));
+    const columnRows = columnBody?.data?.customers || [];
+    check(
+      "جستجو در ستون مشخص (نام مشتری): فقط همان ستون فیلتر می‌شود",
+      r.status === 200 &&
+        columnRows.length > 0 &&
+        columnRows.every((row) =>
+          String(row.full_name || "").includes(needle),
+        ),
+      `status=${r.status} rows=${columnRows.length}`,
+    );
+
+    // ۳) همان عبارت در ستون تحصیلات (۶) → باید نتیجهٔ متفاوت/خالی بدهد
+    r = await fetch(
+      `${base}/api/customers?limit=50&search=${encodeURIComponent(needle)}&searchColumn=6`,
+      { headers: authHeaders(adminToken) },
+    );
+    const otherColumnBody = await r.json().catch(() => ({}));
+    check(
+      "جستجو در ستون نامرتبط، نتیجهٔ ستون نام را برنمی‌گرداند",
+      r.status === 200 &&
+        Number(otherColumnBody?.data?.pagination?.total || 0) <
+          Math.max(searchAllTotal, 1),
+      `total=${otherColumnBody?.data?.pagination?.total}`,
+    );
+
+    // ۴) ارقام فارسی → لاتین (جستجوی شمارهٔ تماس)
+    const phone = String(sampleCustomer.mobile_number || "").replace(/\D/g, "");
+    if (phone.length >= 4) {
+      const persianDigits = ["۰", "۱", "۲", "۳", "۴", "۵", "۶", "۷", "۸", "۹"];
+      const tail = phone.slice(-4);
+      const persianTail = tail
+        .split("")
+        .map((digit) => persianDigits[Number(digit)])
+        .join("");
+
+      r = await fetch(
+        `${base}/api/customers?limit=50&search=${encodeURIComponent(persianTail)}&searchColumn=4`,
+        { headers: authHeaders(adminToken) },
+      );
+      const phoneBody = await r.json().catch(() => ({}));
+      check(
+        "جستجوی زنده: ارقام فارسی هم پیدا می‌کند (نرمال‌سازی)",
+        r.status === 200 && Number(phoneBody?.data?.pagination?.total || 0) >= 1,
+        `search=${persianTail} total=${phoneBody?.data?.pagination?.total}`,
+      );
+    } else {
+      info("ℹ️  مشتری نمونه شمارهٔ تماس ندارد → بررسی ارقام فارسی رد شد");
+    }
+
+    // ۵) کاراکتر wildcard نباید همه‌چیز را برگرداند
+    r = await fetch(
+      `${base}/api/customers?limit=50&search=${encodeURIComponent("%")}&searchColumn=all`,
+      { headers: authHeaders(adminToken) },
+    );
+    const wildcardBody = await r.json().catch(() => ({}));
+    check(
+      "جستجوی زنده: ورودی % به wildcard تبدیل نمی‌شود",
+      r.status === 200 &&
+        Number(wildcardBody?.data?.pagination?.total || 0) < baselineTotal,
+      `total=${wildcardBody?.data?.pagination?.total}`,
+    );
+
+    // ۶) جستجوی خالی = بدون فیلتر
+    r = await fetch(`${base}/api/customers?limit=5&search=`, {
+      headers: authHeaders(adminToken),
+    });
+    const emptyBody = await r.json().catch(() => ({}));
+    check(
+      "جستجوی خالی: همان تعداد بدون فیلتر برمی‌گردد",
+      r.status === 200 &&
+        Number(emptyBody?.data?.pagination?.total || 0) === baselineTotal,
+      `total=${emptyBody?.data?.pagination?.total}`,
+    );
+  } else {
+    info("ℹ️  مشتری‌ای در دیتابیس نبود → بررسی‌های جستجو رد شد");
   }
 
   r = await fetch(`${base}/api/server-status`, {

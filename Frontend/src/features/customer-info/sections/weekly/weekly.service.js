@@ -2,6 +2,7 @@ import { weeklyApi } from "./weekly.api.js";
 import { weeklyRenderer, REPORT_STYLES, renderHistoryWeekMatrix } from "./weekly.renderer.js";
 import { weeklyValidation } from "./weekly.validation.js";
 import { calculateWeekMetrics } from "./weekly.calculations.js";
+import { groupFlocksByFlock } from "./weekly.aggregation.js";
 import { notificationService } from "../../../../core/services/notification.service.js";
 import { sanitizeHtmlDocument } from "../../../../core/utils/string.utils.js";
 
@@ -1421,11 +1422,16 @@ class WeeklyService {
         this.flocks.map(async (flock) => this.buildFlockReportData(flock)),
       );
 
+      // گروه‌بندی جوجه‌ریزی سالن‌ها بر اساس گله (یک گله = چند سالن)
+      // تا جدول تجمعی «کل گله» زیر اطلاعات هدر همان جدول نمایش داده شود
+      const flockGroups = groupFlocksByFlock(flocksWithWeeks);
+
       // تولید HTML گزارش
       const reportHtml = weeklyRenderer.renderFullReport(
         customer,
         flocksWithWeeks,
         this.units,
+        flockGroups,
       );
 
       this.openReportWindow(reportHtml);

@@ -335,6 +335,37 @@ const run = async () => {
       adminHtml.includes('id="release-notes"'),
     `status=${adminPage.status}`,
   );
+
+  // ===== ✅ جدول لیست مشتریان: عرض ستون‌ها + بدون اسکرول افقی =====
+  check(
+    "جدول مشتریان: colgroup با ۱۳ ستون عرض‌دار + سرستون «شماره مشتری»",
+    listPage.status === 200 &&
+      listHtml.includes("<colgroup>") &&
+      listHtml.includes("<th>شماره مشتری</th>") &&
+      (listHtml.match(/<col class="col-/g) || []).length === 13,
+    `cols=${(listHtml.match(/<col class="col-/g) || []).length}`,
+  );
+
+  const listCss = await waitFor(`${base}/features/customer-list/customer-list.css`);
+  const listCssText = await listCss.text();
+  const colWidthRules = (
+    listCssText.match(/col\.col-[\w-]+\s*\{\s*width:\s*[\d.]+%/g) || []
+  ).length;
+  check(
+    "CSS جدول مشتریان: عرض ستون‌ها درصدی است (بدون min-width سنگین)",
+    listCss.status === 200 &&
+      colWidthRules === 13 &&
+      !listCssText.includes("min-width: 1510px") &&
+      /\.data-table\s*\{[^}]*table-layout:\s*fixed/.test(listCssText),
+    `status=${listCss.status} widthRules=${colWidthRules} heavyMinWidth=${listCssText.includes("min-width: 1510px")}`,
+  );
+
+  check(
+    "CSS جدول مشتریان: بدون اسکرول افقی در جدول",
+    /overflow-x:\s*hidden/.test(listCssText) &&
+      !/min-width:\s*1[0-9]{3}px/.test(listCssText),
+    `hasOverflowHidden=${/overflow-x:\s*hidden/.test(listCssText)}`,
+  );
 };
 
 run()
