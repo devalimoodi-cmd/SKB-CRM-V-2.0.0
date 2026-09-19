@@ -516,6 +516,24 @@ check(
   })(),
 );
 
+// ===== ۱۲) حریم خصوصی لاگ‌ها (PII) =====
+// ✅ بود: کل req.body در ثبت مشتری لاگ می‌شد (موبایل/کد ملی/ایمیل در لاگ پروداکشن)
+const fsMod = require("node:fs");
+const customerControllerSrc = fsMod.readFileSync(
+  nodePath.join(import.meta.dirname, "controllers", "customerRegistrationController.js"),
+  "utf8",
+);
+check(
+  "لاگ PII: کل req.body در ثبت مشتری لاگ نمی‌شود",
+  !/console\.(log|info|warn|error)\(\s*[^)]*req\.body\s*\)/.test(
+    customerControllerSrc,
+  ),
+);
+check(
+  "لاگ PII: لاگ ثبت مشتری فقط در محیط غیر production است",
+  customerControllerSrc.includes('process.env.NODE_ENV !== "production"'),
+);
+
 const failed = results.filter((x) => !x).length;
 console.log(failed === 0 ? "\n✅ ALL PASS" : `\n❌ ${failed} FAILED`);
 process.exit(failed === 0 ? 0 : 1);

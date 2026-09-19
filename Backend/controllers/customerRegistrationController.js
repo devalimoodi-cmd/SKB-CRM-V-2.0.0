@@ -81,7 +81,18 @@ async function resolveCustomerType(customerTypeId) {
 // ============================================
 const registerCustomer = async (req, res) => {
   try {
-    console.log("📝 دریافت درخواست ثبت مشتری:", req.body);
+    // ✅ لاگ خلاصه و ماسک‌شده (قبلاً کل req.body چاپ می‌شد و شامل
+    // داده‌های شخصی مثل موبایل/کد ملی/ایمیل در لاگ پروداکشن می‌شد)
+    if (process.env.NODE_ENV !== "production") {
+      console.log("📝 درخواست ثبت مشتری دریافت شد:", {
+        full_name: req.body?.full_name,
+        mobile_number: req.body?.mobile_number
+          ? `***${String(req.body.mobile_number).slice(-4)}`
+          : null,
+        customer_type_id: req.body?.customer_type_id ?? null,
+        has_national_code: Boolean(req.body?.national_code),
+      });
+    }
 
     // 1. اعتبارسنجی داده‌ها (نوع مشتری اجباری است)
     const validation = validateCustomerData(req.body, {

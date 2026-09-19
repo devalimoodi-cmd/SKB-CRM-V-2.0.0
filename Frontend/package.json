@@ -26,8 +26,5 @@
     "persian-date": "^1.1.0",
     "persian-datepicker": "^1.2.0",
     "sweetalert2": "^11.26.25"
-  },
-  "devDependencies": {
-    "eslint": "^10.10.0"
   }
 }

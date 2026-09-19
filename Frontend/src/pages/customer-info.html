@@ -1260,18 +1260,31 @@
         window.customerInfoService = customerInfoService;
         window.CustomerInfoService = customerInfoService.constructor;
 
+        // ✅ انتظار برای آماده‌شدن appService با «سقف زمانی»
+        // (بود: setInterval بدون timeout؛ اگر appService خطا می‌داد این انتظار
+        //  هرگز تمام نمی‌شد و اورلی لودینگ تا ابد روی صفحه می‌ماند)
+        const waitForAppReady = (timeoutMs = 8000) => {
+            if (!window.appService || window.appService.initialized) {
+                return Promise.resolve(true);
+            }
+            return Promise.race([
+                new Promise((resolve) => {
+                    const timer = setInterval(() => {
+                        if (window.appService && window.appService.initialized) {
+                            clearInterval(timer);
+                            resolve(true);
+                        }
+                    }, 100);
+                }),
+                new Promise((resolve) => setTimeout(() => resolve(false), timeoutMs)),
+            ]);
+        };
+
         document.addEventListener('DOMContentLoaded', async function () {
             try {
-                // صبر کنید تا appService کامل شود
-                if (window.appService && !window.appService.initialized) {
-                    await new Promise(resolve => {
-                        const checkApp = setInterval(() => {
-                            if (window.appService.initialized) {
-                                clearInterval(checkApp);
-                                resolve();
-                            }
-                        }, 100);
-                    });
+                const appReady = await waitForAppReady();
+                if (!appReady) {
+                    console.warn('⚠️ appService در زمان مقرر آماده نشد؛ صفحه با تنظیمات پیش‌فرض ادامه می‌دهد');
                 }
 
                 // مقداردهی سرویس اطلاعات مشتری
@@ -1279,8 +1292,17 @@
                 console.log('✅ Customer Info page loaded successfully');
             } catch (error) {
                 console.error('❌ Error initializing customer info:', error);
+                // ✅ اطلاع به کاربر (به‌جای صفحهٔ خالی/گیرکرده)
+                try {
+                    const { notificationService } = await import('./../core/services/notification.service.js');
+                    notificationService?.error?.(
+                        'خطا در بارگذاری اطلاعات مشتری؛ لطفاً صفحه را دوباره باز کنید',
+                    );
+                } catch {
+                    /* اگر ماژول اعلان در دسترس نبود، بی‌صدا رد شو */
+                }
             } finally {
-                // مخفی کردن لودینگ
+                // مخفی کردن لودینگ — در همهٔ حالت‌ها: موفق، خطا، یا اتمام زمان انتظار
                 const overlay = document.getElementById('pageLoadingOverlay');
                 if (overlay) {
                     overlay.style.opacity = '0';

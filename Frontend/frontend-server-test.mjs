@@ -9,6 +9,8 @@
 // ============================================================
 import { spawn, spawnSync } from "node:child_process";
 import http from "node:http";
+import fs from "node:fs";
+import path from "node:path";
 
 const PORT = 3996;
 const results = [];
@@ -417,6 +419,32 @@ const run = async () => {
     /overflow-x:\s*hidden/.test(listCssText) &&
       !/min-width:\s*1[0-9]{3}px/.test(listCssText),
     `hasOverflowHidden=${/overflow-x:\s*hidden/.test(listCssText)}`,
+  );
+
+  // ===== ✅ پایداری بوت صفحهٔ پروفایل مشتری (بدون گیر کردن لودینگ) =====
+  // بود: انتظار برای appService با setInterval بدون سقف زمانی؛ اگر آن سرویس
+  // خطا می‌داد، اورلی لودینگ تا ابد روی صفحه می‌ماند.
+  // (از همان infoPage/infoHtml که بالاتر برای بررسی لودرها گرفته شد استفاده می‌شود)
+  check(
+    "صفحهٔ پروفایل مشتری: انتظار appService سقف زمانی دارد (Promise.race + timeout)",
+    infoPage.status === 200 &&
+      infoHtml.includes("waitForAppReady") &&
+      infoHtml.includes("Promise.race") &&
+      infoHtml.includes("timeoutMs") &&
+      infoHtml.includes("clearInterval"),
+    `status=${infoPage.status} race=${infoHtml.includes("Promise.race")} timeout=${infoHtml.includes("timeoutMs")}`,
+  );
+
+  // ✅ مانیفست فرانت نباید کلید تکراری devDependencies داشته باشد
+  const pkgRaw = fs.readFileSync(
+    path.join(import.meta.dirname, "package.json"),
+    "utf8",
+  );
+  const devDepKeys = (pkgRaw.match(/"devDependencies"\s*:/g) || []).length;
+  check(
+    "package.json فرانت: کلید devDependencies تکراری نیست",
+    devDepKeys === 1,
+    `devDependencies=${devDepKeys}`,
   );
 };
 
