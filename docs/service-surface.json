@@ -1467,17 +1467,20 @@
             "ueRecalcSlaughterMethod"
           ],
           "mixins": {
-            "src/features/customer-info/sections/hatchery/hatchery.completion.service.js": [
-              "_collectCompletionSave",
-              "_openFlockCompletionModal",
+            "src/features/customer-info/sections/hatchery/hatchery.completion.age.utils.js": [
               "_pcAgeOfIso",
               "_pcDateIso",
               "_pcFlockIso",
+              "_pcIsoFromAge",
+              "_toNum"
+            ],
+            "src/features/customer-info/sections/hatchery/hatchery.completion.flock.js": [
+              "_collectCompletionSave",
+              "_openFlockCompletionModal",
               "_pcForm",
               "_pcFormBottom",
               "_pcFormTop",
               "_pcHallBlock",
-              "_pcIsoFromAge",
               "_pcNormKg",
               "_pcRead",
               "_pcRow",
@@ -1487,23 +1490,24 @@
               "_pcSlaughterMethodData",
               "_pcSummary",
               "_renderPcMethodUi",
-              "_toNum",
+              "addPcShipRow",
+              "completeFlockOf",
+              "editFlockCompletion",
+              "formatTomanInput",
+              "recalcCompletionInputs",
+              "refreshFlocks",
+              "removePcShip",
+              "setPcSlaughterMethod"
+            ],
+            "src/features/customer-info/sections/hatchery/hatchery.completion.period.js": [
               "_ueFlockIso",
               "_ueMethodSlaughterData",
               "_ueSlaughterSectionHtml",
-              "addPcShipRow",
               "addUeShipRow",
-              "completeFlockOf",
               "completePeriod",
-              "editFlockCompletion",
               "editPeriodCompletion",
-              "formatTomanInput",
-              "recalcCompletionInputs",
               "recomputeSystemFields",
-              "refreshFlocks",
-              "removePcShip",
               "removeUeShip",
-              "setPcSlaughterMethod",
               "setUeSlaughterMethod",
               "ueRecalcSlaughterMethod",
               "viewPeriodCompletion"
