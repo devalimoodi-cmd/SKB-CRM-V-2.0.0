@@ -16,7 +16,9 @@ import {
   slaughterShipmentsHtml,
   formatAgeRange,
 } from "./hatchery.slaughter.utils.js";
-import { hatcheryCompletionMethods } from "./hatchery.completion.service.js";
+import { hatcheryCompletionAgeMethods } from "./hatchery.completion.age.utils.js";
+import { hatcheryCompletionFlockMethods } from "./hatchery.completion.flock.js";
+import { hatcheryCompletionPeriodMethods } from "./hatchery.completion.period.js";
 import { registerHatcheryWindowGlue } from "./hatchery.window-glue.js";
 
 class HatcheryService {
@@ -2345,9 +2347,10 @@ class HatcheryService {
   }
 }
 
-// ===== ترکیب mixin خوشهٔ پایان دوره/ویرایش (موج ۲ — منتقل‌شده به
-// hatchery.completion.service.js) =====
-Object.assign(HatcheryService.prototype, hatcheryCompletionMethods);
+// ===== ترکیب mixin های خوشهٔ پایان دوره/ویرایش (موج ۳.۱ — سه دامنهٔ مستقل) =====
+Object.assign(HatcheryService.prototype, hatcheryCompletionAgeMethods);
+Object.assign(HatcheryService.prototype, hatcheryCompletionFlockMethods);
+Object.assign(HatcheryService.prototype, hatcheryCompletionPeriodMethods);
 
 export const hatcheryService = new HatcheryService();
 
