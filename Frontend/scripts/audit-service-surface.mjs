@@ -157,14 +157,22 @@ const resolveLocalImport = (file, ident) => {
   return null;
 };
 
-const mixinMethods = (targetFile, ident) => {
+const mixinSurface = (targetFile, ident) => {
   const text = readText(targetFile);
   if (!text) return null;
   const startRe = new RegExp(`export\\s+const\\s+${ident}\\s*=\\s*\\{`);
   const hit = startRe.exec(text);
   if (!hit) return null;
   const region = sliceRegion(text, hit.index + hit[0].length, /^\};?/m);
-  return methodsFromRegion(region);
+  return {
+    methods: methodsFromRegion(region),
+    properties: [
+      ...new Set([
+        ...membersFromText(region, FIELD_RE),
+        ...membersFromText(region, THIS_MEMBER_RE),
+      ]),
+    ].sort(),
+  };
 };
 
 const parseServiceFile = (file) => {
@@ -195,9 +203,12 @@ const parseServiceFile = (file) => {
     if (!classes[className]) continue;
     const targetFile = resolveLocalImport(file, ident);
     if (!targetFile || !fs.existsSync(targetFile)) continue;
-    const names = mixinMethods(targetFile, ident);
-    if (!names) continue;
-    classes[className].mixins[rel(targetFile)] = names;
+    const surface = mixinSurface(targetFile, ident);
+    if (!surface) continue;
+    classes[className].mixins[rel(targetFile)] = surface.methods;
+    classes[className].properties = [
+      ...new Set([...classes[className].properties, ...surface.properties]),
+    ].sort();
   }
 
   const instances = {};
