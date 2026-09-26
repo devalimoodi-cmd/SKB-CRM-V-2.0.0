@@ -15,50 +15,11 @@ import {
 import { sanitizeHtmlDocument } from "../../../../core/utils/string.utils.js";
 
 
-// نمایش تاریخ کشتار به‌صورت بازه‌ای (شروع/پایان)؛ رکوردهای قدیمی تک‌تاریخی هم پشتیبانی می‌شوند
-const formatSlaughterRange = (completion) => {
-  if (!completion) return "-";
-  const start = completion.slaughter_date || null;
-  const end = completion.slaughter_end_date || null;
-  if (!start && !end) return "-";
-  if (!end || end === start) {
-    return convertToPersianDate(start || end);
-  }
-  return `${convertToPersianDate(start)} تا ${convertToPersianDate(end)}`;
-};
-
-// برچسب روش ثبت سن کشتار
-const slaughterAgeMethodLabel = (completion) => {
-  const m = completion?.slaughter_age_method;
-  if (m === "range") return "روش بازهٔ تاریخی";
-  if (m === "direct") return "روش ورود مستقیم سن";
-  if (m === "weighted") return "روش ارسال چندمرحله‌ای";
-  return completion?.slaughter_age_end_days ? "بازهٔ سن (قدیمی)" : "";
-};
-
-// نمایش سن کشتار — برای رکوردهای دارای «روش» فقط سن نهایی؛ رکوردهای قدیمی بازهٔ قبلی
-const formatAgeRange = (completion) => {
-  if (!completion) return "-";
-  const start = completion.slaughter_age_days;
-  const method = completion.slaughter_age_method;
-  const hasStart = start !== null && start !== undefined;
-  const faNum = hasStart
-    ? Number(start).toLocaleString("fa-IR", { maximumFractionDigits: 0 })
-    : "";
-  if (method === "range") return hasStart ? `${faNum} روز` : "-";
-  if (method === "direct") return hasStart ? `${faNum} روز` : "-";
-  if (method === "weighted") {
-    return hasStart ? `${faNum} روز (میانگین وزنی)` : "-";
-  }
-  const end = completion.slaughter_age_end_days;
-  const hasEnd = end !== null && end !== undefined;
-  if (!hasStart && !hasEnd) return "-";
-  if (!hasEnd || Number(end) === Number(start)) {
-    return `${hasStart ? start : end} روز`;
-  }
-  return `${start}-${end} روز`;
-};
-
+import {
+  formatSlaughterRange,
+  slaughterAgeMethodLabel,
+  formatAgeRange,
+} from "./hatchery.slaughter.utils.js";
 class HatcheryReport {
   constructor() {
     this.customerId = null;

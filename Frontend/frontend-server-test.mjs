@@ -85,10 +85,15 @@ const run = async () => {
   );
 
   const versioned = versionOf(html);
+  // نکته: تا پیش از پاک‌سازی موج ۰، این شمارش با دو فایل صفر‌بایتی
+  // (`/styles/reset.css` و `/styles/variables.css`) به عدد ۳ می‌رسید؛ پس از حذف
+  // آن‌ها تنها دارایی CSS محلی واقعی صفحهٔ لاگین `/styles/global.css` است.
+  // پس به‌جای آستانهٔ عددی شکننده، «همان دارایی واقعی نسخه‌دار شده باشد» بررسی می‌شود.
   check(
     "آدرس JS/CSSهای محلی نسخه‌دار شده‌اند (?v=)",
-    versioned.length >= 3,
-    `count=${versioned.length}`,
+    versioned.length >= 1 &&
+      versioned.some(([, url]) => url.endsWith("/styles/global.css")),
+    `count=${versioned.length} urls=${versioned.map(([, url]) => url).join(",")}`,
   );
   check(
     "کتابخانه‌های npm نسخه‌دار نمی‌شوند (بی‌جهت)",

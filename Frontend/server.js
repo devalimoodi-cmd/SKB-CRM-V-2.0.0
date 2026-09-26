@@ -662,16 +662,6 @@ app.get(["/help", "/help.html"], (req, res) => {
   res.sendFile(path.join(srcPath, "pages", "help.html"));
 });
 
-// بوکمارک‌ها
-app.get("/bookmarks", (req, res) => {
-  res.sendFile(path.join(srcPath, "pages", "bookmarks.html"));
-});
-
-// بوکمارک‌ها با پسوند html
-app.get("/bookmarks.html", (req, res) => {
-  res.sendFile(path.join(srcPath, "pages", "bookmarks.html"));
-});
-
 // پیامک
 app.get("/sms", (req, res) => {
   res.sendFile(path.join(srcPath, "pages", "sms.html"));
@@ -714,7 +704,6 @@ app.listen(PORT, () => {
   console.log(`   /admin       → پنل مدیریت`);
   console.log(`   /customer-info → اطلاعات مشتری`);
   console.log(`   /customers   → لیست مشتریان`);
-  console.log(`   /bookmarks   → بوکمارک‌ها`);
   console.log(`   /sms         → مدیریت پیامک`);
   console.log(`   /setup-admin → تنظیمات اولیه`);
   console.log(

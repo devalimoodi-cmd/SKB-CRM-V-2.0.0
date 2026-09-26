@@ -16,40 +16,11 @@ const VentilationType = require("../models/VentilationType");
 const WaterInletType = require("../models/WaterInletType");
 const WatererType = require("../models/WatererType");
 const User = require("../models/User");
+const { successResponse, errorResponse } = require("../utils/response");
 
 // ------------------------------finish-------------------------------
 
 // --------------start  Controller functions of the HallType table--------
-
-// پاسخ موفق استاندارد
-const successResponse = (
-  res,
-  data,
-  message = "با موفقیت انجام شد",
-  statusCode = 200,
-) => {
-  return res.status(statusCode).json({
-    success: true,
-    message,
-    data,
-    timestamp: new Date().toISOString(),
-  });
-};
-
-// پاسخ خطا استاندارد
-const errorResponse = (
-  res,
-  message = "خطا رخ داده است",
-  statusCode = 500,
-  errors = null,
-) => {
-  return res.status(statusCode).json({
-    success: false,
-    message,
-    errors,
-    timestamp: new Date().toISOString(),
-  });
-};
 
 // ============================================
 // دریافت همه انواع سالن

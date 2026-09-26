@@ -47,13 +47,6 @@ class AppService {
         requiresPermission: "customers.list.view",
         feature: "customer-list",
       },
-      bookmarks: {
-        title: "بوکمارک‌ها",
-        requiresAuth: true,
-        requiresAdmin: false,
-        requiresPermission: "bookmarks.view",
-        feature: "bookmarks",
-      },
       sms: {
         title: "مدیریت پیامک‌ها",
         requiresAuth: true,
@@ -184,18 +177,6 @@ class AppService {
       }
     }
 
-    // Dashboard Layout (اگر وجود داشته باشد)
-    const dashboardLayout = document.querySelector(".dashboard-layout");
-    if (dashboardLayout) {
-      try {
-        const { dashboardLayoutService } =
-          await import("../../shared/layouts/Dashboard/dashboard.service.js");
-        dashboardLayoutService.init();
-        console.log("✅ Dashboard Layout initialized");
-      } catch (error) {
-        console.warn("⚠️ Dashboard Layout initialization failed:", error);
-      }
-    }
   }
 
   // ===== Shared Components =====
@@ -267,8 +248,6 @@ class AppService {
       "/customer-info.html": "customer-info",
       "/customers": "customer-list",
       "/customer-list.html": "customer-list",
-      "/bookmarks": "bookmarks",
-      "/bookmarks.html": "bookmarks",
       "/sms": "sms",
       "/sms.html": "sms",
       "/login": "login",

@@ -135,15 +135,8 @@ class HeaderBookmarksService {
       `;
     });
 
-    if (this.bookmarks.length > 5) {
-      html += `
-        <div style="padding: 10px 16px; text-align: center; border-top: 1px solid #eef2f6;">
-          <a href="/bookmarks" style="color: #2c7a6e; text-decoration: none; font-size: 13px; font-weight: 500;">
-            مشاهده همه (${this.bookmarks.length})
-          </a>
-        </div>
-      `;
-    }
+    // ℹ️ لینک «مشاهده همه» حذف شد؛ صفحهٔ مستقل بوکمارک‌ها وجود ندارد
+    // (بوکمارک‌ها در همین دراپ‌داون سرصفحه و بخش بوکمارک داشبورد مدیریت می‌شوند).
 
     container.innerHTML = html;
   }
@@ -474,23 +467,18 @@ if (typeof window !== "undefined") {
   );
 
   // ✅ تابع سراسری نمایش مودال ساخت بوکمارک جدید
+  // توجه: مودال ساخت بوکمارک در سرویس داشبورد پیاده‌سازی شده و روی
+  // window.showCreateBookmarkModal ثبت می‌شود؛ در سایر صفحات که این
+  // سرویس بارگذاری نشده است، پیام راهنما نمایش داده می‌شود.
   window.showCreateBookmarkModal = function (bookmarkId = null) {
     const modalService = window.bookmarksModalService;
     if (modalService && typeof modalService.openCreateModal === "function") {
       modalService.openCreateModal(bookmarkId);
       return;
     }
-    // Fallback: import dynamic
-    import("../../../features/bookmarks/bookmarks.modal.service.js")
-      .then((module) => {
-        const service = module.bookmarksModalService;
-        if (service && typeof service.openCreateModal === "function") {
-          service.openCreateModal(bookmarkId);
-        }
-      })
-      .catch(() => {
-        console.warn("⚠️ Bookmarks modal service not available");
-      });
+    notificationService.info(
+      "برای ثبت یا ویرایش بوکمارک، از صفحهٔ داشبورد استفاده کنید",
+    );
   };
 }
 
