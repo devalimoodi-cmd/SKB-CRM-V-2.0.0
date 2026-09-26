@@ -286,11 +286,13 @@ const currentGlobals = [
 
 // ---------- ۲) قرارداد فراخوانی از بیرون فایل ----------
 const contractViolations = [];
+const dormantOptionalCalls = [];
 for (const [servicePath, service] of Object.entries(currentServices)) {
   for (const [instanceName, className] of Object.entries(service.instances)) {
     const known = new Set(allMembersOf(service, className));
     const usageRe = new RegExp(`\\b${instanceName}\\.([A-Za-z_$][\\w$]*)`, "g");
     const seen = new Set();
+    const optionalSeen = new Set();
     for (const entry of corpus) {
       if (entry.rel === servicePath) continue;
       if (locallyDeclares(entry.text, instanceName)) continue;
@@ -301,22 +303,31 @@ for (const [servicePath, service] of Object.entries(currentServices)) {
         while ((match = usageRe.exec(lines[i])) !== null) {
           const member = match[1];
           if (known.has(member)) continue;
+          // `x.foo?.()` صریحاً «اگر بود» را می‌پذیرد؛ پس نقض قرارداد نیست،
+          // بلکه یافتهٔ اطلاعاتی (سیم‌کشی مردهٔ از قبل موجود) است.
+          const optional = lines[i].slice(match.index + match[0].length).startsWith("?.");
           const key = `${instanceName}.${member}`;
-          if (seen.has(key)) continue;
-          seen.add(key);
-          contractViolations.push({
+          const bucket = optional ? optionalSeen : seen;
+          if (bucket.has(key)) continue;
+          bucket.add(key);
+          const record = {
             instance: instanceName,
             member,
             service: servicePath,
             usedIn: entry.rel,
             line: i + 1,
-          });
+          };
+          if (optional) dormantOptionalCalls.push(record);
+          else contractViolations.push(record);
         }
       }
     }
   }
 }
 contractViolations.sort((a, b) =>
+  `${a.service}${a.member}`.localeCompare(`${b.service}${b.member}`),
+);
+dormantOptionalCalls.sort((a, b) =>
   `${a.service}${a.member}`.localeCompare(`${b.service}${b.member}`),
 );
 
@@ -449,6 +460,7 @@ const report = {
   snapshotPath: SNAPSHOT_PATH.replace(/\\/g, "/"),
   snapshotFound: Boolean(snapshot),
   contractViolations,
+  dormantOptionalCalls,
   bigMethodBudget: BIG_BUDGET,
   bigMethods,
   diff,
@@ -512,6 +524,12 @@ if (WRITE_SNAPSHOT) {
     if (contractViolations.length === 0) console.log("   ✅ همهٔ متدهای مصرف‌شده در سطح کلاس موجودند");
     contractViolations.forEach((v) =>
       console.log(`   ❌ ${v.instance}.${v.member}  ←  ${v.usedIn}:${v.line}  (${v.service})`),
+    );
+    console.log("");
+
+    console.log(`🕳️ فراخوانی اختیاری به متد ناموجود (x.foo?.) — اطلاعی: ${dormantOptionalCalls.length}`);
+    dormantOptionalCalls.forEach((v) =>
+      console.log(`   ⚠️ ${v.instance}.${v.member}  ←  ${v.usedIn}:${v.line}  (${v.service})`),
     );
     console.log("");
 
