@@ -106,6 +106,7 @@ export const API_CONSTANTS = {
       FLOCK_CARDS: "/dashboard/flock-cards",
       SUMMARY: "/dashboard/summary",
       CUSTOMER_DETAILS: "/dashboard/customer/:id/details",
+      CUSTOMER_PERFORMANCE: "/dashboard/customer/:id/performance",
       CHARTS: "/dashboard/charts",
       ANALYSIS: "/dashboard/analysis",
     },
@@ -150,6 +151,24 @@ export const API_CONSTANTS = {
       EDUCATION_LEVELS: "/cities/education-levels",
       DEPARTMENTS: "/cities/departments",
       CITIES_BY_PROVINCE: "/cities/cities-by-province/:state",
+    },
+    // ===== سطوح دسترسی (نقش‌ها و کاربران) =====
+    PERMISSIONS: {
+      // مجوزهای کاربر جاری (گیت فرانت‌اند)
+      ME: "/permissions/me",
+      // نسخهٔ مجوزها (بررسی سبک تازه‌بودن کش)
+      VERSION: "/permissions/version",
+      // کاتالوگ + ماتریس نقش‌ها
+      CATALOG: "/permissions/catalog",
+      ROLES: "/permissions/roles",
+      ROLE_UPDATE: "/permissions/roles/:role",
+      ROLE_RESET: "/permissions/roles/:role/reset",
+      // سطح دسترسی یک کاربر
+      USER: "/permissions/users/:id",
+      USER_UPDATE: "/permissions/users/:id",
+      USER_RESET: "/permissions/users/:id",
+      // گزارش تغییرات
+      AUDIT: "/permissions/audit",
     },
   },
   TIMEOUT: 30000,

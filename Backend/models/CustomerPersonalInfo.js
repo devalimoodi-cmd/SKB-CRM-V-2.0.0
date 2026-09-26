@@ -18,12 +18,13 @@ const CustomerPersonalInfo = sequelize.define(
       type: DataTypes.STRING(10),
       allowNull: true,
       field: "national_code",
-      comment: "کد ملی ۱۰ رقمی مشتری (اختیاری) — در صورت وارد شدن باید ۱۰ رقم باشد",
+      comment:
+        "کد ملی ۱۰ رقمی مشتری (اختیاری) — فقط ۱۰ رقم عددی (بدون رقم کنترلی)",
       validate: {
         isNationalCode(value) {
           if (value === null || value === undefined || value === "") return;
           if (!/^[0-9]{10}$/.test(String(value).trim())) {
-            throw new Error("کد ملی باید ۱۰ رقم باشد");
+            throw new Error("کد ملی باید ۱۰ رقم عددی باشد");
           }
         },
       },

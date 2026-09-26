@@ -2,6 +2,7 @@ import { routerService } from "./router.service.js";
 import { authService } from "./auth.service.js";
 import { stateService } from "./state.service.js";
 import { notificationService } from "./notification.service.js";
+import { permissionService } from "./permission.service.js";
 import { headerService } from "../../shared/layouts/Header/header.service.js";
 import { footerService } from "../../shared/layouts/Footer/footer.service.js";
 import { sidebarService } from "../../shared/layouts/Sidebar/sidebar.service.js";
@@ -15,41 +16,50 @@ class AppService {
   constructor() {
     this.initialized = false;
     this.currentPage = null;
+    // ✅ ناظر «گرفتن مجوز صفحه در حین کار» (یک‌بار نصب می‌شود)
+    this._pageWatchInstalled = false;
     this.pageConfigs = {
       "admin-panel": {
         title: "پنل مدیریت",
         requiresAuth: true,
         requiresAdmin: true,
+        requiresPermission: "admin.panel.access",
         feature: "admin-panel",
       },
       "customer-info": {
         title: "اطلاعات مشتری",
         requiresAuth: true,
         requiresAdmin: false,
+        requiresPermission: "customer.basic.view",
         feature: "customer-info",
       },
       dashboard: {
         title: "داشبورد",
         requiresAuth: true,
         requiresAdmin: false,
+        requiresPermission: "dashboard.view",
         feature: "dashboard",
       },
       "customer-list": {
         title: "مدیریت مشتریان",
         requiresAuth: true,
         requiresAdmin: false,
+        requiresPermission: "customers.list.view",
         feature: "customer-list",
       },
       bookmarks: {
         title: "بوکمارک‌ها",
         requiresAuth: true,
         requiresAdmin: false,
+        requiresPermission: "bookmarks.view",
         feature: "bookmarks",
       },
       sms: {
         title: "مدیریت پیامک‌ها",
         requiresAuth: true,
         requiresAdmin: false,
+        // صفحهٔ مستقل SMS وجود ندارد (بخش پیامک داخل داشبورد/مشتری است)؛
+        // کنترل دسترسی پیامک با کلیدهای sms.* در همان بخش‌ها اعمال می‌شود.
         feature: "sms",
       },
       login: {
@@ -78,6 +88,9 @@ class AppService {
       // 1. مقداردهی سرویس‌های Core
       await this.initCoreServices();
 
+      // 1.5 ✅ سطوح دسترسی (مجوزهای کاربر جاری + گیت منو/دکمه‌ها)
+      await this.initPermissions();
+
       // 2. مقداردهی Layouts
       await this.initLayouts();
 
@@ -89,6 +102,10 @@ class AppService {
 
       // 5. بررسی دسترسی
       await this.checkAccess();
+
+      // 5.5 ✅ اگر در حین کار مجوز صفحه از کاربر گرفته شد (تغییر از پنل مدیریت)
+      //     همان لحظه پیام می‌گیرد و به داشبورد برمی‌گردد.
+      this.installPagePermissionWatch();
 
       // 6. بارگذاری Feature مربوطه
       await this.loadFeature();
@@ -120,6 +137,21 @@ class AppService {
     }
 
     console.log("✅ Core services initialized");
+  }
+
+  // ===== سطوح دسترسی (نقش/کاربر) =====
+  // مجوزهای کاربر جاری از /api/permissions/me خوانده می‌شود (کش ۵ دقیقه‌ای)
+  // و المن‌هایی که data-permission دارند مخفی/غیرفعال می‌شوند.
+  // ⚠️ این فقط تجربهٔ کاربری است؛ کنترل واقعی سمت سرور انجام می‌شود.
+  async initPermissions() {
+    try {
+      await permissionService.load();
+      permissionService.applyGuards(document);
+      // ✅ تازه‌سازی خودکار روی برگشت به تب/فوکوس پنجره
+      permissionService.installAutoRefresh();
+    } catch (error) {
+      console.warn("⚠️ بارگذاری سطوح دسترسی ناموفق بود:", error?.message || error);
+    }
   }
 
   // ===== Layouts =====
@@ -280,9 +312,35 @@ class AppService {
       return;
     }
 
-    // بررسی دسترسی ادمین (فقط super_admin و admin)
-    if (config.requiresAdmin && !authService.hasRole(["super_admin", "admin"])) {
-      notificationService.error("⛔ شما دسترسی به این صفحه ندارید");
+    // ✅ گیت مجوزمحور صفحه: اگر کلید این صفحه برای نقش کاربر بسته باشد
+    //    (مثلاً مدیر اصلی ‏admin.panel.access را از «مدیر» گرفته باشد)
+    //    پیام قابل‌فهم می‌گیرد و به داشبورد برمی‌گردد.
+    //    ⚠️ استثناها (ضدحلقه/ضدقفل‌شدن کاربر):
+    //      ۱) نقش «مشتری» از این گیت مستثناست (پورتال خودش)
+    //      ۲) صفحهٔ مقصد (داشبورد) کسی را بیرون نمی‌اندازد
+    //      ۳) اگر مجوزها در دسترس نباشند (خطای شبکه) هیچ‌کس مسدود نمی‌شود
+    const requiredPageKeys = [].concat(config.requiresPermission || []);
+    if (
+      requiredPageKeys.length &&
+      permissionService.role !== "customer" &&
+      permissionService.hasData() &&
+      !permissionService.canAny(requiredPageKeys)
+    ) {
+      if (await this.handlePagePermissionLoss(requiredPageKeys[0])) {
+        window.location.href = "/index.html";
+        return;
+      }
+    }
+
+    // بررسی دسترسی پنل مدیریت:
+    //   • نقش مدیر/سوپرادمین (مثل قبل)  ← یا ←
+    //   • داشتن مجوز admin.panel.access (قابل دادن به هر نقش از پنل)
+    if (
+      config.requiresAdmin &&
+      !authService.hasRole(["super_admin", "admin"]) &&
+      !permissionService.can("admin.panel.access")
+    ) {
+      await this.denyPageAccess("admin.panel.access");
       window.location.href = "/index.html";
       return;
     }
@@ -310,6 +368,105 @@ class AppService {
     }
 
     console.log(`✅ Page access granted: ${this.currentPage}`);
+  }
+
+  // ============================================================
+  // ✅ پیام «عدم دسترسی به صفحه»
+  // ------------------------------------------------------------
+  // سیاست کم‌مزاحمتی:
+  //  • بار اول در هر نشست ⇒ مودال تک‌دکمه‌ای («بازگرد به داشبورد»)
+  //    تا کاربر بفهمد چرا بیرون انداخته شده است
+  //  • بارهای بعد در همان نشست ⇒ فقط یک توست ضدنکرار
+  // ============================================================
+  deniedText(reasonKey) {
+    const permTitle = permissionService.titleOf(reasonKey) || reasonKey;
+    const roleTitle =
+      permissionService.roleTitle || authService.getUser()?.role || "";
+
+    return `این بخش برای نقش شما${
+      roleTitle ? ` («${roleTitle}»)` : ""
+    } غیرفعال شده است: «${permTitle}». برای فعال‌سازی با مدیر اصلی تماس بگیرید.`;
+  }
+
+  // صفحهٔ مقصد (داشبورد) — از آن کسی را بیرون نمی‌اندازیم (ضدحلقهٔ ریدایرکت)
+  isLandingPage() {
+    return this.currentPage === "dashboard";
+  }
+
+  // ✅ نتیجهٔ «گرفتن مجوز صفحه»:
+  //    • در صفحهٔ مقصد ⇒ فقط اطلاع (بدون ریدایرکت)
+  //    • بقیهٔ صفحات ⇒ مودال یک‌بار در نشست + بازگشت به داشبورد
+  //    مقدار بازگشتی: true ⇒ باید به داشبورد برگردد
+  async handlePagePermissionLoss(reasonKey) {
+    if (this.isLandingPage()) {
+      notificationService.notifyOnce({
+        key: `perm-page:${reasonKey}`,
+        message: `⛔ ${this.deniedText(reasonKey)}`,
+        type: "error",
+        cooldownMs: 30000,
+      });
+      return false;
+    }
+
+    await this.denyPageAccess(reasonKey);
+    return true;
+  }
+
+  async denyPageAccess(reasonKey) {
+    const text = this.deniedText(reasonKey);
+
+    const sessionKey = `skb_perm_denied_page:${this.currentPage}:${reasonKey}`;
+    let alreadyShown = false;
+    try {
+      alreadyShown = sessionStorage.getItem(sessionKey) === "1";
+    } catch {
+      alreadyShown = false;
+    }
+
+    if (alreadyShown) {
+      notificationService.notifyOnce({
+        key: `perm-page:${reasonKey}`,
+        message: `⛔ ${text}`,
+        type: "error",
+        cooldownMs: 30000,
+      });
+      return;
+    }
+
+    try {
+      sessionStorage.setItem(sessionKey, "1");
+    } catch {
+      /* بی‌صدا */
+    }
+
+    await notificationService.modalMessage({
+      title: "⛔ دسترسی به این صفحه بسته است",
+      text,
+      confirmText: "بازگشت به داشبورد",
+      icon: "warning",
+    });
+  }
+
+  // ============================================================
+  // ✅ ناظر مجوز صفحه: اگر در حین کار مجوز این صفحه از کاربر
+  //    گرفته شد (تغییر در پنل مدیریت) ⇒ همان لحظه پیام + خروج
+  // ============================================================
+  installPagePermissionWatch() {
+    if (this._pageWatchInstalled || typeof document === "undefined") return;
+    this._pageWatchInstalled = true;
+
+    document.addEventListener("permissions:applied", async () => {
+      const config = this.pageConfigs[this.currentPage];
+      const keys = [].concat(config?.requiresPermission || []);
+      if (!keys.length || !permissionService.hasData()) return;
+      // مشتری پورتال خودش است و داشبورد صفحهٔ مقصد ⇒ هیچ‌کدام بیرون انداخته نمی‌شوند
+      if (permissionService.role === "customer") return;
+      if (permissionService.canAny(keys)) return;
+
+      if (await this.handlePagePermissionLoss(keys[0])) {
+        window.location.href = "/index.html";
+      }
+    });
   }
 
   // ===== بارگذاری Feature =====
@@ -385,6 +542,13 @@ class AppService {
       if (typeof service.init === "function") {
         await service.init();
         console.log(`✅ Feature "${featureName}" loaded successfully`);
+
+        // ✅ مجدداً گیت‌ها را اعمال کن (بخش ممکن است المن‌های جدید ساخته باشد)
+        try {
+          permissionService.applyGuards(document);
+        } catch (guardError) {
+          console.warn("⚠️ اعمال گیت دسترسی ناموفق بود:", guardError?.message);
+        }
       } else {
         console.warn(`⚠️ Service "${foundName}" has no init method`);
       }

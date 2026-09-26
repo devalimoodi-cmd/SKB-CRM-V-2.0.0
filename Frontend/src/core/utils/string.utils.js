@@ -54,20 +54,21 @@ export function toEnglishDigits(value) {
     .replace(/[٠-٩]/g, (d) => String("٠١٢٣٤٥٦٧٨٩".indexOf(d)));
 }
 
-// ===== ✅ اعتبارسنجی کد ملی ایران (۱۰ رقم + رقم کنترلی) =====
-// ورودی با ارقام فارسی هم پذیرفته می‌شود.
+// ===== ✅ اعتبارسنجی کد ملی: فقط ۱۰ رقم عددی =====
+// ⚠️ طبق تصمیم پروژه، الگوریتم «رقم کنترلی» اعمال نمی‌شود؛
+//    تنها شرط این است که ورودی دقیقاً ۱۰ رقم باشد (ارقام فارسی/عربی پذیرفته می‌شود).
 export function isValidNationalCode(code) {
-  const value = toEnglishDigits(code).trim();
-  if (!/^[0-9]{10}$/.test(value)) return false;
-  if (/^(\d)\1{9}$/.test(value)) return false; // ۱۱۱۱۱۱۱۱۱۱
+  if (code === null || code === undefined) return false;
+  return /^[0-9]{10}$/.test(toEnglishDigits(code).trim());
+}
 
-  const check = Number(value[9]);
-  let sum = 0;
-  for (let i = 0; i < 9; i++) {
-    sum += Number(value[i]) * (10 - i);
-  }
-  const remainder = sum % 11;
-  return remainder < 2 ? check === remainder : check === 11 - remainder;
+// ===== ✅ ورودی فقط عددی (کد ملی/تلفن/کدپستی) =====
+// ارقام فارسی/عربی → انگلیسی + حذف کاراکترهای غیرعددی + محدودیت طول
+// مثال: digitsOnlyValue("۱۲۳a۴۵۶۷۸۹۰۱۲۳", 10) === "1234567890"
+export function digitsOnlyValue(value, maxLength = 10) {
+  return toEnglishDigits(value)
+    .replace(/[^0-9]/g, "")
+    .slice(0, maxLength);
 }
 
 // ===== ✅ ایمن‌سازی متن برای قرار دادن در innerHTML =====

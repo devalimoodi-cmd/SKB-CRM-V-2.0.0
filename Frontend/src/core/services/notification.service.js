@@ -33,6 +33,12 @@ class NotificationService {
         iconColor: "#3b82f6",
       },
     };
+
+    // ✅ «کمهزاحمت»: وضعیت ضدتکرار و سقف نرخ برای پیامهای کاربر
+    this._recentKeys = new Map(); // key → زمان آخرین نمایش
+    this._recentTimes = []; // زمان پیامهای اخیر (برای سقف دقیقهای)
+    this._pendingToast = null; // پیامی که چون پیام دیگری باز بود، در صف ماند
+    this._flushTimer = null; // تایمر تخلیهٔ صف
   }
 
   _getSwal() {
@@ -54,7 +60,8 @@ class NotificationService {
     return null;
   }
 
-  toast(message, type = "info") {
+  // نمایش توست (پایهٔ همهٔ پیام‌های نوع toast)
+  _showToast(message, type = "info") {
     const config = this.toastConfig[type] || this.toastConfig.info;
     const swal = this._getSwal();
 
@@ -72,12 +79,94 @@ class NotificationService {
         width: "auto",
         padding: "0.8rem 1.2rem",
       });
-    } else {
-      // ✅ fallback با console.log
-      console.log(`[${type.toUpperCase()}]`, message);
-      // ✅ یا با alert ساده
-      // alert(message);
+      return true;
     }
+
+    // ✅ fallback با console.log (وقتی SweetAlert2 در صفحه لود نشده باشد)
+    console.log(`[${type.toUpperCase()}]`, message);
+    return false;
+  }
+
+  toast(message, type = "info") {
+    this._showToast(message, type);
+  }
+
+  // ================================================================
+  // ✅ توست «کم‌مزاحمت» برای شکست عملیات‌هایی که کاربر خودش شروع کرده
+  // ----------------------------------------------------------------
+  // قواعد (سیاست پروژه: هیچ مزاحمتی برای کاربر):
+  //  • فقط توست کوچک و خودبسته — هرگز مودال/دکمه نمی‌سازد
+  //  • «یک پیام در لحظه»: اگر توست/مودال دیگری باز است، پیام در صف می‌ماند
+  //  • ضدتکرار (cooldownMs) + سقف نرخ (maxPerMinute) → جلوگیری از سیل پیام
+  //  • خاموشی سراسری: ?debug=1 یا localStorage.skb_user_toasts="off"
+  // ================================================================
+  notifyOnce({ key, message, type = "error", cooldownMs = 30000, maxPerMinute = 3 } = {}) {
+    const text = typeof message === "string" ? message.trim() : "";
+    if (!text) return false;
+
+    const dedupeKey = key || text;
+
+    // خاموشی سراسری یا حالت دیباگ → فقط کنسول
+    if (this._userToastsDisabled()) {
+      console.info(`[toast-off] ${text}`);
+      return false;
+    }
+
+    const now = Date.now();
+
+    // ۱) ضدتکرار: همان پیام در بازهٔ cooldown دوباره نمایش داده نمی‌شود
+    const last = this._recentKeys.get(dedupeKey);
+    if (last && now - last < cooldownMs) return false;
+
+    // ۲) سقف نرخ: حداکثر maxPerMinute پیام در دقیقه
+    this._recentTimes = this._recentTimes.filter((t) => now - t < 60000);
+    if (this._recentTimes.length >= maxPerMinute) return false;
+
+    // ۳) یک پیام در لحظه: پیام‌ها روی هم انبار نمی‌شوند
+    if (this._anyVisible()) {
+      this._pendingToast = { message: text, type };
+      this._scheduleFlush();
+      return false;
+    }
+
+    this._recentKeys.set(dedupeKey, now);
+    this._recentTimes.push(now);
+    return this._showToast(text, type);
+  }
+
+  // ===== کمکی‌های notifyOnce =====
+  _userToastsDisabled() {
+    if (typeof window === "undefined") return true;
+    try {
+      if (localStorage.getItem("skb_user_toasts") === "off") return true;
+      return new URLSearchParams(window.location.search).has("debug");
+    } catch {
+      return false;
+    }
+  }
+
+  _anyVisible() {
+    const swal = this._getSwal();
+    return !!(swal && typeof swal.isVisible === "function" && swal.isVisible());
+  }
+
+  _scheduleFlush(attempt = 0) {
+    if (this._flushTimer || !this._pendingToast) return;
+
+    this._flushTimer = setTimeout(() => {
+      this._flushTimer = null;
+      if (!this._pendingToast) return;
+
+      // حداکثر ~۱۰ ثانیه انتظار (۲۰ × ۵۰۰ms) تا پیام بازِ قبلی بسته شود
+      if (this._anyVisible() && attempt < 20) {
+        this._scheduleFlush(attempt + 1);
+        return;
+      }
+
+      const { message, type } = this._pendingToast;
+      this._pendingToast = null;
+      this._showToast(message, type);
+    }, 500);
   }
 
   success(message) {
@@ -171,6 +260,41 @@ class NotificationService {
       confirmButtonText: "متوجه شدم",
       confirmButtonColor: "#dc2626",
     });
+  }
+
+  // ================================================================
+  // ✅ پیام نیازمند تأیید کاربر (مودال تک‌دکمه‌ای، بدون انصراف و بدون تایمر)
+  // ----------------------------------------------------------------
+  // کاربرد: ورود به صفحه/بخشی که برای نقش کاربر بسته شده است.
+  // Promise پس از تأیید کاربر resolve می‌شود (تا هدایت صفحه بعد از
+  // دیده‌شدن پیام انجام شود).
+  // ================================================================
+  async modalMessage({
+    title = "⛔ عدم دسترسی",
+    text = "",
+    html = null,
+    confirmText = "متوجه شدم",
+    icon = "warning",
+  } = {}) {
+    const swal = this._getSwal();
+
+    if (!swal) {
+      // eslint-disable-next-line no-alert -- فالبک فقط وقتی SweetAlert2 در صفحه لود نشده باشد
+      alert(`${title}${text ? `\n${text}` : ""}`);
+      return true;
+    }
+
+    const result = await swal.fire({
+      title,
+      ...(html ? { html } : { text }),
+      icon,
+      confirmButtonText: confirmText,
+      confirmButtonColor: "#2c7a6e",
+      allowOutsideClick: false,
+      allowEscapeKey: false,
+    });
+
+    return !!result?.isConfirmed;
   }
 
   // ===== تأیید عملیات با SweetAlert2 =====

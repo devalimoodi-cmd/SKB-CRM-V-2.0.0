@@ -1,6 +1,7 @@
 import { customerListApi } from "./customer-list.api.js";
 import { customerListRenderer } from "./customer-list.renderer.js";
 import { customerListValidation } from "./customer-list.validation.js";
+import { digitsOnlyValue } from "../../core/utils/string.utils.js";
 import { notificationService } from "../../core/services/notification.service.js";
 import { authService } from "../../core/services/auth.service.js";
 import { stateService } from "../../core/services/state.service.js";
@@ -48,8 +49,22 @@ class CustomerListService {
     // this.setupPagination(); // ✅ این خط رو کامنت کن (یا حذف کن)
     this.setupEvents();
     this.setupDatepicker();
+    // ✅ کد ملی: فقط عدد (ارقام فارسی خودکار به انگلیسی تبدیل می‌شوند)
+    this.setupNationalCodeInput();
     this.initialized = true;
     console.log("✅ CustomerListService initialized");
+  }
+
+  // ورودی کد ملی را «فقط عددی» می‌کند (حداکثر ۱۰ رقم)
+  setupNationalCodeInput() {
+    const input = document.getElementById("national-code");
+    if (!input || input.dataset.digitsBound === "1") return;
+    input.dataset.digitsBound = "1";
+
+    input.addEventListener("input", () => {
+      const clean = digitsOnlyValue(input.value, 10);
+      if (input.value !== clean) input.value = clean;
+    });
   }
   // ===== بارگذاری داده‌ها =====
 

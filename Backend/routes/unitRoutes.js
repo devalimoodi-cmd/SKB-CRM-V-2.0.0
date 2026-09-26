@@ -1,62 +1,76 @@
 const express = require("express");
 const router = express.Router();
 const unitController = require("../controllers/unitController");
-const { protect, authorize } = require("../middleware/auth");
+const { protect } = require("../middleware/auth");
+const { requirePermission } = require("../middleware/permissions");
 
-// ============================================
-// همه مسیرهای مربوط به واحدهای مرغداری
-// ============================================
+// ============================================================
+// واحدهای مرغداری
+// ✅ کنترل دسترسی بر پایهٔ «مجوز» (پنل مدیریت ← مدیریت نقش‌ها)
+// ⚠️ در حالت آزمایشی (PERMISSIONS_ENFORCE=false) فقط لاگ می‌شود.
+// ============================================================
 
-// مسیرهای عمومی (برای کاربران لاگین شده)
-router.get("/", protect, unitController.getUnits);
-router.get("/statuses", protect, unitController.getUnitStatuses);
-router.get("/:id", protect, unitController.getUnitById);
+// -------- مشاهده (قبلاً فقط protect بود؛ الان با مجوز) --------
+router.get("/", protect, requirePermission("units.view"), unitController.getUnits);
+router.get(
+  "/statuses",
+  protect,
+  requirePermission("units.view"),
+  unitController.getUnitStatuses,
+);
+router.get("/:id", protect, requirePermission("units.view"), unitController.getUnitById);
 
-// مسیرهای مدیریت کارشناسان واحد
-router.get("/:unitId/experts", protect, unitController.getUnitExperts);
+// -------- کارشناسان واحد --------
+router.get(
+  "/:unitId/experts",
+  protect,
+  requirePermission("units.view"),
+  unitController.getUnitExperts,
+);
 router.post(
   "/:unitId/experts",
   protect,
-  authorize("expert", "admin", "sub_admin", "super_admin"),
+  requirePermission("units.experts"),
   unitController.addUnitExpert,
 );
 router.put(
   "/:unitId/experts/:expertId",
   protect,
-  authorize("expert", "admin", "sub_admin", "super_admin"),
+  requirePermission("units.experts"),
   unitController.updateUnitExpert,
 );
 router.delete(
   "/:unitId/experts/:expertId",
   protect,
-  authorize("expert", "admin", "sub_admin", "super_admin"),
+  requirePermission("units.experts"),
   unitController.deleteUnitExpert,
 );
 
-// مسیرهای محافظت شده (فقط کارشناسان و مدیران)
+// -------- ثبت/ویرایش/حذف واحد --------
 router.post(
   "/",
   protect,
-  authorize("expert", "admin", "sub_admin", "super_admin"),
+  requirePermission("units.create"),
   unitController.createUnit,
 );
 router.put(
   "/:id",
   protect,
-  authorize("expert", "admin", "sub_admin", "super_admin"),
+  requirePermission("units.edit"),
   unitController.updateUnit,
 );
 router.delete(
   "/:id",
   protect,
-  authorize("expert", "admin", "sub_admin", "super_admin"),
+  requirePermission("units.delete"),
   unitController.deleteUnit,
 );
 router.put(
   "/toggle-status/:id",
   protect,
-  authorize("expert", "admin", "sub_admin", "super_admin"),
+  requirePermission("units.toggle"),
   unitController.toggleUnitStatus,
 );
 
 module.exports = router;
+

@@ -10,6 +10,7 @@ import {
   isValidPostalCode,
   isValidEmail,
   isValidNationalCode,
+  digitsOnlyValue,
 } from "../../../../core/utils/string.utils.js";
 
 class BasicInfoService {
@@ -142,11 +143,26 @@ class BasicInfoService {
       submitBtn.addEventListener("click", () => this.updateCustomer());
     }
 
-    // دکمه انصراف
+    // ✅ دکمه انصراف
     const cancelBtn = document.getElementById("skb-cancel-btn");
     if (cancelBtn) {
       cancelBtn.addEventListener("click", () => this.cancelEditing());
     }
+
+    // ✅ کد ملی: فقط عدد (ارقام فارسی خودکار به انگلیسی تبدیل می‌شوند)
+    this.setupNationalCodeInput();
+  }
+
+  // ورودی کد ملی را «فقط عددی» می‌کند (حداکثر ۱۰ رقم)
+  setupNationalCodeInput() {
+    const input = document.getElementById("skb-national-code");
+    if (!input || input.dataset.digitsBound === "1") return;
+    input.dataset.digitsBound = "1";
+
+    input.addEventListener("input", () => {
+      const clean = digitsOnlyValue(input.value, 10);
+      if (input.value !== clean) input.value = clean;
+    });
   }
 
   enableEditing() {
@@ -305,10 +321,10 @@ class BasicInfoService {
       errors.push("نوع مشتری الزامی است");
     }
 
-    // ✅ کد ملی (اختیاری — در صورت ورود باید ۱۰ رقم و معتبر باشد)
+    // ✅ کد ملی (اختیاری — در صورت ورود باید ۱۰ رقم عددی باشد)
     if (data.national_code && String(data.national_code).trim() !== "") {
       if (!isValidNationalCode(data.national_code)) {
-        errors.push("کد ملی باید ۱۰ رقم و معتبر باشد");
+        errors.push("کد ملی باید ۱۰ رقم عددی باشد");
       }
     }
 

@@ -3,6 +3,7 @@ import { adminPanelRenderer } from "./admin-panel.renderer.js";
 import { adminPanelValidation } from "./admin-panel.validation.js";
 import { notificationService } from "../../core/services/notification.service.js";
 import { authService } from "../../core/services/auth.service.js";
+import { permissionService } from "../../core/services/permission.service.js";
 import {
   messagesService,
   statusBadge,
@@ -40,6 +41,13 @@ class AdminPanelService {
 
     await this.loadData();
     this.setupSidebar();
+
+    // ✅ هم‌راستا کردن سایدبار با سطوح دسترسی (data-permission)
+    this.syncMenuVisibility();
+    document.addEventListener("permissions:applied", () =>
+      this.syncMenuVisibility(),
+    );
+
     this.setupEvents();
     this.setupSuggestions();
     this.loadSystemSettings();
@@ -580,7 +588,80 @@ class AdminPanelService {
     }
   }
 
+  // ===== هم‌راستایی سایدبار با سطوح دسترسی =====
+  // پس از اعمال گیت‌های data-permission:
+  //   • اگر منوی فعال مخفی شده باشد ⇒ اولین منوی قابل‌مشاهده فعال می‌شود
+  //     (تا محتوای پنل خالی و گیج‌کننده نماند)
+  //   • اگر هیچ منویی قابل‌مشاهده نباشد ⇒ پیام راهنما نمایش داده می‌شود
+  // ============================================================
+  syncMenuVisibility() {
+    const items = Array.from(
+      document.querySelectorAll(".sidebar-menu-item[data-menu]"),
+    );
+    if (!items.length) return;
+
+    const isVisible = (el) => el.style.display !== "none";
+    const visible = items.filter(isVisible);
+    const active = items.find((el) => el.classList.contains("active"));
+    const contentArea = document.querySelector(".content-area");
+
+    // ۱) هیچ بخشی برای این نقش فعال نیست
+    if (!visible.length) {
+      document
+        .querySelectorAll(".content-section")
+        .forEach((section) => section.classList.remove("active"));
+
+      if (contentArea && !contentArea.querySelector(".perm-no-section")) {
+        const box = document.createElement("div");
+        box.className = "perm-no-section";
+        box.innerHTML = `
+          <i class="fas fa-lock"></i>
+          <p>هیچ بخشی از پنل مدیریت برای نقش شما فعال نشده است.</p>
+          <p class="perm-denied-hint">برای فعال‌سازی، مدیر اصلی باید از «مدیریت نقش‌ها و سطوح دسترسی» منوهای موردنیاز را روشن کند.</p>
+          <a href="/" class="perm-btn primary">بازگشت به داشبورد</a>`;
+        contentArea.appendChild(box);
+      }
+      return;
+    }
+
+    contentArea?.querySelector(".perm-no-section")?.remove();
+
+    // ۲) منوی فعال قابل‌مشاهده است ⇒ کاری لازم نیست
+    if (active && isVisible(active)) return;
+
+    // ۳) اولین منوی قابل‌مشاهده را فعال کن
+    visible[0].click();
+  }
+
+  // ===== کلید مجوز منوهای سایدبار =====
+  //   (برای پیام «این بخش برای نقش شما بسته است» وقتی منو مخفی است)
+  get menuPermissions() {
+    return {
+      "super-admin-management": "admin.menu.superAdmins",
+      "user-management": "admin.menu.users",
+      "dictionary-management": "admin.menu.dictionary",
+      "role-management": "admin.menu.roles",
+      "system-settings": "admin.menu.settings",
+      suggestions: "admin.menu.suggestions",
+      "release-notes": "admin.menu.releases",
+    };
+  }
+
   async loadMenuData(menuId) {
+    // ✅ اگر این بخش برای نقش کاربر بسته است (لینک مستقیم/کش قدیمی)،
+    //    پیام قابل‌فهم در همان بخش نمایش داده می‌شود (نه خطا/بی‌صدا)
+    const menuKey = this.menuPermissions[menuId];
+    const menuSection = document.getElementById(menuId);
+
+    // ⚠️ اگر مجوزها در دسترس نباشند، محتوا بی‌دلیل مسدود نمی‌شود (fail-open)
+    if (menuKey && permissionService.hasData() && !permissionService.can(menuKey)) {
+      if (menuSection) permissionService.renderDeniedNotice(menuSection, menuKey);
+      return;
+    }
+    if (menuSection && menuKey && permissionService.hasData()) {
+      permissionService.clearDeniedNotice(menuSection);
+    }
+
     switch (menuId) {
       case "user-management":
         await this.loadUsers();
@@ -591,6 +672,11 @@ class AdminPanelService {
       case "dictionary-management":
         this.stopSuggestionsPolling();
         await this.initDictionaryManager();
+        break;
+      case "role-management":
+        // ✅ «مدیریت نقش‌ها و سطوح دسترسی» (ماتریس نقش‌ها + دسترسی کاربران)
+        this.stopSuggestionsPolling();
+        await this.initPermissionManager();
         break;
       case "suggestions":
         // ✅ «نظرات و پیشنهادات» کاربران
@@ -604,6 +690,27 @@ class AdminPanelService {
         break;
       default:
         console.log("📌 بخش:", menuId);
+    }
+  }
+
+  // ===== مدیریت «نقش‌ها و سطوح دسترسی» =====
+
+  async initPermissionManager() {
+    try {
+      // اگر ماژول مجوزها هنوز لود نشده، به‌صورت داینامیک لود کن
+      if (!window.permissionManager) {
+        await import("./permission.manager.js");
+      }
+
+      if (window.permissionManager) {
+        await window.permissionManager.init("#permissionManagerContainer");
+      } else {
+        console.warn("⚠️ PermissionManager در دسترس نیست");
+        notificationService.error("ماژول مدیریت سطوح دسترسی یافت نشد");
+      }
+    } catch (error) {
+      console.error("❌ Error initializing permission manager:", error);
+      notificationService.error("خطا در راه‌اندازی مدیریت سطوح دسترسی");
     }
   }
 

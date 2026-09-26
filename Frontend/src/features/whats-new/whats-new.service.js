@@ -14,6 +14,7 @@
 import { whatsNewApi } from "./whats-new.api.js";
 import { renderModal } from "./whats-new.renderer.js";
 import { authService } from "../../core/services/auth.service.js";
+import { notificationService } from "../../core/services/notification.service.js";
 
 const CHECK_DELAY_MS = 1500;
 const SESSION_PREFIX = "skb_wn_closed_";
@@ -196,6 +197,12 @@ class WhatsNewService {
       }
     } catch (error) {
       console.warn("⚠️ دریافت تغییرات ناموفق بود:", error?.message || error);
+      // ✅ کاربر روی «تغییرات جدید» زده و هیچ نمی‌بیند → اطلاع کوتاه
+      notificationService.notifyOnce({
+        key: "whats-new-fetch",
+        type: "warning",
+        message: "دریافت تغییرات جدید ناموفق بود",
+      });
     }
 
     // ۲) در غیر این صورت: آخرین نسخهٔ منتشرشده از تاریخچه

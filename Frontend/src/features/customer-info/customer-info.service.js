@@ -1,6 +1,7 @@
 import { apiService } from "../../core/services/api.service.js";
 import { stateService } from "../../core/services/state.service.js";
 import { notificationService } from "../../core/services/notification.service.js";
+import { permissionService } from "../../core/services/permission.service.js";
 import "../../core/services/auth.service.js";
 import {
 } from "../../core/utils/date.utils.js";
@@ -26,6 +27,17 @@ class CustomerInfoService {
     };
 
     this.lockedSections = ["experiment", "order-management", "formulation"];
+
+    // ✅ کلید مجوز هر بخش (برای پیام «این بخش برای نقش شما بسته است»)
+    //    نام‌ها مطابق data-permission در pages/customer-info.html
+    this.sectionPermissions = {
+      "Basic-Information": "customer.basic.view",
+      "Chart-Dashboard": "charts.view",
+      "customer-AddHals": "halls.view",
+      "Hatchery-Management": "hatchery.view",
+      "weekly-card": "weekly.view",
+      "Visit-Report": "visit.view",
+    };
 
     this.allWrappers = [
       "Basic-Information",
@@ -328,30 +340,45 @@ class CustomerInfoService {
   // ✅ فعال کردن پیش‌فرض
   // ============================================
   activateDefault(menuItems) {
-    const defaultMenu = Array.from(menuItems).find(
-      (item) =>
-        item.querySelector(".menu-title")?.textContent?.trim() === "داشبورد",
-    );
+    const all = Array.from(menuItems);
+    // ✅ فقط منوهایی که کاربر مجاز است (applyGuards موارد بدون مجوز را مخفی کرده)
+    const visible = all.filter((item) => item.style.display !== "none");
 
     this.hideAllWrappers();
 
-    if (defaultMenu) {
-      defaultMenu.classList.add("active");
-      this.showWrapper("Chart-Dashboard");
-      this.currentSection = "Chart-Dashboard";
-      setTimeout(() => this.loadSectionData("Chart-Dashboard"), 200);
-    } else if (menuItems[0]) {
-      const title = menuItems[0]
-        .querySelector(".menu-title")
-        ?.textContent?.trim();
-      const wrapper = this.menuToWrapper[title];
-      if (wrapper) {
-        menuItems[0].classList.add("active");
-        this.showWrapper(wrapper);
-        this.currentSection = wrapper;
-        setTimeout(() => this.loadSectionData(wrapper), 200);
+    // ✅ اگر هیچ بخشی برای این نقش مجاز نباشد، پیام قابل‌فهم نشان بده
+    if (!visible.length) {
+      const firstWrapper = this.allWrappers.find(
+        (id) => this.sectionPermissions[id],
+      );
+      if (firstWrapper) {
+        this.showWrapper(firstWrapper);
+        this.currentSection = firstWrapper;
+        permissionService.renderDeniedNotice(
+          firstWrapper,
+          this.sectionPermissions[firstWrapper],
+          "برای فعال‌کردن این بخش با مدیر اصلی تماس بگیرید.",
+        );
       }
+      return;
     }
+
+    const defaultMenu =
+      visible.find(
+        (item) =>
+          item.querySelector(".menu-title")?.textContent?.trim() === "داشبورد",
+      ) || visible[0];
+
+    const title = defaultMenu
+      .querySelector(".menu-title")
+      ?.textContent?.trim();
+    const wrapper = this.menuToWrapper[title];
+    if (!wrapper) return;
+
+    defaultMenu.classList.add("active");
+    this.showWrapper(wrapper);
+    this.currentSection = wrapper;
+    setTimeout(() => this.loadSectionData(wrapper), 200);
   }
 
   // ============================================
@@ -398,6 +425,23 @@ class CustomerInfoService {
   // ============================================
   async loadSectionData(sectionId) {
     console.log(`🔄 بروزرسانی بخش: ${sectionId}`);
+
+    // ✅ گیت مجوز: اگر این بخش برای نقش کاربر بسته باشد، به‌جای خالی‌ماندن
+    //    (یا خطای ۴۰۳)، کارت «این بخش برای نقش شما غیرفعال شده است»
+    //    نمایش داده می‌شود و درخواست شبکه‌ای زده نمی‌شود.
+    //    ⚠️ اگر مجوزها هنوز/به‌دلیل خطا در دسترس نباشند، جلوی کاربر گرفته نمی‌شود.
+    const sectionKey = this.sectionPermissions[sectionId];
+    if (
+      sectionKey &&
+      permissionService.hasData() &&
+      !permissionService.can(sectionKey)
+    ) {
+      permissionService.renderDeniedNotice(sectionId, sectionKey);
+      return;
+    }
+    if (sectionKey && permissionService.hasData()) {
+      permissionService.clearDeniedNotice(sectionId);
+    }
 
     try {
       switch (sectionId) {
@@ -487,6 +531,12 @@ class CustomerInfoService {
       }
     } catch (error) {
       console.error(`❌ خطا در بروزرسانی ${sectionId}:`, error);
+      // ✅ کاربر روی «بروزرسانی» زده و پاسخ نگرفته → توست کوتاه (نه مودال)
+      notificationService.notifyOnce({
+        key: `customer-info-refresh-${sectionId}`,
+        type: "error",
+        message: "بهروزرسانی این بخش ناموفق بود",
+      });
     }
   }
   // ============================================

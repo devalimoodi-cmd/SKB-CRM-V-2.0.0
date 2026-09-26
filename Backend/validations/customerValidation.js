@@ -13,20 +13,11 @@ const toEnglishDigits = (value) => {
     .replace(/[٠-٩]/g, (d) => String("٠١٢٣٤٥٦٧٨٩".indexOf(d)));
 };
 
-// اعتبارسنجی کد ملی ایران (۱۰ رقم + رقم کنترلی)
-// ورودی با ارقام فارسی/عربی هم پذیرفته می‌شود.
+// اعتبارسنجی کد ملی: فقط ۱۰ رقم عددی (بدون رقم کنترلی)
+// ورودی با ارقام فارسی/عربی هم پذیرفته و نرمال می‌شود.
 const isValidIranNationalCode = (value) => {
   const code = toEnglishDigits(String(value ?? "")).trim();
-  if (!/^[0-9]{10}$/.test(code)) return false;
-  if (/^(\d)\1{9}$/.test(code)) return false; // ارقام تکراری مثل ۱۱۱۱۱۱۱۱۱۱
-
-  const check = Number(code[9]);
-  let sum = 0;
-  for (let i = 0; i < 9; i++) {
-    sum += Number(code[i]) * (10 - i);
-  }
-  const remainder = sum % 11;
-  return remainder < 2 ? check === remainder : check === 11 - remainder;
+  return /^[0-9]{10}$/.test(code);
 };
 
 // ============================================
@@ -144,13 +135,11 @@ const validateCustomerData = (data, options = {}) => {
     errors.push("فیلد 'نوع مشتری' باید از فهرست انتخاب شود");
   }
 
-  // 16. کد ملی - اختیاری (در صورت ورود باید ۱۰ رقم و معتبر باشد)
+  // 16. کد ملی - اختیاری (در صورت ورود باید ۱۰ رقم عددی باشد)
   if (data.national_code && String(data.national_code).trim() !== "") {
     const nationalCode = toEnglishDigits(data.national_code).trim();
-    if (!/^[0-9]{10}$/.test(nationalCode)) {
-      errors.push("فیلد 'کد ملی' باید ۱۰ رقم باشد");
-    } else if (!isValidIranNationalCode(nationalCode)) {
-      errors.push("فیلد 'کد ملی' معتبر نیست (ارقام وارد شده صحیح نیستند)");
+    if (!isValidIranNationalCode(nationalCode)) {
+      errors.push("فیلد 'کد ملی' باید ۱۰ رقم عددی باشد");
     }
   }
 

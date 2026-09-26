@@ -1,28 +1,39 @@
 // ================================================================
 // routes/flockRoutes.js
 // روت‌های «گله» (دوره پرورش)
+// ✅ کنترل دسترسی بر پایهٔ مجوز (پنل مدیریت ← مدیریت نقش‌ها)
 // ================================================================
 
 const express = require("express");
 const router = express.Router();
 const { protect, authorize } = require("../middleware/auth");
+const { requirePermission } = require("../middleware/permissions");
 const flockController = require("../controllers/flockController");
 
+const CAN_WRITE = authorize("expert", "admin", "super_admin", "sub_admin");
+
 // مشاهده (لاگین)
-router.get("/", protect, flockController.getFlocks);
-router.get("/:id", protect, flockController.getFlockById);
+router.get("/", protect, requirePermission("hatchery.view"), flockController.getFlocks);
+router.get(
+  "/:id",
+  protect,
+  requirePermission("hatchery.view"),
+  flockController.getFlockById,
+);
 
 // عملیات (کارشناس و مدیران)
 router.post(
   "/",
   protect,
-  authorize("expert", "admin", "super_admin", "sub_admin"),
+  CAN_WRITE,
+  requirePermission("hatchery.placement.create"),
   flockController.createFlock,
 );
 router.put(
   "/:id/end",
   protect,
-  authorize("expert", "admin", "super_admin", "sub_admin"),
+  CAN_WRITE,
+  requirePermission("hatchery.completion.create"),
   flockController.endFlock,
 );
 
@@ -30,7 +41,8 @@ router.put(
 router.put(
   "/:id/status",
   protect,
-  authorize("expert", "admin", "super_admin", "sub_admin"),
+  CAN_WRITE,
+  requirePermission("hatchery.placement.toggle"),
   flockController.setFlockStatus,
 );
 
@@ -38,7 +50,8 @@ router.put(
 router.put(
   "/:id",
   protect,
-  authorize("expert", "admin", "super_admin", "sub_admin"),
+  CAN_WRITE,
+  requirePermission("hatchery.placement.edit"),
   flockController.updateFlock,
 );
 

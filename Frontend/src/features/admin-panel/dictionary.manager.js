@@ -10,6 +10,7 @@ import {
   getDictionarySchema,
 } from "./dictionary.schemas.js";
 import { loaderService } from "../../shared/components/Loader/loader.service.js";
+import { notificationService } from "../../core/services/notification.service.js";
 
 // ایمن‌سازی خروجی HTML در برابر کاراکترهای ویژه (جلوگیری از شکستن مودال/XSS)
 const escapeHtml = (value) => {
@@ -154,6 +155,12 @@ class DictionaryManager {
             }));
           } catch (err) {
             console.error("❌ خطا در بارگذاری گزینه‌ها:", err);
+            // ✅ گزینه‌های یک فیلد خالی می‌ماند → اطلاع کوتاه به کاربر
+            notificationService.notifyOnce({
+              key: "dict-select-options",
+              type: "warning",
+              message: "گزینه‌های این فیلد دریافت نشد",
+            });
           }
         }
         this.selectOptions[`${this.currentKey}:${field.key}`] = options;
@@ -334,6 +341,12 @@ class DictionaryManager {
       this.renderTable();
     } catch (error) {
       console.error("❌ خطا در بارگذاری جدول دیکشنری:", error);
+      // ✅ جدول خالی می‌ماند → اطلاع کوتاه (همراه با دکمهٔ «تلاش مجدد» داخل جدول)
+      notificationService.notifyOnce({
+        key: `dict-table-${this.currentKey || "unknown"}`,
+        type: "error",
+        message: "بارگذاری جدول ناموفق بود — دوباره تلاش کنید",
+      });
       wrapper.innerHTML = `
         <div class="dict-error-state">
           <i class="fas fa-exclamation-triangle"></i>
@@ -769,6 +782,12 @@ class DictionaryManager {
       }
     } catch (error) {
       console.error("❌ خطا در تغییر وضعیت:", error);
+      // ✅ عملیات شکست خورده (وگرنه کاربر فکر می‌کند ذخیره شده) → توست، نه مودال
+      notificationService.notifyOnce({
+        key: "dict-status-change",
+        type: "error",
+        message: "تغییر وضعیت ذخیره نشد — دوباره تلاش کنید",
+      });
     }
   }
 }

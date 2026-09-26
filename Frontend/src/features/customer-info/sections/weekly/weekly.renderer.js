@@ -1,7 +1,31 @@
 import {
   convertToPersianDate,
 } from "../../../../core/utils/date.utils.js";
-import { flockGroupKey } from "./weekly.aggregation.js";
+import { flockGroupKey, sortFlocksByHall } from "./weekly.aggregation.js";
+import {
+  ALL_GROUP_KEYS,
+  REPORT_GROUPS,
+  metricsColumnsFor,
+  normalizeGroups,
+  isGroupSelected,
+  selectedGroupsLabel,
+} from "./weekly.report.groups.js";
+import {
+  WEEK_STATUS,
+  auditWeeks,
+  formatWeekList,
+  mergeAudits,
+  scopeAuditToWeeks,
+  timelineBasisLabel,
+} from "./weekly.audit.js";
+import {
+  buildWeekTimeline,
+  effectiveWeeksFor,
+  issuesOutsideSelection,
+  summarizeWeekSelection,
+  unionWeekSelection,
+  weekSelectionLabel,
+} from "./weekly.report.weeks.js";
 
 // ================================================================
 // توابع کمکی گزارش
@@ -19,6 +43,127 @@ const fmtPct = (value, digits = 2) =>
   value === null || value === undefined || isNaN(value)
     ? "—"
     : `${fmtNum(value, digits)}٪`;
+
+// ================================================================
+// هشدار «هفته‌های ثبت‌نشده / ناقص»
+// ================================================================
+
+const toFa = (value) =>
+  Number(value).toLocaleString("fa-IR", { maximumFractionDigits: 0 });
+
+const weekListText = (numbers = []) => formatWeekList(numbers, toFa);
+
+const MISSING_CELL =
+  '<span class="cell-missing" title="اطلاعات این هفته ثبت نشده است">❌ ثبت نشده</span>';
+
+const isMissingWeek = (week) =>
+  !!week && (week.__missing === true || week.existsInDb === false);
+
+const auditOfFlock = (flock) =>
+  flock?.audit || auditWeeks(flock?.weeks || [], flock?.hall_name || "");
+
+/** توضیح یک هفتهٔ ناقص: فیلدهای ناقص در سطح گله/سالن، نام سالن‌ها در سطح «کل گله» */
+const describePartialWeek = (audit, weekNumber) => {
+  const weekLabel = `هفته ${toFa(weekNumber)}`;
+  const byWeek = audit?.byWeek?.[weekNumber];
+  if (byWeek) {
+    const notes = [];
+    const missingHalls = (byWeek.missing || []).filter(Boolean);
+    const partialHalls = (byWeek.partial || []).filter(Boolean);
+    if (missingHalls.length) notes.push(`${missingHalls.join("، ")}: بدون ثبت`);
+    if (partialHalls.length) notes.push(`${partialHalls.join("، ")}: ناقص`);
+    if (notes.length) return `${weekLabel} (${notes.join(" | ")})`;
+  }
+  const fields = (audit?.fields?.[weekNumber] || []).join(" و ");
+  return fields ? `${weekLabel} (بدون ${fields})` : weekLabel;
+};
+
+/**
+ * بنر هشدار هفته‌های ثبت‌نشده (قرمز) و ناقص (کهربایی)
+ * @param {object} audit خروجی auditWeeks/mergeAudits
+ * @param {string} scopeLabel برچسب دامنه (نام سالن) — اختیاری
+ */
+export function renderWeekGapsAlert(audit, scopeLabel = "") {
+  if (!audit || !audit.hasIssues) return "";
+  const scope = scopeLabel ? `${scopeLabel} — ` : "";
+  const lines = [];
+
+  if (audit.missing.length > 0) {
+    lines.push(`
+        <div class="gap-line danger">
+          <span class="gap-ico">🚨</span>
+          <span><strong>${toFa(audit.missing.length)} هفته بدون ثبت اطلاعات</strong> در ${scope}این گله: هفته ${weekListText(audit.missing)}</span>
+        </div>`);
+  }
+
+  if (audit.partial.length > 0) {
+    const detail = audit.partial
+      .map((weekNumber) => describePartialWeek(audit, weekNumber))
+      .join(" | ");
+    lines.push(`
+        <div class="gap-line warn">
+          <span class="gap-ico">🟡</span>
+          <span><strong>${toFa(audit.partial.length)} هفته ناقص</strong>: ${detail}</span>
+        </div>`);
+  }
+
+  return `<div class="report-alert" role="alert">
+      ${lines.join("")}
+      <p class="gap-hint">لطفاً اطلاعات این هفته‌ها را از فرم «ثبت هفتگی» تکمیل کنید تا گزارش کامل شود.</p>
+    </div>`;
+}
+
+/** نشان فشردهٔ هشدار برای نوار خلاصهٔ هر گله */
+export const renderGapBadge = (audit) => {
+  if (!audit || !audit.hasIssues) return "";
+  const bits = [];
+  if (audit.missing.length > 0) {
+    bits.push(
+      `<span class="gap-word-danger">🚨 ${toFa(audit.missing.length)} هفته بدون ثبت</span>`,
+    );
+  }
+  if (audit.partial.length > 0) {
+    bits.push(`<span class="gap-word-warn">🟡 ${toFa(audit.partial.length)} هفته ناقص</span>`);
+  }
+  return `<span class="gap-badge">${bits.join(" • ")}</span>`;
+};
+
+// ================================================================
+// انتخاب هفته‌ها — چیپ‌ها و خطوط اطلاعی
+// ================================================================
+
+const flockWeeksKey = (flock) => `p${flock?.id ?? flock?.placement_id ?? "-"}`;
+
+/** چیپ «مبنای پایان گله» (شفافیت محاسبهٔ هفته‌های مورد انتظار) */
+const timelineChip = (timeline) =>
+  timeline
+    ? `<span class="basis-chip" title="مبنای شمارش هفته‌های مورد انتظار و هشدارهای ثبت">⚓ مبنای پایان: ${timelineBasisLabel(timeline, (date) => convertToPersianDate(date) || date)}</span>`
+    : "";
+
+/** چیپ محدودهٔ هفته‌های انتخاب‌شده */
+const weekRangeChip = (weekNumbers, timelineNumbers) =>
+  Array.isArray(weekNumbers)
+    ? `<span class="week-range-chip" title="فقط هفته‌های انتخاب‌شدهٔ شما در این گزارش آمده است">🎯 ${weekSelectionLabel(weekNumbers, timelineNumbers, toFa)}</span>`
+    : "";
+
+/** خط اطلاعی: هفته‌های مشکل‌دار خارج از انتخاب کاربر */
+const outsideIssuesNote = (numbers) =>
+  numbers && numbers.length
+    ? `<p class="gap-outside-note">ℹ️ ${toFa(numbers.length)} هفتهٔ مشکل‌دار دیگر این گله (${formatWeekList(numbers, toFa)}) خارج از انتخاب شماست.</p>`
+    : "";
+
+/** خط اطلاعی: گله‌هایی که چون هیچ هفته‌ای انتخاب نشده بود در گزارش نیامدند */
+const excludedFlocksNote = (names) =>
+  names && names.length
+    ? `<p class="gap-outside-note">ℹ️ ${toFa(names.length)} گله/سالن به‌خاطر انتخاب‌نشدن هیچ هفته‌ای در این گزارش نیامده است: ${names.join("، ")}</p>`
+    : "";
+
+/** حل هفته‌های یک گله/سالن بر اساس انتخاب کاربر (null = همهٔ هفته‌ها) */
+const resolveFlockWeekNumbers = (options, key, timeline) => {
+  const selection = options?.weekSelection;
+  if (!selection) return null;
+  return effectiveWeeksFor(selection, key, timeline);
+};
 
 // کارت‌های شاخص یک هفته (برای گزارش اختصاصی سالن) - گروه‌بندی‌شده
 // ابزارهای نمایش انحراف از استاندارد در کارتها (همانند فرم زندهٔ هفتگی)
@@ -69,7 +214,7 @@ const adgNote = (m) => {
   return `${base} | ${diff > 0 ? "▲" : "▼"} ${fmtNum(Math.abs(diff), 1)} گرم`;
 };
 
-const renderWeekMetricsCards = (metrics) => {
+const renderWeekMetricsCards = (metrics, selectedGroups = ALL_GROUP_KEYS) => {
   if (!metrics) {
     return '<div class="wc-empty">داده‌های این هفته ثبت نشده است</div>';
   }
@@ -81,8 +226,9 @@ const renderWeekMetricsCards = (metrics) => {
                 <div class="wc-sub">${sub}</div>
             </div>`;
 
-  const groups = [
+  const cardGroups = [
     {
+      key: "population",
       title: "🐔 جمعیت و زنده‌مانی",
       cards: [
         card("جمعیت مانده (زنده)", fmtNum(metrics.birdsEndOfWeek, 0), `ابتدای هفته: ${fmtNum(metrics.birdsStartOfWeek, 0)}`),
@@ -93,6 +239,7 @@ const renderWeekMetricsCards = (metrics) => {
       ],
     },
     {
+      key: "weight",
       title: "⚖️ وزن",
       cards: [
         card("میانگین وزن هفتگی", `${fmtNum(metrics.weight, 3)} کیلوگرم`, weightNote(metrics)),
@@ -103,6 +250,7 @@ const renderWeekMetricsCards = (metrics) => {
       ],
     },
     {
+      key: "growth",
       title: "🚀 رشد",
       cards: [
         card("ADG هفتگی", `${fmtNum(metrics.dailyGainGrams, 1)} گرم`, adgNote(metrics)),
@@ -110,6 +258,7 @@ const renderWeekMetricsCards = (metrics) => {
       ],
     },
     {
+      key: "feed",
       title: "🛒 خوراک و FCR",
       cards: [
         card("دان مصرفی کل", `${fmtNum(metrics.cumulativeFeed, 1)} کیلوگرم`),
@@ -119,6 +268,13 @@ const renderWeekMetricsCards = (metrics) => {
       ],
     },
   ];
+
+  // فقط گروه‌های انتخاب‌شدهٔ کاربر رندر می‌شوند
+  const selected = normalizeGroups(selectedGroups);
+  const groups = cardGroups.filter((group) => selected.includes(group.key));
+  if (groups.length === 0) {
+    return '<div class="wc-empty">گروه شاخصی برای نمایش انتخاب نشده است</div>';
+  }
 
   return `<div class="wc-groups">${groups
     .map(
@@ -132,8 +288,23 @@ const renderWeekMetricsCards = (metrics) => {
 };
 
 // ===== ماتریس‌های موضوعی «تاریخچهٔ هفتگی» — هر ستون یک هفته و هر جدول یک گروه از شاخص‌های مرتبط =====
-export function renderHistoryWeekMatrix(weeks) {
-  const list = (weeks || []).slice();
+export function renderHistoryWeekMatrix(
+  weeks,
+  selectedGroups = ALL_GROUP_KEYS,
+  options = {},
+) {
+  const selected = normalizeGroups(selectedGroups);
+  const weekFilter = Array.isArray(options.weekNumbers)
+    ? options.weekNumbers.map((n) => parseInt(n, 10))
+    : null;
+  const list = (weeks || [])
+    .filter((w) => w && w.week_number !== null && w.week_number !== undefined)
+    .filter(
+      (w) =>
+        !weekFilter || weekFilter.includes(parseInt(w.week_number, 10)),
+    )
+    .slice()
+    .sort((a, b) => a.week_number - b.week_number);
   if (list.length === 0) {
     return '<p style="color:#94a3b8;padding:4px 2px;">ثبت هفتگی‌ای برای این سالن موجود نیست</p>';
   }
@@ -152,16 +323,28 @@ export function renderHistoryWeekMatrix(weeks) {
     return "—";
   };
 
+  // هر ستون یک هفته؛ هفته‌های بدون ثبت هم ستون می‌گیرند تا خط زمانی ناقص نماند
   const headerCells = list
-    .map((w) => `<th>هفته ${w.week_number ?? "-"}</th>`)
+    .map((w) =>
+      isMissingWeek(w)
+        ? `<th class="week-missing-col" title="اطلاعات این هفته ثبت نشده است">هفته ${w.week_number ?? "-"} ❌</th>`
+        : `<th>هفته ${w.week_number ?? "-"}</th>`,
+    )
     .join("");
 
   // هر ردیف = یک شاخص، سلول‌ها = هفته‌ها (همان رویکرد ماتریسی)
   const row = (label, fn, opts = {}) => {
     const tdClass = opts.text ? ' class="history-text"' : "";
+    // هفتهٔ بدون ثبت، در همهٔ ردیف‌های همان ستون با «❌ ثبت نشده» علامت می‌خورد
+    const cellOf = (w) => {
+      if (isMissingWeek(w)) {
+        return `<td class="cell-missing-td">${MISSING_CELL}</td>`;
+      }
+      return `<td${tdClass}>${fn(w)}</td>`;
+    };
     return `<tr>
         <th class="history-indicator">${label}</th>
-        ${list.map((w) => `<td${tdClass}>${fn(w)}</td>`).join("")}
+        ${list.map((w) => cellOf(w)).join("")}
       </tr>`;
   };
 
@@ -178,7 +361,7 @@ export function renderHistoryWeekMatrix(weeks) {
     ].join(" تا ");
 
   // هر گروه: عنوان موضوعی + جدول ماتریسی مجزا با ستون‌های هفته
-  const group = (title, rowsHtml) => `
+  const groupHtml = (title, rowsHtml) => `
         <div class="history-matrix-group">
           <h4 class="metrics-title history-group-title">${title}</h4>
           <table class="week-table history-matrix">
@@ -187,8 +370,9 @@ export function renderHistoryWeekMatrix(weeks) {
           </table>
         </div>`;
 
-  const groups = [
-    group("🐔 جمعیت، تلفات و زنده‌مانی", [
+  // ردیف‌های هر گروه شاخص — کلیدها همان کلیدهای کاتالوگ انتخاب کاربر است
+  const GROUP_ROWS = {
+    population: () => [
       row("جمعیت ابتدای هفته", num((w) => m(w).birdsStartOfWeek, 0)),
       row("جمعیت انتهای هفته (زنده)", num((w) => m(w).birdsEndOfWeek, 0)),
       row("تلفات هفتگی (قطعه)", num((w) => w.weekly_mortality, 0)),
@@ -196,8 +380,8 @@ export function renderHistoryWeekMatrix(weeks) {
       row("٪ تلفات کل (تجمعی)", (w) => pct(m(w).totalMortalityPercent)),
       row("٪ زنده‌مانی هفتگی", (w) => pct(m(w).weeklySurvivalPercent)),
       row("٪ زنده‌مانی تجمعی", (w) => pct(m(w).cumulativeSurvivalPercent)),
-    ].join("")),
-    group("⚖️ وزن", [
+    ],
+    weight: () => [
       row("میانگین وزن هفتگی (کیلوگرم)", num((w) => w.weekly_weight, 3)),
       row("وزن استاندارد نژاد (کیلوگرم)", num((w) => m(w).standardWeight, 3)),
       row("اختلاف وزن با هدف (کیلوگرم)", num((w) => m(w).weightDeviation, 3)),
@@ -205,12 +389,12 @@ export function renderHistoryWeekMatrix(weeks) {
       row("وزن کل گلهٔ زنده (کیلوگرم)", num((w) => m(w).totalLiveWeight, 1)),
       row("افزایش وزن هفتگی (کیلوگرم)", num((w) => m(w).weightGain, 3)),
       row("افزایش وزن کل گله (کیلوگرم)", num((w) => m(w).totalWeightGain, 1)),
-    ].join("")),
-    group("🚀 رشد", [
+    ],
+    growth: () => [
       row("ADG هفتگی (گرم/روز)", num((w) => m(w).dailyGainGrams, 1)),
       row("ADG تجمعی (گرم/روز)", num((w) => m(w).cumulativeAdg, 1)),
-    ].join("")),
-    group("🛒 خوراک و ضریب تبدیل", [
+    ],
+    feed: () => [
       row("خوراک روزانه (کیلوگرم)", num((w) => w.daily_feed_intake, 2)),
       row("خوراک هفتگی (کیلوگرم)", num((w) => w.weekly_feed_intake, 2)),
       row("دان مصرفی کل (کیلوگرم)", num((w) => m(w).cumulativeFeed, 1)),
@@ -219,8 +403,8 @@ export function renderHistoryWeekMatrix(weeks) {
       row("FCR (تجمیعی تا این هفته)", num((w) => m(w).fcr, 3)),
       row("FCR استاندارد نژاد", num((w) => m(w).standardFcr, 3)),
       row("انحراف FCR (٪)", num((w) => m(w).fcrDeviation, 2)),
-    ].join("")),
-    group("📋 جزئیات ثبت هفتگی", [
+    ],
+    details: () => [
       row("بازهٔ تاریخ", dateRange),
       row("سن (روز)", num((w) => w.flock_age_days, 0)),
       row("خاموشی (ساعت)", num((w) => w.blackout_hours, 2)),
@@ -230,8 +414,20 @@ export function renderHistoryWeekMatrix(weeks) {
       row("نوع خوراک", (w) => joinArr(w, "feedTypes"), { text: true }),
       row("پیشنهادات", (w) => joinArr(w, "suggestions"), { text: true }),
       row("توضیحات", (w) => w.additional_notes || "—", { text: true }),
-    ].join("")),
-  ];
+    ],
+  };
+
+  // فقط گروه‌های انتخاب‌شدهٔ کاربر رندر می‌شوند (عنوان و ترتیب از کاتالوگ)
+  const groups = REPORT_GROUPS.filter((group) => selected.includes(group.key))
+    .map((group) => {
+      const rows = GROUP_ROWS[group.key];
+      return rows ? groupHtml(group.title, rows().join("")) : "";
+    })
+    .filter(Boolean);
+
+  if (groups.length === 0) {
+    return '<p style="color:#94a3b8;padding:4px 2px;">گروه شاخصی برای نمایش انتخاب نشده است</p>';
+  }
 
   return `<div class="history-groups">${groups.join("")}</div>`;
 }
@@ -327,6 +523,30 @@ export const REPORT_STYLES = `
     .history-matrix td { text-align: center; }
     .history-matrix td.history-text { text-align: right; min-width: 70px; max-width: 160px; line-height: 1.6; white-space: normal; overflow-wrap: break-word; }
     .history-matrix tr { page-break-inside: avoid; }
+    /* ===== هشدار هفته‌های ثبت‌نشده / ناقص ===== */
+    .report-alert { margin: 8px 0 12px; padding: 10px 14px; border-radius: 10px; background: #fff7ed; border: 1px solid #fdba74; border-right: 5px solid #dc2626; color: #7c2d12; page-break-inside: avoid; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .report-alert .gap-line { display: flex; gap: 8px; align-items: flex-start; padding: 3px 0; font-size: 12px; line-height: 1.75; }
+    .report-alert .gap-line.danger strong { color: #b91c1c; }
+    .report-alert .gap-line.warn strong { color: #b45309; }
+    .report-alert .gap-ico { flex: 0 0 auto; }
+    .report-alert .gap-hint { margin: 6px 0 0; font-size: 11px; color: #92400e; }
+    .gap-badge { display: inline-block; background: #fff7ed; border: 1px solid #fdba74; border-radius: 20px; padding: 2px 10px; font-size: 11px; font-weight: 700; color: #b91c1c; }
+    .gap-badge .gap-word-warn { color: #b45309; }
+    .summary-stat.warn-stat { border-right-color: #dc2626; }
+    .summary-stat.warn-stat .stat-number { color: #b91c1c; }
+    .week-missing td { background: #fef2f2 !important; color: #b91c1c; font-weight: 700; }
+    .week-partial td { background: #fffbeb !important; }
+    .cell-missing { color: #b91c1c; font-weight: 700; }
+    .cell-warn { color: #b45309; }
+    .cell-missing-td { background: #fef2f2 !important; color: #b91c1c; font-weight: 700; }
+    .history-matrix thead th.week-missing-col { background: #fee2e2; color: #991b1b; }
+    .history-hall .report-alert { margin: 6px 0 10px; }
+    .report-groups-note { font-size: 11px; color: #475569; background: #f1f5f9; border-radius: 8px; padding: 6px 12px; display: inline-block; margin-bottom: 10px; }
+    /* ===== انتخاب هفته‌ها: چیپ‌ها و خطوط اطلاعی ===== */
+    .basis-chip { display: inline-block; background: #eff6ff; border: 1px solid #bfdbfe; color: #1d4ed8; border-radius: 20px; padding: 2px 10px; font-size: 10.5px; font-weight: 600; }
+    .week-range-chip { display: inline-block; background: #f5f3ff; border: 1px solid #ddd6fe; color: #6d28d9; border-radius: 20px; padding: 2px 10px; font-size: 10.5px; font-weight: 600; }
+    .gap-outside-note { margin: 6px 0 10px; padding: 6px 12px; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 8px; font-size: 11px; color: #475569; }
+    .week-report-block.week-missing { background: #fef2f2; border-color: #fecaca; }
     .history-flock-section { page-break-inside: auto; }
     .history-hall { margin-top: 14px; page-break-inside: auto; }
     .history-hall-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; background: #f0fdf9; border: 1px solid #a7f3d0; border-radius: 8px; padding: 6px 12px; }
@@ -340,6 +560,10 @@ export const REPORT_STYLES = `
 `;
 
 export const weeklyRenderer = {
+  // ===== هشدار هفته‌های ثبت‌نشده/ناقص (برای گزارش تاریخچهٔ هفتگی در سرویس) =====
+  renderWeekGapsAlert,
+  renderGapBadge,
+
   // ===== رندر سلکت‌ها =====
 
   renderSelects(dictionaries) {
@@ -519,7 +743,10 @@ export const weeklyRenderer = {
 
   // ===== گزارش کامل =====
 
-  renderFullReport(customer, flocks, periods, groups = []) {
+  renderFullReport(customer, flocks, periods, groups = [], options = {}) {
+    const selected = normalizeGroups(options.selectedGroups);
+    // ✅ ترتیب ثابت سالن‌ها از A به آخر (مستقل از ترتیب ورودی سرویس/دیتابیس)
+    const orderedFlocks = sortFlocksByHall(flocks || []);
     const now = new Date().toLocaleDateString("fa-IR");
     const nowTime = new Date().toLocaleTimeString("fa-IR");
 
@@ -561,11 +788,65 @@ export const weeklyRenderer = {
       }
     };
 
-    // ===== جدول ۱۴ستونی شاخص‌های عملکردی (مشترک بین «کل گله» و هر سالن) =====
+    // ===== جدول شاخص‌های عملکردی (۱۴ ستون) — ستون‌ها بر اساس انتخاب کاربر فیلتر می‌شوند =====
 
-    const renderMetricsTable = (savedWeeks, title) => {
+    const renderMetricsTable = (
+      savedWeeks,
+      title,
+      selectedGroups = ALL_GROUP_KEYS,
+      audit = null,
+      selectedWeekNumbers = null,
+    ) => {
+      const selected = normalizeGroups(selectedGroups);
+      const columns = metricsColumnsFor(selected);
       const rows = (savedWeeks || []).filter((week) => week.metrics);
-      if (rows.length === 0) return "";
+      if (columns.length === 0) return "";
+
+      const allWeekNumbers = (
+        audit?.weeks?.length ? audit.weeks : rows.map((week) => week.week_number)
+      )
+        .slice()
+        .sort((a, b) => a - b);
+      // ✅ اگر کاربر هفتههای خاصی را انتخاب کرده باشد، فقط همان‌ها نمایش داده می‌شوند
+      const weekNumbers = Array.isArray(selectedWeekNumbers)
+        ? allWeekNumbers.filter((week) => selectedWeekNumbers.includes(week))
+        : allWeekNumbers;
+      if (weekNumbers.length === 0) return "";
+
+      const cellOf = (column, metrics) =>
+        column.type === "pct"
+          ? fmtPct(column.get(metrics), column.digits)
+          : fmtNum(column.get(metrics), column.digits);
+
+      const byWeek = new Map(rows.map((week) => [week.week_number, week]));
+
+      const bodyHtml = weekNumbers
+        .map((weekNumber) => {
+          const week = byWeek.get(weekNumber);
+          if (!week) {
+            return `
+                                    <tr class="week-missing">
+                                        <td>هفته ${weekNumber}</td>
+                                        <td colspan="${columns.length}">${MISSING_CELL}</td>
+                                    </tr>`;
+          }
+          const partial =
+            audit?.statuses?.[weekNumber] === WEEK_STATUS.PARTIAL;
+          const warn = partial
+            ? ' <span class="cell-warn" title="وزن یا خوراک این هفته ثبت نشده است">⚠️</span>'
+            : "";
+          return `
+                                    <tr class="${partial ? "week-partial" : ""}">
+                                        <td>هفته ${weekNumber}${warn}</td>
+                                        ${columns
+                                          .map(
+                                            (column) =>
+                                              `<td>${cellOf(column, week.metrics)}</td>`,
+                                          )
+                                          .join("")}
+                                    </tr>`;
+        })
+        .join("");
 
       return `
                         <h4 class="metrics-title">${title}</h4>
@@ -574,44 +855,15 @@ export const weeklyRenderer = {
                             <thead>
                                 <tr>
                                     <th>هفته</th>
-                                    <th title="جمعیت زنده در ابتدای همین هفته (جوجه‌ریزی اولیه منهای تلفات هفته‌های قبل)">جمعیت ابتدای هفته</th>
-                                    <th>جمعیت مانده</th>
-                                    <th>زنده‌مانی ٪</th>
-                                    <th>تلفات ٪</th>
-                                    <th title="تعداد تلفات ثبت‌شده در همین هفته (قطعه)">تلفات (قطعه)</th>
-                                    <th>وزن (kg)</th>
-                                    <th>وزن کل (kg)</th>
-                                    <th>افزایش وزن (kg)</th>
-                                    <th>ADG (g)</th>
-                                    <th>دان کل (kg)</th>
-                                    <th title="مجموع دان مصرفی تا این هفته ÷ جمعیت ابتدای هفته (کیلوگرم به ازای هر قطعه)">سرانه (kg)</th>
-                                    <th title="(دان مصرفی همان هفته ÷ ۷) ÷ جمعیت ابتدای هفته (گرم به ازای هر قطعه در روز)">سرانه روزانه (g)</th>
-                                    <th>FCR</th>
+                                    ${columns
+                                      .map(
+                                        (column) =>
+                                          `<th${column.title ? ` title="${column.title}"` : ""}>${column.label}</th>`,
+                                      )
+                                      .join("")}
                                 </tr>
                             </thead>
-                            <tbody>
-                                ${rows
-                                  .map((week) => {
-                                    const m = week.metrics;
-                                    return `<tr>
-                                        <td>هفته ${week.week_number}</td>
-                                        <td>${fmtNum(m.birdsStartOfWeek, 0)}</td>
-                                        <td>${fmtNum(m.birdsEndOfWeek, 0)}</td>
-                                        <td>${fmtPct(m.weeklySurvivalPercent)}</td>
-                                        <td>${fmtPct(m.weeklyMortalityPercent)}</td>
-                                        <td>${fmtNum(m.mortalityThisWeek, 0)}</td>
-                                        <td>${fmtNum(m.weight, 3)}</td>
-                                        <td>${fmtNum(m.totalLiveWeight, 1)}</td>
-                                        <td>${fmtNum(m.weightGain, 3)}</td>
-                                        <td>${fmtNum(m.dailyGainGrams, 1)}</td>
-                                        <td>${fmtNum(m.cumulativeFeed, 1)}</td>
-                                        <td>${fmtNum(m.cumulativeFeedPerBird, 3)}</td>
-                                        <td>${fmtNum(m.dailyFeedPerBird, 1)}</td>
-                                        <td>${fmtNum(m.fcr, 3)}</td>
-                                    </tr>`;
-                                  })
-                                  .join("")}
-                            </tbody>
+                            <tbody>${bodyHtml}</tbody>
                         </table>
                         </div>`;
     };
@@ -624,11 +876,51 @@ export const weeklyRenderer = {
       hallSections.get(key).push(html);
     };
 
-    flocks.forEach((flock) => {
-      const weeksHTML = flock.weeks
+    // گله‌هایی که کاربر هیچ هفته‌ای برایشان انتخاب نکرده (خط اطلاعی در ابتدای گزارش)
+    const excludedFlockNames = [];
+
+    orderedFlocks.forEach((flock) => {
+      // ✅ هفته‌های انتخاب‌شدهٔ کاربر برای همین گله/سالن (null = همهٔ هفته‌ها)
+      const timeline = buildWeekTimeline(flock.weeks || []);
+      const timelineNumbers = timeline.map((week) => week.weekNumber);
+      const weekNumbers = resolveFlockWeekNumbers(
+        options,
+        flockWeeksKey(flock),
+        timeline,
+      );
+
+      // گلهٔ بدون هیچ هفتهٔ انتخابی → از گزارش حذف می‌شود
+      if (Array.isArray(weekNumbers) && weekNumbers.length === 0) {
+        excludedFlockNames.push(
+          `گله ${flock.flock_number} (${flock.hall_name || "-"})`,
+        );
+        return;
+      }
+
+      // حسابرسی هفته‌های ثبت‌نشده/ناقص همین سالن (هشدار + ردیف‌های ❌)
+      const auditFull = auditOfFlock(flock);
+      const audit = Array.isArray(weekNumbers)
+        ? scopeAuditToWeeks(auditFull, weekNumbers)
+        : auditFull;
+      const outsideIssues = Array.isArray(weekNumbers)
+        ? issuesOutsideSelection(
+            options.weekSelection,
+            flockWeeksKey(flock),
+            timeline,
+          )
+        : [];
+
+      // فقط هفته‌های انتخاب‌شده در جدول «جزئیات ثبت هفتگی» می‌آید
+      const visibleWeeks = Array.isArray(weekNumbers)
+        ? (flock.weeks || []).filter((week) =>
+            weekNumbers.includes(parseInt(week.week_number, 10)),
+          )
+        : flock.weeks;
+
+      const weeksHTML = visibleWeeks
         .map(
           (week, i) => `
-                <tr class="${week.existsInDb ? "has-data" : ""}">
+                <tr class="${week.existsInDb ? "has-data" : "week-missing"}">
                     <td>${i + 1}</td>
                     <td>هفته ${week.week_number}</td>
                     <td>${toPersian(week.week_start_date)}</td>
@@ -668,12 +960,18 @@ export const weeklyRenderer = {
                         </div>
                         <div class="flock-meta">
                             <span>🧮 ${flock.total_chicks_count?.toLocaleString() || 0} قطعه</span>
-                            <span>📊 ${flock.weeks.length} هفته</span>
+                            <span>📊 ${flock.weeks.length} هفته (${flock.savedWeeks.length} ثبت‌شده)</span>
+                            ${renderGapBadge(audit)}
+                            ${timelineChip(flock.timeline)}
+                            ${weekRangeChip(weekNumbers, timelineNumbers)}
                             <span class="status-badge ${flock.is_active ? "status-active" : "status-inactive"}">
                                 ${flock.is_active ? "فعال" : "غیرفعال"}
                             </span>
                         </div>
                     </div>
+
+                    ${renderWeekGapsAlert(audit)}
+                    ${outsideIssuesNote(outsideIssues)}
 
                     <div class="flock-summary-strip">
                         <span><strong>تلفات:</strong> ${flock.statistics.totalMortality} قطعه</span>
@@ -685,18 +983,18 @@ export const weeklyRenderer = {
                         <span><strong>هفته‌های تکمیل شده:</strong> ${flock.statistics.weekCount}</span>
                     </div>
 
-                    ${
-                      flock.savedWeeks.length > 0
-                        ? `
-                        ${renderMetricsTable(flock.savedWeeks, "📈 شاخص‌های عملکردی هفتگی")}
-                        <h4 class="metrics-title">📋 جزئیات ثبت هفتگی</h4>
-                    `
-                        : ""
-                    }
+                    ${renderMetricsTable(
+                      flock.savedWeeks,
+                      "📈 شاخص‌های عملکردی هفتگی",
+                      selected,
+                      audit,
+                      weekNumbers,
+                    )}
 
                     ${
-                      flock.weeks.length > 0
+                      visibleWeeks.length > 0 && isGroupSelected(selected, "details")
                         ? `
+                        <h4 class="metrics-title">📋 جزئیات ثبت هفتگی</h4>
                         <table class="week-table">
                             <thead>
                                 <tr>
@@ -722,11 +1020,13 @@ export const weeklyRenderer = {
                             <tbody>${weeksHTML}</tbody>
                         </table>
                     `
-                        : `
+                        : visibleWeeks.length === 0
+                          ? `
                         <div style="text-align: center; padding: 20px; color: #94a3b8;">
                             <p>هیچ داده‌ای برای این گله ثبت نشده است</p>
                         </div>
                     `
+                          : ""
                     }
                 </div>
             `);
@@ -736,6 +1036,46 @@ export const weeklyRenderer = {
 
     const renderGroupSection = (group, aggregate) => {
       const stats = aggregate.statistics || {};
+      // هشدار در سطح «کل گله»: هفته‌ای که هیچ سالنی ثبت نکرده یا بعضی سالن‌ها ناقص‌اند
+      const groupAuditFull = mergeAudits(
+        (group.halls || []).map((hall) => auditOfFlock(hall)),
+      );
+
+      // ✅ انتخاب هفته‌ها در سطح «کل گله» = اجتماع انتخاب سالن‌ها
+      const timelinesByKey = {};
+      (group.halls || []).forEach((hall) => {
+        timelinesByKey[flockWeeksKey(hall)] = buildWeekTimeline(hall.weeks || []);
+      });
+      const groupWeekNumbers = options?.weekSelection
+        ? unionWeekSelection(
+            options.weekSelection,
+            (group.halls || []).map((hall) => flockWeeksKey(hall)),
+            timelinesByKey,
+          )
+        : null;
+      if (Array.isArray(groupWeekNumbers) && groupWeekNumbers.length === 0) {
+        excludedFlockNames.push(`گله ${group.flockNumber ?? "-"} (کل گله)`);
+        return "";
+      }
+      const groupAudit = Array.isArray(groupWeekNumbers)
+        ? scopeAuditToWeeks(groupAuditFull, groupWeekNumbers)
+        : groupAuditFull;
+
+      // چیپ «مبنای پایان» فقط وقتی همهٔ سالن‌ها یک مبنا دارند (یا خلاصهٔ متفاوت)
+      const hallTimelines = (group.halls || [])
+        .map((hall) => hall.timeline)
+        .filter(Boolean);
+      const sameEndWeek =
+        hallTimelines.length > 0 &&
+        hallTimelines.every(
+          (timeline) => timeline.endWeek === hallTimelines[0].endWeek,
+        );
+      const groupTimelineChip = sameEndWeek
+        ? timelineChip(hallTimelines[0])
+        : hallTimelines.length
+          ? '<span class="basis-chip" title="مبنای شمارش هفته‌های مورد انتظار">⚓ مبنای پایان: بر اساس پایان دورهٔ هر سالن</span>'
+          : "";
+
       const hallNames = (group.halls || [])
         .map((h) => h.hall_name || `سالن ${h.hall_id}`)
         .join("، ");
@@ -753,7 +1093,13 @@ export const weeklyRenderer = {
                         </div>
                         <div class="flock-meta">
                             <span>🧮 ${fmtNum(group.total_chicks_count, 0)} قطعه</span>
-                            <span>📊 ${stats.weekCount || 0} هفته</span>
+                            <span>📊 ${stats.weekCount || 0} از ${groupAudit.total || stats.weekCount || 0} هفته ثبت‌شده</span>
+                            ${renderGapBadge(groupAudit)}
+                            ${groupTimelineChip}
+                            ${weekRangeChip(
+                              groupWeekNumbers,
+                              Object.values(timelinesByKey).flat().map((week) => week.weekNumber),
+                            )}
                             <span class="status-badge ${group.isActive ? "status-active" : "status-inactive"}">
                                 ${group.isActive ? "فعال" : "غیرفعال"}
                             </span>
@@ -770,7 +1116,15 @@ export const weeklyRenderer = {
                         <span><strong>هفته‌های تکمیل شده:</strong> ${stats.weekCount || 0}</span>
                     </div>
 
-                    ${renderMetricsTable(aggregate.savedWeeks, "📈 شاخص‌های عملکردی هفتگی — کل گله")}
+                    ${renderWeekGapsAlert(groupAudit, "کل گله")}
+
+                    ${renderMetricsTable(
+                      aggregate.savedWeeks,
+                      "📈 شاخص‌های عملکردی هفتگی — کل گله",
+                      selected,
+                      groupAudit,
+                      groupWeekNumbers,
+                    )}
                 </div>
             `;
     };
@@ -779,7 +1133,7 @@ export const weeklyRenderer = {
     const renderUnits =
       groups && groups.length
         ? groups.map((group) => ({ group, halls: group.halls || [] }))
-        : flocks.map((flock) => ({ group: null, halls: [flock] }));
+        : orderedFlocks.map((flock) => ({ group: null, halls: [flock] }));
 
     const renderedKeys = new Set();
     let flocksHTML = "";
@@ -799,13 +1153,48 @@ export const weeklyRenderer = {
     });
 
     // اگر سالنی خارج از گروه‌ها مانده باشد، در پایان نمایش داده می‌شود
-    flocks.forEach((flock) => {
+    orderedFlocks.forEach((flock) => {
       const key = flockGroupKey(flock);
       if (renderedKeys.has(key)) return;
       (hallSections.get(key) || []).forEach((html) => {
         flocksHTML += html;
       });
     });
+
+    // ===== یادداشت شاخص‌های انتخابی + محدودهٔ هفته‌ها + خلاصهٔ هشدارها =====
+    const weekSelectionSummary = options?.weekSelection
+      ? summarizeWeekSelection(
+          options.weekSelection,
+          Object.fromEntries(
+            orderedFlocks.map((flock) => [
+              flockWeeksKey(flock),
+              buildWeekTimeline(flock.weeks || []),
+            ]),
+          ),
+        )
+      : null;
+    const weekSelectionNote = weekSelectionSummary
+      ? ` · 🎯 هفته‌ها: <strong>${toFa(weekSelectionSummary.weeks)} هفته</strong> از ${toFa(weekSelectionSummary.totalFlocks)} گله/سالن${weekSelectionSummary.overridden ? ` — ${toFa(weekSelectionSummary.overridden)} گله با انتخاب سفارشی` : ""}`
+      : "";
+    const groupsNoteHtml = `<div class="report-groups-note">🧾 شاخص‌های این گزارش: <strong>${selectedGroupsLabel(selected)}</strong>${weekSelectionNote}</div>`;
+    const excludedNoteHtml = excludedFlocksNote(excludedFlockNames);
+
+    const flocksWithGaps = orderedFlocks
+      .map((flock) => ({ flock, audit: auditOfFlock(flock) }))
+      .filter((item) => item.audit.hasIssues);
+    const gapsSummaryHtml = flocksWithGaps.length
+      ? `<div class="report-alert" role="alert">
+                    <div class="gap-line danger">
+                      <span class="gap-ico">⚠️</span>
+                      <span><strong>${toFa(flocksWithGaps.length)} گله/سالن</strong> هفتهٔ ثبت‌نشده یا ناقص دارند (${flocksWithGaps
+                        .map(
+                          (item) =>
+                            `گله ${item.flock.flock_number} — ${item.flock.hall_name || ""}`,
+                        )
+                        .join("، ")}) — جزئیات در ابتدای بخش هر گله آمده است.</span>
+                    </div>
+                </div>`
+      : "";
 
     return `
             <!DOCTYPE html>
@@ -832,6 +1221,11 @@ export const weeklyRenderer = {
                         <div class="summary-stat"><div class="stat-number">${totalMortality.toLocaleString()}</div><div class="stat-label">تلفات کل</div></div>
                         <div class="summary-stat"><div class="stat-number">${totalFlocks > 0 ? Math.round(totalMortality / totalFlocks) : 0}</div><div class="stat-label">میانگین تلفات هر گله</div></div>
                         <div class="summary-stat"><div class="stat-number">${totalChicks > 0 ? ((totalMortality / totalChicks) * 100).toFixed(1) : 0}%</div><div class="stat-label">درصد تلفات کل</div></div>
+                        ${
+                          flocksWithGaps.length > 0
+                            ? `<div class="summary-stat warn-stat"><div class="stat-number">${toFa(flocksWithGaps.length)}</div><div class="stat-label">گله با هفتهٔ ثبت‌نشده/ناقص</div></div>`
+                            : ""
+                        }
                     </div>
                 `
                     : ""
@@ -846,6 +1240,10 @@ export const weeklyRenderer = {
                         <div class="customer-item"><span class="label">تلفن</span><span class="value">${customer.mobile_number || "-"}</span></div>
                     </div>
                 </div>
+
+                ${groupsNoteHtml}
+                ${excludedNoteHtml}
+                ${gapsSummaryHtml}
 
                 ${
                   totalFlocks > 0
@@ -872,7 +1270,8 @@ export const weeklyRenderer = {
 
   // ===== گزارش اختصاصی یک گله =====
 
-  renderFlockReport(customer, flock, periods) {
+  renderFlockReport(customer, flock, periods, options = {}) {
+    const selected = normalizeGroups(options.selectedGroups);
     const now = new Date().toLocaleDateString("fa-IR");
     const nowTime = new Date().toLocaleTimeString("fa-IR");
     const user = JSON.parse(localStorage.getItem("user") || "{}");
@@ -906,6 +1305,44 @@ export const weeklyRenderer = {
     const stats = flock.statistics || {};
     const m = stats.finalMetrics || {};
     const savedWeeks = flock.savedWeeks || [];
+    // حسابرسی هفتههای ثبتنشده/ناقص این گله (برای هشدار و بلوکهای ❌)
+    const allWeeks = flock.weeks || savedWeeks;
+
+    // ✅ هفته‌های انتخاب‌شدهٔ کاربر برای این گله (null = همهٔ هفته‌ها)
+    const timeline = buildWeekTimeline(allWeeks);
+    const timelineNumbers = timeline.map((week) => week.weekNumber);
+    const weekNumbers = resolveFlockWeekNumbers(
+      options,
+      flockWeeksKey(flock),
+      timeline,
+    );
+
+    // حسابرسی ثبت هفتگی — محدود به هفته‌های انتخابی کاربر
+    const auditFull = auditOfFlock(flock);
+    const audit = Array.isArray(weekNumbers)
+      ? scopeAuditToWeeks(auditFull, weekNumbers)
+      : auditFull;
+    const outsideIssues = Array.isArray(weekNumbers)
+      ? issuesOutsideSelection(
+          options.weekSelection,
+          flockWeeksKey(flock),
+          timeline,
+        )
+      : [];
+
+    const visibleSavedWeeks = Array.isArray(weekNumbers)
+      ? savedWeeks.filter((week) =>
+          weekNumbers.includes(parseInt(week.week_number, 10)),
+        )
+      : savedWeeks;
+    const visibleMissingWeeks = Array.isArray(weekNumbers)
+      ? allWeeks.filter(
+          (week) =>
+            isMissingWeek(week) &&
+            weekNumbers.includes(parseInt(week.week_number, 10)),
+        )
+      : allWeeks.filter((week) => isMissingWeek(week));
+
     const ageInDays = flock.placement_date
       ? Math.max(
           0,
@@ -914,42 +1351,82 @@ export const weeklyRenderer = {
         )
       : 0;
 
-    const weekBlocks = savedWeeks
+    // آیا هفتهای وزن/خوراک ثبتشده ندارد؟
+    const isPartialWeek = (week) =>
+      audit.statuses?.[week.week_number] === WEEK_STATUS.PARTIAL;
+
+    // جفتهای «برچسب/مقدار» جدول جزئیات هر هفته بر اساس گروههای انتخابی کاربر
+    const detailPairs = (week) => {
+      const pairs = [];
+      if (isGroupSelected(selected, "population")) {
+        pairs.push(["تلفات", `${week.weekly_mortality || 0} قطعه`]);
+      }
+      if (isGroupSelected(selected, "weight")) {
+        pairs.push(["وزن", `${week.weekly_weight || "-"} kg`]);
+      }
+      if (isGroupSelected(selected, "feed")) {
+        pairs.push(["خوراک روزانه", `${week.daily_feed_intake || "-"} kg`]);
+        pairs.push(["خوراک هفتگی", `${week.weekly_feed_intake || "-"} kg`]);
+      }
+      if (isGroupSelected(selected, "details")) {
+        pairs.push(["خاموشی", `${week.blackout_hours || 0} ساعت`]);
+        pairs.push(["بیماری‌ها", week.diseases?.join("، ") || "-"]);
+        pairs.push(["واکسن‌ها", week.vaccines?.join("، ") || "-"]);
+        pairs.push(["داروها", week.medicines?.join("، ") || "-"]);
+        pairs.push(["نوع خوراک", week.feedTypes?.join("، ") || "-"]);
+        pairs.push(["پیشنهادات", week.suggestions?.join("، ") || "-"]);
+        pairs.push(["توضیحات", week.additional_notes || "-"]);
+      }
+      return pairs;
+    };
+
+    const renderWeekDetailsTable = (week) => {
+      const pairs = detailPairs(week);
+      if (pairs.length === 0) return "";
+      const rows = [];
+      for (let i = 0; i < pairs.length; i += 2) {
+        rows.push(
+          `<tr>${pairs
+            .slice(i, i + 2)
+            .map(([label, value]) => `<th>${label}</th><td>${value}</td>`)
+            .join("")}</tr>`,
+        );
+      }
+      return `<table class="detail-list"><tbody>${rows.join("")}</tbody></table>`;
+    };
+
+    const weekBlocks = visibleSavedWeeks
       .map(
         (week) => `
-        <div class="week-report-block">
+        <div class="week-report-block${isPartialWeek(week) ? " week-partial" : ""}">
             <div class="week-report-head">
-                <span class="wr-week">هفته ${week.week_number}</span>
-                <span class="wr-meta">📅 ${toPersian(week.week_start_date)} تا ${toPersian(week.week_end_date)} | سن: ${week.flock_age_days} روز</span>
+                <span class="wr-week">هفته ${week.week_number}${isPartialWeek(week) ? " ⚠️" : ""}</span>
+                <span class="wr-meta">📅 ${toPersian(week.week_start_date)} تا ${toPersian(week.week_end_date)} | سن: ${week.flock_age_days} روز${isPartialWeek(week) ? " | ⚠️ وزن یا خوراک این هفته ثبت نشده است" : ""}</span>
             </div>
-            ${renderWeekMetricsCards(week.metrics)}
-            <table class="detail-list">
-                <tbody>
-                    <tr>
-                        <th>خوراک روزانه</th><td>${week.daily_feed_intake || "-"} kg</td>
-                        <th>خوراک هفتگی</th><td>${week.weekly_feed_intake || "-"} kg</td>
-                        <th>وزن</th><td>${week.weekly_weight || "-"} kg</td>
-                        <th>تلفات</th><td>${week.weekly_mortality || 0} قطعه</td>
-                    </tr>
-                    <tr>
-                        <th>خاموشی</th><td>${week.blackout_hours || 0} ساعت</td>
-                        <th>بیماری‌ها</th><td colspan="5">${week.diseases?.join("، ") || "-"}</td>
-                    </tr>
-                    <tr>
-                        <th>واکسن‌ها</th><td colspan="2">${week.vaccines?.join("، ") || "-"}</td>
-                        <th>داروها</th><td colspan="2">${week.medicines?.join("، ") || "-"}</td>
-                        <th>نوع خوراک</th><td colspan="2">${week.feedTypes?.join("، ") || "-"}</td>
-                    </tr>
-                    <tr>
-                        <th>پیشنهادات</th><td colspan="2">${week.suggestions?.join("، ") || "-"}</td>
-                        <th>توضیحات</th><td colspan="5">${week.additional_notes || "-"}</td>
-                    </tr>
-                </tbody>
-            </table>
+            ${renderWeekMetricsCards(week.metrics, selected)}
+            ${renderWeekDetailsTable(week)}
         </div>
     `,
       )
       .join("");
+
+    // هفته‌های بدون ثبت هم به‌صورت بلوک هشدار در گزارش درج می‌شوند
+    const missingBlocks = visibleMissingWeeks
+      .map(
+        (week) => `
+        <div class="week-report-block week-missing">
+            <div class="week-report-head">
+                <span class="wr-week">هفته ${week.week_number} ❌</span>
+                <span class="wr-meta">📅 ${toPersian(week.week_start_date)} تا ${toPersian(week.week_end_date)} | اطلاعات این هفته ثبت نشده است</span>
+            </div>
+        </div>`,
+      )
+      .join("");
+
+    const weekScopeNote = Array.isArray(weekNumbers)
+      ? ` · 🎯 ${weekSelectionLabel(weekNumbers, timelineNumbers, toFa)}`
+      : "";
+    const groupsNoteHtml = `<div class="report-groups-note">🧾 شاخص‌های این گزارش: <strong>${selectedGroupsLabel(selected)}</strong>${weekScopeNote}</div>`;
 
     return `
             <!DOCTYPE html>
@@ -976,6 +1453,8 @@ export const weeklyRenderer = {
                     <div class="summary-stat"><div class="stat-number">${fmtNum(m.cumulativeFeed, 1)}</div><div class="stat-label">دان کل (kg)</div></div>
                 </div>
 
+                ${groupsNoteHtml}
+
                 <div class="customer-info">
                     <h3>👤 اطلاعات مشتری</h3>
                     <div class="customer-grid">
@@ -997,9 +1476,14 @@ export const weeklyRenderer = {
                         <div class="flock-meta">
                             <span>🧮 ${fmtNum(flock.total_chicks_count, 0)} قطعه</span>
                             <span>📊 ${savedWeeks.length} هفته ثبت‌شده</span>
+                            ${timelineChip(flock.timeline)}
+                            ${weekRangeChip(weekNumbers, timelineNumbers)}
                             <span class="status-badge ${flock.is_active ? "status-active" : "status-inactive"}">${flock.is_active ? "فعال" : "غیرفعال"}</span>
                         </div>
                     </div>
+
+                    ${renderWeekGapsAlert(audit)}
+                    ${outsideIssuesNote(outsideIssues)}
 
                     <div class="flock-summary-strip">
                         <span><strong>تلفات کل:</strong> ${stats.totalMortality} قطعه</span>
@@ -1013,9 +1497,11 @@ export const weeklyRenderer = {
                 </div>
 
                 ${
-                  weekBlocks
-                    ? weekBlocks
-                    : '<div style="text-align:center; padding:40px; background:#fff; border-radius:10px; color:#94a3b8;">هیچ هفته‌ای برای این گله ثبت نشده است</div>'
+                  weekBlocks || missingBlocks
+                    ? `${weekBlocks}${missingBlocks}`
+                    : Array.isArray(weekNumbers) && weekNumbers.length === 0
+                      ? '<div style="text-align:center; padding:40px; background:#fff; border-radius:10px; color:#94a3b8;">هیچ هفته‌ای برای این گزارش انتخاب نشده است</div>'
+                      : '<div style="text-align:center; padding:40px; background:#fff; border-radius:10px; color:#94a3b8;">هیچ هفته‌ای برای این گله ثبت نشده است</div>'
                 }
 
                 <div class="report-footer">

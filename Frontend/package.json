@@ -7,9 +7,14 @@
     "start": "node server.js",
     "lint": "eslint src",
     "test:cache": "node frontend-server-test.mjs",
+    "test:denied": "node permission-denied-test.mjs",
+    "test:toast": "node toast-notification-test.mjs",
     "test:weekly": "node weekly-calculations-test.mjs",
     "test:weekly:report": "node weekly-report-render-smoke.mjs",
-    "test:customer-fields": "node customer-fields-test.mjs"
+    "test:weekly:groups": "node weekly-report-groups-test.mjs",
+    "test:weekly:history": "node weekly-history-render-test.mjs",
+    "test:customer-fields": "node customer-fields-test.mjs",
+    "test:customer-detail": "node customer-detail-modal-test.mjs"
   },
   "devDependencies": {
     "eslint": "^10.10.0"

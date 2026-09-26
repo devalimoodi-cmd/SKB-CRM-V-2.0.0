@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const { protect, authorize } = require("../middleware/auth");
+const { requirePermission } = require("../middleware/permissions");
 const {
   createChickPlacement,
   getChickPlacements,
@@ -15,43 +16,73 @@ const {
   deleteFlockGroup,
 } = require("../controllers/chickPlacementController");
 
+// ✅ کنترل دسترسی بر پایهٔ مجوز (جوجه‌ریزی)
 router.use(protect);
 
 // =========== روت‌های خاص (بدون پارامتر متغیر) اول ===========
-router.get("/", getChickPlacements);
-router.get("/by-hall/:hall_id", getChickPlacementByHallId);
-router.get("/active/by-hall/:hall_id", getActiveChickPlacementByHallId);
+router.get(
+  "/",
+  requirePermission("hatchery.placement.list"),
+  getChickPlacements,
+);
+router.get(
+  "/by-hall/:hall_id",
+  requirePermission("hatchery.placement.list"),
+  getChickPlacementByHallId,
+);
+router.get(
+  "/active/by-hall/:hall_id",
+  requirePermission("hatchery.placement.list"),
+  getActiveChickPlacementByHallId,
+);
 
 // =========== روت‌های PUT خاص ===========
+const CAN_WRITE = authorize("expert", "admin", "sub_admin", "super_admin");
+const CAN_MANAGE = authorize("admin", "super_admin", "sub_admin");
+
 router.put(
   "/activate/:id",
-  authorize("expert", "admin", "sub_admin", "super_admin"),
+  CAN_WRITE,
+  requirePermission("hatchery.placement.edit"),
   activateChickPlacement,
 );
 router.put(
   "/deactivate/:id",
-  authorize("expert", "admin", "sub_admin", "super_admin"),
+  CAN_WRITE,
+  requirePermission("hatchery.placement.edit"),
   deactivateChickPlacement,
 );
 
 // =========== حذف کل «گله/دوره» به همراه سالن‌های عضو ===========
 router.delete(
   "/group/:flockId",
-  authorize("admin", "super_admin", "sub_admin"),
+  CAN_MANAGE,
+  requirePermission("hatchery.placement.delete"),
   deleteFlockGroup,
 );
 
 // =========== روت‌های عمومی با پارامتر :id (آخر) ===========
-router.get("/:id", getChickPlacementById);
+router.get(
+  "/:id",
+  requirePermission("hatchery.placement.list"),
+  getChickPlacementById,
+);
 router.put(
   "/:id",
-  authorize("expert", "admin", "sub_admin", "super_admin"),
+  CAN_WRITE,
+  requirePermission("hatchery.placement.edit"),
   updateChickPlacement,
 );
-router.delete("/:id", authorize("admin", "super_admin", "sub_admin"), deleteChickPlacement);
+router.delete(
+  "/:id",
+  CAN_MANAGE,
+  requirePermission("hatchery.placement.delete"),
+  deleteChickPlacement,
+);
 router.post(
   "/",
-  authorize("expert", "admin", "sub_admin", "super_admin"),
+  CAN_WRITE,
+  requirePermission("hatchery.placement.create"),
   createChickPlacement,
 );
 
@@ -60,6 +91,7 @@ router.put(
   "/:id/toggle-status",
   protect,
   authorize("admin", "super_admin", "sub_admin", "expert"),
+  requirePermission("hatchery.placement.toggle"),
   toggleChickPlacementStatus,
 );
 

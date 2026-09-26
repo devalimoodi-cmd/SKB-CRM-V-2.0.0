@@ -80,6 +80,22 @@ const protect = async (req, res, next) => {
       status: user.status,
     };
 
+    // ✅ «سطوح دسترسی» کاربر (استثنای کاربر ← استثنای نقش ← پیش‌فرض کاتالوگ)
+    // با کش ۳۰ ثانیه‌ای در services/permissionService.js؛ پس از هر تغییر
+    // در پنل مدیریت، فوراً پاک می‌شود.
+    try {
+      // require داخل تابع تا وابستگی حلقه‌ای ایجاد نشود
+      const { getEffectivePermissions } = require("../services/permissionService");
+      const { permissions } = await getEffectivePermissions({
+        id: user.id,
+        role: user.role,
+      });
+      req.user.permissions = permissions;
+    } catch (permError) {
+      console.error("❌ خطا در بارگذاری سطوح دسترسی:", permError.message);
+      req.user.permissions = new Set();
+    }
+
     next();
   } catch (error) {
     console.error("❌ خطا در احراز هویت:", error.message);

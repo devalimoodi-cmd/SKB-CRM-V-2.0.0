@@ -18,7 +18,46 @@ import {
   flockGroupKey,
   buildFlockGroupAggregate,
   groupFlocksByFlock,
+  compareHallNames,
+  hallNameOf,
+  sortFlocksByHall,
+  sortHallNames,
 } from "./src/features/customer-info/sections/weekly/weekly.aggregation.js";
+import {
+  REPORT_GROUPS,
+  ALL_GROUP_KEYS,
+  METRICS_COLUMNS,
+  metricsColumnsFor,
+  normalizeGroups,
+  isGroupSelected,
+  selectedGroupsLabel,
+} from "./src/features/customer-info/sections/weekly/weekly.report.groups.js";
+import {
+  WEEK_STATUS,
+  TIMELINE_SOURCE,
+  auditWeeks,
+  mergeAudits,
+  expectedWeekLimit,
+  formatWeekList,
+  resolveFlockTimelineEnd,
+  scopeAuditToWeeks,
+  timelineBasisLabel,
+  weekAuditStatus,
+  weekNumberOfDate,
+} from "./src/features/customer-info/sections/weekly/weekly.audit.js";
+import {
+  WEEK_PRESET,
+  buildWeekTimeline,
+  effectiveWeeksFor,
+  issuesOutsideSelection,
+  mergeWeekTimelines,
+  normalizeWeekSelection,
+  resolvePresetWeeks,
+  resolveWeekRule,
+  summarizeWeekSelection,
+  unionWeekSelection,
+  weekSelectionLabel,
+} from "./src/features/customer-info/sections/weekly/weekly.report.weeks.js";
 
 const results = [];
 const check = (name, ok, extra = "") => {
@@ -423,6 +462,595 @@ check(
   "ستون جمعیت ابتدای هفته: ۱۰۰۰ (هفتهٔ ۱) و ۹۹۰ (هفتهٔ ۲)",
   w1.birdsStartOfWeek === 1000 && w2.birdsStartOfWeek === 990,
   `${w1.birdsStartOfWeek} / ${w2.birdsStartOfWeek}`,
+);
+
+// ============================================================
+//  کاتالوگ گروه‌های شاخص گزارش (weekly.report.groups.js)
+//  کاربر پیش از تولید گزارش انتخاب می‌کند کدام گروه‌ها بیاید
+// ============================================================
+
+check(
+  "انتخاب خالی → همهٔ گروه‌ها (پیش‌فرض = گزارش کامل)",
+  normalizeGroups([]).length === ALL_GROUP_KEYS.length &&
+    normalizeGroups([]).join(",") === ALL_GROUP_KEYS.join(","),
+);
+check(
+  "انتخاب نامعتبر (null) → همهٔ گروه‌ها",
+  normalizeGroups(null).length === ALL_GROUP_KEYS.length,
+);
+check(
+  "کلید تکراری یک‌بار حساب می‌شود و کلید ناشناخته حذف می‌شود",
+  normalizeGroups(["weight", "weight", "unknown"]).join(",") === "weight",
+);
+check(
+  "ترتیب خروجی همیشه ترتیب کاتالوگ است (نه ترتیب کلیک کاربر)",
+  normalizeGroups(["details", "population"]).join(",") ===
+    "population,details",
+);
+check(
+  "isGroupSelected با انتخاب خالی → همهٔ گروه‌ها فعال‌اند",
+  isGroupSelected([], "growth") === true &&
+    isGroupSelected(["growth"], "feed") === false,
+);
+check(
+  "کلیدهای گروه یکتا و شامل ۵ گروه درخواستی کاربر هستند",
+  new Set(ALL_GROUP_KEYS).size === 5 &&
+    ALL_GROUP_KEYS.join(",") === "population,weight,growth,feed,details",
+);
+
+// ===== نگاشت ستون‌های جدول «شاخص‌های عملکردی هفتگی» =====
+check(
+  "۱۳ ستون شاخص تعریف شده (۱ ستون هفته + ۱۳ = جدول ۱۴ستونی)",
+  METRICS_COLUMNS.length === 13,
+);
+check(
+  "کلید ستون‌ها یکتاست",
+  new Set(METRICS_COLUMNS.map((c) => c.key)).size === METRICS_COLUMNS.length,
+);
+check(
+  "هر گروه (به‌جز «جزئیات» که جدول مستقل دارد) حداقل یک ستون دارد",
+  REPORT_GROUPS.filter((g) => g.key !== "details").every((g) =>
+    METRICS_COLUMNS.some((c) => c.group === g.key),
+  ) === true,
+);
+check(
+  "گروه جمعیت → ۵ ستون (جمعیت/زنده‌مانی/تلفات)",
+  metricsColumnsFor(["population"]).length === 5,
+);
+check(
+  "گروه وزن → ۳ ستون",
+  metricsColumnsFor(["weight"])
+    .map((c) => c.label)
+    .join("|") === "وزن (kg)|وزن کل (kg)|افزایش وزن (kg)",
+);
+check(
+  "گروه رشد → فقط ستون ADG",
+  metricsColumnsFor(["growth"]).length === 1,
+);
+check(
+  "گروه خوراک → ۴ ستون (دان کل، سرانه، سرانه روزانه، FCR)",
+  metricsColumnsFor(["feed"]).length === 4,
+);
+check(
+  "گروه جزئیات ستون جدول شاخص‌ها ندارد (جدول مستقل دارد)",
+  metricsColumnsFor(["details"]).length === 0,
+);
+check(
+  "انتخاب همهٔ گروه‌ها همان ۱۳ ستون قبلی را می‌دهد (سازگاری عقب‌رو)",
+  metricsColumnsFor(ALL_GROUP_KEYS).length === METRICS_COLUMNS.length,
+);
+check(
+  "مقدارگیر ستون‌ها از متریک هفته خوانده می‌شود (وزن هفتهٔ ۲ = ۰.۴۵)",
+  METRICS_COLUMNS.find((c) => c.key === "weight").get(w2) === 0.45 &&
+    METRICS_COLUMNS.find((c) => c.key === "mortality").get(w1) === 10,
+);
+check(
+  "برچسب «همهٔ شاخص‌ها» برای انتخاب کامل و عنوان گروه برای انتخاب جزئی",
+  selectedGroupsLabel(ALL_GROUP_KEYS) === "همهٔ شاخص‌ها" &&
+    selectedGroupsLabel(["growth"]) === "🚀 رشد",
+);
+
+// ============================================================
+//  حسابرسی هفته‌های ثبت‌نشده/ناقص (weekly.audit.js)
+//  هفتهٔ بدون رکورد = missing · رکورد بدون وزن/خوراک = partial
+// ============================================================
+
+const auditSample = auditWeeks(
+  [
+    { week_number: 1, existsInDb: true, weekly_weight: 0.19, weekly_feed_intake: 190 },
+    { week_number: 2, existsInDb: false },
+    {
+      week_number: 3,
+      existsInDb: true,
+      weekly_weight: 0.8,
+      weekly_feed_intake: null,
+      daily_feed_intake: null,
+    },
+    { week_number: 4, existsInDb: true, weekly_weight: null, weekly_feed_intake: 400 },
+    { week_number: 5, existsInDb: true, weekly_weight: 1.4, daily_feed_intake: 210 },
+  ],
+  "سالن A",
+);
+
+check(
+  "هفتهٔ بدون رکورد → missing (شماره‌ها به ترتیب)",
+  auditSample.missing.join(",") === "2",
+  `missing=${auditSample.missing.join(",")}`,
+);
+check(
+  "رکورد بدون خوراک → partial",
+  auditSample.statuses[3] === WEEK_STATUS.PARTIAL &&
+    auditSample.fields[3].join("+") === "خوراک",
+  `fields=${auditSample.fields[3]?.join("+")}`,
+);
+check(
+  "رکورد بدون وزن → partial",
+  auditSample.statuses[4] === WEEK_STATUS.PARTIAL &&
+    auditSample.fields[4].join("+") === "وزن",
+);
+check(
+  "خوراک روزانه به‌جای هفتگی → هفتهٔ کامل",
+  auditSample.statuses[5] === WEEK_STATUS.COMPLETE,
+);
+check(
+  "آمار حسابرسی: ۴ ثبت‌شده، ۲ کامل، ۱ بدون ثبت، ۲ ناقص",
+  auditSample.recorded === 4 &&
+    auditSample.complete === 2 &&
+    auditSample.missing.length === 1 &&
+    auditSample.partial.length === 2,
+);
+check(
+  "hasIssues فقط وقتی گپ یا نقص وجود دارد",
+  auditSample.hasIssues === true &&
+    auditWeeks([
+      {
+        week_number: 1,
+        existsInDb: true,
+        weekly_weight: 0.2,
+        weekly_feed_intake: 200,
+      },
+    ]).hasIssues === false,
+);
+check(
+  "رکورد خام API (بدون فلگ existsInDb) = ثبت‌شده (بدون هشدار کاذب)",
+  weekAuditStatus({ week_number: 1, weekly_weight: 0.2, weekly_feed_intake: 200 }) ===
+    WEEK_STATUS.COMPLETE,
+);
+check(
+  "متن خوانای لیست هفته‌ها: «۳، ۵ و ۷»",
+  formatWeekList([3, 5, 7], (n) => n.toLocaleString("fa-IR")) === "۳، ۵ و ۷" &&
+    formatWeekList([4], (n) => n.toLocaleString("fa-IR")) === "۴",
+);
+
+// ===== ادغام سالن‌ها در سطح «کل گله» =====
+const mergedAudit = mergeAudits([
+  auditWeeks(
+    [
+      { week_number: 1, existsInDb: true, weekly_weight: 0.2, weekly_feed_intake: 200 },
+      { week_number: 2, existsInDb: true, weekly_weight: 0.5, weekly_feed_intake: 400 },
+      { week_number: 3, existsInDb: false },
+    ],
+    "سالن A",
+  ),
+  auditWeeks(
+    [
+      { week_number: 1, existsInDb: true, weekly_weight: 0.2, weekly_feed_intake: 200 },
+      { week_number: 2, existsInDb: false },
+      { week_number: 3, existsInDb: false },
+    ],
+    "سالن B",
+  ),
+]);
+
+check(
+  "کل گله: هفتهٔ کامل در همهٔ سالن‌ها → complete",
+  mergedAudit.statuses[1] === WEEK_STATUS.COMPLETE,
+);
+check(
+  "کل گله: هفتهٔ ثبت‌نشده در یک سالن → partial (با نام سالن)",
+  mergedAudit.statuses[2] === WEEK_STATUS.PARTIAL &&
+    mergedAudit.byWeek[2].missing.includes("سالن B"),
+  `byWeek2=${JSON.stringify(mergedAudit.byWeek[2])}`,
+);
+check(
+  "کل گله: هفتهٔ بدون ثبت در هیچ سالنی → missing",
+  mergedAudit.statuses[3] === WEEK_STATUS.MISSING &&
+    mergedAudit.missing.join(",") === "3",
+);
+check(
+  "آمار کل گله: نام هر دو سالن و فهرست هفته‌های مشکل‌دار",
+  mergedAudit.halls.join("+") === "سالن A+سالن B" &&
+    mergedAudit.partial.join(",") === "2" &&
+    mergedAudit.hasIssues === true,
+);
+
+// ===== سقف «هفتهٔ مورد انتظار» (جلوگیری از هشدار کاذب) =====
+check(
+  "گلهٔ فعال: سقف هفته تا امروز (۲۲ روز از ۱ ژانویه = هفتهٔ ۴)",
+  expectedWeekLimit({
+    placementDate: "2026-01-01",
+    isActive: true,
+    savedWeeks: [{ week_number: 1 }],
+    today: new Date("2026-01-22T00:00:00Z"),
+  }) === 4,
+);
+check(
+  "گلهٔ بسته با «تاریخ پایان دوره» معتبر: سقف تا پایان دوره (۱۵ روز = هفتهٔ ۳)",
+  expectedWeekLimit({
+    placementDate: "2026-01-01",
+    placement: { placement_date: "2026-01-01" },
+    flock: { placement_date: "2026-01-01", status: "completed", ended_at: "2026-01-15" },
+    savedWeeks: [{ week_number: 2 }],
+    isActive: false,
+  }) === 3,
+  `endWeek=${expectedWeekLimit({
+    placementDate: "2026-01-01",
+    flock: { placement_date: "2026-01-01", status: "completed", ended_at: "2026-01-15" },
+    savedWeeks: [{ week_number: 2 }],
+    isActive: false,
+  })}`,
+);
+check(
+  "❗ تنها «تاریخ ثبت پایان دوره در سیستم» → سقف = آخرین هفتهٔ ثبت‌شده (نه تا امروز)",
+  expectedWeekLimit({
+    placementDate: "2026-01-01",
+    isActive: false,
+    savedWeeks: [{ week_number: 2 }],
+    completion: { completion_date: "2026-09-26" },
+    today: new Date("2026-09-26T00:00:00Z"),
+  }) === 2,
+);
+check(
+  "گلهٔ بسته بدون تاریخ پایان: سقف = آخرین هفتهٔ ثبت‌شده (بدون هشدار کاذب)",
+  expectedWeekLimit({
+    placementDate: "2026-01-01",
+    isActive: false,
+    savedWeeks: [{ week_number: 5 }],
+  }) === 5,
+);
+check(
+  "بدون تاریخ جوجه‌ریزی و بدون رکورد → سقف صفر (گزارش بدون هشدار)",
+  expectedWeekLimit({ isActive: false, savedWeeks: [] }) === 0,
+);
+
+// ============================================================
+//  🐞 رفع باگ: مبنای «پایان دوره» گله‌های تکمیل‌شده
+//  (قبلاً تاریخ «ثبت پایان دوره در سیستم» = معمولاً امروز مبنا بود
+//   و همهٔ هفته‌ها تا امروز «بدون ثبت» علامت می‌خوردند)
+// ============================================================
+
+const completedFlock = {
+  placement_date: "2026-01-01",
+  status: "completed",
+  ended_at: "2026-09-26", // تاریخ ثبت پایان دوره = امروز (بدون ارزش)
+};
+const saved3Weeks = [
+  { week_number: 1 },
+  { week_number: 2 },
+  { week_number: 3 },
+];
+
+const tlSlaughterRange = resolveFlockTimelineEnd({
+  flock: completedFlock,
+  completion: {
+    completion_date: "2026-09-26",
+    slaughter_date: "2026-01-15",
+    slaughter_end_date: "2026-01-22",
+  },
+  savedWeeks: saved3Weeks,
+  today: new Date("2026-09-26T00:00:00Z"),
+});
+check(
+  "گلهٔ تکمیل‌شده: مبنا = تاریخ پایان کشتار (نه تاریخ ثبت در سیستم)",
+  tlSlaughterRange.source === TIMELINE_SOURCE.SLAUGHTER_END_DATE &&
+    tlSlaughterRange.endWeek === 4,
+  `source=${tlSlaughterRange.source} endWeek=${tlSlaughterRange.endWeek}`,
+);
+check(
+  "متن مبنای پایان برای گزارش خوانا است",
+  timelineBasisLabel(tlSlaughterRange).includes("تاریخ پایان کشتار"),
+);
+
+const tlSlaughterAge = resolveFlockTimelineEnd({
+  flock: completedFlock,
+  completion: { slaughter_age_days: 40 },
+  savedWeeks: saved3Weeks,
+  today: new Date("2026-09-26T00:00:00Z"),
+});
+check(
+  "در نبود تاریخ کشتار، «سن کشتار» مبنا می‌شود (۴۰ روز = هفتهٔ ۶)",
+  tlSlaughterAge.source === TIMELINE_SOURCE.SLAUGHTER_AGE &&
+    tlSlaughterAge.endWeek === 6,
+  `source=${tlSlaughterAge.source} endWeek=${tlSlaughterAge.endWeek}`,
+);
+
+const tlEndedAt = resolveFlockTimelineEnd({
+  flock: completedFlock,
+  completion: { completion_date: "2026-09-26" },
+  savedWeeks: saved3Weeks,
+  today: new Date("2026-09-26T00:00:00Z"),
+});
+check(
+  "با ended_at: مبنا «تاریخ پایان گله» است و به آخرین هفته محدود نمی‌شود (هفتهٔ ۳۹)",
+  tlEndedAt.source === TIMELINE_SOURCE.ENDED_AT && tlEndedAt.endWeek === 39,
+  `source=${tlEndedAt.source} endWeek=${tlEndedAt.endWeek}`,
+);
+
+const tlCompletionOnly = resolveFlockTimelineEnd({
+  flock: { placement_date: "2026-01-01", status: "completed" },
+  completion: { completion_date: "2026-09-26" },
+  savedWeeks: saved3Weeks,
+  today: new Date("2026-09-26T00:00:00Z"),
+});
+check(
+  "❗ بدون تاریخ کشتار/پایان گله: سقف = آخرین هفتهٔ ثبت‌شده (باگ «تا امروز» رفع شد)",
+  tlCompletionOnly.source === TIMELINE_SOURCE.COMPLETION_DATE &&
+    tlCompletionOnly.endWeek === 3 &&
+    tlCompletionOnly.confidence === "low",
+  `source=${tlCompletionOnly.source} endWeek=${tlCompletionOnly.endWeek}`,
+);
+
+const tlNoDates = resolveFlockTimelineEnd({
+  flock: { placement_date: "2026-01-01", status: "completed" },
+  savedWeeks: saved3Weeks,
+  today: new Date("2026-09-26T00:00:00Z"),
+});
+check(
+  "گلهٔ بسته بدون هیچ تاریخ پایان: فقط تا آخرین هفتهٔ ثبت‌شده",
+  tlNoDates.source === TIMELINE_SOURCE.LAST_WEEK && tlNoDates.endWeek === 3,
+);
+
+const tlFuture = resolveFlockTimelineEnd({
+  flock: { placement_date: "2026-01-01", status: "completed" },
+  completion: { slaughter_date: "2026-12-31" },
+  savedWeeks: saved3Weeks,
+  today: new Date("2026-01-22T00:00:00Z"),
+});
+check(
+  "هرگز از امروز جلوتر نمی‌رود (تاریخ کشتار آینده)",
+  tlFuture.endWeek === 4,
+  `endWeek=${tlFuture.endWeek}`,
+);
+
+const tlActive = resolveFlockTimelineEnd({
+  placement: { placement_date: "2026-01-01", is_active: true },
+  savedWeeks: saved3Weeks,
+  today: new Date("2026-01-22T00:00:00Z"),
+});
+check(
+  "گلهٔ در جریان: مبنای پایان = امروز (هفتهٔ ۴)",
+  tlActive.isActive === true &&
+    tlActive.source === TIMELINE_SOURCE.TODAY &&
+    tlActive.endWeek === 4,
+);
+
+check(
+  "شمارهٔ هفته از تاریخ (۱ ژانویه → ۱ و ۲۲ ژانویه → ۴)",
+  weekNumberOfDate("2026-01-01", "2026-01-01") === 1 &&
+    weekNumberOfDate("2026-01-01", "2026-01-22") === 4,
+);
+
+const scopedAudit = scopeAuditToWeeks(auditSample, [3, 4]);
+check(
+  "محدودکردن هشدار به هفته‌های انتخابی (missing بیرون انتخاب حذف می‌شود)",
+  scopedAudit.total === 2 &&
+    scopedAudit.missing.length === 0 &&
+    scopedAudit.partial.join(",") === "3,4",
+  `total=${scopedAudit.total} missing=${scopedAudit.missing.length}`,
+);
+
+// ============================================================
+//  🎯 انتخاب هفته‌های گزارش (weekly.report.weeks.js)
+//  مدل ترکیبی: انتخاب مشترک (قاعده) + تنظیم جداگانهٔ هر گله
+// ============================================================
+
+const timelineA = buildWeekTimeline([
+  { week_number: 1, existsInDb: true, weekly_weight: 0.2, weekly_feed_intake: 200 },
+  { week_number: 2, existsInDb: false },
+  { week_number: 3, existsInDb: true, weekly_weight: 0.8, weekly_feed_intake: 380 },
+  { week_number: 4, existsInDb: false },
+]);
+const timelineB = buildWeekTimeline([
+  { week_number: 1, existsInDb: true, weekly_weight: 0.2, weekly_feed_intake: 200 },
+  { week_number: 2, existsInDb: true, weekly_weight: 0.5, weekly_feed_intake: 400 },
+  { week_number: 3, existsInDb: false },
+  { week_number: 4, existsInDb: false },
+]);
+const timelines = { A: timelineA, B: timelineB };
+
+check(
+  "خط زمانی: وضعیت هر هفته (ثبت‌شده/بدون ثبت) به‌درستی تعیین می‌شود",
+  timelineA.length === 4 &&
+    timelineA[0].status === WEEK_STATUS.COMPLETE &&
+    timelineA[1].status === WEEK_STATUS.MISSING,
+  `statuses=${timelineA.map((w) => w.status).join(",")}`,
+);
+
+check(
+  "پریست «همه» همهٔ هفته‌های همان گله را می‌دهد",
+  resolvePresetWeeks(WEEK_PRESET.ALL, timelineA).join(",") === "1,2,3,4",
+);
+check(
+  "پریست «فقط ثبت‌شده» هفتهٔ بدون ثبت را حذف می‌کند",
+  resolvePresetWeeks(WEEK_PRESET.RECORDED, timelineA).join(",") === "1,3",
+);
+check(
+  "پریست «مشکل‌دار» فقط هفته‌های بدون ثبت/ناقص را می‌دهد",
+  resolvePresetWeeks(WEEK_PRESET.ISSUES, timelineA).join(",") === "2,4",
+);
+check(
+  "پریست «بازهٔ دلخواه» بین از/تا فیلتر می‌کند",
+  resolvePresetWeeks(WEEK_PRESET.RANGE, timelineA, { from: 2, to: 3 }).join(",") ===
+    "2,3" &&
+    resolvePresetWeeks(WEEK_PRESET.RANGE, timelineA, { from: 3 }).join(",") === "3,4",
+);
+
+// پیش‌فرض (بدون انتخاب) = همهٔ هفته‌ها (سازگاری عقب‌رو)
+check(
+  "انتخاب نامعتبر/خالی → همهٔ هفته‌های همان گله (رفتار قبلی گزارش)",
+  normalizeWeekSelection(null).shared === null &&
+    effectiveWeeksFor(null, "A", timelineA).join(",") === "1,2,3,4",
+);
+
+// انتخاب مشترک «قاعده‌ای»: هر گله بر اساس هفته‌های خودش حل می‌شود
+const sharedIssues = normalizeWeekSelection({
+  shared: { preset: WEEK_PRESET.ISSUES },
+});
+check(
+  "قاعدهٔ مشترک روی هر گله جداگانه حل می‌شود (مشکل‌دارهای هر گله)",
+  effectiveWeeksFor(sharedIssues, "A", timelineA).join(",") === "2,4" &&
+    effectiveWeeksFor(sharedIssues, "B", timelineB).join(",") === "3,4",
+);
+
+// تنظیم جداگانهٔ یک گله (override)
+const mixed = normalizeWeekSelection({
+  shared: { preset: WEEK_PRESET.ISSUES },
+  overrides: { A: [1, 3] },
+});
+check(
+  "تنظیم سفارشی یک گله فقط همان گله را تغییر می‌دهد",
+  effectiveWeeksFor(mixed, "A", timelineA).join(",") === "1,3" &&
+    effectiveWeeksFor(mixed, "B", timelineB).join(",") === "3,4",
+);
+check(
+  "هفته‌ای که در گله وجود ندارد، در انتخاب سفارشی نادیده گرفته می‌شود",
+  effectiveWeeksFor(normalizeWeekSelection({ overrides: { B: [1, 2, 9] } }), "B", timelineB).join(
+    ",",
+  ) === "1,2",
+);
+check(
+  "انتخاب خالی برای یک گله → آن گله از گزارش حذف می‌شود",
+  effectiveWeeksFor(normalizeWeekSelection({ overrides: { B: [] } }), "B", timelineB)
+    .length === 0,
+);
+
+check(
+  "اجتماع انتخاب سالن‌ها برای جدول «کل گله»",
+  unionWeekSelection(
+    normalizeWeekSelection({ overrides: { A: [1], B: [2] } }),
+    ["A", "B"],
+    timelines,
+  ).join(",") === "1,2",
+);
+
+const mergedTimeline = mergeWeekTimelines([timelineA, timelineB]);
+check(
+  "ادغام خط زمانی سالن‌ها: هر دو کامل → complete · یک سالن → partial · هیچ‌کدام → missing",
+  mergedTimeline.length === 4 &&
+    mergedTimeline[0].status === WEEK_STATUS.COMPLETE &&
+    mergedTimeline[1].status === WEEK_STATUS.PARTIAL &&
+    mergedTimeline[3].status === WEEK_STATUS.MISSING,
+  `statuses=${mergedTimeline.map((w) => w.status).join(",")}`,
+);
+
+check(
+  "هفته‌های مشکل‌دار خارج از انتخاب شناسایی می‌شوند",
+  issuesOutsideSelection(
+    normalizeWeekSelection({ overrides: { A: [1] } }),
+    "A",
+    timelineA,
+  ).join(",") === "2,4",
+);
+
+const summary = summarizeWeekSelection(
+  normalizeWeekSelection({ shared: { preset: WEEK_PRESET.ALL }, overrides: { B: [] } }),
+  timelines,
+);
+check(
+  "خلاصهٔ انتخاب: شمارش هفته‌ها، گله‌های حذف‌شده و گله‌های سفارشی",
+  summary.weeks === 4 &&
+    summary.flocks === 1 &&
+    summary.excluded === 1 &&
+    summary.overridden === 1 &&
+    summary.missing === 2,
+  `weeks=${summary.weeks} flocks=${summary.flocks} excluded=${summary.excluded}`,
+);
+
+const faNum = (n) => n.toLocaleString("fa-IR");
+check(
+  "متن محدودهٔ انتخاب: بازهٔ پیوسته «۳ تا ۶» و لیست غیرپیوسته",
+  weekSelectionLabel([3, 4, 5, 6], [1, 2, 3, 4, 5, 6, 7], faNum).includes("۳ تا ۶") &&
+    weekSelectionLabel([1, 4, 6], [1, 2, 3, 4, 5, 6, 7], faNum).includes("۱، ۴، ۶") &&
+    weekSelectionLabel([1, 2], [1, 2], faNum) === "همهٔ ۲ هفته",
+);
+check(
+  "حل قاعدهٔ خام (آرایه/قاعده/خالی)",
+  resolveWeekRule(null, timelineA).join(",") === "1,2,3,4" &&
+    resolveWeekRule([2], timelineA).join(",") === "2" &&
+    resolveWeekRule({ preset: WEEK_PRESET.RECORDED }, timelineA).join(",") === "1,3",
+);
+
+// ============================================================
+//  🔤 ترتیب ثابت سالن‌ها در گزارش‌ها: از A به آخر (ترتیب طبیعی)
+// ============================================================
+check(
+  "ترتیب لاتین: «سالن A» < «سالن B» < «سالن C»",
+  compareHallNames("سالن A", "سالن B") < 0 &&
+    compareHallNames("سالن C", "سالن B") > 0,
+);
+check(
+  "حساس‌نبودن به بزرگی/کوچکی حروف: «سالن a» قبل از «سالن B»",
+  compareHallNames("سالن a", "سالن B") < 0,
+);
+check(
+  "اعداد به‌صورت عددی: «سالن ۲» قبل از «سالن ۱۰» (نه ترتیب متنی)",
+  compareHallNames("سالن ۲", "سالن ۱۰") < 0 &&
+    compareHallNames("سالن 10", "سالن 2") > 0,
+);
+check(
+  "حروف لاتین قبل از فارسی و عدد: A < ب < ۱",
+  compareHallNames("سالن A", "سالن ب") < 0 &&
+    compareHallNames("سالن ب", "سالن ۱") < 0,
+);
+check(
+  "نام کوتاه‌تر جلوتر می‌آید: «سالن A» قبل از «سالن AA»",
+  compareHallNames("سالن A", "سالن AA") < 0,
+);
+check(
+  "نام خالی/بدون نام → آخر فهرست",
+  compareHallNames("", "سالن A") > 0 &&
+    compareHallNames("سالن A", "") < 0 &&
+    compareHallNames("", "") === 0,
+);
+check(
+  "نام‌های هم‌ارز → ۰ (ترتیب پایدار حفظ می‌شود)",
+  compareHallNames("سالن A", "سالن A") === 0,
+);
+check(
+  "sortHallNames فهرست به‌هم‌ریخته را A→Z می‌کند",
+  sortHallNames([
+    "سالن C",
+    "سالن ۱۰",
+    "سالن A",
+    "سالن ۲",
+    "سالن B",
+  ]).join(",") === "سالن A,سالن B,سالن C,سالن ۲,سالن ۱۰",
+);
+check(
+  "hallNameOf نام سالن را از ساختارهای مختلف می‌خواند",
+  hallNameOf({ hall_name: "سالن A" }) === "سالن A" &&
+    hallNameOf({ hall: { hall_name: "سالن B" } }) === "سالن B" &&
+    hallNameOf({ hallName: "سالن C" }) === "سالن C",
+);
+check(
+  "sortFlocksByHall ورودی معکوس را مرتب می‌کند",
+  sortFlocksByHall([
+    { hall_name: "سالن C" },
+    { hall_name: "سالن A" },
+    { hall_name: "سالن B" },
+  ])
+    .map((h) => h.hall_name)
+    .join("+") === "سالن A+سالن B+سالن C",
+);
+check(
+  "گروه‌بندی گله: سالن‌ها همیشه A→Z مرتب می‌شوند (حتی با ورودی معکوس)",
+  groupFlocksByFlock([
+    { id: 1, flock_id: 9, hall_name: "سالن C" },
+    { id: 2, flock_id: 9, hall_name: "سالن A" },
+    { id: 3, flock_id: 9, hall_name: "سالن B" },
+  ])[0].halls
+    .map((h) => h.hall_name)
+    .join("+") === "سالن A+سالن B+سالن C",
 );
 
 const failed = results.filter((x) => !x).length;

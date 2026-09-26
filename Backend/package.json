@@ -15,6 +15,7 @@
     "test:integrity": "node data-integrity-test.mjs",
     "test:uploads-maint": "node uploads-maintenance-test.mjs",
     "test:customer-validation": "node customer-validation-test.mjs",
+    "test:permissions": "node permissions-test.mjs",
     "verify": "npm run check && npm run lint && npm run test:security",
     "backup": "node scripts/backup.js",
     "uploads:report": "node scripts/uploads-report.js",

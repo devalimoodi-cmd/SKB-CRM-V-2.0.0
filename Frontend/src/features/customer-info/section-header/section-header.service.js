@@ -26,6 +26,12 @@ class SectionHeaderService {
 
     if (!this.customerId) {
       console.warn("⚠️ شناسه مشتری یافت نشد");
+      // ✅ بدون شناسه، کل سرصفحه خالی میماند → کاربر باید بداند چرا
+      notificationService.notifyOnce({
+        key: "customer-id-missing",
+        type: "warning",
+        message: "شناسهٔ مشتری یافت نشد — از فهرست مشتریان وارد شوید",
+      });
       return;
     }
 

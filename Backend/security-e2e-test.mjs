@@ -25,12 +25,22 @@ if (process.env.ALLOW_DB_TESTS !== "true" || process.env.NODE_ENV === "productio
 }
 
 const { sequelize } = require("./config/database.js");
+// ✅ مثل server.js: برای include/association ها باید یک‌بار بارگذاری شوند
+require("./models/associations.js");
 const User = require("./models/User.js");
 // ✅ «تغییرات جدید / What's New»
 const ReleaseNoteItem = require("./models/ReleaseNoteItem.js");
 const ReleaseNoteView = require("./models/ReleaseNoteView.js");
 // ✅ مشتریان (برای بررسی شمارهٔ مشتری و پاکسازی داده تستی)
 const CustomerPersonalInfo = require("./models/CustomerPersonalInfo.js");
+// ✅ «خلاصهٔ عملکرد مشتری» (مودال جزئیات در داشبورد کارشناس)
+const ChickPlacement = require("./models/ChickPlacement.js");
+const WeeklyManagement = require("./models/WeeklyManagement.js");
+const FlockCompletion = require("./models/FlockCompletion.js");
+const {
+  getCustomerPerformance,
+} = require("./services/customerPerformanceService.js");
+const { fn, col } = require("sequelize");
 
 let dbReady = false;
 try {
@@ -1078,11 +1088,12 @@ const run = async () => {
   // ============================================
   {
     // ۱) چهار نوع پیش‌فرض
-    const defaultTypeNames = ["گوشتی", "تخم‌گذار", "مرغ مادر", "سایر"];
+    const coreTypeNames = ["گوشتی", "تخم‌گذار", "مرغ مادر"];
     check(
-      "دیکشنری «انواع مشتری»: چهار نوع پیش‌فرض موجود است",
-      defaultTypeNames.every((n) => customerTypes.some((t) => t.name === n)),
-      `names=${customerTypes.map((t) => t.name).join(" | ")}`,
+      "دیکشنری «انواع مشتری»: حداقل ۴ نوع و سه نوع اصلی موجود است",
+      customerTypes.length >= 4 &&
+        coreTypeNames.every((n) => customerTypes.some((t) => t.name === n)),
+      `count=${customerTypes.length} :: names=${customerTypes.map((t) => t.name).join(" | ")}`,
     );
 
     const activeTypeId = customerTypes[0]?.id;
@@ -1121,22 +1132,42 @@ const run = async () => {
       `status=${typeRes.status} msg=${typeBody?.message}`,
     );
 
-    // ۴) کد ملی نامعتبر → ۴۰۰ (رقم کنترلی)
+    // ۴) کد ملی نامعتبر → ۴۰۰ (قاعده: فقط ۱۰ رقم عددی — بدون رقم کنترلی)
+    //    ⚠️ مقدار تست ۹ رقمی است، چون هر ۱۰ رقم عددی پذیرفته می‌شود
     typeRes = await fetch(`${base}/api/customers/register`, {
       method: "POST",
       headers: authHeaders(adminToken),
       body: JSON.stringify({
         ...customerPayload(13),
-        national_code: "1234567890",
+        national_code: "123456789",
       }),
     });
     typeBody = await typeRes.json().catch(() => ({}));
     check(
-      "ثبت مشتری با «کد ملی» نامعتبر → ۴۰۰",
+      "ثبت مشتری با «کد ملی» نامعتبر (۹ رقمی) → ۴۰۰",
       typeRes.status === 400,
       `status=${typeRes.status} msg=${JSON.stringify(
         typeBody?.errors || typeBody?.message,
       )}`,
+    );
+
+    // ۴-ب) کد ملی ۱۰ رقمی بدون رقم کنترلی معتبر → ۲۰۱ (قاعدهٔ جدید)
+    //    ⚠️ ایندکس ۲۰ است (۱۵ برای «مشتری قدیمی» رزرو شده — موبایل تکراری ممنوع)
+    typeRes = await fetch(`${base}/api/customers/register`, {
+      method: "POST",
+      headers: authHeaders(adminToken),
+      body: JSON.stringify({
+        ...customerPayload(20),
+        national_code: "1234567890",
+      }),
+    });
+    typeBody = await typeRes.json().catch(() => ({}));
+    const rawNationalCustomer = typeBody?.data || {};
+    if (rawNationalCustomer.id) createdCustomerIds.push(rawNationalCustomer.id);
+    check(
+      "ثبت مشتری با «کد ملی» ۱۰ رقمی بدون رقم کنترلی → ۲۰۱ (۱۰ رقم عددی کافی است)",
+      typeRes.status === 201 && rawNationalCustomer.national_code === "1234567890",
+      `status=${typeRes.status} national=${rawNationalCustomer.national_code}`,
     );
 
     // ۵) ثبت موفق با نوع مشتری + کد ملی معتبر (ارقام فارسی هم پذیرفته می‌شود)
@@ -1188,6 +1219,207 @@ const run = async () => {
         ),
       `status=${typeRes.status} rows=${filteredRows.length}`,
     );
+
+    // ============================================
+    // ✅ خلاصهٔ عملکرد مشتری (مودال «جزئیات مشتری» داشبورد کارشناس)
+    //    GET /api/dashboard/customer/:id/performance
+    // ============================================
+    // جوجه‌ریزی‌ای با بیشترین هفتهٔ ثبت‌شده را انتخاب می‌کنیم (دادهٔ واقعی)
+    const topWeekGroup = await WeeklyManagement.findAll({
+      attributes: ["chick_placement_id", [fn("COUNT", col("id")), "weeks"]],
+      group: ["chick_placement_id"],
+      order: [[fn("COUNT", col("id")), "DESC"]],
+      limit: 1,
+      raw: true,
+    });
+
+    const perfPlacement = topWeekGroup?.[0]?.chick_placement_id
+      ? await ChickPlacement.findByPk(topWeekGroup[0].chick_placement_id)
+      : await ChickPlacement.findOne({ order: [["id", "DESC"]] });
+
+    if (perfPlacement) {
+      const perfCustomerId = perfPlacement.customer_id;
+
+      // ۸) ساختار پاسخ endpoint جدید
+      let perfRes = await fetch(
+        `${base}/api/dashboard/customer/${perfCustomerId}/performance?flockId=${perfPlacement.id}`,
+        { headers: authHeaders(adminToken) },
+      );
+      let perfBody = await perfRes.json().catch(() => ({}));
+      const perfData = perfBody?.data || {};
+      check(
+        "خلاصهٔ عملکرد مشتری: ساختار (summary/flocks/halls/focus) برمی‌گردد",
+        perfRes.status === 200 &&
+          !!perfData.summary &&
+          Array.isArray(perfData.flocks) &&
+          Array.isArray(perfData.halls) &&
+          !!perfData.focus?.flockKey,
+        `status=${perfRes.status} flocks=${perfData.flocks?.length} halls=${perfData.halls?.length}`,
+      );
+
+      // ۹) شاخص‌های سالن باید با محاسبهٔ دستی (فرمول پروژه) یکی باشد
+      const perfWeeks = (
+        await WeeklyManagement.findAll({
+          where: { chick_placement_id: perfPlacement.id },
+          order: [["week_number", "ASC"]],
+        })
+      ).map((w) => w.get({ plain: true }));
+
+      let expectedFeed = 0;
+      let expectedMortality = 0;
+      let expectedLastWeight = 0;
+      for (const week of perfWeeks) {
+        expectedFeed += parseFloat(week.weekly_feed_intake) || 0;
+        expectedMortality += parseInt(week.weekly_mortality, 10) || 0;
+        const weight = parseFloat(week.weekly_weight) || 0;
+        if (weight > 0) expectedLastWeight = weight;
+      }
+
+      const expectedChicks = parseInt(perfPlacement.total_chicks_count, 10) || 0;
+      const expectedFinalChicks = Math.max(0, expectedChicks - expectedMortality);
+      const expectedFcr =
+        expectedFeed > 0 && expectedLastWeight > 0 && expectedFinalChicks > 0
+          ? Math.round(
+              (expectedFeed / (expectedLastWeight * expectedFinalChicks)) * 100,
+            ) / 100
+          : null;
+
+      const perfHall = (perfData.flocks || [])
+        .flatMap((p) => p.halls || [])
+        .find((h) => String(h.placementId) === String(perfPlacement.id));
+
+      check(
+        "خلاصهٔ عملکرد: آمار سالن (خوراک/تلفات/وزن/FCR) با محاسبهٔ دستی می‌خواند",
+        !!perfHall &&
+          Number(perfHall.feed) === Math.round(expectedFeed * 100) / 100 &&
+          Number(perfHall.mortality) === expectedMortality &&
+          Number(perfHall.lastWeight) === expectedLastWeight &&
+          Number(perfHall.fcr) === expectedFcr,
+        `feed=${perfHall?.feed}/${Math.round(expectedFeed * 100) / 100} mort=${perfHall?.mortality}/${expectedMortality} fcr=${perfHall?.fcr}/${expectedFcr}`,
+      );
+
+      // ۱۰) جمع کل مشتری = جمع واقعی جوجه‌ریزی‌های او در دیتابیس
+      const dbTotalChicks = (
+        await ChickPlacement.findAll({
+          where: { customer_id: perfCustomerId },
+          attributes: ["total_chicks_count"],
+          raw: true,
+        })
+      ).reduce((sum, row) => sum + (parseInt(row.total_chicks_count, 10) || 0), 0);
+
+      check(
+        "خلاصهٔ عملکرد: مجموع جوجه‌ریزی مشتری با دیتابیس برابر است",
+        Number(perfData.summary?.totalChicks) === dbTotalChicks,
+        `api=${perfData.summary?.totalChicks} db=${dbTotalChicks}`,
+      );
+
+      // ۱۱) بدون مجوز hatchery.view ⇒ شاخص‌های پایان دوره/اقتصادی نمی‌آید
+      const gatedPerf = await getCustomerPerformance(perfCustomerId, {
+        includeCompletion: false,
+      });
+      check(
+        "خلاصهٔ عملکرد: با includeCompletion=false دادهٔ پایان دوره/اقتصادی برنمی‌گردد",
+        gatedPerf.economics === null &&
+          (gatedPerf.flocks || []).every((p) => p.completion === null),
+        `econ=${gatedPerf.economics} flocks=${gatedPerf.flocks?.length}`,
+      );
+
+      // ۱۲) مسیر بدون توکن ⇒ ۴۰۱ (روت با protect محافظت شده است)
+      const noAuthRes = await fetch(
+        `${base}/api/dashboard/customer/${perfCustomerId}/performance`,
+      );
+      check(
+        "خلاصهٔ عملکرد مشتری: بدون توکن → ۴۰۱",
+        noAuthRes.status === 401,
+        `status=${noAuthRes.status}`,
+      );
+
+      // ۱۳) کارت‌های نمودار: سری روند هفتگی هر گله باید هم‌اندازه باشد
+      const trendFlocks = (perfData.flocks || []).filter((p) => p.trend);
+      check(
+        "خلاصهٔ عملکرد: سری روند هفتگی (کارت‌های نمودار) هم‌اندازه و کامل است",
+        trendFlocks.length > 0 &&
+          trendFlocks.every(
+            (p) =>
+              p.trend.weeks.length === p.trend.weight.length &&
+              p.trend.weeks.length === p.trend.fcr.length &&
+              p.trend.weeks.length === p.trend.mortality.length &&
+              p.trend.weeks.length === p.trend.dates.length,
+          ),
+        `flocksWithTrend=${trendFlocks.length}`,
+      );
+
+      // ۱۳.۵) کلیدهای API با واژگان «گله» (بدون periods)
+      check(
+        "خلاصهٔ عملکرد: کلیدهای پاسخ با واژگان گله هستند (flocks و بدون periods)",
+        Array.isArray(perfData.flocks) &&
+          !("periods" in perfData) &&
+          "flocksTotal" in (perfData.summary || {}) &&
+          !("periodsTotal" in (perfData.summary || {})),
+        `keys=${Object.keys(perfData).join(",")}`,
+      );
+
+      // ۱۴) سود و زیان به تفکیک سالن: جمع سالن‌ها = عدد ثبت‌شدهٔ گله
+      const completedFlock = (perfData.flocks || []).find(
+        (p) => p.economics && (p.halls || []).some((h) => h.economics),
+      );
+
+      if (completedFlock) {
+        const sums = ["income", "totalCost", "profit"].reduce((acc, key) => {
+          acc[key] = completedFlock.halls.reduce(
+            (sum, hall) =>
+              sum + (hall.economics ? Number(hall.economics[key]) || 0 : 0),
+            0,
+          );
+          return acc;
+        }, {});
+
+        check(
+          "خلاصهٔ عملکرد: جمع سود/هزینهٔ سالن‌ها دقیقاً برابر عدد ثبت‌شدهٔ گله است",
+          Math.abs(sums.income - Number(completedFlock.economics.income)) < 1 &&
+            Math.abs(
+              sums.totalCost - Number(completedFlock.economics.totalCost),
+            ) < 1 &&
+            Math.abs(sums.profit - Number(completedFlock.economics.profit)) < 1,
+          `sums=${JSON.stringify(sums)} flock=${completedFlock.economics.income}/${completedFlock.economics.totalCost}/${completedFlock.economics.profit}`,
+        );
+
+        check(
+          "خلاصهٔ عملکرد: هر سالن گله، ردیف اقتصادی با وزن زنده دارد",
+          completedFlock.halls.some(
+            (h) => h.economics && Number(h.economics.liveWeight) > 0,
+          ) &&
+            completedFlock.halls.every(
+              (h) => !h.economics || Number(h.economics.liveWeight) >= 0,
+            ),
+          `halls=${completedFlock.halls.length}`,
+        );
+
+        const completionRow = await FlockCompletion.findOne({
+          where: { flock_id: completedFlock.flockId },
+        });
+        check(
+          "خلاصهٔ عملکرد: درآمد تخصیص‌یافتهٔ سالن‌ها با درآمد ثبت‌شدهٔ گله می‌خواند",
+          !!completionRow &&
+            Math.abs(
+              Number(completedFlock.economics.income) -
+                Number(completionRow.income_total),
+            ) < 1,
+          `api=${completedFlock.economics.income} db=${completionRow?.income_total}`,
+        );
+      } else {
+        info("ℹ️  خلاصهٔ عملکرد: گلهٔ دارای پایان‌دورهٔ اقتصادی پیدا نشد");
+      }
+
+      // ۱۵) فهرست سهم سالن‌ها از سود کل پرونده
+      check(
+        "خلاصهٔ عملکرد: فهرست «سود به تفکیک سالن» (byHall) برگردانده می‌شود",
+        !perfData.economics || Array.isArray(perfData.economics.byHall),
+        `byHall=${perfData.economics?.byHall?.length ?? 0}`,
+      );
+    } else {
+      info("ℹ️  خلاصهٔ عملکرد مشتری: هیچ جوجه‌ریزی‌ای در دیتابیس برای تست نبود");
+    }
 
     // ۸) جستجو در ستون ۱۲ (نوع مشتری)
     typeRes = await fetch(

@@ -32,6 +32,12 @@ const SmsLog = require("../models/SmsLog");
 const BreedWeightStandard = require("../models/BreedWeightStandard");
 
 const { successResponse, errorResponse } = require("../utils/response");
+// ✅ مجوز سطح‌کلید (برای گره‌زدن شاخص‌های پایان دوره به مجوز جوجه‌ریزی)
+const { userHasPermission } = require("../middleware/permissions");
+// ✅ خلاصهٔ عملکرد مشتری (مودال «جزئیات مشتری» در داشبورد کارشناس)
+const {
+  getCustomerPerformance: fetchCustomerPerformance,
+} = require("../services/customerPerformanceService");
 
 // ================================================================
 // توابع کمکی (Helpers)
@@ -809,7 +815,9 @@ const getActiveFlockCards = async (req, res) => {
 const getCustomerDetails = async (req, res) => {
   try {
     const { id } = req.params;
-    const { flockId } = req.query; // ✅ دریافت flockId از query string
+    // ✅ دریافت شناسهٔ گله از query string — هم flockId و هم flock_id پذیرفته می‌شود
+    // (فرانت‌اند قبلاً flock_id می‌فرستاد و بک‌اند flockId می‌خواند ⇒ فیلتر بی‌اثر بود)
+    const flockId = req.query.flockId || req.query.flock_id || null;
 
     console.log(
       `📥 دریافت جزئیات مشتری ${id}${flockId ? ` با گله ${flockId}` : ""}`,
@@ -1066,6 +1074,40 @@ const getCustomerDetails = async (req, res) => {
   } catch (error) {
     console.error("خطا در دریافت اطلاعات مشتری:", error);
     errorResponse(res, error.message, 500);
+  }
+};
+
+// ================================================================
+// ۲.۵. خلاصهٔ عملکرد مشتری (مودال «جزئیات مشتری» داشبورد کارشناس)
+// ================================================================
+// • خروجی: اطلاعات پایه + KPI کل + دوره‌ها (با ریز سالن‌ها) + سالن‌ها
+// • شاخص‌های «پایان دوره» و اعداد مالی فقط با مجوز hatchery.view
+// ================================================================
+const getCustomerPerformance = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const flockId = req.query.flockId || req.query.flock_id || null;
+
+    const includeCompletion = await userHasPermission(req, "hatchery.view");
+
+    const data = await fetchCustomerPerformance(id, {
+      flockId,
+      includeCompletion,
+    });
+
+    if (!data) {
+      return errorResponse(res, "مشتری یافت نشد", 404);
+    }
+
+    console.log(
+      `📥 خلاصهٔ عملکرد مشتری ${id} — دوره‌ها: ${data.summary.periodsTotal}` +
+        ` (پایان دوره: ${includeCompletion ? "بله" : "خیر"})`,
+    );
+
+    return successResponse(res, data, "خلاصهٔ عملکرد مشتری دریافت شد");
+  } catch (error) {
+    console.error("خطا در دریافت خلاصهٔ عملکرد مشتری:", error);
+    return errorResponse(res, error.message, 500);
   }
 };
 
@@ -1549,6 +1591,7 @@ module.exports = {
   getActiveFlocks,
   getActiveFlockCards,
   getCustomerDetails,
+  getCustomerPerformance,
   getSummary,
   getChartsData,
   getAnalysisData,

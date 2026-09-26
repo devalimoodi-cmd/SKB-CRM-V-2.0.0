@@ -37,6 +37,10 @@ const BreedWeightStandard = require("./BreedWeightStandard");
 const Flock = require("./Flock");
 const Suggestion = require("./Suggestion");
 const SuggestionMessage = require("./SuggestionMessage");
+// ✅ «سطوح دسترسی»
+const RolePermission = require("./RolePermission");
+const UserPermission = require("./UserPermission");
+const PermissionAuditLog = require("./PermissionAuditLog");
 // ✅ «تغییرات جدید / What's New»
 const ReleaseNote = require("./ReleaseNote");
 const ReleaseNoteItem = require("./ReleaseNoteItem");
@@ -857,4 +861,37 @@ ReleaseNote.belongsTo(User, {
 ReleaseNote.belongsTo(User, {
   foreignKey: "updated_by",
   as: "updater",
+});
+
+// ================================================================
+// ✅ ارتباطات «سطوح دسترسی» (RolePermission / UserPermission / Audit)
+// ----------------------------------------------------------------
+// • User 1..N UserPermission (سطح دسترسی اختصاصی هر کاربر)
+// • PermissionAuditLog فقط actor را به User وصل می‌کند (بدون CASCADE،
+//   چون گزارش باید حتی بعد از حذف کاربر باقی بماند)
+// ================================================================
+
+User.hasMany(UserPermission, {
+  foreignKey: "user_id",
+  as: "permissions",
+  onDelete: "CASCADE",
+  hooks: true,
+});
+UserPermission.belongsTo(User, {
+  foreignKey: "user_id",
+  as: "user",
+});
+
+UserPermission.belongsTo(User, {
+  foreignKey: "updated_by",
+  as: "updater",
+});
+RolePermission.belongsTo(User, {
+  foreignKey: "updated_by",
+  as: "updater",
+});
+PermissionAuditLog.belongsTo(User, {
+  foreignKey: "actor_id",
+  as: "actor",
+  constraints: false,
 });

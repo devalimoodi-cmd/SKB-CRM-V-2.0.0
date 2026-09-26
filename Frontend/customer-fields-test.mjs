@@ -13,7 +13,7 @@ globalThis.document = globalThis.document || {};
 const { customerListValidation } = await import(
   "./src/features/customer-list/customer-list.validation.js"
 );
-const { isValidNationalCode, toEnglishDigits } = await import(
+const { isValidNationalCode, toEnglishDigits, digitsOnlyValue } = await import(
   "./src/core/utils/string.utils.js"
 );
 
@@ -80,12 +80,34 @@ check(
   ),
 );
 check(
-  "فرم مشتری: کد ملی نامعتبر → خطا دارد",
+  "فرم مشتری: کد ملی ۹ رقمی (نامعتبر) → خطا دارد",
   hasError(
     customerListValidation.validate({
       ...baseForm,
       customer_type_id: 1,
+      national_code: "123456789",
+    }),
+    "کد ملی",
+  ),
+);
+check(
+  "فرم مشتری: کد ملی ۱۰ رقمی بدون رقم کنترلی (۱۲۳۴۵۶۷۸۹۰) → خطا ندارد",
+  !hasError(
+    customerListValidation.validate({
+      ...baseForm,
+      customer_type_id: 1,
       national_code: "1234567890",
+    }),
+    "کد ملی",
+  ),
+);
+check(
+  "فرم مشتری: کد ملی حرف‌دار → خطا دارد",
+  hasError(
+    customerListValidation.validate({
+      ...baseForm,
+      customer_type_id: 1,
+      national_code: "12a4567890",
     }),
     "کد ملی",
   ),
@@ -111,14 +133,27 @@ check(
 );
 
 // ===== ۳) توابع مشترک =====
-check("isValidNationalCode('1234567891') === true", isValidNationalCode("1234567891") === true);
-check("isValidNationalCode('2234567890') === true", isValidNationalCode("2234567890") === true);
-check("isValidNationalCode('1234567890') === false", isValidNationalCode("1234567890") === false);
-check("isValidNationalCode('1111111111') === false", isValidNationalCode("1111111111") === false);
-check("isValidNationalCode('۱۲۳۴۵۶۷۸۹۱') === true", isValidNationalCode("۱۲۳۴۵۶۷۸۹۱") === true);
+// ✅ قاعده: فقط ۱۰ رقم عددی (بدون رقم کنترلی)
 check(
-  "isValidNationalCode('12345') === false",
-  isValidNationalCode("12345") === false,
+  "isValidNationalCode: هر ۱۰ رقم عددی معتبر است (بدون رقم کنترلی)",
+  isValidNationalCode("1234567891") === true &&
+    isValidNationalCode("1234567890") === true &&
+    isValidNationalCode("1111111111") === true,
+);
+check("isValidNationalCode('۱۲۳۴۵۶۷۸۹۱') === true (ارقام فارسی)", isValidNationalCode("۱۲۳۴۵۶۷۸۹۱") === true);
+check(
+  "isValidNationalCode: ۹/۱۱ رقمی یا حرف‌دار → false",
+  isValidNationalCode("12345") === false &&
+    isValidNationalCode("123456789") === false &&
+    isValidNationalCode("12345678901") === false &&
+    isValidNationalCode("123456789a") === false,
+);
+check(
+  "digitsOnlyValue: ارقام فارسی و کاراکتر غیرعددی پاک/تبدیل می‌شوند",
+  digitsOnlyValue("۱۲۳a۴۵۶-۷۸۹۰۱۲۳۴") === "1234567890" &&
+    digitsOnlyValue("1234567890", 10) === "1234567890" &&
+    digitsOnlyValue("abc") === "",
+  digitsOnlyValue("۱۲۳a۴۵۶-۷۸۹۰۱۲۳۴"),
 );
 check(
   "toEnglishDigits('۱۲۳abc') === '123abc'",

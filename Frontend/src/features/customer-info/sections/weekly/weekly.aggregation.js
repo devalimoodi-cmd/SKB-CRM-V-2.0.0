@@ -37,6 +37,104 @@ export function flockGroupKey(flock) {
   return `p${flock.id}`;
 }
 
+// ---------- ترتیب نمایش سالن‌ها (A → Z) ----------
+//  ✅ گزارش‌ها همیشه باید ترتیب ثابت «از A به آخر» داشته باشند؛
+//  بک‌اند هیچ‌جا بر اساس نام سالن مرتب نمی‌کند (فقط placement_date)،
+//  پس این ترتیب در همین فایل (منبع واحد) تعیین می‌شود.
+
+const PERSIAN_DIGITS = "۰۱۲۳۴۵۶۷۸۹";
+const ARABIC_DIGITS = "٠١٢٣٤٥٦٧٨٩";
+
+const toEnglishDigits = (value = "") =>
+  String(value)
+    .replace(/[۰-۹]/g, (d) => String(PERSIAN_DIGITS.indexOf(d)))
+    .replace(/[٠-٩]/g, (d) => String(ARABIC_DIGITS.indexOf(d)));
+
+/** نام سالن از هر شکل گله/جوجه‌ریزی (سازگار با چند ساختار داده) */
+export function hallNameOf(flock) {
+  return String(
+    flock?.hall_name ??
+      flock?.hallName ??
+      flock?.hall?.hall_name ??
+      flock?.Hall?.hall_name ??
+      flock?.name ??
+      "",
+  ).trim();
+}
+
+/**
+ * توکن‌بندی نام سالن برای مقایسهٔ طبیعی:
+ *  • حروف لاتین   → rank 0 (A..Z)
+ *  • حروف فارسی   → rank 1 (الفبای فارسی)
+ *  • اعداد        → rank 2 (مقایسهٔ عددی: ۲ قبل از ۱۰)
+ * ⇒ «سالن A» < «سالن B» < «سالن پ» < «سالن ۲» < «سالن ۱۰»
+ */
+const hallNameTokens = (value) => {
+  const parts = String(value ?? "")
+    .trim()
+    .match(/[A-Za-z]+|[0-9]+|[^\sA-Za-z0-9]+/g);
+  if (!parts) return [];
+
+  return parts.map((raw) => {
+    if (/^[A-Za-z]+$/.test(raw)) {
+      return { rank: 0, text: raw.toUpperCase() };
+    }
+    if (/^[0-9]+$/.test(raw)) {
+      return { rank: 2, text: raw, num: parseInt(raw, 10) };
+    }
+    return { rank: 1, text: raw };
+  });
+};
+
+/**
+ * مقایسهٔ نام سالن‌ها به‌صورت طبیعی و پایدار
+ * (نام خالی → آخر فهرست · نام‌های هم‌ارز → ۰ = ترتیب قبلی حفظ می‌شود)
+ */
+export function compareHallNames(a, b) {
+  const nameA = String(a ?? "").trim();
+  const nameB = String(b ?? "").trim();
+  if (!nameA && !nameB) return 0;
+  if (!nameA) return 1;
+  if (!nameB) return -1;
+
+  const tokensA = hallNameTokens(toEnglishDigits(nameA));
+  const tokensB = hallNameTokens(toEnglishDigits(nameB));
+  const len = Math.max(tokensA.length, tokensB.length);
+
+  for (let i = 0; i < len; i += 1) {
+    const tokenA = tokensA[i];
+    const tokenB = tokensB[i];
+    if (!tokenA) return -1; // نام کوتاه‌تر جلوتر می‌آید (A قبل از AA)
+    if (!tokenB) return 1;
+    if (tokenA.rank !== tokenB.rank) return tokenA.rank - tokenB.rank;
+
+    if (tokenA.rank === 2) {
+      if (tokenA.num !== tokenB.num) return tokenA.num - tokenB.num;
+      continue;
+    }
+
+    const cmp =
+      tokenA.rank === 0
+        ? tokenA.text.localeCompare(tokenB.text, "en")
+        : tokenA.text.localeCompare(tokenB.text, "fa");
+    if (cmp !== 0) return cmp;
+  }
+
+  return 0;
+}
+
+/** مرتب‌سازی گله/جوجه‌ریزی‌ها بر اساس نام سالن (A → Z) */
+export function sortFlocksByHall(list = []) {
+  return [...(list || [])].sort((a, b) =>
+    compareHallNames(hallNameOf(a), hallNameOf(b)),
+  );
+}
+
+/** مرتب‌سازی فهرست نام سالن‌ها (A → Z) */
+export function sortHallNames(names = []) {
+  return [...(names || [])].sort(compareHallNames);
+}
+
 // بزرگ‌ترین شماره هفته ثبت‌شده یک سالن
 function maxSavedWeekNumber(hall) {
   return (hall?.savedWeeks || []).reduce(
@@ -220,6 +318,8 @@ export function groupFlocksByFlock(flocks = []) {
 
   return [...map.values()].map((group) => ({
     ...group,
+    // ✅ ترتیب ثابت سالن‌ها از A به آخر در همهٔ گزارش‌ها/جدول تجمعی
+    halls: sortFlocksByHall(group.halls),
     breed_name: group.breedNames.join("، ") || "—",
     placement_date: group.placementDates[0] || null,
     total_chicks_count: group.halls.reduce(

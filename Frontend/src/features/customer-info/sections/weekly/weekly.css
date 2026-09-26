@@ -1293,6 +1293,206 @@
   background: #f8fafc;
 }
 
+/* ✅ ردیف انتخاب‌شده در مودال‌های انتخاب (گله‌های تاریخچه و گروه‌های شاخص گزارش) */
+.wh-item:has(.wh-item-check:checked) {
+  background: #f0fdf9;
+  border-color: #a7f3d0;
+}
+
+/* ===== مودال انتخاب هفته‌های گزارش (ترکیبی) ===== */
+.wk-picker {
+  max-height: 68vh;
+  overflow-y: auto;
+}
+
+.wk-section {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px dashed #e2e8f0;
+}
+
+.wk-section-title {
+  font-size: 12px;
+  font-weight: 800;
+  color: #065f46;
+  margin-bottom: 8px;
+}
+
+.wk-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.wk-chip {
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  color: #334155;
+  border-radius: 20px;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.wk-chip:hover {
+  border-color: #2c7a6e;
+  color: #2c7a6e;
+}
+
+.wk-chip.is-active {
+  background: #2c7a6e;
+  border-color: #2c7a6e;
+  color: #fff;
+}
+
+.wk-range {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 10px;
+  font-size: 12px;
+  color: #475569;
+}
+
+.wk-input {
+  width: 70px;
+  padding: 4px 8px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.wk-toggle {
+  width: 100%;
+  justify-content: center;
+}
+
+.wk-per-flock {
+  margin-top: 10px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.wk-flock {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  margin-bottom: 8px;
+  overflow: hidden;
+}
+
+.wk-flock-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 8px 10px;
+  background: #f8fafc;
+}
+
+.wk-flock-title {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.wk-flock-meta {
+  font-size: 11px;
+  color: #64748b;
+}
+
+.wk-flock-status {
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.wk-flock-status.is-shared {
+  color: #065f46;
+}
+
+.wk-flock-status.is-custom {
+  color: #6d28d9;
+}
+
+.wk-flock-status.is-excluded {
+  color: #b91c1c;
+}
+
+.wk-edit-btn {
+  margin-inline-start: auto;
+}
+
+.wk-flock-weeks {
+  padding: 8px 10px;
+  border-top: 1px solid #eef2f6;
+  background: #fff;
+}
+
+.wk-week-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.wk-week-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px;
+  border-radius: 8px;
+  font-size: 11.5px;
+  color: #334155;
+  cursor: pointer;
+}
+
+.wk-week-item:hover {
+  background: #f8fafc;
+}
+
+.wk-week-item.missing {
+  background: #fef2f2;
+}
+
+.wk-week-item.partial {
+  background: #fffbeb;
+}
+
+.wk-week-check {
+  width: 15px;
+  height: 15px;
+  accent-color: #2c7a6e;
+}
+
+.wk-week-name {
+  font-weight: 700;
+  min-width: 52px;
+}
+
+.wk-week-date {
+  color: #64748b;
+}
+
+.wk-week-status {
+  margin-inline-start: auto;
+  font-weight: 700;
+}
+
+.wk-week-status.complete {
+  color: #065f46;
+}
+
+.wk-week-status.partial {
+  color: #b45309;
+}
+
+.wk-week-status.missing {
+  color: #b91c1c;
+}
+
 .wh-item-check {
   width: 16px;
   height: 16px;

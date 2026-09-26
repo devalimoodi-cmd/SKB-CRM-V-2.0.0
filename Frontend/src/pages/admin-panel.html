@@ -162,7 +162,8 @@
                 <!-- Sidebar -->
                 <div class="UserTask-sidebar">
                     <div class="UserTask-sidebar_item">
-                        <div class="sidebar-menu-item" data-menu="super-admin-management">
+                        <div class="sidebar-menu-item" data-menu="super-admin-management"
+                            data-permission="admin.menu.superAdmins">
                             <div class="menu-icon-wrapper">
                                 <i class="fas fa-crown menu-icon"></i>
                             </div>
@@ -173,7 +174,8 @@
                             <i class="fas fa-chevron-left menu-arrow"></i>
                         </div>
 
-                        <div class="sidebar-menu-item" data-menu="user-management">
+                        <div class="sidebar-menu-item" data-menu="user-management"
+                            data-permission="admin.menu.users">
                             <div class="menu-icon-wrapper">
                                 <i class="fas fa-users menu-icon"></i>
                             </div>
@@ -184,7 +186,8 @@
                             <i class="fas fa-chevron-left menu-arrow"></i>
                         </div>
 
-                        <div class="sidebar-menu-item" data-menu="dictionary-management">
+                        <div class="sidebar-menu-item" data-menu="dictionary-management"
+                            data-permission="admin.menu.dictionary">
                             <div class="menu-icon-wrapper">
                                 <i class="fas fa-book menu-icon"></i>
                             </div>
@@ -195,7 +198,8 @@
                             <i class="fas fa-chevron-left menu-arrow"></i>
                         </div>
 
-                        <div class="sidebar-menu-item" data-menu="role-management">
+                        <div class="sidebar-menu-item" data-menu="role-management"
+                            data-permission="admin.menu.roles">
                             <div class="menu-icon-wrapper">
                                 <i class="fas fa-user-tag menu-icon"></i>
                             </div>
@@ -206,7 +210,8 @@
                             <i class="fas fa-chevron-left menu-arrow"></i>
                         </div>
 
-                        <div class="sidebar-menu-item" data-menu="system-settings">
+                        <div class="sidebar-menu-item" data-menu="system-settings"
+                            data-permission="admin.menu.settings">
                             <div class="menu-icon-wrapper">
                                 <i class="fas fa-cog menu-icon"></i>
                             </div>
@@ -217,7 +222,8 @@
                             <i class="fas fa-chevron-left menu-arrow"></i>
                         </div>
 
-                        <div class="sidebar-menu-item" data-menu="suggestions">
+                        <div class="sidebar-menu-item" data-menu="suggestions"
+                            data-permission="admin.menu.suggestions">
                             <div class="menu-icon-wrapper">
                                 <i class="fas fa-comments menu-icon"></i>
                             </div>
@@ -233,7 +239,8 @@
                         </div>
 
                         <!-- ✅ «تغییرات جدید / What's New» — اطلاع‌رسانی نسخه‌ها -->
-                        <div class="sidebar-menu-item" data-menu="release-notes">
+                        <div class="sidebar-menu-item" data-menu="release-notes"
+                            data-permission="admin.menu.releases">
                             <div class="menu-icon-wrapper">
                                 <i class="fas fa-bullhorn menu-icon"></i>
                             </div>
@@ -375,14 +382,9 @@
                         </div>
                     </div>
 
-                    <!-- Role Management -->
+                    <!-- Role Management (نقش‌ها و سطوح دسترسی) -->
                     <div id="role-management" class="content-section">
-                        <div class="table-container">
-                            <div style="padding: 40px; text-align: center;">
-                                <i class="fas fa-tools" style="font-size: 48px; color: #ccc;"></i>
-                                <p style="margin-top: 15px; color: #888;">بخش مدیریت نقش‌ها در حال ساخت...</p>
-                            </div>
-                        </div>
+                        <div class="perm-wrapper" id="permissionManagerContainer"></div>
                     </div>
 
                     <!-- System Settings -->

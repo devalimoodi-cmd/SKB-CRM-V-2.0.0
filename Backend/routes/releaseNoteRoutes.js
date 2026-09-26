@@ -3,20 +3,21 @@
 // «تغییرات جدید / What's New» — همهٔ روت‌ها نیاز به احراز هویت دارند
 // ------------------------------------------------------------
 // ⚠️ ترتیب مهم است: روت‌های ثابت (/unseen و /history) قبل از :id بیایند
-// دسترسی:
-//   • خواندن در پنل  → همهٔ ادمین‌ها (admin/sub_admin/super_admin)
-//   • نوشتن          → فقط سوپر ادمین
+// دسترسی (قابل تنظیم از پنل مدیریت ← مدیریت نقش‌ها):
+//   • خواندن در پنل  → مجوز releases.view
+//   • نوشتن          → مجوز releases.manage (پیش‌فرض: فقط سوپرادمین)
 //   • مودال کاربر    → هر کاربر لاگین‌شده (فقط نسخه‌های مجاز خودش)
 // ============================================================
 const express = require("express");
 const router = express.Router();
-const { protect, authorize } = require("../middleware/auth");
+const { protect } = require("../middleware/auth");
+const { requirePermission } = require("../middleware/permissions");
 const releaseNoteController = require("../controllers/releaseNoteController");
 
-// ✅ مشاهدهٔ مدیریتی (خواندن) — همهٔ ادمین‌ها
-const ADMIN_READ = authorize("admin", "sub_admin", "super_admin");
-// ✅ ساخت/ویرایش/انتشار/آرشیو/حذف — فقط سوپر ادمین
-const SUPER_ONLY = authorize("super_admin");
+// ✅ مشاهدهٔ مدیریتی (خواندن)
+const CAN_READ = requirePermission("releases.view");
+// ✅ ساخت/ویرایش/انتشار/آرشیو/حذف
+const CAN_MANAGE = requirePermission("releases.manage");
 
 router.use(protect);
 
@@ -25,20 +26,20 @@ router.get("/unseen", releaseNoteController.getUnseenRelease);
 router.get("/history", releaseNoteController.getReleaseHistory);
 
 // ===== مدیریت: فهرست (خواندن) =====
-router.get("/", ADMIN_READ, releaseNoteController.listReleases);
+router.get("/", CAN_READ, releaseNoteController.listReleases);
 
 // ===== کاربر: ثبت بازدید / «دیگر نشان نده» =====
 router.post("/:id/seen", releaseNoteController.markReleaseSeen);
 
 // ===== مدیریت: یک نسخه =====
-router.get("/:id/stats", ADMIN_READ, releaseNoteController.getReleaseStats);
-router.get("/:id", ADMIN_READ, releaseNoteController.getRelease);
+router.get("/:id/stats", CAN_READ, releaseNoteController.getReleaseStats);
+router.get("/:id", CAN_READ, releaseNoteController.getRelease);
 
-// ===== مدیریت: تغییرات (فقط سوپر ادمین) =====
-router.post("/", SUPER_ONLY, releaseNoteController.createRelease);
-router.patch("/:id", SUPER_ONLY, releaseNoteController.updateRelease);
-router.post("/:id/publish", SUPER_ONLY, releaseNoteController.publishRelease);
-router.post("/:id/archive", SUPER_ONLY, releaseNoteController.archiveRelease);
-router.delete("/:id", SUPER_ONLY, releaseNoteController.deleteRelease);
+// ===== مدیریت: تغییرات =====
+router.post("/", CAN_MANAGE, releaseNoteController.createRelease);
+router.patch("/:id", CAN_MANAGE, releaseNoteController.updateRelease);
+router.post("/:id/publish", CAN_MANAGE, releaseNoteController.publishRelease);
+router.post("/:id/archive", CAN_MANAGE, releaseNoteController.archiveRelease);
+router.delete("/:id", CAN_MANAGE, releaseNoteController.deleteRelease);
 
 module.exports = router;

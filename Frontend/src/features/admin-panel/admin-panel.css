@@ -1513,3 +1513,579 @@
   background: #f3f8f7;
 }
 
+
+/* ============================================================
+   «مدیریت نقش‌ها و سطوح دسترسی» (permission.manager.js)
+   ------------------------------------------------------------
+   • ماتریس نقش‌ها: آکاردئون گروه‌ها + سوییچ روشن/خاموش
+   • دسترسی کاربران: سوییچ سه‌حالته (ارثی از نقش / فعال / غیرفعال)
+   • گزارش تغییرات: جدول ساده
+   ============================================================ */
+
+.perm-wrapper {
+    background: #fff;
+    border: 1px solid #e8edf3;
+    border-radius: 12px;
+    padding: 18px;
+}
+
+.perm-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    padding-bottom: 14px;
+    border-bottom: 1px solid #eef2f6;
+}
+
+.perm-header h3 {
+    margin: 0 0 4px;
+    font-size: 16px;
+    color: #0f172a;
+}
+
+.perm-sub {
+    margin: 0;
+    font-size: 12px;
+    color: #64748b;
+    line-height: 1.9;
+}
+
+.perm-badges {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.perm-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: #f1f5f9;
+    color: #475569;
+    border: 1px solid #e2e8f0;
+}
+
+.perm-badge.on {
+    background: #ecfdf5;
+    color: #047857;
+    border-color: #a7f3d0;
+}
+
+.perm-badge.off {
+    background: #fffbeb;
+    color: #b45309;
+    border-color: #fde68a;
+}
+
+.perm-tabs {
+    display: flex;
+    gap: 6px;
+    margin: 14px 0;
+    flex-wrap: wrap;
+}
+
+.perm-tab {
+    border: 1px solid #e2e8f0;
+    background: #f8fafc;
+    color: #475569;
+    font-family: inherit;
+    font-size: 12.5px;
+    padding: 8px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.perm-tab:hover {
+    background: #eef6f4;
+    color: #2c7a6e;
+}
+
+.perm-tab.active {
+    background: linear-gradient(135deg, #2c7a6e 0%, #035552 100%);
+    color: #fff;
+    border-color: transparent;
+}
+
+.perm-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+}
+
+.perm-role-chips {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.perm-role-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid #e2e8f0;
+    background: #fff;
+    color: #475569;
+    font-family: inherit;
+    font-size: 12px;
+    padding: 7px 12px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.perm-role-chip:hover {
+    border-color: #2c7a6e;
+    color: #2c7a6e;
+}
+
+.perm-role-chip.active {
+    background: #2c7a6e;
+    color: #fff;
+    border-color: #2c7a6e;
+}
+
+.perm-tools {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.perm-search {
+    font-family: inherit;
+    font-size: 12.5px;
+    padding: 8px 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    min-width: 220px;
+    outline: none;
+}
+
+.perm-search:focus {
+    border-color: #2c7a6e;
+    box-shadow: 0 0 0 3px rgba(44, 122, 110, 0.12);
+}
+
+.perm-check {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: #475569;
+    cursor: pointer;
+}
+
+.perm-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: inherit;
+    font-size: 12.5px;
+    padding: 8px 14px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.perm-btn.primary {
+    background: linear-gradient(135deg, #2c7a6e 0%, #035552 100%);
+    color: #fff;
+}
+
+.perm-btn.primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.perm-btn.ghost {
+    background: #fff;
+    border-color: #e2e8f0;
+    color: #475569;
+}
+
+.perm-btn.ghost:hover:not(:disabled) {
+    border-color: #2c7a6e;
+    color: #2c7a6e;
+}
+
+.perm-btn.ghost:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* ===== گروه‌ها و آیتم‌ها ===== */
+.perm-groups {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.perm-group {
+    border: 1px solid #e8edf3;
+    border-radius: 10px;
+    overflow: hidden;
+    background: #fff;
+}
+
+.perm-group > summary {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 11px 14px;
+    cursor: pointer;
+    background: #f8fafc;
+    font-size: 13px;
+    color: #0f172a;
+    list-style: none;
+}
+
+.perm-group > summary::-webkit-details-marker {
+    display: none;
+}
+
+.perm-group > summary:hover {
+    background: #eef6f4;
+}
+
+.perm-group-count {
+    font-size: 11px;
+    color: #64748b;
+    background: #eef2f6;
+    border-radius: 999px;
+    padding: 2px 8px;
+}
+
+.perm-group-changed {
+    font-size: 11px;
+    color: #b45309;
+    background: #fef3c7;
+    border-radius: 999px;
+    padding: 2px 8px;
+}
+
+.perm-items {
+    display: flex;
+    flex-direction: column;
+}
+
+.perm-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 9px 14px;
+    border-top: 1px solid #f1f5f9;
+    transition: background 0.15s ease;
+}
+
+.perm-item:hover {
+    background: #fbfdfd;
+}
+
+.perm-item.changed {
+    background: #fffbeb;
+}
+
+.perm-item-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.perm-item-title {
+    font-size: 12.5px;
+    color: #1e293b;
+}
+
+.perm-item-key {
+    font-size: 10.5px;
+    color: #94a3b8;
+    direction: ltr;
+    text-align: left;
+}
+
+.perm-lock {
+    color: #b45309;
+    font-size: 11px;
+    margin-inline-start: 4px;
+}
+
+/* ===== سوییچ روشن/خاموش ===== */
+.perm-switch {
+    position: relative;
+    display: inline-block;
+    width: 42px;
+    height: 22px;
+    flex-shrink: 0;
+}
+
+.perm-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.perm-slider {
+    position: absolute;
+    inset: 0;
+    background: #cbd5e1;
+    border-radius: 999px;
+    transition: 0.2s;
+    cursor: pointer;
+}
+
+.perm-slider::before {
+    content: "";
+    position: absolute;
+    height: 16px;
+    width: 16px;
+    right: 3px;
+    top: 3px;
+    background: #fff;
+    border-radius: 50%;
+    transition: 0.2s;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.perm-switch input:checked + .perm-slider {
+    background: #2c7a6e;
+}
+
+.perm-switch input:checked + .perm-slider::before {
+    transform: translateX(-20px);
+}
+
+.perm-switch input:disabled + .perm-slider {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+/* ===== سوییچ سه‌حالتهٔ کاربر ===== */
+.perm-select {
+    font-family: inherit;
+    font-size: 12px;
+    padding: 6px 10px;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    background: #fff;
+    color: #334155;
+    cursor: pointer;
+}
+
+.perm-select:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.perm-fixed {
+    font-size: 11.5px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: #f1f5f9;
+    color: #64748b;
+}
+
+.perm-fixed.on {
+    background: #ecfdf5;
+    color: #047857;
+}
+
+/* ===== فهرست کاربران ===== */
+.perm-users-list {
+    border: 1px solid #e8edf3;
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 12px;
+}
+
+.perm-users-scroll {
+    max-height: 220px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+.perm-user-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 9px 12px;
+    border: none;
+    border-bottom: 1px solid #f1f5f9;
+    background: #fff;
+    font-family: inherit;
+    font-size: 12.5px;
+    color: #334155;
+    cursor: pointer;
+    text-align: right;
+}
+
+.perm-user-row:hover {
+    background: #f8fafc;
+}
+
+.perm-user-row.active {
+    background: #eef6f4;
+    color: #2c7a6e;
+}
+
+.perm-user-role {
+    font-size: 11px;
+    color: #64748b;
+}
+
+.perm-user-status {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: #f1f5f9;
+    color: #64748b;
+}
+
+.perm-user-status.on {
+    background: #ecfdf5;
+    color: #047857;
+}
+
+.perm-user-detail {
+    border: 1px solid #e8edf3;
+    border-radius: 10px;
+    padding: 12px;
+}
+
+.perm-user-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #eef2f6;
+}
+
+.perm-user-id {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    font-size: 13px;
+    color: #0f172a;
+}
+
+.perm-user-tools {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.perm-note-small,
+.perm-empty-small,
+.perm-readonly {
+    font-size: 12px;
+    color: #64748b;
+    padding: 10px 0;
+}
+
+.perm-readonly {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* ===== گزارش تغییرات ===== */
+.perm-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+}
+
+.perm-table th {
+    background: #f8fafc;
+    color: #475569;
+    font-weight: 500;
+    padding: 10px;
+    text-align: right;
+    border-bottom: 1px solid #e8edf3;
+}
+
+.perm-table td {
+    padding: 9px 10px;
+    border-bottom: 1px solid #f1f5f9;
+    color: #334155;
+}
+
+/* ===== فوتر (ذخیره/انصراف) ===== */
+.perm-footer {
+    position: sticky;
+    bottom: 0;
+    background: #fff;
+    border-top: 1px solid #eef2f6;
+    padding: 12px 0 0;
+    margin-top: 12px;
+}
+
+.perm-footer-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.perm-pending {
+    font-size: 12px;
+    color: #b45309;
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    border-radius: 999px;
+    padding: 4px 12px;
+}
+
+.perm-footer-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.perm-empty {
+    text-align: center;
+    padding: 30px 16px;
+    color: #94a3b8;
+}
+
+.perm-empty i {
+    font-size: 38px;
+    margin-bottom: 10px;
+    display: block;
+}
+
+@media (max-width: 768px) {
+    .perm-toolbar,
+    .perm-header,
+    .perm-user-head {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .perm-search {
+        min-width: 0;
+        width: 100%;
+    }
+
+    .perm-item {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+}
+

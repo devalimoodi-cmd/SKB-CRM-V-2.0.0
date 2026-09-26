@@ -1,11 +1,17 @@
 // ============================================
 // routes/visitReportRoutes.js
+// ✅ کنترل دسترسی بر پایهٔ مجوز (پنل مدیریت ← مدیریت نقش‌ها)
+// ⚠️ authorize قبلی حفظ شده ⇒ مجوز فقط می‌تواند محدودتر کند
 // ============================================
 const express = require("express");
 const router = express.Router();
 const { upload } = require("../middleware/upload");
 const visitReportController = require("../controllers/visitReportController");
 const { protect, authorize } = require("../middleware/auth");
+const { requirePermission } = require("../middleware/permissions");
+
+const CAN_WRITE = authorize("admin", "expert", "sub_admin", "super_admin");
+const CAN_MANAGE = authorize("admin", "super_admin", "sub_admin");
 
 // ========== مسیرهای گزارش بازدید ==========
 
@@ -13,7 +19,8 @@ const { protect, authorize } = require("../middleware/auth");
 router.post(
   "/",
   protect,
-  authorize("admin", "expert", "sub_admin", "super_admin"),
+  CAN_WRITE,
+  requirePermission("visit.create"),
   upload.array("files", 10),
   visitReportController.createVisitReport,
 );
@@ -21,7 +28,8 @@ router.post(
 router.put(
   "/:id",
   protect,
-  authorize("admin", "expert", "sub_admin", "super_admin"),
+  CAN_WRITE,
+  requirePermission("visit.edit"),
   upload.array("files", 10),
   visitReportController.updateVisitReport,
 );
@@ -30,7 +38,8 @@ router.put(
 router.get(
   "/:id",
   protect,
-  authorize("admin", "expert", "sub_admin", "super_admin"),
+  CAN_WRITE,
+  requirePermission("visit.view"),
   visitReportController.getVisitReportById,
 );
 
@@ -38,7 +47,8 @@ router.get(
 router.get(
   "/customer/:customerId",
   protect,
-  authorize("admin", "expert", "sub_admin", "super_admin"),
+  CAN_WRITE,
+  requirePermission("visit.view"),
   visitReportController.getReportsByCustomer,
 );
 
@@ -46,7 +56,8 @@ router.get(
 router.put(
   "/:id/status",
   protect,
-  authorize("admin", "expert", "sub_admin", "super_admin"),
+  CAN_WRITE,
+  requirePermission("visit.status"),
   visitReportController.updateReportStatus,
 );
 
@@ -54,7 +65,8 @@ router.put(
 router.get(
   "/download/:id",
   protect,
-  authorize("admin", "expert", "sub_admin", "super_admin"),
+  CAN_WRITE,
+  requirePermission("visit.attachment.download"),
   visitReportController.downloadAttachment,
 );
 
@@ -62,7 +74,8 @@ router.get(
 router.delete(
   "/attachment/:id",
   protect,
-  authorize("admin", "super_admin", "sub_admin"),
+  CAN_MANAGE,
+  requirePermission("visit.attachment.delete"),
   visitReportController.deleteAttachment,
 );
 
@@ -70,7 +83,8 @@ router.delete(
 router.delete(
   "/:id",
   protect,
-  authorize("admin", "super_admin", "sub_admin"),
+  CAN_MANAGE,
+  requirePermission("visit.delete"),
   visitReportController.deleteVisitReport,
 );
 

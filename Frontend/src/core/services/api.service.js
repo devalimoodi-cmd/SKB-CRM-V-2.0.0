@@ -23,6 +23,13 @@ class ApiService {
       this.isRedirectingToLogin = true;
       const currentPath = window.location.pathname;
       if (!currentPath.includes("/login") && !currentPath.includes("/index")) {
+        // ✅ نشانهٔ «انقضای نشست» برای صفحهٔ ورود (یکبارمصرف)
+        // بدون این، کاربر بی‌صدا به صفحهٔ ورود پرت می‌شد و نمی‌فهمید چرا.
+        try {
+          sessionStorage.setItem("skb_session_expired", "1");
+        } catch {
+          /* دسترسی به sessionStorage ممکن نیست — بی‌صدا رد شو */
+        }
         window.location.href = "/login";
       }
       // بعد از ۲ ثانیه دوباره اجازه هدایت داده می‌شود
@@ -80,6 +87,9 @@ class ApiService {
         if (response.status === 401) {
           this.handleUnauthorized();
         }
+        if (response.status === 403) {
+          this.notifyPermissionDenied(endpoint, errorData);
+        }
         throw new Error(
           errorData.message || `HTTP error! status: ${response.status}`,
         );
@@ -90,6 +100,27 @@ class ApiService {
       console.error("❌ API Request failed:", error);
       throw error;
     }
+  }
+
+  // ============================================================
+  // ✅ ۴۰۳ = نبود مجوز ⇒ پیام قابل‌فهم به کاربر + هم‌راستاسازی UI
+  // ------------------------------------------------------------
+  // • پیام دقیق («دسترسی «حذف سالن» برای نقش شما بسته است»)
+  // • سپس مجوزها تازه و گیت‌ها دوباره اعمال می‌شوند
+  // • اگر خود درخواست مجوزها (‏/permissions/me) ۴۰۳ بدهد، اقدامی نمی‌کنیم
+  //   تا حلقهٔ تازه‌سازی ایجاد نشود
+  // ============================================================
+  notifyPermissionDenied(endpoint, errorData) {
+    if (!errorData || errorData.permissionDenied !== true) return;
+    if (String(endpoint || "").includes("/permissions/me")) return;
+
+    import("./permission.service.js")
+      .then(({ permissionService }) =>
+        permissionService.handleForbidden(errorData),
+      )
+      .catch(() => {
+        /* بی‌صدا */
+      });
   }
 
   async get(endpoint, params = {}) {
@@ -216,6 +247,9 @@ class ApiService {
         if (response.status === 401) {
           this.handleUnauthorized();
         }
+        if (response.status === 403) {
+          this.notifyPermissionDenied(endpoint, errorData);
+        }
         throw new Error(
           errorData.message || `HTTP error! status: ${response.status}`,
         );
@@ -292,6 +326,9 @@ class ApiService {
         const errorData = await response.json().catch(() => ({}));
         if (response.status === 401) {
           this.handleUnauthorized();
+        }
+        if (response.status === 403) {
+          this.notifyPermissionDenied(endpoint, errorData);
         }
         throw new Error(
           errorData.message || `HTTP error! status: ${response.status}`,

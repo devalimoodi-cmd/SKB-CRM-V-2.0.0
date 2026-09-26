@@ -1,8 +1,39 @@
 import { weeklyApi } from "./weekly.api.js";
-import { weeklyRenderer, REPORT_STYLES, renderHistoryWeekMatrix } from "./weekly.renderer.js";
+import {
+  weeklyRenderer,
+  REPORT_STYLES,
+  renderHistoryWeekMatrix,
+} from "./weekly.renderer.js";
+import {
+  REPORT_GROUPS,
+  REPORT_GROUP_STORAGE_KEY,
+  ALL_GROUP_KEYS,
+  normalizeGroups,
+} from "./weekly.report.groups.js";
+import {
+  auditWeeks,
+  mergeAudits,
+  resolveFlockTimelineEnd,
+  scopeAuditToWeeks,
+  timelineBasisLabel,
+} from "./weekly.audit.js";
+import {
+  WEEK_PRESET,
+  WEEK_PRESET_LABELS,
+  WEEK_SELECTION_STORAGE_KEY,
+  WEEK_STATUS_LABELS,
+  buildWeekTimeline,
+  effectiveWeeksFor,
+  issuesOutsideSelection,
+  mergeWeekTimelines,
+  normalizeWeekSelection,
+  resolvePresetWeeks,
+  summarizeWeekSelection,
+  weekSelectionLabel,
+} from "./weekly.report.weeks.js";
 import { weeklyValidation } from "./weekly.validation.js";
 import { calculateWeekMetrics } from "./weekly.calculations.js";
-import { groupFlocksByFlock } from "./weekly.aggregation.js";
+import { groupFlocksByFlock, sortFlocksByHall } from "./weekly.aggregation.js";
 import { notificationService } from "../../../../core/services/notification.service.js";
 import { sanitizeHtmlDocument } from "../../../../core/utils/string.utils.js";
 
@@ -1411,6 +1442,12 @@ class WeeklyService {
 
   async generateFullReport() {
     try {
+      // ✅ انتخاب گروه‌های شاخص پیش از ساخت گزارش (پیش‌فرض = همهٔ شاخص‌ها)
+      const selectedGroups = await this.pickReportGroups({
+        title: "📊 شاخص‌های گزارش کامل هفتگی",
+      });
+      if (!selectedGroups) return; // کاربر انصراف داد
+
       notificationService.info("📊 در حال آماده‌سازی گزارش...");
 
       // دریافت اطلاعات مشتری
@@ -1418,13 +1455,26 @@ class WeeklyService {
       const customer = customerResponse.success ? customerResponse.data : {};
 
       // دریافت گله‌ها با اطلاعات کامل + متریک هر هفته
-      const flocksWithWeeks = await Promise.all(
+      const flocksWithWeeksRaw = await Promise.all(
         this.flocks.map(async (flock) => this.buildFlockReportData(flock)),
       );
+      // ✅ ترتیب ثابت سالن‌ها از A به آخر در گزارش کامل هفتگی
+      const flocksWithWeeks = sortFlocksByHall(flocksWithWeeksRaw);
 
       // گروه‌بندی جوجه‌ریزی سالن‌ها بر اساس گله (یک گله = چند سالن)
       // تا جدول تجمعی «کل گله» زیر اطلاعات هدر همان جدول نمایش داده شود
       const flockGroups = groupFlocksByFlock(flocksWithWeeks);
+
+      // ✅ انتخاب هفته‌های هر گله (ترکیبی: مشترک + تنظیم جداگانه)
+      const weekSelection = await this.pickReportWeeksPerFlock({
+        title: "🎯 هفته‌های گزارش کامل هفتگی",
+        panels: flocksWithWeeks.map((flock) => ({
+          key: `p${flock.id}`,
+          label: `🐔 گله ${flock.flock_number} — ${flock.hall_name || "-"}`,
+          subtitle: `${flock.savedWeeks.length.toLocaleString("fa-IR")} هفته ثبت‌شده`,
+          timeline: buildWeekTimeline(flock.weeks || []),
+        })),
+      });
 
       // تولید HTML گزارش
       const reportHtml = weeklyRenderer.renderFullReport(
@@ -1432,6 +1482,7 @@ class WeeklyService {
         flocksWithWeeks,
         this.units,
         flockGroups,
+        { selectedGroups, weekSelection },
       );
 
       this.openReportWindow(reportHtml);
@@ -1445,13 +1496,27 @@ class WeeklyService {
   // ===== ساخت داده گزارش یک گله (هفته‌ها + متریک هر هفته + آمار) =====
 
   async buildFlockReportData(flock) {
-    const weeks = await this.getWeeksForFlock(flock);
+    const allCalculatedWeeks = await this.getWeeksForFlock(flock);
     const hall = this.halls.find((h) => h.id === flock.hall_id);
 
     // اطمینان از وجود استاندارد نژاد
     if (!Array.isArray(flock.standards)) {
       flock.standards = (await this.loadStandardsForFlock(flock)) || [];
     }
+
+    // ✅ مبنای پایان گله: گلهٔ فعال → تا امروز، گلهٔ بسته → تا پایان دورهٔ واقعی
+    // (ترجیح: تاریخ/سن کشتار → ended_at → تاریخ ثبت پایان دوره → آخرین هفتهٔ ثبتشده)
+    // ❗ گلهٔ تکمیل‌شده هرگز تا «امروز» کش نمی‌آید.
+    const savedRecords = allCalculatedWeeks.filter((w) => w.existsInDb);
+    const timeline = resolveFlockTimelineEnd({
+      flock,
+      placement: flock,
+      completion: flock.completion || null,
+      savedWeeks: savedRecords,
+    });
+    const weeks = allCalculatedWeeks.filter(
+      (week) => week.existsInDb || week.week_number <= timeline.endWeek,
+    );
 
     // محاسبه متریک برای هر هفته ثبت‌شده
     weeks.forEach((week) => {
@@ -1489,12 +1554,18 @@ class WeeklyService {
       return weightVal > 0 ? weightVal : last;
     }, 0);
 
+    const hallName = hall?.hall_name || `سالن ${flock.hall_id}`;
+
     return {
       ...flock,
-      hall_name: hall?.hall_name || `سالن ${flock.hall_id}`,
+      hall_name: hallName,
       breed_name: flock.breed?.name || "—",
       weeks: weeks,
       savedWeeks: savedWeeks,
+      // ✅ حسابرسی هفته‌های ثبت‌نشده/ناقص — مبنای هشدارهای گزارش
+      audit: auditWeeks(weeks, hallName),
+      // ✅ مبنای پایان دوره (برای چیپ شفافیت در گزارش)
+      timeline,
       statistics: {
         totalMortality,
         totalFeed: totalFeed.toFixed(1),
@@ -1539,6 +1610,12 @@ class WeeklyService {
         return;
       }
 
+      // ✅ انتخاب گروه‌های شاخص پیش از ساخت گزارش
+      const selectedGroups = await this.pickReportGroups({
+        title: `📄 شاخص‌های گزارش سالن ${flock.flock_number || ""}`,
+      });
+      if (!selectedGroups) return; // کاربر انصراف داد
+
       notificationService.info("📄 در حال آماده‌سازی گزارش سالن...");
 
       const customerResponse = await weeklyApi.getCustomer(this.customerId);
@@ -1546,10 +1623,25 @@ class WeeklyService {
 
       const flockData = await this.buildFlockReportData(flock);
 
+      // ✅ انتخاب هفته‌های گزارش این گله
+      const weekSelection = await this.pickReportWeeksPerFlock({
+        title: `🎯 هفته‌های گزارش سالن ${flock.flock_number || ""}`,
+        subtitle: "برای این گله می‌توانید بازه یا هفته‌های دلخواه را انتخاب کنید.",
+        panels: [
+          {
+            key: `p${flockData.id}`,
+            label: `🐔 گله ${flockData.flock_number} — ${flockData.hall_name || "-"}`,
+            subtitle: `${flockData.savedWeeks.length.toLocaleString("fa-IR")} هفته ثبت‌شده`,
+            timeline: buildWeekTimeline(flockData.weeks || []),
+          },
+        ],
+      });
+
       const reportHtml = weeklyRenderer.renderFlockReport(
         customer,
         flockData,
         this.units,
+        { selectedGroups, weekSelection },
       );
 
       this.openReportWindow(reportHtml);
@@ -1603,6 +1695,12 @@ class WeeklyService {
       const selectedFlocks = await this.pickHistoryFlocks(flocks);
       if (!selectedFlocks || selectedFlocks.length === 0) return;
 
+      // ✅ انتخاب گروه‌های شاخص پیش از ساخت گزارش
+      const selectedGroups = await this.pickReportGroups({
+        title: "🕓 شاخص‌های گزارش تاریخچه هفتگی",
+      });
+      if (!selectedGroups) return; // کاربر انصراف داد
+
       notificationService.showLoading(
         "در حال آماده‌سازی گزارش تاریخچهٔ هفتگی...",
       );
@@ -1612,7 +1710,8 @@ class WeeklyService {
 
       const blocks = [];
       for (const flock of selectedFlocks) {
-        const placements = flock.placements || [];
+        // ✅ ترتیب ثابت سالن‌ها از A به آخر در گزارش تاریخچه هفتگی
+        const placements = sortFlocksByHall(flock.placements || []);
         let completion = null;
         try {
           const compRes = await hatcheryApi.getFlockCompletionByFlock(flock.id);
@@ -1681,19 +1780,63 @@ class WeeklyService {
             });
           });
 
+          // ✅ مبنای پایان دورهٔ واقعی گله (تاریخ/سن کشتار → ended_at → آخرین هفتهٔ ثبت‌شده)
+          // ❗ برای گله‌های تکمیل‌شده هرگز «امروز» مبنا نیست
+          const timeline = resolveFlockTimelineEnd({
+            flock,
+            placement: p,
+            completion,
+            savedWeeks,
+          });
+          const theoreticalWeeks = this.calculateWeeks(flockLike).filter(
+            (week) => week.week_number <= timeline.endWeek,
+          );
+          const mergedWeeks = this.mergeWeeks(theoreticalWeeks, savedWeeks);
+          const knownWeeks = new Set(
+            mergedWeeks.map((week) => week.week_number),
+          );
+          const extraWeeks = savedWeeks
+            .filter((week) => !knownWeeks.has(week.week_number))
+            .map((week) => ({ ...week, existsInDb: true }));
+          const allWeeks = [...mergedWeeks, ...extraWeeks].sort(
+            (a, b) => a.week_number - b.week_number,
+          );
+          const hallName =
+            p.hall?.hall_name ||
+            p.Hall?.hall_name ||
+            `سالن ${p.hall_id || "-"}`;
+
           halls.push({
             placement: p,
-            hallName:
-              p.hall?.hall_name ||
-              p.Hall?.hall_name ||
-              `سالن ${p.hall_id || "-"}`,
+            hallName,
             weeks: savedWeeks,
+            allWeeks,
+            audit: auditWeeks(allWeeks, hallName),
+            timeline,
           });
         }
         blocks.push({ flock, completion, halls });
       }
 
-      const html = this.buildWeeklyHistoryHTML(customer, blocks);
+      // ✅ انتخاب هفته‌های هر گله (هر گله = خط زمانی اجتماع سالن‌هایش)
+      const weekSelection = await this.pickReportWeeksPerFlock({
+        title: "🎯 هفته‌های گزارش تاریخچه هفتگی",
+        panels: blocks.map((block) => ({
+          key: `f${block.flock.id}`,
+          label: `🐔 گله ${block.flock.flock_number || "-"} — واحد ${block.flock.unit?.unit_name || "-"}`,
+          subtitle: `${(block.halls || []).length.toLocaleString("fa-IR")} سالن`,
+          timeline: mergeWeekTimelines(
+            (block.halls || []).map((hall) =>
+              buildWeekTimeline(hall.allWeeks || hall.weeks || []),
+            ),
+          ),
+        })),
+      });
+
+      const html = this.buildWeeklyHistoryHTML(customer, blocks, {
+        selectedGroups,
+        weekSelection,
+      });
       this.openReportWindow(html);
       notificationService.success("✅ گزارش تاریخچه هفتگی آماده شد");
     } catch (error) {
@@ -1868,7 +2011,482 @@ class WeeklyService {
     return flocks.filter((flock) => idSet.has(flock.id));
   }
 
-  buildWeeklyHistoryHTML(customer, blocks) {
+  // ===== انتخاب گروه‌های شاخص گزارش (مودال) =====
+
+  /** گروه‌های ذخیره‌شدهٔ کاربر (پیش‌فرض = همهٔ شاخص‌ها) */
+  loadSavedReportGroups() {
+    try {
+      const raw = localStorage.getItem(REPORT_GROUP_STORAGE_KEY);
+      if (!raw) return [...ALL_GROUP_KEYS];
+      return normalizeGroups(JSON.parse(raw));
+    } catch {
+      return [...ALL_GROUP_KEYS];
+    }
+  }
+
+  saveReportGroups(selected) {
+    try {
+      localStorage.setItem(
+        REPORT_GROUP_STORAGE_KEY,
+        JSON.stringify(normalizeGroups(selected)),
+      );
+    } catch {
+      // اگر localStorage در دسترس نبود، انتخاب فقط برای همین گزارش اعمال می‌شود
+    }
+  }
+
+  /**
+   * مودال انتخاب گروه‌های شاخص پیش از تولید گزارش
+   * @param {{title?:string, subtitle?:string}} options
+   * @returns {Promise<string[]|null>} آرایهٔ کلید گروه‌ها یا null در صورت انصراف
+   */
+  async pickReportGroups({ title = "انتخاب شاخص‌های گزارش", subtitle = "" } = {}) {
+    // اگر SweetAlert2 در دسترس نبود → مثل قبل همهٔ شاخص‌ها (سازگاری عقب‌رو)
+    if (typeof Swal === "undefined") return [...ALL_GROUP_KEYS];
+
+    const saved = this.loadSavedReportGroups();
+
+    const rowsHtml = REPORT_GROUPS.map(
+      (group) => `
+          <label class="wh-item" data-key="${group.key}">
+            <input type="checkbox" class="wh-item-check rg-group-check" value="${group.key}" ${saved.includes(group.key) ? "checked" : ""}>
+            <span class="wh-item-main">
+              <span class="wh-item-title">${group.title}</span>
+              <span class="wh-item-meta">
+                <span><i class="fas fa-circle-info"></i> ${group.hint}</span>
+              </span>
+            </span>
+          </label>`,
+    ).join("");
+
+    const html = `
+      <div class="wh-picker" dir="rtl">
+        <div class="wh-stats">
+          <div class="wh-stat">
+            <span class="wh-stat-val" id="rgStatSelected">0</span>
+            <span class="wh-stat-lbl">گروه انتخاب‌شده</span>
+          </div>
+          <div class="wh-stat">
+            <span class="wh-stat-val" id="rgStatTotal">${REPORT_GROUPS.length}</span>
+            <span class="wh-stat-lbl">گروه شاخص موجود</span>
+          </div>
+        </div>
+
+        <div class="wh-toolbar">
+          <button type="button" class="wh-tool-btn" id="rgSelectAll">
+            <i class="fas fa-check-double"></i> انتخاب همه
+          </button>
+          <button type="button" class="wh-tool-btn ghost" id="rgClearAll">
+            <i class="fas fa-eraser"></i> پاک‌کردن
+          </button>
+          <button type="button" class="wh-tool-btn ghost" id="rgResetDefault">
+            <i class="fas fa-rotate-left"></i> پیش‌فرض (همه)
+          </button>
+        </div>
+
+        <div class="wh-list" id="rgGroupList">${rowsHtml}</div>
+
+        <p class="wh-hint">
+          <i class="fas fa-circle-info"></i>
+          ${subtitle || "فقط گروه‌های تیک‌خورده در جدول‌های گزارش نمایش داده می‌شوند و هفته‌های ثبت‌نشده یا ناقص با هشدار مشخص می‌شوند. انتخاب شما برای گزارش‌های بعدی به‌خاطر سپرده می‌شود."}
+        </p>
+      </div>
+    `;
+    const checkboxes = () =>
+      Array.from(document.querySelectorAll("#rgGroupList .rg-group-check"));
+
+    const updateStats = () => {
+      const count = checkboxes().filter((cb) => cb.checked).length;
+      const el = document.getElementById("rgStatSelected");
+      if (el) el.textContent = count.toLocaleString("fa-IR");
+    };
+
+    const setChecked = (keys) => {
+      checkboxes().forEach((cb) => {
+        cb.checked = keys.includes(cb.value);
+      });
+      updateStats();
+    };
+
+    const result = await Swal.fire({
+      title,
+      html,
+      width: 640,
+      showCancelButton: true,
+      confirmButtonText: '<i class="fas fa-file-export"></i> تولید گزارش',
+      cancelButtonText: "انصراف",
+      confirmButtonColor: "#2c7a6e",
+      cancelButtonColor: "#94a3b8",
+      didOpen: () => {
+        updateStats();
+        document
+          .getElementById("rgSelectAll")
+          ?.addEventListener("click", () => setChecked([...ALL_GROUP_KEYS]));
+        document
+          .getElementById("rgClearAll")
+          ?.addEventListener("click", () => setChecked([]));
+        document
+          .getElementById("rgResetDefault")
+          ?.addEventListener("click", () => setChecked([...ALL_GROUP_KEYS]));
+        checkboxes().forEach((cb) =>
+          cb.addEventListener("change", updateStats),
+        );
+      },
+      preConfirm: () => {
+        const selected = checkboxes()
+          .filter((cb) => cb.checked)
+          .map((cb) => cb.value);
+        if (selected.length === 0) {
+          Swal.showValidationMessage("حداقل یک گروه شاخص را انتخاب کنید");
+          return false;
+        }
+        return selected;
+      },
+    });
+
+    if (!result.isConfirmed) return null;
+
+    // ✅ انتخاب کاربر ذخیره می‌شود تا در گزارش‌های بعدی هم اعمال شود
+    const selected = normalizeGroups(result.value);
+    this.saveReportGroups(selected);
+    return selected;
+  }
+
+  // ===== انتخاب هفته‌های گزارش (مودال ترکیبی) =====
+
+  /** قاعدهٔ ذخیره‌شدهٔ انتخاب مشترک (پریست/بازه) */
+  loadSavedWeekRule() {
+    try {
+      const raw = localStorage.getItem(WEEK_SELECTION_STORAGE_KEY);
+      if (!raw) return { preset: WEEK_PRESET.ALL, from: null, to: null };
+      const parsed = JSON.parse(raw);
+      const normalized = normalizeWeekSelection({ shared: parsed }).shared;
+      return normalized && !Array.isArray(normalized)
+        ? normalized
+        : { preset: WEEK_PRESET.ALL, from: null, to: null };
+    } catch {
+      return { preset: WEEK_PRESET.ALL, from: null, to: null };
+    }
+  }
+
+  saveWeekRule(rule) {
+    try {
+      localStorage.setItem(WEEK_SELECTION_STORAGE_KEY, JSON.stringify(rule));
+    } catch {
+      // در نبود localStorage، انتخاب فقط برای همین گزارش اعمال می‌شود
+    }
+  }
+
+  /**
+   * مودال «انتخاب هفته‌ها» — ترکیبی:
+   *  ۱) یک انتخاب مشترک برای همهٔ گله‌ها (پریست/بازه)
+   *  ۲) امکان تنظیم جداگانهٔ هر گله (اختیاری، جمع‌شده)
+   * @param {{title?:string, subtitle?:string, panels:Array<{key,label,subtitle,timeline}>}} options
+   * @returns {Promise<object|null>} مدل انتخاب هفته‌ها یا null (همهٔ هفته‌ها)
+   */
+  async pickReportWeeksPerFlock({
+    title = "🎯 انتخاب هفته‌های گزارش",
+    subtitle = "",
+    panels = [],
+  } = {}) {
+    // بدون SweetAlert2 یا بدون گله → بدون مودال (رفتار قبلی: همهٔ هفته‌ها)
+    if (typeof Swal === "undefined" || panels.length === 0) return null;
+
+    const timelines = {};
+    panels.forEach((panel) => {
+      timelines[panel.key] = panel.timeline || [];
+    });
+
+    const state = { shared: { ...this.loadSavedWeekRule() }, overrides: {} };
+
+    const weekStatusChip = (week) => {
+      const cls = week.status;
+      const label = WEEK_STATUS_LABELS[cls] || "";
+      const icon = cls === "complete" ? "✅" : cls === "partial" ? "🟡" : "❌";
+      return `<span class="wk-week-status ${cls}">${icon} ${label}</span>`;
+    };
+
+    const panelHtml = (panel) => {
+      const weeks = (panel.timeline || [])
+        .map(
+          (week) => `
+            <label class="wk-week-item ${week.status}">
+              <input type="checkbox" class="wk-week-check" data-key="${panel.key}" value="${week.weekNumber}">
+              <span class="wk-week-name">هفته ${week.weekNumber}</span>
+              <span class="wk-week-date">${
+                week.startDate ? convertToPersianDate(week.startDate) : "-"
+              }</span>
+              ${weekStatusChip(week)}
+            </label>`,
+        )
+        .join("");
+
+      return `
+        <div class="wk-flock" data-key="${panel.key}">
+          <div class="wk-flock-head">
+            <span class="wk-flock-title">${panel.label}</span>
+            <span class="wk-flock-meta">${panel.subtitle || ""}</span>
+            <span class="wk-flock-status" id="wkStatus-${panel.key}"></span>
+            <button type="button" class="wh-tool-btn wk-edit-btn" data-edit="${panel.key}">
+              <i class="fas fa-pen"></i> تنظیم این گله
+            </button>
+          </div>
+          <div class="wk-flock-weeks" id="wkWeeks-${panel.key}" hidden>
+            <div class="wk-presets">
+              <button type="button" class="wk-chip" data-preset="${WEEK_PRESET.ALL}" data-key="${panel.key}">همه</button>
+              <button type="button" class="wk-chip" data-preset="${WEEK_PRESET.RECORDED}" data-key="${panel.key}">ثبت‌شده</button>
+              <button type="button" class="wk-chip" data-preset="${WEEK_PRESET.ISSUES}" data-key="${panel.key}">مشکل‌دار</button>
+              <button type="button" class="wk-chip" data-preset="${WEEK_PRESET.MANUAL}" data-key="${panel.key}">انتخاب دستی</button>
+              <button type="button" class="wh-tool-btn ghost wk-reset-btn" data-reset="${panel.key}">
+                <i class="fas fa-rotate-left"></i> بازگشت به انتخاب مشترک
+              </button>
+            </div>
+            <div class="wk-week-list">${weeks || '<p class="wh-hint">هفته‌ای برای این گله وجود ندارد</p>'}</div>
+          </div>
+        </div>`;
+    };
+    const html = `
+      <div class="wh-picker wk-picker" dir="rtl">
+        <div class="wh-stats">
+          <div class="wh-stat"><span class="wh-stat-val" id="wkStatWeeks">0</span><span class="wh-stat-lbl">هفتهٔ انتخابی</span></div>
+          <div class="wh-stat"><span class="wh-stat-val" id="wkStatFlocks">0</span><span class="wh-stat-lbl">گله/سالن در گزارش</span></div>
+          <div class="wh-stat"><span class="wh-stat-val" id="wkStatIssues">0</span><span class="wh-stat-lbl">مورد مشکل‌دار در انتخاب</span></div>
+        </div>
+
+        <div class="wk-section">
+          <div class="wk-section-title">۱) انتخاب مشترک برای همهٔ گله‌ها</div>
+          <div class="wk-presets" id="wkSharedPresets">
+            ${Object.entries(WEEK_PRESET_LABELS)
+              .filter(([key]) => key !== WEEK_PRESET.MANUAL)
+              .map(
+                ([key, label]) =>
+                  `<button type="button" class="wk-chip" data-shared-preset="${key}">${label}</button>`,
+              )
+              .join("")}
+          </div>
+          <div class="wk-range" id="wkSharedRange" hidden>
+            <label>از هفته <input type="number" min="1" class="wk-input" id="wkFrom"></label>
+            <label>تا هفته <input type="number" min="1" class="wk-input" id="wkTo"></label>
+          </div>
+        </div>
+
+        <div class="wk-section">
+          <button type="button" class="wh-tool-btn ghost wk-toggle" id="wkTogglePerFlock">
+            <i class="fas fa-sliders-h"></i> ⚙️ تنظیم جداگانهٔ هر گله (اختیاری — ${panels.length.toLocaleString("fa-IR")} گله)
+          </button>
+          <div class="wk-per-flock" id="wkPerFlock" hidden>
+            <div class="wh-toolbar">
+              <button type="button" class="wh-tool-btn ghost" id="wkResetAllOverrides">
+                <i class="fas fa-rotate-left"></i> همه مطابق انتخاب مشترک
+              </button>
+            </div>
+            ${panels.map((panel) => panelHtml(panel)).join("")}
+          </div>
+        </div>
+
+        <p class="wh-hint">
+          <i class="fas fa-circle-info"></i>
+          ${subtitle || "فقط هفته‌های انتخاب‌شدهٔ هر گله در جدول‌های گزارش می‌آید و هشدارهای ثبت هفتگی هم روی همین هفته‌ها محاسبه می‌شود. مجموع‌ها/FCR همچنان روی همهٔ هفته‌های ثبت‌شده محاسبه می‌شوند."}
+        </p>
+      </div>
+    `;
+    const setStat = (id, value) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = (parseInt(value, 10) || 0).toLocaleString("fa-IR");
+    };
+
+    const weekChecksOf = (key) =>
+      Array.from(document.querySelectorAll(`.wk-week-check[data-key="${key}"]`));
+
+    const effectiveOf = (key) => effectiveWeeksFor(state, key, timelines[key]);
+
+    const syncWeekCheckboxes = (key) => {
+      const effective = new Set(effectiveOf(key));
+      weekChecksOf(key).forEach((cb) => {
+        cb.checked = effective.has(parseInt(cb.value, 10));
+      });
+    };
+
+    const updatePanelStatus = (key) => {
+      const el = document.getElementById(`wkStatus-${key}`);
+      if (!el) return;
+      const effective = effectiveOf(key);
+      const overridden = Object.prototype.hasOwnProperty.call(
+        state.overrides,
+        key,
+      );
+      if (effective.length === 0) {
+        el.textContent = "⛔ بدون هفته → در گزارش نمی‌آید";
+        el.className = "wk-flock-status is-excluded";
+        return;
+      }
+      const label = `${effective.length.toLocaleString("fa-IR")} هفته`;
+      el.textContent = overridden
+        ? `🎯 سفارشی — ${label}`
+        : `✅ مطابق انتخاب مشترک — ${label}`;
+      el.className = `wk-flock-status ${overridden ? "is-custom" : "is-shared"}`;
+    };
+
+    const refresh = () => {
+      panels.forEach((panel) => {
+        if (!Object.prototype.hasOwnProperty.call(state.overrides, panel.key)) {
+          syncWeekCheckboxes(panel.key);
+        }
+        updatePanelStatus(panel.key);
+      });
+
+      const summary = summarizeWeekSelection(state, timelines);
+      setStat("wkStatWeeks", summary.weeks);
+      setStat("wkStatFlocks", summary.flocks);
+      setStat("wkStatIssues", summary.missing + summary.partial);
+
+      document.querySelectorAll("[data-shared-preset]").forEach((btn) => {
+        btn.classList.toggle(
+          "is-active",
+          btn.dataset.sharedPreset === state.shared.preset,
+        );
+      });
+      const rangeBox = document.getElementById("wkSharedRange");
+      if (rangeBox) rangeBox.hidden = state.shared.preset !== WEEK_PRESET.RANGE;
+      const fromInput = document.getElementById("wkFrom");
+      const toInput = document.getElementById("wkTo");
+      if (fromInput && state.shared.from) fromInput.value = state.shared.from;
+      if (toInput && state.shared.to) toInput.value = state.shared.to;
+    };
+
+    const result = await Swal.fire({
+      title,
+      html,
+      width: 760,
+      showCancelButton: true,
+      confirmButtonText: '<i class="fas fa-file-export"></i> تولید گزارش',
+      cancelButtonText: "انصراف",
+      confirmButtonColor: "#2c7a6e",
+      cancelButtonColor: "#94a3b8",
+      didOpen: () => {
+        refresh();
+
+        // ── پریست مشترک
+        document.querySelectorAll("[data-shared-preset]").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const preset = btn.dataset.sharedPreset;
+            state.shared = {
+              preset,
+              from: preset === WEEK_PRESET.RANGE ? state.shared.from : null,
+              to: preset === WEEK_PRESET.RANGE ? state.shared.to : null,
+            };
+            refresh();
+          });
+        });
+
+        // ── بازهٔ مشترک
+        ["wkFrom", "wkTo"].forEach((id) => {
+          document.getElementById(id)?.addEventListener("input", (event) => {
+            state.shared.preset = WEEK_PRESET.RANGE;
+            state.shared[id === "wkFrom" ? "from" : "to"] =
+              parseInt(event.target.value, 10) || null;
+            refresh();
+          });
+        });
+
+        // ── باز/بست ناحیهٔ تنظیم جداگانه
+        document
+          .getElementById("wkTogglePerFlock")
+          ?.addEventListener("click", () => {
+            const box = document.getElementById("wkPerFlock");
+            if (box) box.hidden = !box.hidden;
+          });
+        // ── پریست هر گله
+        document.querySelectorAll("[data-preset][data-key]").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const key = btn.dataset.key;
+            const preset = btn.dataset.preset;
+            state.overrides[key] =
+              preset === WEEK_PRESET.MANUAL
+                ? [...effectiveOf(key)]
+                : resolvePresetWeeks(preset, timelines[key]);
+            syncWeekCheckboxes(key);
+            updatePanelStatus(key);
+            refresh();
+          });
+        });
+
+        // ── تغییر دستی تیک هفته‌ها
+        document
+          .getElementById("wkPerFlock")
+          ?.addEventListener("change", (event) => {
+            const cb = event.target.closest?.(".wk-week-check");
+            if (!cb) return;
+            const key = cb.dataset.key;
+            if (!Object.prototype.hasOwnProperty.call(state.overrides, key)) {
+              // اولین ویرایش: از وضعیت فعلیِ برگرفته از انتخاب مشترک شروع می‌کنیم
+              state.overrides[key] = [...effectiveOf(key)];
+            }
+            const value = parseInt(cb.value, 10);
+            const list = new Set(state.overrides[key]);
+            if (cb.checked) list.add(value);
+            else list.delete(value);
+            state.overrides[key] = [...list].sort((a, b) => a - b);
+            updatePanelStatus(key);
+            refresh();
+          });
+
+        // ── بازگشت یک گله به انتخاب مشترک
+        document.querySelectorAll("[data-reset]").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const key = btn.dataset.reset;
+            delete state.overrides[key];
+            syncWeekCheckboxes(key);
+            updatePanelStatus(key);
+            refresh();
+          });
+        });
+
+        // ── همه مطابق انتخاب مشترک
+        document
+          .getElementById("wkResetAllOverrides")
+          ?.addEventListener("click", () => {
+            state.overrides = {};
+            refresh();
+          });
+
+        // ── بازکردن فهرست هفته‌های یک گله
+        document.querySelectorAll("[data-edit]").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const box = document.getElementById(`wkWeeks-${btn.dataset.edit}`);
+            if (box) box.hidden = !box.hidden;
+          });
+        });
+      },
+      preConfirm: () => {
+        const summary = summarizeWeekSelection(state, timelines);
+        if (summary.weeks === 0) {
+          Swal.showValidationMessage("حداقل یک هفته در گزارش انتخاب کنید");
+          return false;
+        }
+        return { shared: state.shared, overrides: state.overrides };
+      },
+    });
+
+    if (!result.isConfirmed) return null;
+
+    // ✅ قاعدهٔ مشترک برای گزارش‌های بعدی به‌خاطر سپرده می‌شود
+    this.saveWeekRule(state.shared);
+
+    // پیش‌فرض «همهٔ هفته‌ها» بدون تنظیم سفارشی → همان رفتار قبلی گزارش‌ها
+    const hasOverrides = Object.keys(state.overrides).length > 0;
+    if (!hasOverrides && state.shared.preset === WEEK_PRESET.ALL) return null;
+
+    return normalizeWeekSelection({
+      mode: hasOverrides ? "mixed" : "shared",
+      shared: state.shared,
+      overrides: state.overrides,
+    });
+  }
+
+  buildWeeklyHistoryHTML(customer, blocks, options = {}) {
+    const selectedGroups = normalizeGroups(options.selectedGroups);
+    const weekSelection = options.weekSelection || null;
     const title = "🕓 گزارش تاریخچه هفتگی (گله‌های تکمیل‌شده)";
     const now = new Date();
     const persianDate = formatDate(now);
@@ -1924,6 +2542,39 @@ class WeeklyService {
         s + (b.halls || []).reduce((s2, h) => s2 + (h.weeks?.length || 0), 0),
       0,
     );
+    // ✅ شمارش کل هفته‌های بدون ثبت (برای کارت هشدار ابتدای گزارش)
+    const totalMissingWeeks = blocks.reduce(
+      (s, b) =>
+        s +
+        (b.halls || []).reduce(
+          (s2, h) => s2 + (h.audit?.missing?.length || 0),
+          0,
+        ),
+      0,
+    );
+
+    // گله‌هایی که کاربر هیچ هفته‌ای برایشان انتخاب نکرده (خط اطلاعی در ابتدای گزارش)
+    const excludedBlockNames = [];
+
+    // ✅ خلاصهٔ انتخاب هفته‌ها (خط خلاصهٔ ابتدای گزارش)
+    const weekSelectionSummary = weekSelection
+      ? summarizeWeekSelection(
+          weekSelection,
+          Object.fromEntries(
+            blocks.map((block) => [
+              `f${block.flock.id}`,
+              mergeWeekTimelines(
+                (block.halls || []).map((h) =>
+                  buildWeekTimeline(h.allWeeks || h.weeks || []),
+                ),
+              ),
+            ]),
+          ),
+        )
+      : null;
+    const weekSelectionNote = weekSelectionSummary
+      ? ` · 🎯 هفته‌ها: <strong>${fmtCount(weekSelectionSummary.weeks)} هفته</strong> از ${fmtCount(weekSelectionSummary.totalFlocks)} گله${weekSelectionSummary.overridden ? ` — ${fmtCount(weekSelectionSummary.overridden)} گله با انتخاب سفارشی` : ""}`
+      : "";
 
     const bodyBlocks = blocks
       .map((b) => {
@@ -1935,6 +2586,44 @@ class WeeklyService {
           (s, h) => s + (h.weeks?.length || 0),
           0,
         );
+        // ✅ ترتیب ثابت سالن‌ها از A به آخر (مستقل از ترتیب ورودی دیتابیس)
+        const orderedHalls = sortFlocksByHall(b.halls || []);
+        // هشدار سطح گله: اجتماع هفته‌های بدون ثبت/ناقص همهٔ سالن‌های همین گله
+        const hallAudits = orderedHalls.map(
+          (h) =>
+            h.audit || auditWeeks(h.allWeeks || h.weeks || [], h.hallName || ""),
+        );
+
+        // ✅ انتخاب هفته‌های این گله (کلید f<flockId>) — هر سالن با خط زمانی خودش
+        const flockKey = `f${b.flock.id}`;
+        const flockTimeline = mergeWeekTimelines(
+          orderedHalls.map((h) => buildWeekTimeline(h.allWeeks || h.weeks || [])),
+        );
+        const flockWeekNumbers = weekSelection
+          ? effectiveWeeksFor(weekSelection, flockKey, flockTimeline)
+          : null;
+        const flockOutsideIssues = weekSelection
+          ? issuesOutsideSelection(weekSelection, flockKey, flockTimeline)
+          : [];
+        const flockAuditFull = mergeAudits(hallAudits);
+        const flockAudit = Array.isArray(flockWeekNumbers)
+          ? scopeAuditToWeeks(flockAuditFull, flockWeekNumbers)
+          : flockAuditFull;
+        const flockBasisChip = b.halls?.[0]?.timeline
+          ? `<span class="hh-meta basis-chip" title="مبنای شمارش هفته‌های مورد انتظار">⚓ مبنای پایان: ${timelineBasisLabel(b.halls[0].timeline, toPersianShort)}</span>`
+          : "";
+        const flockWeekChip = Array.isArray(flockWeekNumbers)
+          ? `<span class="hh-meta week-range-chip">🎯 ${weekSelectionLabel(flockWeekNumbers, flockTimeline.map((w) => w.weekNumber), fmtCount)}</span>`
+          : "";
+        const excludedHalls = [];
+
+        // گله‌ای که هیچ هفته‌ای برایش انتخاب نشده → از گزارش حذف می‌شود
+        if (Array.isArray(flockWeekNumbers) && flockWeekNumbers.length === 0) {
+          excludedBlockNames.push(
+            `گله ${b.flock.flock_number || "-"} — واحد ${b.flock.unit?.unit_name || "-"}`,
+          );
+          return "";
+        }
 
         // 🏁 اطلاعات پایان دوره گله — نوار خلاصهٔ گروهی
         const completionStrip = comp
@@ -1948,14 +2637,48 @@ class WeeklyService {
             </div>`
           : "";
 
-        const halls = b.halls
+        const halls = orderedHalls
           .map((h) => {
             const list = h.weeks || [];
+            // ✅ خط زمانی کامل (هفته‌های نظری + ثبت‌شده) تا هفته‌های بدون ثبت هم در ماتریس بیاید
+            const fullTimeline = h.allWeeks?.length ? h.allWeeks : list;
+            const hallTimeline = buildWeekTimeline(fullTimeline);
+            const rawAudit =
+              h.audit || auditWeeks(fullTimeline, h.hallName || "");
+
+            // ✅ محدود به هفته‌های انتخاب‌شدهٔ همین گله (اگر کاربر انتخاب سفارشی داشته باشد)
+            const hallWeekNumbers = weekSelection
+              ? effectiveWeeksFor(weekSelection, flockKey, hallTimeline)
+              : null;
+            if (Array.isArray(hallWeekNumbers) && hallWeekNumbers.length === 0) {
+              excludedHalls.push(h.hallName || "-");
+              return "";
+            }
+            const audit = Array.isArray(hallWeekNumbers)
+              ? scopeAuditToWeeks(rawAudit, hallWeekNumbers)
+              : rawAudit;
+            const outsideIssues = weekSelection
+              ? issuesOutsideSelection(weekSelection, flockKey, hallTimeline)
+              : [];
+            const timeline = Array.isArray(hallWeekNumbers)
+              ? fullTimeline.filter((week) =>
+                  hallWeekNumbers.includes(parseInt(week.week_number, 10)),
+                )
+              : fullTimeline;
+            const basisChip = h.timeline
+              ? `<span class="hh-meta basis-chip" title="مبنای شمارش هفته‌های مورد انتظار و هشدارهای ثبت">⚓ مبنای پایان: ${timelineBasisLabel(h.timeline, toPersianShort)}</span>`
+              : "";
+            const weekRangeChip = Array.isArray(hallWeekNumbers)
+              ? `<span class="hh-meta week-range-chip">🎯 ${weekSelectionLabel(hallWeekNumbers, hallTimeline.map((w) => w.weekNumber), fmtCount)}</span>`
+              : "";
             const placement = h.placement || {};
             const weeksChip =
               list.length > 0
-                ? `<span class="hh-meta">📅 ${fmtCount(list.length)} هفتهٔ ثبت‌شده</span>`
+                ? `<span class="hh-meta">📅 ${fmtCount(list.length)} هفتهٔ ثبت‌شده${audit.missing.length ? ` از ${fmtCount(audit.total)}` : ""}</span>`
                 : "";
+            const gapChip = audit.hasIssues
+              ? weeklyRenderer.renderGapBadge(audit)
+              : "";
             const chicksChip = placement.total_chicks_count
               ? `<span class="hh-meta">🐣 ${fmtCount(placement.total_chicks_count)} قطعه</span>`
               : "";
@@ -1966,11 +2689,17 @@ class WeeklyService {
               <div class="history-hall">
                 <div class="history-hall-head">
                   <span class="hh-title">🧩 ${h.hallName}</span>
-                  ${weeksChip}${chicksChip}${dateChip}
+                  ${weeksChip}${gapChip}${chicksChip}${dateChip}${basisChip}${weekRangeChip}
                 </div>
+                ${weeklyRenderer.renderWeekGapsAlert(audit, h.hallName)}
                 ${
-                  list.length
-                    ? renderHistoryWeekMatrix(list)
+                  outsideIssues.length
+                    ? `<p class="gap-outside-note">ℹ️ ${fmtCount(outsideIssues.length)} هفتهٔ مشکل‌دار دیگر این سالن (${outsideIssues.join("، ")}) خارج از انتخاب شماست.</p>`
+                    : ""
+                }
+                ${
+                  list.length || audit.missing.length
+                    ? renderHistoryWeekMatrix(timeline, selectedGroups)
                     : '<p style="color:#94a3b8;padding:4px 2px;">ثبت هفتگی‌ای برای این سالن موجود نیست</p>'
                 }
               </div>
@@ -1986,11 +2715,25 @@ class WeeklyService {
               </div>
               <div class="flock-meta">
                 <span>🏭 ${fmtCount(b.halls.length)} سالن</span>
-                <span>📅 ${fmtCount(flockWeeksCount)} هفته ثبت‌شده</span>
+                <span>📅 ${fmtCount(flockWeeksCount)} هفته ثبت‌شده${flockAudit.missing.length ? ` از ${fmtCount(flockAudit.total)}` : ""}</span>
+                ${weeklyRenderer.renderGapBadge(flockAudit)}
+                ${flockBasisChip}
+                ${flockWeekChip}
                 <span class="status-badge history-done-badge">🏁 تکمیل‌شده</span>
               </div>
             </div>
             ${completionStrip}
+            ${weeklyRenderer.renderWeekGapsAlert(flockAudit)}
+            ${
+              flockOutsideIssues.length
+                ? `<p class="gap-outside-note">ℹ️ ${fmtCount(flockOutsideIssues.length)} هفتهٔ مشکل‌دار دیگر این گله (${flockOutsideIssues.join("، ")}) خارج از انتخاب شماست.</p>`
+                : ""
+            }
+            ${
+              excludedHalls.length
+                ? `<p class="gap-outside-note">ℹ️ ${fmtCount(excludedHalls.length)} سالن (${excludedHalls.join("، ")}) به‌خاطر انتخاب‌نشدن هیچ هفته‌ای در این گزارش نیامده است.</p>`
+                : ""
+            }
             ${halls}
           </div>
         `;
@@ -2002,6 +2745,11 @@ class WeeklyService {
         <div class="summary-stat"><div class="stat-number">${fmtCount(blocks.length)}</div><div class="stat-label">گلهٔ تکمیل‌شده</div></div>
         <div class="summary-stat"><div class="stat-number">${fmtCount(totalHalls)}</div><div class="stat-label">سالن</div></div>
         <div class="summary-stat"><div class="stat-number">${fmtCount(totalWeeks)}</div><div class="stat-label">هفتهٔ ثبت‌شده</div></div>
+        ${
+          totalMissingWeeks > 0
+            ? `<div class="summary-stat warn-stat"><div class="stat-number">${fmtCount(totalMissingWeeks)}</div><div class="stat-label">هفتهٔ بدون ثبت</div></div>`
+            : ""
+        }
       </div>`;
 
     return `
@@ -2044,6 +2792,13 @@ class WeeklyService {
                   <div class="customer-item"><span class="label">استان</span><span class="value">${customer.province || "-"}</span></div>
                 </div>
               </div>
+
+              <div class="report-groups-note">🧾 شاخص‌های این گزارش: <strong>${REPORT_GROUPS.filter((g) => selectedGroups.includes(g.key)).map((g) => g.title).join("، ") || "—"}</strong>${weekSelectionNote}</div>
+              ${
+                excludedBlockNames.length
+                  ? `<p class="gap-outside-note">ℹ️ ${fmtCount(excludedBlockNames.length)} گله (${excludedBlockNames.join("، ")}) به‌خاطر انتخاب‌نشدن هیچ هفته‌ای در این گزارش نیامده است.</p>`
+                  : ""
+              }
             </td></tr>
           </thead>
           <tbody>

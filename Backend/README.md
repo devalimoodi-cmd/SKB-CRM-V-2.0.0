@@ -130,11 +130,220 @@ bash deploy.sh --help
 - بستن با ESC/کلیک بیرون فقط در همان نشست پنهان می‌کند (پیام هدر می‌ماند تا واقعاً دیده شود).
 - حداکثر آیتم در هر نسخه: `RELEASE_NOTE_MAX_ITEMS` (پیش‌فرض ۵۰).
 
+### روی چه مسیرهایی اعمال می‌شود؟ (وضعیت فعلی)
+
+| ماژول | کلیدهای مجوز متصل‌شده |
+|---|---|
+| مشتریان (`/api/customers`) | `customers.list.view` · `search` · `register` · `profile.view` · `edit` · `toggle` · `delete` |
+| واحدها (`/api/units`) | `units.view` · `create` · `edit` · `delete` · `toggle` · `experts` |
+| سالن‌ها (`/api/halls`, `hall-*`) | `halls.view` · `create` · `edit` · `delete` · `toggle` · `hatchery.hygiene.*` |
+| جوجه‌ریزی (`/api/chick-placements`, `/api/flocks`, `/api/flock-completions`) | `hatchery.view` · `hatchery.placement.*` · `hatchery.completion.*` |
+| هفتگی (`/api/weekly`) | `weekly.view` · `create` · `edit` · `delete` |
+| بازدید (`/api/visit-reports`) | `visit.view` · `create` · `edit` · `delete` · `status` · `visit.attachment.*` |
+| داشبورد (`/api/dashboard`) | `dashboard.*` (کارت‌ها، آمار، نمودار، تحلیل، تقویم، پیامک گروهی، مخفی‌کردن گله) · «خلاصهٔ عملکرد مشتری» با `dashboard.customerDetails` |
+| پیامک (`/api/sms`) | `sms.send` · `bulk` · `templates` · `sendToRecipient` · `history` · `status.refresh` · `lines` · `received` · `credit` · `verify` · `test` |
+| بوکمارک (`/api/bookmarks`) | `bookmarks.view` · `create` · `edit` · `delete` · `status` |
+| هدر پروفایل مشتری | `customer.basic.view` |
+| تنظیمات (`/api/settings`) | `settings.view` · `settings.edit` |
+| تغییرات جدید (`/api/releases`) | `releases.view` · `releases.manage` |
+| نظرات و پیشنهادات (`/api/suggestions`) | `suggestions.admin.view` · `reply` · `status` · `delete` |
+| دیکشنری‌ها (`/api/dictionary`, `/api/breed-standards`) | `dictionary.<جدول>.view` · `dictionary.<جدول>.edit` (۱۹ جدول) · `charts.standards` |
+| نقش‌ها (`/api/permissions`) | `roles.matrix.view` · `roles.permissions.edit` · `users.permissions.edit` · `roles.audit.view` |
+
+> در بیشتر این مسیرها `authorize(...)` قبلی هم باقی مانده است؛ یعنی مجوز فقط می‌تواند
+> **محدودتر** کند (تا وقتی بخواهید مجوزی را به نقشی بدهید که قبلاً در `authorize` نبود،
+> باید همان خط `authorize` را به `requirePermission` تبدیل کنیم).
+
+### وضعیت اجرا در این نصب
+در `Backend/.env` مقدار **`PERMISSIONS_ENFORCE=true`** فعال شده است (کنترل واقعی).
+برای برگشت به حالت آزمایشی: مقدار را `false` کنید و بک‌اند را ری‌استارت کنید.
+هنگام تغییر هر سطح دسترسی در پنل، کش سرور همان لحظه پاک می‌شود؛ در سمت کاربر
+برای دیدن اثر در منوها یک‌بار رفرش کافی است.
+
+### زمان اعمال تغییرات (کش‌ها)
+| لایه | مقدار | توضیح |
+|---|---|---|
+| کش سرور (`PERMISSIONS_CACHE_TTL_MS`) | ۳۰ ثانیه | پس از هر ذخیره در پنل **بلافاصله** پاک می‌شود ⇒ کنترل سرور آنی است |
+| کش مرورگر کاربر | **۶۰ ثانیه** | با `GET /permissions/version` بررسی می‌شود؛ روی برگشت به تب/فوکوس پنجره هم تازه‌سازی می‌شود |
+
+⇒ تغییرات با **اولین رفرش صفحه یا برگشت به تب** روی مرورگر همان کاربر اعمال می‌شود (سرور از همان لحظه اعمال می‌کند).
+
 ### تأیید سریع پس از استقرار
 ```bash
 npm run db:verify     # باید release_notes / release_note_items / release_note_views را ALL PASS بدهد
 npm run test:security # ۴۰۱ بدون توکن برای /api/releases/*
 ALLOW_DB_TESTS=true npm run test:db   # چرخهٔ کامل ساخت→انتشار→دیدن→«دیگر نشان نده»
+```
+
+---
+
+## سطوح دسترسی (نقش‌ها و کاربران)
+
+از این پس «دسترسی هر بخش» با **مجوز (permission)** کنترل می‌شود، نه با نقش هاردکد.
+ادمین از پنل مدیریت ← **«مدیریت نقش‌ها»** هر مجوز را برای هر نقش (و در صورت نیاز برای
+هر کاربر خاص) روشن یا خاموش می‌کند.
+
+### فایل‌های کلیدی
+| فایل | کار |
+|---|---|
+| `config/permissions.js` | **کاتالوگ مجوزها** (۱۵۶ کلید در ۱۵ گروه) + پیش‌فرض هر ۵ نقش + کلیدهای قفل‌شده |
+| `services/permissionService.js` | محاسبهٔ مجوز مؤثر + کش ۳۰ ثانیه‌ای + ذخیره + گزارش تغییرات |
+| `middleware/permissions.js` | `requirePermission("customers.edit")` (دارای حالت dry-run) |
+| `middleware/auth.js` | پس از احراز هویت، `req.user.permissions` را پر می‌کند |
+| `models/{RolePermission,UserPermission,PermissionAuditLog}.js` | سه جدول جدید (مایگریشن `20260920120000-permissions.js`) |
+| `controllers/permissionController.js` · `routes/permissionRoutes.js` | APIهای `/api/permissions/*` |
+
+### قواعد
+- **مجوز مؤثر** = استثنای کاربر ← استثنای نقش ← پیش‌فرض کاتالوگ.
+  (جدول‌ها فقط *استثناها* را نگه می‌دارند؛ پس افزودن قابلیت جدید در آینده مایگریشن لازم ندارد.)
+- ۷ کلید حساس **فقط برای سوپرادمین** قابل فعال‌سازی‌اند:
+  `customers.delete` · `users.superadmin.manage` · `users.delete` · `users.token.view` ·
+  `roles.permissions.edit` · `users.permissions.edit` · `releases.manage`
+- `admin.panel.access` و `roles.matrix.view` برای سوپرادمین **همیشه فعال** است (ضدقفل‌شدگی).
+- سوپرادمین همیشه از همهٔ بررسی‌ها عبور می‌کند (کنترل نهایی سیستم).
+- هر تغییر در `permission_audit_logs` ثبت می‌شود و کش همان لحظه پاک می‌شود.
+
+### حالت اجرا (مهم)
+```bash
+PERMISSIONS_ENFORCE=false   # پیش‌فرض: فقط لاگ (هیچ ۴۰۳ای برگردانده نمی‌شود)
+PERMISSIONS_ENFORCE=true    # کنترل واقعی (۴۰۳ برای درخواست بدون مجوز)
+```
+در حالت `false` هر درخواستی که ۴۰۳ می‌گرفت، در لاگ به این شکل ثبت می‌شود:
+`🛡️ [permissions:dry-run] POST /api/customers — نقش «expert» (12) فاقد مجوز [customers.register] است`
+⇒ چند روز اجرا کنید، لاگ‌ها را ببینید، سپس `true` کنید.
+
+### API (`/api/permissions`)
+| روت | کار | دسترسی |
+|---|---|---|
+| `GET /me` | مجوزهای کاربر جاری (+ `version` و `deniedTitles`) | هر کاربر لاگین‌شده |
+| `GET /version` | فقط نسخهٔ مجوزها (بررسی سبک تازه‌بودن کش) | هر کاربر لاگین‌شده |
+| `GET /catalog` · `GET /roles` | کاتالوگ + ماتریس نقش‌ها | `roles.matrix.view` |
+| `PUT /roles/:role` | ذخیرهٔ تغییرات یک نقش (`{ updates: [{key, allowed}] }`) | `roles.permissions.edit` |
+| `POST /roles/:role/reset` | بازگردانی نقش به پیش‌فرض | `roles.permissions.edit` |
+| `GET /users/:id` | مجوز مؤثر + استثناهای یک کاربر | `roles.matrix.view` |
+| `PUT /users/:id` | سطح دسترسی اختصاصی کاربر (`allowed: true/false/null`) | `users.permissions.edit` |
+| `DELETE /users/:id` | بازگردانی کاربر به سطح نقش | `users.permissions.edit` |
+| `GET /audit` | گزارش تغییرات (صفحه‌بندی‌شده) | `roles.audit.view` |
+
+### پاسخ ۴۰۳ (مجوز بسته)
+وقتی `PERMISSIONS_ENFORCE=true` باشد و کاربر مجوز لازم را نداشته باشد:
+```json
+{
+  "success": false,
+  "permissionDenied": true,
+  "message": "دسترسی شما به این عملیات بسته شده است",
+  "required": ["halls.create"],
+  "requiredTitles": ["ثبت سالن جدید"],
+  "role": "expert"
+}
+```
+- `permissionDenied` ⇒ فرانت می‌فهمد «۴۰۳ = نبود مجوز» است (نه چیز دیگر) و پیام قابل‌فهم می‌سازد.
+- `requiredTitles` از کاتالوگ (`PERMISSIONS[key].title`) ساخته می‌شود تا کاربر بداند **چه چیزی** بسته است.
+- در `GET /permissions/me` فیلد `deniedTitles` (key → عنوان فارسی) فقط برای کلیدهایی که کاربر **ندارد**
+  فرستاده می‌شود؛ فرانت از آن برای پیام‌ها و کارت «این بخش برای نقش شما بسته است» استفاده می‌کند.
+
+### تأیید سریع
+```bash
+npm run db:verify                    # باید role_permissions / user_permissions / permission_audit_logs را ALL PASS بدهد
+npm run test:permissions             # کاتالوگ + میدل‌ور (شامل بدنهٔ ۴۰۳ و عنوان فارسی) + نگهبان مسیرها
+ALLOW_DB_TESTS=true npm run test:permissions   # + ۱۰ بررسی واقعی روی دیتابیس
+```
+
+---
+
+## خلاصهٔ عملکرد مشتری (مودال «جزئیات مشتری» داشبورد کارشناس)
+
+کلید «جزئیات مشتری» روی کارت‌های تسک داشبورد، مودالی باز می‌کند که **پروندهٔ کوتاه**
+مرغدار است: KPI کل + دوره‌های پرورش + سابقهٔ سالن‌ها + شاخص‌های پایان دوره.
+
+### API
+```
+GET /api/dashboard/customer/:id/performance?flockId=<شناسهٔ جوجه‌ریزی یا گله>
+دسترسی: dashboard.customerDetails
+```
+پاسخ:
+```jsonc
+{ "customer": { … }, 
+  "summary":  { "flocksTotal","flocksActive","flocksCompleted","totalChicks","totalMortality",
+                "mortalityRate","survivalRate","totalFeed","lastWeight","avgFcr","totalWeeks","lastPlacementDate","hallsCount","unitsCount" },
+  "flocks":  [ { "key","flockId","singleHall","flockNumber","unitName","startDate","endDate","status",
+                  "trend": { "weeks":[1,2,3], "dates":[…], "weight":[…], "fcr":[…], "mortality":[…] },
+                  "halls":[ { "hallName","chicks","finalChicks","mortalityRate","feed","lastWeight","fcr","weeksCount",
+                              "economics": { "income","chickCost","feedCost","otherCost","totalCost","profit","profitPercent",
+                                             "liveWeight","declaredWeight","estimated" } | null } ],
+                  "kpi":{ … },
+                  "economics": { "income","chickCost","feedCost","otherCost","totalCost","profit","profitPercent",
+                                 "basis":{…}, "hallCount" } | null,
+                  "completion": { "fcr","epi","adgGrams","survivalPercent","slaughterAgeDays", … } | null } ],
+  "halls":    [ { "hallName","capacity","flocksCount","completedFlocks","lastPlacementDate",
+                  "avgMortalityRate","avgFcr",
+                  "economics": { "income","totalCost","profit","profitPercent","flocksCount" } | null,
+                  "flocks":[ … ] } ],
+  "economics":{ "totalIncome","totalCost","totalProfit","avgProfitPercent","fcrTrend",
+                "byHall":[ { "hallName","income","totalCost","profit","profitPercent","flocksCount","shareOfTotalProfit" } ] } | null,
+  "focus":    { "flockKey","flockId","placementId","hallId" } | null }
+```
+
+> ⚠️ **تغییر شکننده (breaking):** کلیدهای قبلی `periods / periodId / periodNumber` **حذف** و به
+> `flocks / flockId / flockNumber` تغییر یافته‌اند (طبق تصمیم پروژه: «گله» واژهٔ رسمی است).
+> مصرف‌کنندهٔ این endpoint فقط فرانت‌اند همین پروژه است (`dashboard.service.js`).
+
+### فایل‌ها
+| فایل | کار |
+|---|---|
+| `services/flockMetrics.js` | **منبع یکتای فرمول‌ها**: `summarizeWeeks` · `aggregateFlock` · `weightedAverage` · **`allocateEconomics`** · **`buildFlockTrend`** (بدون دیتابیس، قابل تست) |
+| `services/customerPerformanceService.js` | ساخت `summary/flocks/halls/economics/focus` با ۴–۵ کوئری موازی (بدون N+1) |
+| `controllers/dashboardController.js` → `getCustomerPerformance` | لایهٔ نازک + تعیین دسترسی مالی |
+| `routes/dashboardRoutes.js` | `GET /customer/:id/performance` با `dashboard.customerDetails` |
+
+### قواعد مهم
+- **تعریف گله** = رکورد جدول `flocks`؛ جوجه‌ریزی‌های بدون `flock_id` (دادهٔ قدیمی)
+  هر کدام یک **«گلهٔ تک‌سالنه»** در نظر گرفته می‌شوند تا سابقه گم نشود.
+- **واژگان:** در API و مستندات این بخش، واژهٔ رسمی **«گله»** است (به‌جای «دوره»)؛
+  نام فیلدها هم `flock*` شد. تنها جایی که «پایان دوره» مانده، نام همان قابلیت موجود
+  (`flock_completions` / اطلاعات پایان دوره) است.
+- **FCR** = `خوراک کل ÷ (آخرین وزن × جوجهٔ نهایی)` — همان فرمول `flockCompletionController`
+  و `weekly.calculations.js → fcrUpToWeek` (قبلاً مودال داشبورد `خوراک ÷ آخرین وزن` حساب می‌کرد و
+  عددش با «پایان دوره» نمی‌خواند).
+- **وزن** در گله‌های چندسالنه = **میانگین وزنی بر اساس جوجهٔ نهایی هر سالن**.
+- «آخرین وزن» = آخرین هفتهٔ دارای `weekly_weight > 0` (نه بیشترین وزن).
+- `economics` و `completion` فقط وقتی برگردانده می‌شوند که کاربر مجوز **`hatchery.view`**
+  داشته باشد (`userHasPermission` در کنترلر) — اطلاعات سود/هزینه در مودال برای نقش بدون این مجوز
+  نمایش داده نمی‌شود.
+- مسیر `/customer/:id/details` دست‌نخورده مانده و هم‌زمان پارامتر `flockId`/`flock_id` را می‌پذیرد
+  (پیش‌تر فرانت `flock_id` می‌فرستاد و بک‌اند `flockId` می‌خواند ⇒ فیلتر بی‌اثر بود).
+
+### 📈 کارت‌های نمودار روند هفتگی (مودال)
+- `flocks[].trend` = تجمیع هفتگی همان گله: `weeks` / `dates` / `weight` / `fcr` / `mortality` / `feed`.
+- قواعد تجمیع **عیناً** همان `weekly.aggregation.js` است:
+  وزن = میانگین وزنی بر اساس **مرغ زندهٔ همان هفته** · خوراک و تلفات = مجموع سالن‌ها ·
+  `FCR تجمعی = مجموع خوراک تا این هفته ÷ (وزن × مرغ زندهٔ همان هفته)`.
+- این سری **از همان کوئری هفتگیِ موجود** ساخته می‌شود (بدون کوئری اضافه) و جدول کامل هفتگی
+  همچنان در فرانت‌اند تنبل (lazy) لود می‌شود.
+
+### 💰 سود و زیان به تفکیک سالن (تخصیص)
+اقتصاد فقط در سطح گله ثبت می‌شود (`flock_completions`) و در سطح سالن داده‌های فیزیکی
+(`flock_completion_halls`) وجود دارد؛ پس `allocateEconomics` این تخصیص را انجام می‌دهد:
+
+| جزء | مبنا | دقت |
+|---|---|---|
+| درآمد | `price_per_kg × live_weight_kg` هر سالن (fallback: سهم وزن) | دقیق |
+| هزینهٔ خوراک | سهم خوراک همان سالن (`declared_feed_intake` ∨ `total_feed_intake`) | دقیق |
+| هزینهٔ جوجه | سهم `initial_chicks_count` همان سالن | دقیق |
+| دارو/سوخت/کارگر/سایر | سهم وزن زنده | **تخصیصی** |
+
+- زنجیرهٔ fallback وقتی مبنا صفر است: **وزن ⇒ جوجهٔ نهایی ⇒ جوجهٔ اولیه ⇒ مساوی**.
+- ✅ **تضمین:** باقی‌ماندهٔ گردکردن به ردیف آخر اضافه می‌شود ⇒ **جمع هر ستون دقیقاً برابر عدد
+  ثبت‌شدهٔ همان گله** (اگر `total_cost` با جمع ریزها اختلاف داشته باشد، همان معیار می‌شود).
+- سالنی که وزن کشتارگاهی/خوراک ندارد با `estimated: true` علامت می‌خورد (در UI: «تقریبی» + ستاره).
+- `halls[].economics` = جمع گله‌های تمام‌شدهٔ همان سالن · `economics.byHall` = فهرست سهم سالن‌ها از سود کل
+  (`shareOfTotalProfit` فقط در پروندهٔ **سودده** مقدار می‌گیرد؛ در زیان کل `null` است).
+
+### تأیید
+```bash
+ALLOW_DB_TESTS=true npm run test:db     # ۱۰ بررسی: ساختار (flocks) · صحت اعداد سالن با محاسبهٔ دستی ·
+                                        # مجموع مشتری · گیت مجوز · ۴۰۱ · هم‌اندازی سری روند (با تاریخ‌ها) ·
+                                        # جمع سود سالن‌ها = گله · درآمد vs DB · نبود کلید periods
 ```
 
 ---
@@ -191,7 +400,7 @@ ALLOW_DB_TESTS=true npm run test:db   # چرخهٔ کامل ساخت→انتش�
 
 - چهار آیتم پیش‌فرض در مایگریشن `20260919120000` ساخته می‌شود: **گوشتی · تخم‌گذار · مرغ مادر · سایر** (مدیریت از پنل: «مدیریت دیکشنری» ← «انواع مشتری»).
 - ⛔ حذف نوعی که برای مشتری‌ها استفاده شده **ممنوع** است (۴۰۰ با پیام فارسی) تا نوع مشتریان بی‌مرجع نشود؛ برای حذف از فرم‌ها آن را «غیرفعال» کنید.
-- «نوع مشتری» در ثبت‌نام **اجباری** است و در ویرایش هم اگر مشتری قدیمی نوعی نداشته باشد تعیین آن الزامی است. «کد ملی» اختیاری است (۱۰ رقم + رقم کنترلی؛ ارقام فارسی هم پذیرفته و نرمال‌سازی می‌شود).
+- «نوع مشتری» در ثبت‌نام **اجباری** است و در ویرایش هم اگر مشتری قدیمی نوعی نداشته باشد تعیین آن الزامی است. «کد ملی» اختیاری است (**فقط ۱۰ رقم عددی**، بدون رقم کنترلی؛ ارقام فارسی/عربی هم پذیرفته و نرمال‌سازی می‌شود؛ فیلد فرم فقط عدد می‌پذیرد) ✅.
 
 
 

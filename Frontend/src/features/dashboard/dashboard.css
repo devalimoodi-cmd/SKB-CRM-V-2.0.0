@@ -601,9 +601,8 @@
   max-width: 600px;
 }
 
-.modal-container.modal-large {
-  max-width: 1200px;
-}
+/* ابعاد .modal-container.modal-large در انتهای همین فایل تعریف شده است
+   (بخش «ابعاد مودال جزئیات مشتری — عریض‌تر و بلندتر») */
 
 @keyframes modalSlideIn {
   from {
@@ -2641,5 +2640,871 @@
 .dash-cmp-hint i {
   margin-top: 2px;
   color: #2c7a6e;
+}
+
+
+/* ============================================================
+   مودال «جزئیات مشتری» — خلاصهٔ عملکرد (customer-detail.renderer.js)
+   ============================================================ */
+.cd-root {
+  direction: rtl;
+  text-align: right;
+  font-family: "Vazir", sans-serif;
+  color: #0f172a;
+}
+
+.cd-loading {
+  padding: 40px 12px;
+  text-align: center;
+  color: #64748b;
+  font-size: 13px;
+  font-family: "Vazir", sans-serif;
+}
+
+/* ===== ① نوار KPI ===== */
+.cd-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.cd-kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-right: 4px solid #94a3b8;
+}
+
+.cd-kpi-label {
+  font-size: 10px;
+  color: #64748b;
+}
+
+.cd-kpi-value {
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.cd-kpi-sub {
+  font-size: 10px;
+  color: #94a3b8;
+}
+
+.cd-kpi-blue {
+  border-right-color: #0ea5e9;
+  background: #f0f9ff;
+}
+.cd-kpi-blue .cd-kpi-value {
+  color: #0369a1;
+}
+
+.cd-kpi-green {
+  border-right-color: #16a34a;
+  background: #f0fdf4;
+}
+.cd-kpi-green .cd-kpi-value {
+  color: #15803d;
+}
+
+.cd-kpi-slate {
+  border-right-color: #64748b;
+}
+.cd-kpi-slate .cd-kpi-value {
+  color: #475569;
+}
+
+.cd-kpi-amber {
+  border-right-color: #f59e0b;
+  background: #fffbeb;
+}
+.cd-kpi-amber .cd-kpi-value {
+  color: #b45309;
+}
+
+.cd-kpi-teal {
+  border-right-color: #2c7a6e;
+  background: #f0fdfa;
+}
+.cd-kpi-teal .cd-kpi-value {
+  color: #2c7a6e;
+}
+
+.cd-kpi-violet {
+  border-right-color: #8b5cf6;
+  background: #f5f3ff;
+}
+.cd-kpi-violet .cd-kpi-value {
+  font-size: 14px;
+  color: #6d28d9;
+}
+
+/* ===== بخش‌ها ===== */
+.cd-section {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border: 1px solid #e8f5f0;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.cd-section-title {
+  margin: 0 0 10px;
+  padding-bottom: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #2c7a6e;
+  border-bottom: 2px solid #e8f5f0;
+}
+
+.cd-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 8px 16px;
+  font-size: 12px;
+}
+
+.cd-field {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+}
+
+.cd-field-label {
+  color: #94a3b8;
+  white-space: nowrap;
+}
+
+.cd-field-value {
+  font-weight: 600;
+  word-break: break-word;
+}
+
+/* ===== ①.۵ اقتصادی ===== */
+.cd-econ {
+  border-color: #fde68a;
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+}
+
+.cd-econ .cd-section-title {
+  color: #b45309;
+  border-bottom-color: #fde68a;
+}
+
+.cd-econ-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 8px;
+}
+
+.cd-econ-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 10px;
+  background: #fff;
+  border: 1px solid #fde68a;
+  border-radius: 8px;
+}
+
+.cd-econ-label {
+  font-size: 10px;
+  color: #94a3b8;
+}
+
+.cd-econ-value {
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.cd-econ-card.cd-profit .cd-econ-value {
+  color: #16a34a;
+}
+
+.cd-econ-card.cd-loss .cd-econ-value {
+  color: #dc2626;
+}
+
+.cd-trend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  margin-top: 8px;
+  font-size: 11px;
+}
+
+.cd-trend-label {
+  color: #92400e;
+}
+
+.cd-trend-chip {
+  padding: 2px 8px;
+  background: #fff;
+  border: 1px solid #fde68a;
+  border-radius: 999px;
+}
+
+/* ===== ③ تب‌ها ===== */
+.cd-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.cd-tab {
+  padding: 7px 12px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  color: #475569;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.cd-tab:hover {
+  background: #eef2f7;
+}
+
+.cd-tab-active {
+  color: #fff;
+  background: #2c7a6e;
+  border-color: #2c7a6e;
+}
+
+.cd-tab-count {
+  display: inline-block;
+  margin-right: 4px;
+  padding: 0 6px;
+  font-size: 10px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.25);
+}
+
+.cd-tab-active .cd-tab-count {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+/* ===== کارت دوره ===== */
+.cd-flock {
+  margin-bottom: 10px;
+  padding: 10px 12px;
+  background: #fbfdfc;
+  border: 1px solid #e8f5f0;
+  border-right: 4px solid #2c7a6e;
+  border-radius: 10px;
+}
+
+.cd-flock.is-past {
+  background: #fafafa;
+  border-right-color: #94a3b8;
+}
+
+.cd-flock-focus {
+  box-shadow: 0 0 0 2px rgba(44, 122, 110, 0.25);
+}
+
+.cd-flock-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.cd-flock-title {
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.cd-badge {
+  padding: 2px 8px;
+  font-size: 10px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.cd-flock.is-active .cd-badge {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.cd-flock-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 10px;
+  color: #64748b;
+}
+
+.cd-flock-meta-item {
+  padding: 2px 6px;
+  background: #f1f5f9;
+  border-radius: 999px;
+}
+
+/* ===== چیپ‌های شاخص دوره ===== */
+.cd-chips {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.cd-chip {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 8px;
+  font-size: 11px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+
+.cd-chip-label {
+  font-size: 10px;
+  color: #94a3b8;
+}
+
+.cd-chip-danger {
+  background: #fef2f2;
+  border-color: #fecaca;
+}
+
+.cd-chip-danger strong {
+  color: #dc2626;
+}
+
+.cd-chip-fcr {
+  background: #fffbeb;
+  border-color: #fde68a;
+}
+
+.cd-chip-fcr strong {
+  color: #b45309;
+}
+
+.cd-chip-ok strong {
+  color: #16a34a;
+}
+
+
+
+/* ===== جدول‌ها ===== */
+.cd-table-wrap {
+  overflow-x: auto;
+  margin-bottom: 6px;
+}
+
+.cd-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+
+.cd-table th {
+  padding: 6px 8px;
+  font-weight: 700;
+  color: #475569;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  white-space: nowrap;
+}
+
+.cd-table td {
+  padding: 6px 8px;
+  text-align: center;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.cd-table-weeks td {
+  white-space: nowrap;
+}
+
+.cd-td-name {
+  font-weight: 700;
+  text-align: right !important;
+  white-space: nowrap;
+}
+
+.cd-td-date {
+  font-size: 10px;
+  color: #64748b;
+}
+
+.cd-td-danger {
+  color: #dc2626;
+  font-weight: 700;
+}
+
+.cd-td-fcr {
+  color: #b45309;
+  font-weight: 700;
+}
+
+.cd-td-notes {
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: right !important;
+}
+
+.cd-td-flocks {
+  max-width: 320px;
+  text-align: right !important;
+  white-space: normal !important;
+}
+
+.cd-row-focus {
+  background: #f0fdf4;
+  box-shadow: inset 3px 0 0 #16a34a;
+}
+
+/* ===== ریز دوره‌های هر سالن ===== */
+.cd-hall-period {
+  display: inline-block;
+  margin: 2px 2px 2px 0;
+  padding: 2px 7px;
+  font-size: 10px;
+  background: #f1f5f9;
+  border-radius: 999px;
+}
+
+.cd-hall-period.is-active {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+/* ===== شاخص‌های پایان دوره ===== */
+.cd-completion {
+  margin: 8px 0;
+  padding: 8px 10px;
+  background: #f0fdf4;
+  border: 1px dashed #86efac;
+  border-radius: 8px;
+}
+
+.cd-completion-title {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #15803d;
+}
+
+.cd-completion-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 6px;
+}
+
+.cd-completion-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 11px;
+}
+
+.cd-completion-label {
+  font-size: 10px;
+  color: #64748b;
+}
+
+/* ===== دکمهٔ هفته‌ها (لود تنبل) ===== */
+.cd-weeks-toggle {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  margin-top: 6px;
+  padding: 6px 10px;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  color: #2c7a6e;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.cd-weeks-toggle:hover {
+  background: #eef7f5;
+}
+
+.cd-weeks-toggle:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.cd-weeks-toggle.cd-weeks-open i {
+  transform: rotate(180deg);
+}
+
+.cd-weeks-wrap {
+  margin-top: 8px;
+  padding: 6px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+
+.cd-weeks-hint {
+  color: #94a3b8;
+  font-weight: 400;
+}
+
+/* ===== حالت خالی ===== */
+.cd-empty {
+  padding: 14px 10px;
+  text-align: center;
+  font-size: 12px;
+  color: #64748b;
+  background: #f8fafc;
+  border: 1px dashed #e2e8f0;
+  border-radius: 8px;
+}
+
+.cd-empty-soft {
+  background: #fff;
+  border-style: solid;
+}
+
+/* ===== موبایل ===== */
+@media (max-width: 768px) {
+  .cd-kpi-value {
+    font-size: 15px;
+  }
+
+  .cd-section {
+    padding: 10px;
+  }
+
+  .cd-td-flocks {
+    max-width: 200px;
+  }
+}
+
+
+/* ============================================================
+   افزوده‌های مودال «جزئیات مشتری» — عنوان‌ها، Sparkline و سود و زیان سالن
+   ============================================================ */
+.cd-kpi-title {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.cd-section-sub {
+  margin: -4px 0 10px;
+  font-size: 11px;
+  color: #64748b;
+  line-height: 1.7;
+}
+
+
+
+
+/* ===== سود و زیان دوره/سالن ===== */
+.cd-econ-block {
+  margin: 10px 0 6px;
+  padding: 8px 10px;
+  background: #f0fdf4;
+  border: 1px dashed #86efac;
+  border-radius: 8px;
+}
+
+.cd-econ-block-flat {
+  background: #fff;
+  border-style: solid;
+  border-color: #e2e8f0;
+}
+
+.cd-econ-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.cd-econ-title {
+  font-size: 12px;
+  font-weight: 800;
+  color: #15803d;
+}
+
+.cd-econ-block-flat .cd-econ-title {
+  color: #334155;
+}
+
+.cd-econ-note {
+  margin-bottom: 6px;
+  font-size: 10px;
+  color: #64748b;
+  line-height: 1.7;
+}
+
+.cd-econ-foot {
+  margin-top: 4px;
+  font-size: 10px;
+  color: #94a3b8;
+  line-height: 1.7;
+}
+
+.cd-table-econ th,
+.cd-table-econ td {
+  font-size: 10.5px;
+  padding: 5px 6px;
+}
+
+.cd-econ-total td {
+  font-weight: 800;
+  background: #f1f5f9;
+  border-top: 2px solid #cbd5e1;
+}
+
+.cd-td-profit {
+  color: #16a34a;
+  font-weight: 700;
+}
+
+.cd-td-loss {
+  color: #dc2626;
+  font-weight: 700;
+}
+
+.cd-badge-est {
+  display: inline-block;
+  margin-right: 4px;
+  padding: 0 5px;
+  font-size: 9px;
+  font-weight: 500;
+  color: #b45309;
+  background: #fef3c7;
+  border-radius: 999px;
+}
+
+/* ===== کارت‌های نمودار روند هفتگی گله (ابعاد ثابت) ===== */
+.cd-chart-row {
+  margin: 10px 0 6px;
+}
+
+.cd-chart-row-title {
+  margin-bottom: 8px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #475569;
+}
+
+.cd-chart-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 330px));
+  justify-content: start;
+  gap: 12px;
+  align-items: stretch;
+}
+
+.cd-chart-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+  padding-bottom: 10px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+}
+
+/* نوار رنگی بالا (sheet) — نمودار با ابعاد ثابت داخل آن */
+.cd-chart-sheet {
+  position: relative;
+  margin: 10px 10px 0;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.14);
+  overflow: hidden;
+}
+
+.cd-chart-card-sky .cd-chart-sheet {
+  background: linear-gradient(135deg, #0ea5e9, #0369a1);
+}
+
+.cd-chart-card-amber .cd-chart-sheet {
+  background: linear-gradient(135deg, #f59e0b, #b45309);
+}
+
+.cd-chart-card-rose .cd-chart-sheet {
+  background: linear-gradient(135deg, #ef4444, #b91c1c);
+}
+
+/* ⚠️ ارتفاع ثابت: جلوی بزرگ‌شدن بی‌نهایت canvas (به‌هم‌ریختن مودال) را می‌گیرد
+   ارتفاع ۸۴px = فضای کافی برای برچسب عدد روی هر هفته + نقاط */
+.cd-chart-box {
+  position: relative;
+  width: 100%;
+  height: 84px;
+}
+
+.cd-chart-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.cd-chart-body {
+  padding: 8px 12px 0;
+}
+
+.cd-chart-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #334155;
+}
+
+.cd-chart-title i {
+  color: #94a3b8;
+}
+
+.cd-chart-value {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-top: 4px;
+  font-size: 12px;
+  color: #0f172a;
+}
+
+.cd-chart-value strong {
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.cd-chart-value small {
+  font-size: 10px;
+  color: #94a3b8;
+}
+
+.cd-chart-delta {
+  margin-right: auto;
+  padding: 1px 7px;
+  font-size: 10px;
+  font-weight: 700;
+  border-radius: 999px;
+}
+
+.cd-chart-delta.is-good {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.cd-chart-delta.is-bad {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.cd-chart-delta.is-flat {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.cd-chart-sub {
+  margin-top: 2px;
+  font-size: 10px;
+  color: #94a3b8;
+}
+
+/* ردیف جزئیات: کمینه / میانگین / بیشینه */
+.cd-chart-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  margin-top: 4px;
+  font-size: 10px;
+  color: #64748b;
+}
+
+.cd-chart-stats span {
+  white-space: nowrap;
+}
+
+.cd-chart-stats strong {
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.cd-chart-divider {
+  height: 1px;
+  margin: 8px 0 6px;
+  background: #eef2f7;
+}
+
+.cd-chart-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  color: #64748b;
+}
+
+/* ============================================================
+   ابعاد مودال «جزئیات مشتری» — عریض‌تر و بلندتر
+   ------------------------------------------------------------
+   • قبلاً: width 95% با سقف ۱۲۰۰px و بدنهٔ calc(90vh - 140px)
+   • اکنون: سقف ۱۴۲۰px / ۹۶vw و بدنهٔ calc(100vh - 180px)
+     (ارتفاع بدنه = ارتفاع داخلی مودال − هدر ۶۵px − فوتر ~۶۲px − احتیاط)
+   • قاعدهٔ قبلی (سقف ۱۲۰۰px) حذف شد؛ این بلوک تنها منبع تعریف ابعاد است و
+     چون در انتهای فایل است، بر `.modal-container` پایه و modal.css اولویت دارد.
+   • کلاس modal-large فقط در dashboard.html (همین مودال) استفاده می‌شود.
+   ============================================================ */
+.modal-container.modal-large {
+  width: min(1420px, 96vw);
+  max-width: 1420px;
+  max-height: calc(100vh - 40px);
+}
+
+#customerDetailModal .modal-body {
+  max-height: calc(100vh - 180px);
+  padding: 24px 32px;
+}
+
+/* جدول‌ها و گریدهای جدید در عرض بیشتر، تنفس بصری بهتری بگیرند */
+#customerDetailModal .cd-kpi-grid {
+  grid-template-columns: repeat(auto-fit, minmax(155px, 1fr));
+}
+
+#customerDetailModal .cd-chart-grid {
+  grid-template-columns: repeat(auto-fit, minmax(265px, 345px));
+}
+
+@media (max-width: 768px) {
+  .modal-container.modal-large {
+    width: 98%;
+    max-height: calc(100vh - 24px);
+  }
+
+  #customerDetailModal .modal-body {
+    max-height: calc(100vh - 150px);
+    padding: 18px 20px;
+  }
+
+  #customerDetailModal .cd-chart-grid {
+    grid-template-columns: 1fr;
+  }
 }
 

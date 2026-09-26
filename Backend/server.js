@@ -30,6 +30,8 @@ const cityRoutes = require("./routes/cityRoutes");
 const userRoutes = require("./routes/userRoutes");
 const unitRoutes = require("./routes/unitRoutes");
 const dictionaryRoutes = require("./routes/dictionaryRoutes");
+// ✅ «سطوح دسترسی» (نقش‌ها و کاربران)
+const permissionRoutes = require("./routes/permissionRoutes");
 const hallRoutes = require("./routes/hallRoutes");
 const hallPhysicalInfoRoutes = require("./routes/hallPhysicalInfoRoutes");
 const hallSystemRoutes = require("./routes/hallSystemRoutes");
@@ -217,6 +219,10 @@ const CRITICAL_TABLES = [
   "release_notes",
   "release_note_items",
   "release_note_views",
+  // ✅ «سطوح دسترسی»
+  "role_permissions",
+  "user_permissions",
+  "permission_audit_logs",
   "SequelizeMeta",
 ];
 
@@ -331,6 +337,12 @@ app.use("/api/settings", settingsRoutes);
 // مسیرهای جداول دیکشنری
 // =================
 app.use("/api/dictionary", dictionaryRoutes);
+// =================
+
+// =================
+// ✅ مسیرهای «سطوح دسترسی» (مدیریت نقش‌ها و دسترسی کاربران)
+// =================
+app.use("/api/permissions", permissionRoutes);
 // =================
 
 // ================مسیر تعریف و مدیریت واحدهای مرغداری============

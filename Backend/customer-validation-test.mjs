@@ -112,32 +112,62 @@ check(
   ),
 );
 check(
-  "کد ملی با رقم کنترلی غلط (۱۲۳۴۵۶۷۸۹۰) → خطای «معتبر نیست»",
-  hasError(
+  "کد ملی ۱۰ رقمی (۱۲۳۴۵۶۷۸۹۰) → پذیرفته می‌شود (بدون رقم کنترلی)",
+  !hasError(
     errorsOf(
       { ...baseCustomer, customer_type_id: 1, national_code: "1234567890" },
       { requireCustomerType: true },
     ),
-    "معتبر نیست",
+    "کد ملی",
   ),
 );
 check(
-  "کد ملی با ارقام تکراری (۱۱۱۱۱۱۱۱۱۱) → خطای «معتبر نیست»",
-  hasError(
+  "کد ملی با ارقام تکراری (۱۱۱۱۱۱۱۱۱۱) → پذیرفته می‌شود (فقط طول و عددی‌بودن مهم است)",
+  !hasError(
     errorsOf(
       { ...baseCustomer, customer_type_id: 1, national_code: "1111111111" },
       { requireCustomerType: true },
     ),
-    "معتبر نیست",
+    "کد ملی",
+  ),
+);
+check(
+  "کد ملی ۱۱ رقمی → خطای «۱۰ رقم»",
+  hasError(
+    errorsOf(
+      { ...baseCustomer, customer_type_id: 1, national_code: "12345678901" },
+      { requireCustomerType: true },
+    ),
+    "۱۰ رقم",
+  ),
+);
+check(
+  "کد ملی حرف‌دار (12a4567890) → خطای «۱۰ رقم عددی»",
+  hasError(
+    errorsOf(
+      { ...baseCustomer, customer_type_id: 1, national_code: "12a4567890" },
+      { requireCustomerType: true },
+    ),
+    "عددی",
   ),
 );
 
 // ===== ۳) توابع کمکی =====
-check("isValidIranNationalCode('1234567891') === true", isValidIranNationalCode("1234567891") === true);
-check("isValidIranNationalCode('2234567890') === true", isValidIranNationalCode("2234567890") === true);
-check("isValidIranNationalCode('1234567890') === false", isValidIranNationalCode("1234567890") === false);
+check(
+  "isValidIranNationalCode: فقط ۱۰ رقم عددی (بدون رقم کنترلی)",
+  isValidIranNationalCode("1234567891") === true &&
+    isValidIranNationalCode("1234567890") === true &&
+    isValidIranNationalCode("1111111111") === true &&
+    isValidIranNationalCode("0000000000") === true,
+);
 check("isValidIranNationalCode('۱۲۳۴۵۶۷۸۹۱') === true (ارقام فارسی)", isValidIranNationalCode("۱۲۳۴۵۶۷۸۹۱") === true);
-check("isValidIranNationalCode('') === false", isValidIranNationalCode("") === false);
+check(
+  "isValidIranNationalCode: طول نادرست/حرف/خالی → false",
+  isValidIranNationalCode("123456789") === false &&
+    isValidIranNationalCode("12345678901") === false &&
+    isValidIranNationalCode("123456789a") === false &&
+    isValidIranNationalCode("") === false,
+);
 check(
   "toEnglishDigits ارقام فارسی/عربی را تبدیل می‌کند",
   toEnglishDigits("۱۲۳۴۵٦۷۸۹۰") === "1234567890",

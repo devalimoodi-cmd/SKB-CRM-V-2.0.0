@@ -1,52 +1,73 @@
 const express = require("express");
 const router = express.Router();
 const customerController = require("../controllers/customerRegistrationController");
-const { protect, authorize } = require("../middleware/auth");
+const { protect } = require("../middleware/auth");
+const { requirePermission } = require("../middleware/permissions");
 
-// ------------------------Start new customer   Data Table-----------------
+// ==============================================================
+// ✅ کنترل دسترسی بر پایهٔ «مجوز» (قابل تنظیم در پنل مدیریت ← مدیریت نقش‌ها)
+// --------------------------------------------------------------
+// مجوزها از کاتالوگ config/permissions.js می‌آیند و ادمین می‌تواند هرکدام
+// را برای هر نقش (و هر کاربر) روشن/خاموش کند.
+// ⚠️ در حالت آزمایشی (PERMISSIONS_ENFORCE=false — پیش‌فرض) هیچ درخواستی
+//     بلاک نمی‌شود و فقط «چه کسی فاقد چه مجوزی بود» در لاگ ثبت می‌شود.
+//     قبلاً دو مسیر enable/disable و ویرایش مشتری فقط protect داشتند
+//     (هر کاربر لاگین‌شده می‌توانست) که با این تغییر بسته می‌شود.
+// ==============================================================
+
+// ------------------------ثبت مشتری جدید-----------------
 router.post(
   "/register",
   protect,
-  authorize("expert", "admin", "sub_admin", "super_admin"),
+  requirePermission("customers.register"),
   customerController.registerCustomer,
 );
-// ------------------------finsh new customer   Data Table-----------------
 
-// ------------------------Start get all  Customer  Data Table-----------------
-// ✅ نیاز به ورود (قبلاً باز بود و لیست کامل مشتری‌ها لو می‌رفت)
+// ------------------------لیست مشتریان-----------------
 router.get(
   "/",
   protect,
-  authorize("expert", "admin", "sub_admin", "super_admin"),
+  requirePermission("customers.list.view"),
   customerController.getAllCustomers,
 );
-// ------------------------finish get all  Customer  Data Table-----------------
 
-// ------------------------Start Deleted Customer btn In Data Table-----------------
+// ------------------------حذف مشتری (فقط مدیر اصلی)-----------------
 router.delete(
   "/:id",
   protect,
-  authorize("super_admin"),
+  requirePermission("customers.delete"),
   customerController.deleteCustomer,
 );
-// ------------------------finish Deleted Customer btn In Data Table-----------------
 
-// -----------------------------------start enable/disable customer  in data table--------------------
-router.put("/:id/disable", protect, customerController.toggleCustomerStatus);
-router.put("/:id/enable", protect, customerController.toggleCustomerStatus);
-// -----------------------------------finish enable/disable customer  in data table--------------------
+// ------------------------فعال/غیرفعال کردن مشتری-----------------
+router.put(
+  "/:id/disable",
+  protect,
+  requirePermission("customers.toggle"),
+  customerController.toggleCustomerStatus,
+);
+router.put(
+  "/:id/enable",
+  protect,
+  requirePermission("customers.toggle"),
+  customerController.toggleCustomerStatus,
+);
 
-// -----------------------------------start view data customer  in data table--------------------
+// ------------------------مشاهدهٔ یک مشتری-----------------
 router.get(
   "/:id",
   protect,
-  authorize("expert", "admin", "sub_admin", "super_admin"),
+  requirePermission("customers.profile.view"),
   customerController.getCustomerById,
 );
-// -----------------------------------finish view data customer   in data table--------------------
 
-// ✅---------------------- start edit customer btn (با protect) -------------
-router.put("/:id", protect, customerController.updateCustomer);
-// ✅ -------------------- finish edit customer btn -------------
+// ------------------------ویرایش مشتری-----------------
+router.put(
+  "/:id",
+  protect,
+  requirePermission("customers.edit"),
+  customerController.updateCustomer,
+);
 
 module.exports = router;
+

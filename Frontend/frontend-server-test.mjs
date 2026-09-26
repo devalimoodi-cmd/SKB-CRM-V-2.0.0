@@ -446,6 +446,310 @@ const run = async () => {
     devDepKeys === 1,
     `devDependencies=${devDepKeys}`,
   );
+  // ===== ✅ پیام‌های کاربر: از کنسول به توست کم‌مزاحمت (SweetAlert2) =====
+  const readSrc = (rel) =>
+    fs.readFileSync(path.join(import.meta.dirname, "src", rel), "utf8");
+
+  const notifySrc = readSrc("core/services/notification.service.js");
+  check(
+    "اعلان کاربر: notifyOnce با ضدتکرار/سقف نرخ/خاموشی اختیاری وجود دارد",
+    notifySrc.includes("notifyOnce(") &&
+      notifySrc.includes("cooldownMs") &&
+      notifySrc.includes("maxPerMinute") &&
+      notifySrc.includes("skb_user_toasts"),
+    `cooldown=${notifySrc.includes("cooldownMs")} maxPerMinute=${notifySrc.includes("maxPerMinute")}`,
+  );
+  const notifyStart = notifySrc.indexOf("notifyOnce(");
+  const notifyEnd = notifySrc.indexOf("_userToastsDisabled() {", notifyStart);
+  const notifyBody =
+    notifyStart >= 0 && notifyEnd > notifyStart
+      ? notifySrc.slice(notifyStart, notifyEnd)
+      : "";
+  check(
+    "اعلان کاربر: notifyOnce فقط توست می‌سازد (نه مودال/اعتبارسنجی)",
+    notifyBody.includes("this._showToast(") && !notifyBody.includes("showError("),
+    `bodyLen=${notifyBody.length}`,
+  );
+
+  const dictSrc = readSrc("features/admin-panel/dictionary.manager.js");
+  const dictNotifyCalls = (dictSrc.match(/notifyOnce\(/g) || []).length;
+  check(
+    "پیام کاربر: پنل دیکشنری ۳ شکست بی‌صدا را توست می‌کند",
+    dictNotifyCalls >= 3 &&
+      dictSrc.includes("تغییر وضعیت ذخیره") &&
+      dictSrc.includes("بارگذاری جدول ناموفق بود") &&
+      dictSrc.includes("این فیلد دریافت نشد"),
+    `calls=${dictNotifyCalls}`,
+  );
+  check(
+    "پیام کاربر: رفرش بخش پروفایل مشتری → توست (نه فقط کنسول)",
+    readSrc("features/customer-info/customer-info.service.js").includes(
+      "این بخش ناموفق بود",
+    ),
+  );
+  check(
+    "پیام کاربر: نبود شناسهٔ مشتری → توست هشدار",
+    readSrc(
+      "features/customer-info/section-header/section-header.service.js",
+    ).includes("مشتری یافت نشد"),
+  );
+  check(
+    "پیام کاربر: شکست دریافت «تغییرات جدید» → توست هشدار",
+    readSrc("features/whats-new/whats-new.service.js").includes(
+      "دریافت تغییرات جدید ناموفق بود",
+    ),
+  );
+
+  const loginPageText = readSrc("pages/login.html");
+  check(
+    "صفحهٔ ورود: شکست کپچا و انقضای نشست به کاربر اطلاع داده می‌شود",
+    loginPageText.includes("login-captcha-failed") &&
+      loginPageText.includes("showSessionExpiredOnce") &&
+      loginPageText.includes("skb_session_expired"),
+  );
+  check(
+    "api.service: انقضای نشست قبل از هدایت با فلگ یک‌بارمصرف ثبت می‌شود",
+    readSrc("core/services/api.service.js").includes(
+      'sessionStorage.setItem("skb_session_expired", "1")',
+    ),
+  );
+  check(
+    "بوت کند صفحه: اطلاع کم‌مزاحمت به کاربر (app-boot-slow)",
+    readSrc("pages/customer-info.html").includes("app-boot-slow"),
+  );
+  check(
+    "۴۰۴: SweetAlert2 لود می‌شود (تنها صفحهٔ بدون آن)",
+    /sweetalert2/.test(readSrc("pages/404.html")),
+  );
+
+  // ===== ✅ «کد ملی»: فقط ۱۰ رقم عددی (بدون رقم کنترلی) + ورودی فقط عددی =====
+  const stringUtilsSrc = readSrc("core/utils/string.utils.js");
+  check(
+    "کد ملی: قاعدهٔ اعتبارسنجی «۱۰ رقم عددی» است (بدون الگوریتم رقم کنترلی)",
+    stringUtilsSrc.includes("export function isValidNationalCode") &&
+      stringUtilsSrc.includes("export function digitsOnlyValue") &&
+      !stringUtilsSrc.includes("remainder"),
+  );
+  check(
+    "کد ملی: فیلدهای ثبت/ویرایش و پروفایل فقط عددی‌اند (inputmode + فیلتر ورودی)",
+    listHtml.includes('id="national-code"') &&
+      listHtml.includes('inputmode="numeric"') &&
+      infoHtml.includes('id="skb-national-code"') &&
+      infoHtml.includes('inputmode="numeric"') &&
+      readSrc("features/customer-list/customer-list.service.js").includes(
+        "setupNationalCodeInput()",
+      ) &&
+      readSrc(
+        "features/customer-info/sections/basic-info/basic-info.service.js",
+      ).includes("setupNationalCodeInput()"),
+  );
+  // ===== ✅ «مدیریت نقش‌ها و سطوح دسترسی» (پنل ادمین) =====
+  const permissionManagerSrc = readSrc(
+    "features/admin-panel/permission.manager.js",
+  );
+  const adminPanelServiceSrc = readSrc(
+    "features/admin-panel/admin-panel.service.js",
+  );
+  check(
+    "پنل ادمین: بخش «مدیریت نقش‌ها» دیگر جای‌خالی نیست (کانتینر واقعی)",
+    adminHtml.includes('id="permissionManagerContainer"') &&
+      !adminHtml.includes("بخش مدیریت نقش‌ها در حال ساخت") &&
+      adminHtml.includes('data-menu="role-management"'),
+  );
+  check(
+    "پنل ادمین: ماتریس نقش‌ها + دسترسی کاربران + گزارش تغییرات",
+    permissionManagerSrc.includes("renderRolesTab()") &&
+      permissionManagerSrc.includes("renderUsersTab()") &&
+      permissionManagerSrc.includes("renderAuditTab()") &&
+      permissionManagerSrc.includes("permissionApi.updateRole(") &&
+      permissionManagerSrc.includes("permissionApi.updateUser("),
+  );
+  check(
+    "پنل ادمین: سه‌حالته‌بودن دسترسی کاربر (ارثی از نقش / فعال / غیرفعال)",
+    permissionManagerSrc.includes("ارثی از نقش") &&
+      permissionManagerSrc.includes("perm-select"),
+  );
+  check(
+    "پنل ادمین: خدمت مدیریت مجوزها به loadMenuData وصل شده است",
+    adminPanelServiceSrc.includes('case "role-management"') &&
+      adminPanelServiceSrc.includes("initPermissionManager"),
+  );
+
+  // ===== ✅ گیت دسترسی در UI (data-permission) =====
+  const headerHtmlSrc = readSrc("shared/layouts/Header/header.html");
+  check(
+    "گیت دسترسی: منوهای هدر با data-permission مشخص شده‌اند",
+    (headerHtmlSrc.match(/data-permission="/g) || []).length >= 3,
+    `count=${(headerHtmlSrc.match(/data-permission="/g) || []).length}`,
+  );
+  check(
+    "گیت دسترسی: منوهای پنل ادمین با data-permission مشخص شده‌اند",
+    (adminHtml.match(/data-permission="/g) || []).length >= 7,
+    `count=${(adminHtml.match(/data-permission="/g) || []).length}`,
+  );
+  check(
+    "گیت دسترسی: منوهای پروفایل مشتری با data-permission مشخص شده‌اند",
+    (infoHtml.match(/data-permission="/g) || []).length >= 6,
+    `count=${(infoHtml.match(/data-permission="/g) || []).length}`,
+  );
+  const appServiceSrc = readSrc("core/services/app.service.js");
+  const permissionServiceSrc = readSrc("core/services/permission.service.js");
+  const apiConstSrc = readSrc("core/constants/api.const.js");
+  const apiServiceSrc = readSrc("core/services/api.service.js");
+  const customerInfoServiceSrc = readSrc(
+    "features/customer-info/customer-info.service.js",
+  );
+  const globalCssSrc = readSrc("styles/global.css");
+  check(
+    "گیت دسترسی: app.service مجوزها را می‌خواند و applyGuards می‌کند",
+    appServiceSrc.includes("permissionService.load()") &&
+      appServiceSrc.includes("applyGuards(document)") &&
+      appServiceSrc.includes("installAutoRefresh()"),
+  );
+
+  // ✅ سایدبار پنل ادمین از کلیدهای «منو» استفاده می‌کند (نه کلید یک جدول)
+  const adminMenuKeys = [
+    "admin.menu.superAdmins",
+    "admin.menu.users",
+    "admin.menu.dictionary",
+    "admin.menu.roles",
+    "admin.menu.settings",
+    "admin.menu.suggestions",
+    "admin.menu.releases",
+  ];
+  check(
+    "گیت دسترسی: سایدبار پنل با ۷ کلید admin.menu.* گیت شده است",
+    adminMenuKeys.every((key) => adminHtml.includes(`data-permission="${key}"`)) &&
+      !adminHtml.includes('data-permission="dictionary.hall-types.view"'),
+    `found=${adminMenuKeys.filter((key) => adminHtml.includes(`data-permission="${key}"`)).length}/7`,
+  );
+  check(
+    "گیت دسترسی: سایدبار اگر منوی فعال مخفی شد، بخش دیگری انتخاب می‌کند",
+    adminPanelServiceSrc.includes("syncMenuVisibility()") &&
+      adminPanelServiceSrc.includes('addEventListener("permissions:applied"'),
+  );
+
+  // ✅ کش هوشمند: مدت ۶۰ ثانیه + بررسی نسخه + ضد ناپدیدشدن
+  check(
+    "سرویس مجوزها: کش ۶۰ ثانیه + بررسی نسخه + تازه‌سازی خودکار",
+    permissionServiceSrc.includes("const TTL_MS = 60 * 1000") &&
+      permissionServiceSrc.includes("async ensureFresh(") &&
+      permissionServiceSrc.includes("installAutoRefresh()") &&
+      permissionServiceSrc.includes("visibilitychange"),
+  );
+  check(
+    "سرویس مجوزها: اگر داده در دسترس نباشد، هیچ المنتی مخفی نمی‌شود",
+    /applyGuards\(root = document\) \{\s*\n\s*\/\/[\s\S]{0,200}?if \(!this\.hasData\(\)\) return;/.test(
+      permissionServiceSrc,
+    ),
+  );
+  check(
+    "ثابت‌های API: مسیر نسخهٔ مجوزها ثبت شده است",
+    apiConstSrc.includes('VERSION: "/permissions/version"'),
+  );
+
+  // ✅ پیام «عدم دسترسی»: ۴۰۳ ⇒ توست + مودال + کارت بخش
+  check(
+    "عدم دسترسی: api.service خطای ۴۰۳ را به پیام کاربر تبدیل می‌کند",
+    apiServiceSrc.includes("notifyPermissionDenied(endpoint, errorData)") &&
+      apiServiceSrc.includes("errorData.permissionDenied !== true") &&
+      (apiServiceSrc.match(/this.notifyPermissionDenied\(endpoint, errorData\);/g) || [])
+        .length >= 3,
+    `calls=${(apiServiceSrc.match(/this.notifyPermissionDenied\(endpoint, errorData\);/g) || []).length}`,
+  );
+  check(
+    "عدم دسترسی: ۴۰۳ روی خود /permissions/me موجب حلقه نمی‌شود",
+    apiServiceSrc.includes('includes("/permissions/me")'),
+  );
+  check(
+    "عدم دسترسی: سرویس مجوزها handleForbidden/titleOf/کارت بخش دارد",
+    permissionServiceSrc.includes("handleForbidden(payload = {})") &&
+      permissionServiceSrc.includes("titleOf(key)") &&
+      permissionServiceSrc.includes("renderDeniedNotice(") &&
+      permissionServiceSrc.includes("clearDeniedNotice(") &&
+      permissionServiceSrc.includes("deniedTitles"),
+  );
+  check(
+    "عدم دسترسی: پیام عملیات به‌صورت توست ضدنکرار است (نه مودال)",
+    permissionServiceSrc.includes("notificationService.notifyOnce(") &&
+      permissionServiceSrc.includes("perm-denied:"),
+  );
+  check(
+    "عدم دسترسی: مودال تک‌دکمه‌ای در notification.service تعریف شده است",
+    notifySrc.includes("async modalMessage(") &&
+      notifySrc.includes('confirmText = "متوجه شدم"'),
+  );
+  check(
+    "عدم دسترسی: هر ۴ صفحهٔ اصلی کلید مجوز صفحه دارند",
+    [
+      'requiresPermission: "admin.panel.access"',
+      'requiresPermission: "customer.basic.view"',
+      'requiresPermission: "dashboard.view"',
+      'requiresPermission: "customers.list.view"',
+    ].every((needle) => appServiceSrc.includes(needle)),
+  );
+  check(
+    "عدم دسترسی: ورود به صفحهٔ بسته ⇒ مودال + خروج (و ناظر تغییر در حین کار)",
+    appServiceSrc.includes("async denyPageAccess(reasonKey)") &&
+      appServiceSrc.includes("installPagePermissionWatch()") &&
+      appServiceSrc.includes('"permissions:applied"') &&
+      appServiceSrc.includes("modalMessage({"),
+  );
+  check(
+    "عدم دسترسی: بخش‌های پروفایل مشتری گارد + کارت بخش دارند",
+    [
+      '"Basic-Information": "customer.basic.view"',
+      '"Chart-Dashboard": "charts.view"',
+      '"customer-AddHals": "halls.view"',
+      '"Hatchery-Management": "hatchery.view"',
+      '"weekly-card": "weekly.view"',
+      '"Visit-Report": "visit.view"',
+    ].every((needle) => customerInfoServiceSrc.includes(needle)) &&
+      customerInfoServiceSrc.includes("renderDeniedNotice("),
+  );
+  check(
+    "عدم دسترسی: منوهای پنل ادمین گارد + کارت بخش دارند",
+    adminPanelServiceSrc.includes("get menuPermissions()") &&
+      adminPanelServiceSrc.includes('"role-management": "admin.menu.roles"') &&
+      adminPanelServiceSrc.includes("renderDeniedNotice(menuSection, menuKey)"),
+  );
+  check(
+    "عدم دسترسی: استایل کارت «این بخش بسته است» در global.css هست",
+    globalCssSrc.includes(".perm-denied-box ") ||
+      globalCssSrc.includes(".perm-denied-box {"),
+  );
+  check(
+    "عدم دسترسی: ضدحلقهٔ ریدایرکت (نقش مشتری + صفحهٔ مقصد) رعایت شده است",
+    appServiceSrc.includes('permissionService.role !== "customer"') &&
+      appServiceSrc.includes("isLandingPage()") &&
+      appServiceSrc.includes("async handlePagePermissionLoss("),
+  );
+
+  check(
+    "سرویس مجوزهای فرانت: can/applyGuards/refresh دارد",
+    permissionServiceSrc.includes("can(key)") &&
+      permissionServiceSrc.includes("applyGuards(") &&
+      permissionServiceSrc.includes("refresh()") &&
+      permissionServiceSrc.includes("PERMISSIONS.ME"),
+  );
+
+  check(
+    "ثابت‌های API: مسیرهای /permissions ثبت شده‌اند",
+    apiConstSrc.includes("PERMISSIONS:") &&
+      apiConstSrc.includes('"/permissions/me"') &&
+      apiConstSrc.includes('"/permissions/roles/:role"'),
+  );
+
+  check(
+    "سیاست کم‌مزاحمت: این پیام‌ها هرگز مودال showError نمی‌سازند",
+    !dictSrc.includes("showError(") &&
+      !readSrc("features/customer-info/customer-info.service.js").includes(
+        "showError(",
+      ) &&
+      !readSrc(
+        "features/customer-info/section-header/section-header.service.js",
+      ).includes("showError("),
+  );
 };
 
 run()

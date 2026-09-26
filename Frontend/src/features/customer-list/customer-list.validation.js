@@ -68,10 +68,10 @@ export const customerListValidation = {
       errors.push("نوع مشتری الزامی است");
     }
 
-    // ✅ کد ملی (اختیاری — در صورت ورود باید ۱۰ رقم و معتبر باشد)
+    // ✅ کد ملی (اختیاری — در صورت ورود باید ۱۰ رقم عددی باشد)
     if (data.national_code && String(data.national_code).trim() !== "") {
       if (!this.isValidNationalCode(data.national_code)) {
-        errors.push("کد ملی باید ۱۰ رقم و معتبر باشد");
+        errors.push("کد ملی باید ۱۰ رقم عددی باشد");
       }
     }
 
@@ -94,7 +94,7 @@ export const customerListValidation = {
       .replace(/[٠-٩]/g, (d) => String("٠١٢٣٤٥٦٧٨٩".indexOf(d)));
   },
 
-  // اعتبارسنجی کد ملی ایران (۱۰ رقم + رقم کنترلی)
+  // اعتبارسنجی کد ملی: فقط ۱۰ رقم عددی (بدون رقم کنترلی)
   // (پیاده‌سازی مرجع در core/utils/string.utils.js است)
   isValidNationalCode(code) {
     return isValidNationalCodeUtil(code);

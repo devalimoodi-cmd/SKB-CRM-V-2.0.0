@@ -66,6 +66,10 @@ const EXPECTED_TABLES = [
   "release_note_views",
   // ✅ «نوع مشتری» (جدول دیکشنری)
   "customer_types",
+  // ✅ «سطوح دسترسی» (نقش‌ها و کاربران)
+  "role_permissions",
+  "user_permissions",
+  "permission_audit_logs",
   "SequelizeMeta",
 ];
 
@@ -142,6 +146,19 @@ const EXPECTED_COLUMNS = {
     "dont_show_again",
   ],
   customer_types: ["name", "description", "sort_order", "active"],
+  // ✅ «سطوح دسترسی»
+  role_permissions: ["role", "permission_key", "allowed", "updated_by"],
+  user_permissions: ["user_id", "permission_key", "allowed", "updated_by"],
+  permission_audit_logs: [
+    "actor_id",
+    "target_type",
+    "target_id",
+    "permission_key",
+    "old_value",
+    "new_value",
+    "batch_id",
+    "note",
+  ],
 };
 
 const EXPECTED_INDEXES = [
@@ -161,6 +178,15 @@ const EXPECTED_INDEXES = [
   "release_note_views_release_note_id",
   "release_note_views_user_id",
   "release_note_views_release_user_unique",
+  // ✅ «سطوح دسترسی»
+  "role_permissions_role",
+  "role_permissions_permission_key",
+  "role_permissions_role_key_unique",
+  "user_permissions_user_id",
+  "user_permissions_user_key_unique",
+  "permission_audit_logs_actor_id",
+  "permission_audit_logs_target",
+  "permission_audit_logs_created_at",
 ];
 
 const COUNT_TABLES = [
@@ -170,6 +196,9 @@ const COUNT_TABLES = [
   "release_note_items",
   "release_note_views",
   "customer_types",
+  // ✅ «سطوح دسترسی»
+  "role_permissions",
+  "user_permissions",
 ];
 
 // ============================================

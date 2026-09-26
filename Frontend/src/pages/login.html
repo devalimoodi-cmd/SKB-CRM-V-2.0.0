@@ -304,6 +304,13 @@
             border: 1px solid #bbf7d0;
         }
 
+        .login-message.warning {
+            display: flex;
+            background: #fffbeb;
+            color: #b45309;
+            border: 1px solid #fde68a;
+        }
+
         @media (max-width: 768px) {
             .login-container {
                 padding: 30px 24px;
@@ -505,6 +512,40 @@
             let captchaId = null;
             let captchaEnabled = false;
 
+            // ============================================================
+            // ✅ «نشست منقضی شد» — به‌جای پرت‌شدن بی‌صدا به صفحهٔ ورود
+            // (api.service.js پیش از هدایت، یک فلگ یک‌بارمصرف می‌گذارد)
+            // ============================================================
+            function showSessionExpiredOnce() {
+                let expired = false;
+                try {
+                    expired = sessionStorage.getItem('skb_session_expired') === '1';
+                    if (expired) sessionStorage.removeItem('skb_session_expired');
+                } catch {
+                    expired = false;
+                }
+                if (!expired) return;
+
+                // پیام درون‌صفحه‌ای (اگر کاربر مودال را ببندد، دلیلش را بداند)
+                showMessage('نشست شما منقضی شد؛ لطفاً دوباره وارد شوید', 'warning');
+
+                // مودال — تنها استثنایی که مودال استفاده می‌کنیم (کاربر باید متوجه شود)
+                import('/core/services/notification.service.js')
+                    .then(({ notificationService }) =>
+                        notificationService?.confirm?.({
+                            title: 'نشست شما منقضی شد',
+                            text: 'برای ادامهٔ کار دوباره وارد شوید.',
+                            confirmText: 'ورود',
+                            icon: 'warning',
+                        }),
+                    )
+                    .then(() => username?.focus?.())
+                    .catch(() => { /* اگر ماژول اعلان نبود، پیام درون‌صفحه‌ای کافی است */ });
+            }
+
+            showSessionExpiredOnce();
+
+
             async function loadCaptcha(clearMessage = true) {
                 try {
                     const response = await fetch('/api/captcha', {
@@ -534,6 +575,16 @@
                     // اگر گرفتن کپچا ممکن نبود، ورود را قفل نمی‌کنیم؛
                     // سرور خودش تصمیم می‌گیرد و پیام مناسب را برمی‌گرداند.
                     console.error('❌ خطا در دریافت کپچا:', error);
+                    // ✅ اطلاع کوتاه به کاربر (بدون قفل‌کردن ورود)
+                    import('/core/services/notification.service.js')
+                        .then(({ notificationService }) => {
+                            notificationService?.notifyOnce?.({
+                                key: 'login-captcha-failed',
+                                type: 'warning',
+                                message: 'دریافت کد امنیتی ناموفق بود — صفحه را نو کنید',
+                            });
+                        })
+                        .catch(() => { /* اگر ماژول اعلان در دسترس نبود، بی‌صدا رد شو */ });
                     captchaEnabled = false;
                     captchaGroup.style.display = 'none';
                     captchaAnswer.removeAttribute('required');

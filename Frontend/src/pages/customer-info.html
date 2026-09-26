@@ -85,7 +85,8 @@
                 <div class="col-3">
                     <div class="UserTask-sidebar">
                         <div class="UserTask-sidebar_item">
-                            <div class="sidebar-menu-item customer-Basic-Information" data-menu="basic-info">
+                            <div class="sidebar-menu-item customer-Basic-Information" data-menu="basic-info"
+                                data-permission="customer.basic.view">
                                 <div class="menu-icon-wrapper">
                                     <i class="fas fa-user menu-icon"></i>
                                 </div>
@@ -96,7 +97,8 @@
                                 <i class="fas fa-chevron-left menu-arrow"></i>
                             </div>
 
-                            <div class="sidebar-menu-item customer-Dashbord" data-menu="chart-dashboard">
+                            <div class="sidebar-menu-item customer-Dashbord" data-menu="chart-dashboard"
+                                data-permission="charts.view">
                                 <div class="menu-icon-wrapper">
                                     <i class="fas fa-chart-line menu-icon"></i>
                                 </div>
@@ -107,7 +109,8 @@
                                 <i class="fas fa-chevron-left menu-arrow"></i>
                             </div>
 
-                            <div class="sidebar-menu-item customer-Halls" data-menu="hall-management">
+                            <div class="sidebar-menu-item customer-Halls" data-menu="hall-management"
+                                data-permission="halls.view">
                                 <div class="menu-icon-wrapper">
                                     <i class="fas fa-warehouse menu-icon"></i>
                                 </div>
@@ -118,7 +121,8 @@
                                 <i class="fas fa-chevron-left menu-arrow"></i>
                             </div>
 
-                            <div class="sidebar-menu-item customer-Chicken_rearing" data-menu="hatchery">
+                            <div class="sidebar-menu-item customer-Chicken_rearing" data-menu="hatchery"
+                                data-permission="hatchery.view">
                                 <div class="menu-icon-wrapper">
                                     <i class="fas fa-egg menu-icon"></i>
                                 </div>
@@ -129,7 +133,8 @@
                                 <i class="fas fa-chevron-left menu-arrow"></i>
                             </div>
 
-                            <div class="sidebar-menu-item customer-Weekly_information" data-menu="weekly">
+                            <div class="sidebar-menu-item customer-Weekly_information" data-menu="weekly"
+                                data-permission="weekly.view">
                                 <div class="menu-icon-wrapper">
                                     <i class="fas fa-chart-line menu-icon"></i>
                                 </div>
@@ -173,7 +178,8 @@
                                 <i class="fas fa-chevron-left menu-arrow"></i>
                             </div>
 
-                            <div class="sidebar-menu-item customer-Weekly_visit_report" data-menu="visit-report">
+                            <div class="sidebar-menu-item customer-Weekly_visit_report" data-menu="visit-report"
+                                data-permission="visit.view">
                                 <div class="menu-icon-wrapper">
                                     <i class="fas fa-clipboard-list menu-icon"></i>
                                 </div>
@@ -438,8 +444,8 @@
                                                 <i class="fas fa-id-card skb-input-icon"></i>
                                                 <input type="text" id="skb-national-code"
                                                     class="skb-input-field profile-field" placeholder=" "
-                                                    maxlength="10">
-                                                <label class="skb-input-label">کد ملی (اختیاری)</label>
+                                                    maxlength="10" inputmode="numeric">
+                                                <label class="skb-input-label">کد ملی (اختیاری - ۱۰ رقم عددی)</label>
                                             </div>
                                         </div>
                                         <div class="skb-input-wrapper">
@@ -948,10 +954,10 @@
                                 <span class="week-badge" id="weekBadge">هفته جاری</span>
                             </div>
                             <div class="weekly-card__actions">
-                                <button class="btn-report-all-hall" onclick="generateFullWeeklyReport()">
+                                <button class="btn-report-all-hall" onclick="generateFullWeeklyReport()" title="پیش از تولید گزارش: انتخاب گروه‌های شاخص (جمعیت/وزن/رشد/خوراک/جزئیات) و انتخاب هفته‌های هر گله؛ هفته‌های ثبت‌نشده با هشدار مشخص می‌شوند">
                                     <i class="fas fa-file"></i> دریافت گزارش کامل هفتگی
                                 </button>
-                                <button class="btn-report-all-hall" onclick="generateWeeklyHistoryReport()">
+                                <button class="btn-report-all-hall" onclick="generateWeeklyHistoryReport()" title="انتخاب گله‌های تکمیل‌شده، گروه‌های شاخص و هفته‌های هر گله (بر پایهٔ پایان دورهٔ واقعی)؛ هفته‌های بدون ثبت با ❌ و هشدار نمایش داده می‌شوند">
                                     <i class="fas fa-history"></i> گزارش تاریخچه هفتگی
                                 </button>
                             </div>
@@ -1285,6 +1291,19 @@
                 const appReady = await waitForAppReady();
                 if (!appReady) {
                     console.warn('⚠️ appService در زمان مقرر آماده نشد؛ صفحه با تنظیمات پیش‌فرض ادامه می‌دهد');
+                    // ✅ اطلاع کوتاه به کاربر (یک‌بار در ۵ دقیقه) — بدون مودال
+                    try {
+                        const { notificationService } = await import('./../core/services/notification.service.js');
+                        notificationService?.notifyOnce?.({
+                            key: 'app-boot-slow',
+                            type: 'warning',
+                            message: 'برنامه کند بالا آمد — اگر بخشی ناقص است صفحه را نو کنید',
+                            cooldownMs: 300000,
+                        });
+                    } catch {
+                        /* اگر ماژول اعلان در دسترس نبود، بی‌صدا رد شو */
+                    }
+
                 }
 
                 // مقداردهی سرویس اطلاعات مشتری

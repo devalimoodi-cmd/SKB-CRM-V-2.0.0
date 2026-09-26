@@ -2,14 +2,20 @@
 // routes/suggestionRoutes.js
 // «نظرات و پیشنهادات» — همهٔ روت‌ها نیاز به احراز هویت دارند
 // ⚠️ ترتیب مهم است: روت‌های ثابت قبل از روت‌های :id بیایند
+// ✅ کنترل دسترسی مدیریتی بر پایهٔ مجوز (پنل ← مدیریت نقش‌ها)
 // ============================================================
 const express = require("express");
 const router = express.Router();
-const { protect, authorize } = require("../middleware/auth");
+const { protect, authorize, ADMIN_ROLES } = require("../middleware/auth");
+const { requirePermission } = require("../middleware/permissions");
 const { createRateLimiter } = require("../middleware/rateLimit");
 const suggestionController = require("../controllers/suggestionController");
 
-const ADMIN_ONLY = authorize("admin", "super_admin", "sub_admin");
+const CAN_VIEW = requirePermission("suggestions.admin.view");
+const CAN_REPLY = requirePermission("suggestions.reply");
+const CAN_STATUS = requirePermission("suggestions.status");
+const CAN_DELETE = requirePermission("suggestions.delete");
+const ADMIN_ONLY = authorize(...ADMIN_ROLES);
 
 // ✅ محدودیت نرخ برای ارسال پیام (هر آی‌پی) — ضد اسپم/فلود
 const suggestionLimiter = createRateLimiter({
@@ -27,7 +33,7 @@ router.get("/mine", suggestionController.getMySuggestions);
 router.get("/unread-count", suggestionController.getUnreadCount);
 
 // ===== ادمین‌ها (قبل از :id) =====
-router.get("/", ADMIN_ONLY, suggestionController.listSuggestions);
+router.get("/", CAN_VIEW, suggestionController.listSuggestions);
 
 // ===== گفتگوی خود کاربر =====
 router.get("/:id", suggestionController.getMyThread);
@@ -35,17 +41,23 @@ router.post("/:id/reply", suggestionLimiter, suggestionController.replyToThread)
 router.post("/:id/read", suggestionController.markThreadRead);
 
 // ===== ادمین‌ها روی یک گفتگو =====
-router.get("/:id/admin", ADMIN_ONLY, suggestionController.getThreadAdmin);
-router.post("/:id/admin-reply", ADMIN_ONLY, suggestionController.replyAsAdmin);
-router.patch("/:id", ADMIN_ONLY, suggestionController.updateSuggestion);
+router.get("/:id/admin", CAN_VIEW, suggestionController.getThreadAdmin);
+router.post("/:id/admin-reply", CAN_REPLY, suggestionController.replyAsAdmin);
+router.patch("/:id", CAN_STATUS, suggestionController.updateSuggestion);
 
 // ✅ حذف یک پیام از گفتگو (پیام اول و کل گفتگو: مسیر پایین)
 router.delete(
   "/:id/messages/:messageId",
   ADMIN_ONLY,
+  CAN_DELETE,
   suggestionController.deleteSuggestionMessage,
 );
 
-router.delete("/:id", ADMIN_ONLY, suggestionController.deleteSuggestion);
+router.delete(
+  "/:id",
+  ADMIN_ONLY,
+  CAN_DELETE,
+  suggestionController.deleteSuggestion,
+);
 
 module.exports = router;

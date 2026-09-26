@@ -1,5 +1,9 @@
 import { dashboardApi } from "./dashboard.api.js";
 import { dashboardRenderer } from "./dashboard.renderer.js";
+import {
+  buildCustomerDetailHTML,
+  buildWeeksTableHTML,
+} from "./customer-detail.renderer.js";
 import { TaskCard } from "../../shared/components/TaskCard/TaskCard.js";
 
 import { apiService } from "../../core/services/api.service.js";
@@ -12,6 +16,65 @@ import {
 } from "../../core/utils/date.utils.js";
 import { escapeHtml, escapeJsAttr } from "../../core/utils/string.utils.js";
 
+// ============================================================
+// پلاگین داخلی «برچسب اعداد» کارت‌های نمودار گله (مودال جزئیات مشتری)
+// ------------------------------------------------------------
+// • عدد هر هفته را با ارقام فارسی بالای نقطه‌اش می‌نویسد.
+// • اگر برچسب یک نقطه با برچسب قبلی هم‌پوشانی پیدا کند، همان یکی رد می‌شود
+//   (نقطه و خط همچنان دیده می‌شوند) ⇒ «همهٔ هفته‌ها» بدون متنِ روی‌هم.
+// • متن سفید با سایهٔ ملایم، چون نمودار روی نوار رنگی کارت است.
+// ============================================================
+const flockChartLabelPlugin = {
+  id: "flockChartLabels",
+  afterDatasetsDraw(chart) {
+    const canvas = chart.canvas;
+    if (!canvas || canvas.dataset.cdLabels !== "all") return;
+
+    const area = chart.chartArea;
+    const meta = chart.getDatasetMeta(0);
+    if (!area || !meta || !meta.data) return;
+
+    const digits = parseInt(canvas.dataset.cdDigits || "0", 10) || 0;
+    const values = chart.data?.datasets?.[0]?.data || [];
+    const ctx = chart.ctx;
+
+    ctx.save();
+    ctx.font = "700 9px Vazir, sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "bottom";
+    ctx.fillStyle = "#ffffff";
+    ctx.shadowColor = "rgba(15, 23, 42, 0.5)";
+    ctx.shadowBlur = 3;
+
+    let lastRight = -Infinity;
+
+    values.forEach((value, index) => {
+      if (value === null || value === undefined) return;
+
+      const element = meta.data[index];
+      if (!element || typeof element.x !== "number") return;
+
+      const text = Number(value).toLocaleString("fa-IR", {
+        maximumFractionDigits: digits,
+      });
+      const width = ctx.measureText(text).width;
+      const x = Math.min(
+        Math.max(element.x, area.left + width / 2),
+        area.right - width / 2,
+      );
+      const y = Math.max(element.y - 4, area.top + 9);
+
+      // گارد هم‌پوشانی: برچسبی که روی برچسب قبلی می‌افتد نوشته نمی‌شود
+      if (x - width / 2 <= lastRight + 2) return;
+      lastRight = x + width / 2;
+
+      ctx.fillText(text, x, y);
+    });
+
+    ctx.restore();
+  },
+};
+
 
 class DashboardService {
   constructor() {
@@ -21,6 +84,10 @@ class DashboardService {
     this.summary = null;
     this.selectedFlockId = null;
     this.selectedCustomerId = null;
+    // ✅ بافت مودال «جزئیات مشتری» (برای لود تنبل جدول هفتگی)
+    this.customerDetailContext = null;
+    // ✅ نمونهٔ کارت‌های نمودار مودال جزئیات (برای destroy شدن)
+    this.flockCharts = [];
     this.currentPage = 1;
     this.pageSize = 20;
     this.totalPages = 0;
@@ -1978,6 +2045,8 @@ SKB-CRM.IR`,
         if (modal) {
           modal.classList.remove("active");
           document.body.style.overflow = "";
+          // ✅ آزادسازی کارت‌های نمودار مودال جزئیات مشتری
+          this.destroyFlockCharts();
         }
       });
     }
@@ -3527,414 +3596,341 @@ SKB-CRM.IR`,
   }
 
   /**
-   * نمایش جزئیات کامل مشتری در مودال
-   * پاسخ بک‌اند: { customer, flocks: [], periods: [], halls: [], weeklyHistory: [] }
+   * نمایش «خلاصهٔ عملکرد مشتری» در مودال
+   * ------------------------------------------------------------
+   * داده از endpoint اختصاصی می‌آید: { customer, summary, flocks, halls, economics, focus }
+   *   ① نوار KPI  ② اطلاعات پایه  ③ گله‌ها (تب در جریان/تمام‌شده + ریز سالن‌ها)
+   *   ④ کارنامهٔ سالن‌ها  + جدول هفته‌ها با کلیک (لود تنبل)
    */
   async showCustomerDetail(customerId, flockId = null) {
+    const modal = document.getElementById("customerDetailModal");
+    const body = document.getElementById("modalBody");
+    const titleEl = document.getElementById("modalCustomerName");
+
+    if (!customerId) {
+      notificationService.error("شناسهٔ مشتری نامعتبر است");
+      return;
+    }
+
     try {
-      const response = await dashboardApi.getCustomerFullDetails(
+      // نمایش سریع مودال با حالت «در حال بارگذاری» (حس سرعت بهتر)
+      if (titleEl) titleEl.textContent = "اطلاعات مشتری";
+      if (body) {
+        body.innerHTML =
+          '<div class="cd-loading"><i class="fas fa-spinner fa-spin"></i> در حال دریافت اطلاعات مشتری…</div>';
+      }
+      modal?.classList.add("active");
+      document.body.style.overflow = "hidden";
+
+      // بافت مودال (برای لود تنبل جدول هفتگی)
+      this.customerDetailContext = {
+        customerId,
+        flockId,
+        chicksByPlacement: {},
+        hallsByPlacement: {},
+      };
+
+      const response = await dashboardApi.getCustomerPerformance(
         customerId,
         flockId,
       );
-      if (!response.success) {
+
+      if (!response?.success || !response.data) {
+        if (body) {
+          body.innerHTML =
+            '<div class="cd-empty">اطلاعات مشتری دریافت نشد — دوباره تلاش کنید</div>';
+        }
         notificationService.error("خطا در دریافت اطلاعات مشتری");
         return;
       }
+
       const data = response.data || {};
-      const customer = data.customer || {};
-      const flocks = data.flocks || [];
-      const periods = data.periods || [];
-      const halls = data.halls || [];
-      let weeklyHistory = data.weeklyHistory || data.weeks || [];
 
-      // ✅ اگر history خالی بود، مستقیم از API هفتگی بگیر
-      if ((!weeklyHistory || weeklyHistory.length === 0) && flockId) {
-        try {
-          const weeklyRes = await apiService.get("/weekly", {
-            chick_placement_id: flockId,
-          });
-          if (weeklyRes.success) {
-            weeklyHistory = weeklyRes.data?.records || weeklyRes.data || [];
-          }
-        } catch (e) {
-          try {
-            const weeklyRes2 = await apiService.get(
-              `/weekly?flock_id=${flockId}`,
-            );
-            if (weeklyRes2.success) {
-              weeklyHistory = weeklyRes2.data?.records || weeklyRes2.data || [];
-            }
-          } catch (e2) {
-            console.warn("⚠️ Could not load weekly history fallback:", e2);
-          }
-        }
+      // نقشهٔ «شناسهٔ جوجه‌ریزی → تعداد جوجه / نام سالن» برای جدول هفته‌ها
+      (data.flocks || []).forEach((flock) => {
+        (flock.halls || []).forEach((hall) => {
+          this.customerDetailContext.chicksByPlacement[hall.placementId] =
+            hall.chicks;
+          this.customerDetailContext.hallsByPlacement[hall.placementId] =
+            hall.hallName;
+        });
+      });
+
+      if (titleEl) {
+        titleEl.textContent = data.customer?.fullName || "اطلاعات مشتری";
       }
 
-      document.getElementById("modalCustomerName").textContent =
-        customer.full_name || customer.name || "اطلاعات مشتری";
-
-      const body = document.getElementById("modalBody");
       if (body) {
-        // ============ ۱. اطلاعات مشتری ============
-        const customerHTML = `
-          <div class="detail-section">
-            <h4 style="color:#2c7a6e; font-size:13px; margin-bottom:8px; border-bottom:2px solid #e8f5f0; padding-bottom:5px;">👤 اطلاعات مشتری</h4>
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px 16px; font-size:12px;">
-              <div><span style="color:#94a3b8;">نام:</span> <strong>${customer.full_name || customer.name || "-"}</strong></div>
-              <div><span style="color:#94a3b8;">فارم:</span> <strong>${customer.farmName || customer.farm_name || "-"}</strong></div>
-              <div><span style="color:#94a3b8;">تلفن:</span> <strong>${customer.phone || customer.mobile_number || "-"}</strong></div>
-              <div><span style="color:#94a3b8;">شهر:</span> <strong>${customer.city || customer.county || "-"}</strong></div>
-              <div><span style="color:#94a3b8;">استان:</span> <strong>${customer.province || "-"}</strong></div>
-              <div><span style="color:#94a3b8;">آدرس:</span> <strong>${customer.address || customer.farm_address || "-"}</strong></div>
-            </div>
-          </div>
-        `;
-
-        // ============ ۱.۵ رصد شاخص‌های گله ============
-        const selectedFlock =
-          flocks.find((f) => String(f.id) === String(flockId)) ||
-          flocks[0] ||
-          {};
-        const totalChicks = parseFloat(selectedFlock.totalChicks || 0);
-        const totalMortality = weeklyHistory.reduce(
-          (sum, w) =>
-            sum + (parseFloat(w.mortality ?? w.weekly_mortality) || 0),
-          0,
-        );
-        const currentChicks = totalChicks - totalMortality;
-        const sumWeeklyFeed = weeklyHistory.reduce(
-          (sum, w) =>
-            sum + (parseFloat(w.feedIntake ?? w.weekly_feed_intake) || 0),
-          0,
-        );
-        // آخرین وزن ثبت‌شده گله
-        const lastWeightValue = weeklyHistory.reduce((last, w) => {
-          const weightVal = parseFloat(w.weight ?? w.weekly_weight) || 0;
-          return weightVal > 0 ? weightVal : last;
-        }, 0);
-        // FCR کل گله = مجموع خوراک مصرفی ÷ آخرین وزن
-        const chickenFcr =
-          lastWeightValue > 0
-            ? (sumWeeklyFeed / lastWeightValue).toFixed(2)
-            : "-";
-
-        const indicatorsHTML = `
-          <div class="detail-section" style="margin-top:12px; border-right:4px solid #f59e0b; background:linear-gradient(135deg,#fffbeb 0%, #fef3c7 100%);">
-            <h4 style="color:#d97706; font-size:13px; margin-bottom:8px; border-bottom:2px solid #fde68a; padding-bottom:5px;">📈 رصد شاخص‌های گله ${selectedFlock.flockNumber ? `#${selectedFlock.flockNumber}` : ""}</h4>
-            <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px 16px; font-size:12px;">
-              <div style="background:#fff; border:1px solid #fde68a; border-radius:8px; padding:10px 14px; text-align:center;">
-                <div style="color:#94a3b8; font-size:10px; margin-bottom:4px;">🐔 ضریب تبدیل گله (FCR)</div>
-                <div style="font-size:20px; font-weight:700; color:#d97706;">${chickenFcr}</div>
-              </div>
-              <div style="background:#fff; border:1px solid #fde68a; border-radius:8px; padding:10px 14px; text-align:center;">
-                <div style="color:#94a3b8; font-size:10px; margin-bottom:4px;">🐣 مقدار جوجه فعلی گله</div>
-                <div style="font-size:20px; font-weight:700; color:#16a34a;">${currentChicks.toLocaleString()} <span style="font-size:10px; color:#94a3b8;">قطعه</span></div>
-              </div>
-              <div style="background:#fff; border:1px solid #fde68a; border-radius:8px; padding:10px 14px; text-align:center;">
-                <div style="color:#94a3b8; font-size:10px; margin-bottom:4px;">📊 تلفات کل</div>
-                <div style="font-size:20px; font-weight:700; color:#dc2626;">${totalMortality.toLocaleString()} <span style="font-size:10px; color:#94a3b8;">قطعه</span></div>
-              </div>
-            </div>
-          </div>
-        `;
-
-        // ============ ۲. گله‌های مشتری ============
-        let flocksHTML = "";
-        if (flocks.length > 0) {
-          const flockRows = flocks
-            .map(
-              (f) => `
-              <tr style="${f.id == flockId ? "background:#f0fdf4; font-weight:600;" : ""}">
-                <td style="padding:6px 8px; border-bottom:1px solid #f1f5f9; text-align:center;">${f.id}</td>
-                <td style="padding:6px 8px; border-bottom:1px solid #f1f5f9; text-align:center;"><strong>${f.flockNumber || "-"}</strong></td>
-                <td style="padding:6px 8px; border-bottom:1px solid #f1f5f9; text-align:center;">${f.hallName || "-"}</td>
-                <td style="padding:6px 8px; border-bottom:1px solid #f1f5f9; text-align:center;">${f.placementDate ? convertToPersianDate(f.placementDate) : "-"}</td>
-                <td style="padding:6px 8px; border-bottom:1px solid #f1f5f9; text-align:center;">${f.weekNumber || "-"}</td>
-                <td style="padding:6px 8px; border-bottom:1px solid #f1f5f9; text-align:center;">${f.flockAge || "-"} روز</td>
-                <td style="padding:6px 8px; border-bottom:1px solid #f1f5f9; text-align:center;">${(f.totalChicks || 0).toLocaleString()} قطعه</td>
-                <td style="padding:6px 8px; border-bottom:1px solid #f1f5f9; text-align:center;">${f.breed || "-"}</td>
-                <td style="padding:6px 8px; border-bottom:1px solid #f1f5f9; text-align:center;">
-                  <span style="display:inline-block; padding:2px 8px; border-radius:10px; font-size:10px; background:${f.isActive ? "#dcfce7" : "#fee2e2"}; color:${f.isActive ? "#16a34a" : "#dc2626"};">${f.isActive ? "فعال" : "غیرفعال"}</span>
-                </td>
-              </tr>
-            `,
-            )
-            .join("");
-
-          flocksHTML = `
-            <div class="detail-section" style="margin-top:12px;">
-              <h4 style="color:#2c7a6e; font-size:13px; margin-bottom:8px; border-bottom:2px solid #e8f5f0; padding-bottom:5px;">🐣 گله‌های مشتری (${flocks.length})</h4>
-              <div style="overflow-x:auto;">
-                <table style="width:100%; border-collapse:collapse; font-size:11px;">
-                  <thead>
-                    <tr style="background:#f8fafc;">
-                      <th style="padding:6px 8px;">ID</th>
-                      <th style="padding:6px 8px;">گله</th>
-                      <th style="padding:6px 8px;">سالن</th>
-                      <th style="padding:6px 8px;">جوجه‌ریزی</th>
-                      <th style="padding:6px 8px;">هفته</th>
-                      <th style="padding:6px 8px;">سن</th>
-                      <th style="padding:6px 8px;">تعداد</th>
-                      <th style="padding:6px 8px;">نژاد</th>
-                      <th style="padding:6px 8px;">وضعیت</th>
-                    </tr>
-                  </thead>
-                  <tbody>${flockRows}</tbody>
-                </table>
-              </div>
-            </div>
-          `;
-        }
-
-        // ============ ۳. دوره‌های مشتری ============
-        let periodsHTML = "";
-        if (periods.length > 0) {
-          // جداسازی دوره‌های فعال و قبلی
-          const activeStatuses = [
-            "active",
-            "در حال انجام",
-            "pending",
-            "در انتظار جوجه",
-            "شروع نشده",
-          ];
-          const activePeriods = periods.filter(
-            (p) =>
-              activeStatuses.includes(p.status) ||
-              activeStatuses.includes(p.statusText),
-          );
-          const oldPeriods = periods.filter((p) => !activePeriods.includes(p));
-
-          const periodRow = (p) => `
-              <tr>
-                <td style="padding:6px 8px; border-bottom:1px solid #f1f5f9; text-align:center;">${p.periodNumber || p.id || "-"}</td>
-                <td style="padding:6px 8px; border-bottom:1px solid #f1f5f9; text-align:center;"><strong>${p.name || p.period_name || "-"}</strong></td>
-                <td style="padding:6px 8px; border-bottom:1px solid #f1f5f9; text-align:center;">${p.startDate ? convertToPersianDate(p.startDate) : "-"}</td>
-                <td style="padding:6px 8px; border-bottom:1px solid #f1f5f9; text-align:center;">${p.endDate ? convertToPersianDate(p.endDate) : "در حال انجام"}</td>
-                <td style="padding:6px 8px; border-bottom:1px solid #f1f5f9; text-align:center;">
-                  <span style="display:inline-block; padding:2px 8px; border-radius:10px; font-size:10px; background:${p.statusBg || "#f1f5f9"}; color:${p.statusColor || "#475569"};">${p.statusText || p.status || "-"}</span>
-                </td>
-              </tr>
-            `;
-
-          const activeRows = activePeriods.map(periodRow).join("");
-          const oldRows = oldPeriods.map(periodRow).join("");
-
-          periodsHTML = `
-            ${
-              activeRows
-                ? `<div class="detail-section" style="margin-top:12px; border-right:3px solid #16a34a;">
-                    <h4 style="color:#16a34a; font-size:13px; margin-bottom:8px; border-bottom:2px solid #dcfce7; padding-bottom:5px;">📅 دوره‌های فعال (${activePeriods.length})</h4>
-                    <div style="overflow-x:auto;">
-                      <table style="width:100%; border-collapse:collapse; font-size:11px;">
-                        <thead>
-                          <tr style="background:#f8fafc;">
-                            <th style="padding:6px 8px;">شماره</th>
-                            <th style="padding:6px 8px;">نام دوره</th>
-                            <th style="padding:6px 8px;">شروع</th>
-                            <th style="padding:6px 8px;">پایان</th>
-                            <th style="padding:6px 8px;">وضعیت</th>
-                          </tr>
-                        </thead>
-                        <tbody>${activeRows}</tbody>
-                      </table>
-                    </div>
-                  </div>`
-                : ""
-            }
-            ${
-              oldRows
-                ? `<details class="detail-section" style="margin-top:12px;">
-                    <summary style="cursor:pointer; color:#64748b; font-size:12px; font-weight:600; padding:8px 12px; background:#f8fafc; border-radius:6px; list-style:none; display:flex; align-items:center; gap:8px;">
-                      <i class="fas fa-chevron-down" style="font-size:10px;"></i> 📋 دوره‌های قبلی (${oldPeriods.length})
-                    </summary>
-                    <div style="overflow-x:auto; margin-top:8px;">
-                      <table style="width:100%; border-collapse:collapse; font-size:11px;">
-                        <thead>
-                          <tr style="background:#f8fafc;">
-                            <th style="padding:6px 8px;">شماره</th>
-                            <th style="padding:6px 8px;">نام دوره</th>
-                            <th style="padding:6px 8px;">شروع</th>
-                            <th style="padding:6px 8px;">پایان</th>
-                            <th style="padding:6px 8px;">وضعیت</th>
-                          </tr>
-                        </thead>
-                        <tbody>${oldRows}</tbody>
-                      </table>
-                    </div>
-                  </details>`
-                : ""
-            }
-          `;
-        }
-
-        // ============ ۴. سالن‌های مشتری ============
-        let hallsHTML = "";
-        if (halls.length > 0) {
-          const hallRows = halls
-            .map(
-              (h) => `
-              <tr>
-                <td style="padding:6px 8px; border-bottom:1px solid #f1f5f9; text-align:center;">${h.id}</td>
-                <td style="padding:6px 8px; border-bottom:1px solid #f1f5f9; text-align:center;"><strong>${h.name || h.hall_name || "-"}</strong></td>
-                <td style="padding:6px 8px; border-bottom:1px solid #f1f5f9; text-align:center;">${(h.capacity || h.nominal_capacity || 0).toLocaleString()} قطعه</td>
-              </tr>
-            `,
-            )
-            .join("");
-
-          hallsHTML = `
-            <div class="detail-section" style="margin-top:12px;">
-              <h4 style="color:#2c7a6e; font-size:13px; margin-bottom:8px; border-bottom:2px solid #e8f5f0; padding-bottom:5px;">🏭 سالن‌های مشتری (${halls.length})</h4>
-              <div style="overflow-x:auto;">
-                <table style="width:100%; border-collapse:collapse; font-size:11px;">
-                  <thead>
-                    <tr style="background:#f8fafc;">
-                      <th style="padding:6px 8px;">ID</th>
-                      <th style="padding:6px 8px;">نام سالن</th>
-                      <th style="padding:6px 8px;">ظرفیت</th>
-                    </tr>
-                  </thead>
-                  <tbody>${hallRows}</tbody>
-                </table>
-              </div>
-            </div>
-          `;
-        }
-
-        // ============ ۵. تاریخچه هفتگی گله - اکوردیون (بعد از گله‌ها قرار می‌گیرد) ============
-        let weeksHTML = "";
-        if (weeklyHistory && weeklyHistory.length > 0) {
-          const rows = weeklyHistory
-            .map((w, i) => {
-              // دریافت فیلدهای هفته با fallback بین دو shape بک‌اند
-              const weekNum = w.weekNumber ?? w.week_number ?? i + 1;
-              const startDate = w.startDate ?? w.week_start_date;
-              const endDate = w.endDate ?? w.week_end_date;
-              const dailyFeed = w.dailyFeedIntake ?? w.daily_feed_intake ?? "-";
-              const feed = w.feedIntake ?? w.weekly_feed_intake ?? "-";
-              const weight = w.weight ?? w.weekly_weight ?? "-";
-              const mortality = w.mortality ?? w.weekly_mortality ?? "-";
-              const blackout = w.blackoutHours ?? w.blackout_hours ?? "-";
-              const notes = w.additionalNotes ?? w.additional_notes ?? "-";
-              const expertName =
-                w.expertName ??
-                (w.service_expert
-                  ? `${w.service_expert.first_name || ""} ${w.service_expert.last_name || ""}`.trim()
-                  : "-") ??
-                "-";
-
-              // فرمت پیشنهادات (پشتیبانی از آرایه رشته‌ای، آرایه اشیا با name/title، یا رشته)
-              const formatSuggestionList = (val) => {
-                if (!val) return "-";
-                if (Array.isArray(val)) {
-                  const names = val.map((item) => {
-                    if (typeof item === "object" && item !== null) {
-                      return (
-                        item.name ||
-                        item.title ||
-                        item.suggestion_name ||
-                        item.suggestionName ||
-                        ""
-                      );
-                    }
-                    return item;
-                  });
-                  return names.filter(Boolean).join("، ") || "-";
-                }
-                return val || "-";
-              };
-
-              // محاسبه ضریب تبدیل تجمعی هفته (FCR = مجموع خوراک تا این هفته ÷ وزن این هفته)
-              const cumulativeFeed = weeklyHistory
-                .slice(0, i + 1)
-                .reduce(
-                  (sum, wk) =>
-                    sum +
-                    (parseFloat(wk.feedIntake ?? wk.weekly_feed_intake) || 0),
-                  0,
-                );
-              const weightVal = parseFloat(weight) || 0;
-              const fcr =
-                weightVal > 0 ? (cumulativeFeed / weightVal).toFixed(2) : "-";
-
-              return `
-                  <tr>
-                    <td style="padding:6px 8px; border-bottom:1px solid #f1f5f9; text-align:center;">${i + 1}</td>
-                    <td style="padding:6px 8px; border-bottom:1px solid #f1f5f9; text-align:center;"><strong>هفته ${weekNum}</strong></td>
-                    <td style="padding:6px 8px; border-bottom:1px solid #f1f5f9; text-align:center;">${startDate ? convertToPersianDate(startDate) : "-"}</td>
-                    <td style="padding:6px 8px; border-bottom:1px solid #f1f5f9; text-align:center;">${endDate ? convertToPersianDate(endDate) : "-"}</td>
-                    <td style="padding:6px 8px; border-bottom:1px solid #f1f5f9; text-align:center;">${dailyFeed}</td>
-                    <td style="padding:6px 8px; border-bottom:1px solid #f1f5f9; text-align:center;">${feed}</td>
-                    <td style="padding:6px 8px; border-bottom:1px solid #f1f5f9; text-align:center;">${weight}</td>
-                    <td style="padding:6px 8px; border-bottom:1px solid #f1f5f9; text-align:center;">${mortality}</td>
-                    <td style="padding:6px 8px; border-bottom:1px solid #f1f5f9; text-align:center;">${blackout}</td>
-                    <td style="padding:6px 8px; border-bottom:1px solid #f1f5f9; text-align:center; font-weight:600; color:#d97706;">${fcr}</td>
-                    <td style="padding:6px 8px; border-bottom:1px solid #f1f5f9; text-align:center;">${expertName}</td>
-                    <td style="padding:6px 8px; border-bottom:1px solid #f1f5f9; text-align:right; max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${notes}">${notes}</td>
-                    <td style="padding:6px 8px; border-bottom:1px solid #f1f5f9; text-align:center; max-width:100px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${w.diseases || ""}">${w.diseases || "-"}</td>
-                    <td style="padding:6px 8px; border-bottom:1px solid #f1f5f9; text-align:center; max-width:100px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${w.vaccines || ""}">${w.vaccines || "-"}</td>
-                    <td style="padding:6px 8px; border-bottom:1px solid #f1f5f9; text-align:center; max-width:100px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${w.medicines || ""}">${w.medicines || "-"}</td>
-                    <td style="padding:6px 8px; border-bottom:1px solid #f1f5f9; text-align:center; max-width:100px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${w.feedTypes || ""}">${w.feedTypes || "-"}</td>
-                    <td style="padding:6px 8px; border-bottom:1px solid #f1f5f9; text-align:center; max-width:100px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${formatSuggestionList(w.suggestions)}">${formatSuggestionList(w.suggestions)}</td>
-                  </tr>
-                `;
-            })
-            .join("");
-
-          // ✅ اکوردیون کولیپس با ستون‌های کامل
-          weeksHTML = `
-            <details class="detail-section" style="margin-top:12px; border:1px solid #e8f5f0; border-radius:10px; padding:0; overflow:hidden;">
-              <summary style="cursor:pointer; color:#2c7a6e; font-size:13px; font-weight:700; padding:10px 14px; background:#f8fafc; list-style:none; display:flex; align-items:center; gap:10px; user-select:none;">
-                <i class="fas fa-chevron-down" style="font-size:11px; transition: transform 0.2s;"></i>
-                📊 هفته‌های قبلی گله (${weeklyHistory.length} هفته)
-                <span style="margin-right:auto; font-size:11px; color:#94a3b8;">برای مشاهده کلیک کنید</span>
-              </summary>
-              <div style="overflow-x:auto; padding:10px 14px;">
-                <table style="width:100%; border-collapse:collapse; font-size:11px;">
-                  <thead>
-                    <tr style="background:#f8fafc;">
-                      <th style="padding:6px 8px;">#</th>
-                      <th style="padding:6px 8px;">هفته</th>
-                      <th style="padding:6px 8px;">شروع</th>
-                      <th style="padding:6px 8px;">پایان</th>
-                      <th style="padding:6px 8px;">خوراک روزانه</th>
-                      <th style="padding:6px 8px;">خوراک هفتگی</th>
-                      <th style="padding:6px 8px;">وزن</th>
-                      <th style="padding:6px 8px;">تلفات</th>
-                      <th style="padding:6px 8px;">خاموشی</th>
-                      <th style="padding:6px 8px; color:#d97706;">ضریب تبدیل</th>
-                      <th style="padding:6px 8px;">کارشناس خدمات</th>
-                      <th style="padding:6px 8px; text-align:right;">توضیحات</th>
-                      <th style="padding:6px 8px;">بیماری‌ها</th>
-                      <th style="padding:6px 8px;">واکسن‌ها</th>
-                      <th style="padding:6px 8px;">داروها</th>
-                      <th style="padding:6px 8px;">نوع خوراک</th>
-                      <th style="padding:6px 8px;">پیشنهادات</th>
-                    </tr>
-                  </thead>
-                  <tbody>${rows}</tbody>
-                </table>
-              </div>
-            </details>
-          `;
-        }
-
-        body.innerHTML = `
-          <div style="direction:rtl; text-align:right; font-family:'Vazir'; padding:5px;">
-            ${customerHTML}
-            ${indicatorsHTML}
-            ${flocksHTML}
-            ${weeksHTML}
-            ${periodsHTML}
-            ${hallsHTML}
-          </div>
-        `;
+        body.innerHTML = buildCustomerDetailHTML(data);
+        if (typeof body.scrollTo === "function") body.scrollTo({ top: 0 });
+        // ✅ کارت‌های نمودار روند هفتگی گله (ابعاد ثابت، فقط تبِ نمایان)
+        this.renderFlockCharts();
       }
-      document.getElementById("customerDetailModal")?.classList.add("active");
-      document.body.style.overflow = "hidden";
     } catch (error) {
       console.error("❌ Error showing customer detail:", error);
+      if (body) {
+        body.innerHTML =
+          '<div class="cd-empty">خطا در دریافت اطلاعات مشتری — دوباره تلاش کنید</div>';
+      }
       notificationService.error("خطا در دریافت اطلاعات");
+    }
+  }
+
+  /**
+   * جابه‌جایی تب «گله‌های در جریان / تمام‌شده» در مودال جزئیات مشتری
+   */
+  switchCustomerDetailTab(tabId) {
+    const body = document.getElementById("modalBody");
+    if (!body) return;
+
+    body.querySelectorAll("[data-cd-tab]").forEach((tab) => {
+      tab.classList.toggle("cd-tab-active", tab.dataset.cdTab === tabId);
+    });
+
+    body.querySelectorAll("[data-cd-panel]").forEach((panel) => {
+      if (panel.dataset.cdPanel === tabId) panel.removeAttribute("hidden");
+      else panel.setAttribute("hidden", "");
+    });
+
+    // ✅ کارت‌های نمودار تبِ تازه (Chart.js در ظرف hidden اندازهٔ صفر می‌گیرد؛ پس فقط تبِ نمایان ساخته می‌شود)
+    this.renderFlockCharts();
+  }
+
+  /**
+   * ساخت کارت‌های نمودار روند هفتگی هر گله
+   * ⚠️ Chart.js در ظرف hidden اندازهٔ صفر می‌گیرد ⇒ فقط تبِ نمایان ساخته می‌شود
+   *    و نمودارهای تب‌های پنهان آزاد می‌شوند (و در بازگشت دوباره ساخته می‌شوند).
+   */
+  renderFlockCharts() {
+    if (typeof Chart === "undefined") return;
+
+    const body = document.getElementById("modalBody");
+    if (!body) return;
+
+    const panels = Array.from(body.querySelectorAll("[data-cd-panel]"));
+    const visible = panels.find((panel) => !panel.hasAttribute("hidden")) || body;
+
+    panels.forEach((panel) => {
+      if (panel !== visible) this.destroyFlockCharts(panel);
+    });
+
+    this.createFlockCharts(visible);
+  }
+
+  /**
+   * ساخت ریزنمودارها داخل یک ظرف (هر canvas یک خط کوچک بدون محور/لجند)
+   */
+  createFlockCharts(container) {
+    if (!container) return;
+
+    container.querySelectorAll("[data-cd-trend]").forEach((row) => {
+      if (row.dataset.cdRendered === "true") return;
+
+      let trend = null;
+      try {
+        trend = JSON.parse(row.getAttribute("data-cd-trend") || "{}");
+      } catch {
+        trend = null;
+      }
+
+      if (!trend || !Array.isArray(trend.weeks) || trend.weeks.length < 2) return;
+
+      row.querySelectorAll("canvas[data-cd-chart]").forEach((canvas) => {
+        const key = canvas.dataset.cdChart;
+        const values = Array.isArray(trend[key]) ? trend[key] : [];
+        if (!values.some((value) => value !== null && value !== undefined)) return;
+
+        const color = canvas.dataset.cdColor || "#2c7a6e";
+        const dates = Array.isArray(trend.dates) ? trend.dates : [];
+        const unit = canvas.dataset.cdUnit || "";
+        const digits = parseInt(canvas.dataset.cdDigits || "0", 10) || 0;
+
+        try {
+          const chart = new Chart(canvas, {
+            type: "line",
+            plugins: [flockChartLabelPlugin],
+            data: {
+              labels: trend.weeks.map((week) => `هفته ${week}`),
+              datasets: [
+                {
+                  data: values,
+                  borderColor: color,
+                  backgroundColor: "transparent",
+                  borderWidth: 2,
+                  pointRadius: 2.5,
+                  pointBackgroundColor: color,
+                  pointBorderColor: color,
+                  pointHoverRadius: 5,
+                  tension: 0.4,
+                  spanGaps: true,
+                  fill: false,
+                },
+              ],
+            },
+            options: {
+              // ✅ ابعاد نمودار از ظرفِ با ارتفاع ثابت (.cd-chart-box) می‌آید
+              responsive: true,
+              maintainAspectRatio: false,
+              devicePixelRatio:
+                (typeof window !== "undefined" && window.devicePixelRatio) || 1,
+              animation: false,
+              resizeDelay: 0,
+              // فضای بالا برای برچسب اعداد روی نقاط
+              layout: {
+                padding: { top: 18, bottom: 6, left: 8, right: 8 },
+              },
+              plugins: {
+                legend: { display: false },
+                datalabels: { display: false },
+                tooltip: {
+                  displayColors: false,
+                  backgroundColor: "rgba(15,23,42,0.92)",
+                  titleFont: { family: "Vazir", size: 11 },
+                  bodyFont: { family: "Vazir", size: 11 },
+                  callbacks: {
+                    title: (items) => {
+                      const index = items?.[0]?.dataIndex ?? 0;
+                      const week = trend.weeks?.[index] ?? index + 1;
+                      const date = dates[index]
+                        ? convertToPersianDate(dates[index])
+                        : "";
+                      return `هفتهٔ ${week}${date ? ` — ${date}` : ""}`;
+                    },
+                    label: (ctx) => {
+                      const index = ctx.dataIndex ?? 0;
+                      const current = Number(values[index]);
+                      const valueText = Number.isFinite(current)
+                        ? current.toLocaleString("fa-IR", {
+                            maximumFractionDigits: digits,
+                          })
+                        : String(ctx.formattedValue ?? "");
+
+                      const previous =
+                        index > 0 ? Number(values[index - 1]) : null;
+                      let deltaText = "";
+
+                      if (Number.isFinite(current) && Number.isFinite(previous)) {
+                        const delta = current - previous;
+                        const arrow = delta > 0 ? "▲" : delta < 0 ? "▼" : "•";
+                        deltaText = ` · تغییر: ${arrow} ${Math.abs(
+                          delta,
+                        ).toLocaleString("fa-IR", {
+                          maximumFractionDigits: digits,
+                        })}`;
+                      }
+
+                      return `${valueText}${unit ? ` ${unit}` : ""}${deltaText}`;
+                    },
+                  },
+                },
+              },
+              scales: {
+                x: { display: false },
+                y: { display: false },
+              },
+            },
+          });
+
+          this.flockCharts.push(chart);
+        } catch (error) {
+          console.warn("⚠️ کارت نمودار ساخته نشد:", error?.message);
+        }
+      });
+
+      row.dataset.cdRendered = "true";
+    });
+  }
+
+  /**
+   * آزادسازی کارت‌های نمودار گله
+   * @param {Element|null} container اگر داده شود، فقط نمودارهای داخل آن پاک می‌شوند
+   */
+  destroyFlockCharts(container = null) {
+    const kept = [];
+
+    (this.flockCharts || []).forEach((chart) => {
+      const canvas = chart?.canvas;
+      const belongs = container
+        ? !!canvas && typeof container.contains === "function" && container.contains(canvas)
+        : true;
+
+      if (!belongs) {
+        kept.push(chart);
+        return;
+      }
+
+      try {
+        chart.destroy();
+      } catch {
+        /* ignore */
+      }
+
+      // پرچم «رندر شده» پاک می‌شود تا در بازگشت به تب، دوباره ساخته شود
+      const row = canvas?.closest?.("[data-cd-trend]");
+      if (row) delete row.dataset.cdRendered;
+    });
+
+    this.flockCharts = kept;
+  }
+
+  /**
+   * نمایش/مخفی کردن جدول هفته‌های یک گله (لود تنبل از /weekly)
+   */
+  async toggleCustomerDetailWeeks(button) {
+    if (!button) return;
+
+    const wrap = button.nextElementSibling;
+    if (!wrap) return;
+
+    // اگر قبلاً لود شده، فقط باز/بسته می‌شود (بدون درخواست دوباره)
+    if (wrap.dataset.cdLoaded === "true") {
+      wrap.toggleAttribute("hidden");
+      button.classList.toggle("cd-weeks-open", !wrap.hasAttribute("hidden"));
+      return;
+    }
+
+    const placementIds = String(button.dataset.cdWeeks || "")
+      .split(",")
+      .map((value) => parseInt(value, 10))
+      .filter(Boolean);
+
+    if (!placementIds.length) {
+      notificationService.error("دادهٔ هفتگی برای این گله ثبت نشده است");
+      return;
+    }
+
+    const context = this.customerDetailContext || {};
+
+    wrap.removeAttribute("hidden");
+    wrap.innerHTML = buildWeeksTableHTML([], { loading: true });
+    button.disabled = true;
+
+    try {
+      const responses = await Promise.all(
+        placementIds.map((id) =>
+          apiService
+            .get("/weekly", { chick_placement_id: id, limit: 500 })
+            .catch(() => null),
+        ),
+      );
+
+      const weeks = responses
+        .filter((res) => res?.success)
+        .flatMap((res) => res.data?.records || []);
+
+      wrap.innerHTML = buildWeeksTableHTML(weeks, {
+        chicksByPlacement: context.chicksByPlacement || {},
+        hallsByPlacement: context.hallsByPlacement || {},
+      });
+      wrap.dataset.cdLoaded = "true";
+      button.classList.add("cd-weeks-open");
+    } catch (error) {
+      console.error("❌ Error loading weekly history:", error);
+      wrap.innerHTML = buildWeeksTableHTML([], {
+        error: "خطا در دریافت داده‌های هفتگی",
+      });
+    } finally {
+      button.disabled = false;
     }
   }
 
@@ -3958,6 +3954,16 @@ if (typeof window !== "undefined") {
   window.showBookmarkDetail = (id) => dashboardService.showBookmarkDetail(id);
   window.showCustomerDetail = (customerId, flockId) =>
     dashboardService.showCustomerDetail(customerId, flockId);
+  // ✅ مودال جزئیات مشتری: تب گله‌ها + نمایش تنبل جدول هفته‌ها
+  window.switchCustomerDetailTab = (tabId) =>
+    dashboardService.switchCustomerDetailTab(tabId);
+  window.toggleCustomerDetailWeeks = (button) =>
+    dashboardService.toggleCustomerDetailWeeks(button);
+  // ✅ رفتن به پروفایل کامل مشتری از داخل مودال جزئیات
+  window.openCustomerDetailProfile = () => {
+    const customerId = dashboardService.customerDetailContext?.customerId;
+    if (customerId) window.goToCustomerProfile(customerId);
+  };
   window.goToCustomerProfile = (customerId) =>
     dashboardService.goToCustomerProfile(customerId);
   window.sendFlockCardSms = (flockId, hallId = null) =>

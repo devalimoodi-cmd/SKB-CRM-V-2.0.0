@@ -12,67 +12,68 @@ const {
 } = require("../controllers/hallController");
 
 const { protect, authorize } = require("../middleware/auth");
+const { requirePermission } = require("../middleware/permissions");
 
 // ============================================
 // مسیرهای مدیریت سالن
+// ✅ کنترل دسترسی بر پایهٔ «مجوز» (پنل مدیریت ← مدیریت نقش‌ها)
+// ⚠️ authorize قبلی حفظ شده ⇒ مجوز فقط می‌تواند محدودتر کند (بی‌خطر)
 // ============================================
+
+const CAN_WRITE = authorize("admin", "super_admin", "sub_admin", "expert");
+const CAN_MANAGE = authorize("admin", "super_admin", "sub_admin");
 
 // ایجاد سالن جدید
 router.post(
   "/",
   protect,
-  authorize("admin", "super_admin", "sub_admin", "expert"),
+  CAN_WRITE,
+  requirePermission("halls.create"),
   createHall,
 );
 
 // دریافت لیست سالن‌های مشتری و دوره
-router.get(
-  "/",
-  protect,
-  authorize("admin", "super_admin", "sub_admin", "expert"),
-  getHallsByCustomer,
-);
+router.get("/", protect, CAN_WRITE, requirePermission("halls.view"), getHallsByCustomer);
 
 // خلاصه ظرفیت واحدهای مرغداری مشتری (باید قبل از GET /:id باشد)
 router.get(
   "/capacity-summary/:customerId",
   protect,
-  authorize("admin", "super_admin", "sub_admin", "expert"),
+  CAN_WRITE,
+  requirePermission("halls.view"),
   getUnitCapacitySummary,
 );
 
 // دریافت یک سالن با ID
-router.get(
-  "/:id",
-  protect,
-  authorize("admin", "super_admin", "sub_admin", "expert"),
-  getHallById,
-);
+router.get("/:id", protect, CAN_WRITE, requirePermission("halls.view"), getHallById);
 
 // بروزرسانی سالن
-router.put(
-  "/:id",
-  protect,
-  authorize("admin", "super_admin", "sub_admin", "expert"),
-  updateHall,
-);
+router.put("/:id", protect, CAN_WRITE, requirePermission("halls.edit"), updateHall);
 
 // حذف منطقی سالن
-router.delete("/:id", protect, authorize("admin", "super_admin", "sub_admin"), deleteHall);
+router.delete(
+  "/:id",
+  protect,
+  CAN_MANAGE,
+  requirePermission("halls.delete"),
+  deleteHall,
+);
 
 // فعال/غیرفعال کردن سالن
 router.put(
   "/toggle-status/:id",
   protect,
-  authorize("admin", "super_admin", "sub_admin"),
+  CAN_MANAGE,
+  requirePermission("halls.toggle"),
   toggleHallStatus,
 );
 
-// دریافت اطلاعات کامل سالن (همراه با فیزیکی، سیستم‌ها، آبخوری، بهداشت)
+// دریافت اطلاعات کامل سالن (فهمراه با فیزیکی، سیستم‌ها، آبخوری، بهداشت)
 router.get(
   "/full-info/:id",
   protect,
-  authorize("admin", "super_admin", "sub_admin", "expert"),
+  CAN_WRITE,
+  requirePermission("halls.view"),
   getHallFullInfo,
 );
 

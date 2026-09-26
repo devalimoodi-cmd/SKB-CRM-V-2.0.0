@@ -57,6 +57,18 @@ export const dashboardApi = {
     return apiService.get(endpoint, params);
   },
 
+  // دریافت «خلاصهٔ عملکرد مشتری» (دوره‌ها/سالن‌ها/KPI) برای مودال جزئیات
+  async getCustomerPerformance(customerId, flockId = null) {
+    const endpoint =
+      API_CONSTANTS.ENDPOINTS.DASHBOARD.CUSTOMER_PERFORMANCE.replace(
+        ":id",
+        customerId,
+      );
+    const params = {};
+    if (flockId) params.flockId = flockId;
+    return apiService.get(endpoint, params);
+  },
+
   // ===== بوکمارک‌ها =====
 
   // دریافت بوکمارک‌ها
