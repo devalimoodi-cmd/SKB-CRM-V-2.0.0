@@ -1,4 +1,4 @@
-# گزارش بازبینی (Review) — موج ۳.۱: شکستن mixin «خوشهٔ پایان دوره» به سه دامنه
+# گزارش بازبینی (Review) — موج‌های ۳.۱ و ۳.۲a: شکستن کلاس‌های چاق به mixin دامنه‌ای
 
 برنچ: `chore/wave-3-split-god-classes` — تگ نقطهٔ بازگشت: `pre-wave-3` (روی `8397758`)
 اصل حاکم مثل موج‌های ۰، ۱ و ۲: **بدون تغییر رفتار** (behavior-preserving).
@@ -6,6 +6,10 @@
 > ⚠️ نتیجهٔ این موج در بخش ۵: **هیچ تغییر رفتاری وجود ندارد** — نه یک متد، نه یک نام
 > `window.*`، نه یک ویژگی نمونه. متن متدها **کلمه‌به‌کلمه (byte-for-byte)** منتقل شده؛
 > حتی یک ویرگول هم تغییر نکرده است.
+
+> 🆕 بخش‌های ۱۱ و ۱۲ به تکمیل‌های همین برنچ می‌پردازند: بخش ۱۱ گارد دائمی سطح
+> جوجه‌ریزی، و بخش ۱۲ **موج ۳.۲a** (شکستن `dashboard.service.js` به سه mixin دامنه‌ای +
+> گارد دائمی سطح داشبورد) با همان اصل «بدون تغییر رفتار».
 
 ---
 
@@ -380,3 +384,141 @@ npm run audit:dead-exports
 رفتار» دست‌نخورده ماند و در `docs/HOTSPOTS.md` (بند ۹) و بخش ۸ همین سند (`P2-۳`) ثبت شد.
 گارد آن را «اطلاعی» گزارش می‌کند (`DANGLING_CALLS`) ولی اگر نام **تازه‌ای** گم شود،
 فوراً `exit=1` می‌دهد.
+
+---
+
+## ۱۲) موج ۳.۲a — شکستن `dashboard.service.js` به سه mixin دامنه‌ای (+ گارد زمان اجرا)
+
+بزرگ‌ترین فایل باقی‌ماندهٔ فرانت (`src/features/dashboard/dashboard.service.js` — ۱۵۷.۴KB /
+۴۰۶۹ خط / ۷۸ عضو سطح عمومی) با همان سیاست موج ۳.۱ شکسته شد: **بدون تغییر رفتار**، با
+اسکریپت مهاجرت و گیت‌های اثبات. تفاوت روش این موج با موج ۳.۱:
+
+1. برش بر پایهٔ **آفست بایت + AST (espree)** است، نه شمارهٔ خطِ دستی؛
+2. بلوک **ایمپورت‌های سرویس خودکار هرس می‌شود** (ایمپورت‌هایی که مصرف‌کننده‌شان به mixin
+   رفته، بی‌مصرف نمی‌مانند)؛
+3. تعداد گیت‌ها از ۱۲ به **۳۴ شناسه (۹۸ خط PASS)** رسید.
+
+### الف) پارتیشن (نقشهٔ سه فایل)
+
+| # | فایل جدید | حجم | خطوط | نواحی برش‌خورده از مبدأ | محتوا | عضو |
+| --- | --- | --- | --- | --- | --- | --- |
+| ۱ | `dashboard.sms.js` | ۴۳.۰KB | ۹۹۰ | ۵۴۶–۶۷۳ · ۲۱۷۵–۲۵۸۶ · ۲۶۹۲–۳۱۲۵ | ارسال پیامک گلّه/سالن، وضعیت تحویل، تاریخچهٔ پیامک، همگام‌سازی خودکار وضعیت تسک‌ها | ۱۰ متد |
+| ۲ | `dashboard.bookmarks.js` | ۲۹.۸KB | ۵۸۶ | ۸۲۵–۹۱۹ · ۳۱۲۶–۳۵۹۷ | بوکمارک‌ها: رندر فهرست، مودال ساخت/ویرایش، جزئیات، حذف | ۵ متد |
+| ۳ | `dashboard.window-glue.js` | ۵.۴KB | ۱۳۸ | ۳۹۴۷–۴۰۶۹ | ثبت ۲۴ نام `window.*` + راه‌اندازی رویدادهای DOM | ۰ متد |
+
+در عوض `dashboard.service.js` سه `import` و سه خط ترکیب گرفت:
+
+```js
+import { dashboardSmsMethods } from "./dashboard.sms.js";
+import { dashboardBookmarkMethods } from "./dashboard.bookmarks.js";
+import { registerDashboardWindowGlue } from "./dashboard.window-glue.js";
+// ...
+Object.assign(DashboardService.prototype, dashboardSmsMethods);
+Object.assign(DashboardService.prototype, dashboardBookmarkMethods);
+// ...
+registerDashboardWindowGlue({ dashboardService, DashboardService });
+```
+
+> ⚠️ چسب پنجره به‌شکل **تابع ثبت** exports شده (نه side-effect در زمان import)، تا ترتیب
+> اجرا حفظ شود: ثبت `window.*` باید **بعد از** ساخته‌شدن نمونهٔ `dashboardService` انجام
+> شود. این تفاوت با موج ۲.۱ عمدی و در جهت شفافیت است.
+
+### ب) روش — اسکریپت `_3_2a_split.mjs` با ۳۴ گیت (۹۸ خط PASS)
+
+| گروه | شناسه‌های گیت | چه چیزی را اثبات می‌کند |
+| --- | --- | --- |
+| مبدأ | `01-uniform-eol` · `02-line-count` | مبدأ یکدست CRLF و دقیقاً ۴۰۶۹ خط است (اگر مبدأ حتی یک بایت عوض شود، گیت می‌شکند) |
+| نواحی | `03-start-*` · `04-end-*` · `05-ranges-ordered` | مرز هر ۶ ناحیه روی کامنت/خط خالی درست است، صعودی و بدون هم‌پوشانی |
+| اعضا (AST) | `21-class-found` · `22-member-set-*` · `23-contained-*` · `24-async-flag-*` · `25-glue-no-class-members` · `26-member-end-*` | هر ۱۵ عضو با پرچم درست `async`، فقط از «نوع متد»، دقیقاً همان مجموعهٔ مورد انتظار، و پایان هر متد روی `  }` |
+| بایت | `07-bytes-*` · `08-removed-count` · `09-rebuild-exact` · `10-no-export-in-regions` | برش بایت‌به‌بایت: `concat(نواحی) === ناحیهٔ مبدأ`، `۲۴۰۵ + ۱۶۶۴ = ۴۰۶۹`، و هیچ `export`ی داخل نواحی بریده نشده |
+| ایمپورت | `11-import-block` · `12-import-parse` · `30-imports-minimal-*` · `31-dropped-imports-moved` · `33-service-imports-minimal` · `34-import-coverage` | بلوک ایمپورت خطوط ۱–۱۷ درست شناسایی، هر mixin فقط ایمپورت‌های مصرف‌شده را دارد (sms ۳ خط، bookmarks ۶ خط)، تنها نام هرس‌شدهٔ سرویس (`convertPersianToGregorian`) در mixin حاضر است، و هیچ ایمپورت بی‌مصرفی نمانده |
+| چسب | `13-glue-structure` · `14-glue-window-names` · `16-glue-imports` | ساختار تابع چسب، ۲۴ نام `window.*` با همان ترتیب مبدأ، صفر ایمپورت اضافی |
+| برگشت‌پذیری | `15-body-*` · `27-comma-only-diff-*` | تنها تفاوت متن mixin با مبدأ «ویرگول پایان متد» است؛ برگشت‌پذیری بایت‌به‌بایت اثبات می‌شود |
+| نحو | `28-parse-draft-*` · `29-parse-*` · `32-service-parses` | هر چهار فایل با espree پارس می‌شوند (هم پیش، هم پس از هرس ایمپورت) |
+| شمارش | `18-uniform-eol` · `19-service-line-count` · `20-written-byte-exact` | EOL یکدست، معادلهٔ خط (`۲۴۰۵ + ۸ − ۳ = ۲۴۱۰`) و بازخوانی بایت‌به‌بایت از دیسک |
+
+### ج) تغییرات `dashboard.service.js`
+
+`git diff --numstat`: **۹ خط افزوده / ۱۶۶۸ خط حذف‌شده**
+
+| افزوده‌ها (۹) | حذف‌شده‌ها (۱۶۶۸) |
+| --- | --- |
+| ۳ ایمپورت mixin + ۲ کامنت + ۲ `Object.assign` + ۱ فراخوانی چسب + ۱ خط تک‌نامی‌شدهٔ `date.utils.js` | ۱۶۶۴ خط متدهای منتقل‌شده + ۴ خط ایمپورت چندخطی `date.utils.js` |
+
+هیچ متدی، هیچ نام `window.*` و هیچ ویژگی نمونه‌ای تغییر نکرد. همچنین import
+`customer-detail.renderer.js`/`TaskCard`/`string.utils.js`/`date.utils.js` سرویس دقیقاً
+همان‌هایی هستند که متدهای باقی‌مانده مصرف می‌کنند (گیت `33-service-imports-minimal`).
+
+### د) نتیجهٔ عددی موج ۳.۲a
+
+| شاخص | پیش از موج | پس از موج |
+| --- | --- | --- |
+| حجم `dashboard.service.js` | ۱۵۷.۴KB | **۸۷.۱KB** (−۴۵٪) |
+| خطوط `dashboard.service.js` | ۴۰۶۹ | **۲۴۱۰** (−۴۱٪) |
+| بزرگ‌ترین فایل این خوشه | ۱۵۷.۴KB (خودِ سرویس) | ۴۳.۰KB (`dashboard.sms.js`) |
+| اعضای `prototype` سرویس | ۷۸ (۶۳+۱۵) | **۷۸** (۶۳ کلاس + ۱۰ پیامک + ۵ بوکمارک) |
+| نام‌های `window.*` داشبورد | ۲۴ | **۲۴** |
+| سرویس‌های اسنپ‌شات قرارداد | ۴۶ | ۴۷ |
+| فایل‌های فرانت (اسکن‌شده) | ۱۴۷ | ۱۵۰ |
+| کل حجم `src` | ۲.۳۷ MB | ۲.۳۸ MB |
+
+### ه) شواهد تأیید نهایی (اجرای واقعی روی همین برنچ)
+
+| # | شاهد | نتیجه |
+| --- | --- | --- |
+| ۱ | `node _3_2a_split.mjs` | `✅ SPLIT 3.2a PASS` — ۳۴ شناسه / ۹۸ خط PASS، `exit=0` |
+| ۲ | **اجرای دوبارهٔ مهاجرت از مبدأ دست‌نخوردهٔ `HEAD`** و مقایسهٔ SHA-256 | هر چهار فایل **بایت‌به‌بایت یکسان** ⇒ نتیجه قطعی و بازتولیدپذیر است |
+| ۳ | `npx eslint` روی هر چهار فایل تولیدی | `exit=0` |
+| ۴ | ۱۲ تست فرانت (`npm run test:*`) | همه `exit=0` |
+| ۵ | `npm run lint` | `exit=0` |
+| ۶ | `npm run audit:size` · `audit:dead-exports` · `audit:surface` | همه `exit=0` (بدون «گم‌شده») |
+| ۷ | `npm run audit:surface -- --snapshot` | `docs/service-surface.json` بازتولید شد: `DashboardService` دارای `mixins` (sms ۱۰ + bookmarks ۵)، `dashboard.window-glue.js` با ۲۴ نام، ۷۸ عضو `prototype` |
+
+### و) گارد دائمی جدید — `npm run test:dashboard-surface`
+
+فایل جدید: `Frontend/dashboard-service-surface-test.mjs` (فقط‌خواندنی، منبع حقیقت:
+همان `docs/service-surface.json`؛ هیچ عددی دستی در تست نیست). ۱۱ بررسی:
+
+| # | بررسی | مبنای اسنپ‌شات |
+| --- | --- | --- |
+| ۱ | import واقعی سرویس در Node با استاب `window`/`document`/`localStorage` و ساخت نمونه | — |
+| ۲ | نمونه واقعاً از کلاس چسب‌خورده ساخته شده (هر دو `Object.assign` اجرا شده‌اند) | `classes.DashboardService.mixins` |
+| ۳ | همهٔ ۷۸ عضو روی `prototype` تابع‌اند | `classes.DashboardService.methods` + `mixins` |
+| ۴ | تعداد اعضای `prototype` دقیقاً ۷۸ است | اجتماع دو فهرست بالا |
+| ۵ | فایل `dashboard.bookmarks.js` روی دیسک + ۵ متد شاخص روی نمونه | `classes.DashboardService.mixins` |
+| ۶ | فایل `dashboard.sms.js` روی دیسک + ۱۰ متد شاخص روی نمونه | همان |
+| ۷ | ویژگی‌های نمونهٔ اعلام‌شده موجودند (۳۱ مورد) | `classes.DashboardService.properties` |
+| ۸ | همهٔ ۲۴ نام چسب `window.*` ثبت شده‌اند | `services[...dashboard.window-glue.js].windowGlobals` |
+| ۹ | `window.dashboardService` همان نمونهٔ سرویس است | همان |
+| ۱۰ | `window.DashboardService` کلاس سازندهٔ همان نمونه است | — |
+| ۱۱ | گزارش اطلاعی «اعضای تنبل» و «ثبت هنگام‌نیاز» (۸ مورد) | — |
+
+خروجی واقعی روی همین برنچ `SURFACE PASS` و `exit=0` است.
+
+> 🔎 سه نکتهٔ ظریف که همین گارد و اسکریپت آشکار کردند:
+> 1. **کلاس `DashboardService` صادر (export) نمی‌شود** — فقط نمونهٔ `dashboardService`
+>    صادر می‌شود؛ کلاس تنها از مسیر `window.DashboardService` قابل دسترسی است. اولین
+>    نسخهٔ گارد فرض کرده بود کلاس صادر می‌شود و شکست خورد (شفافیت: همان‌جا اصلاح شد).
+> 2. **`setDashboardChartLayout` «هنگام نیاز» ثبت می‌شود** — داخل `setupChartLayoutToggle()`
+>    و نه در زمان import؛ پس در گارد `window` کنار گذاشته و جداگانه گزارش می‌شود.
+> 3. هفت عضو «تنبل» (`_chartLoadingTimer`، `_chartRequestSeq`، `_cardsSignature`،
+>    `_valueLabelPlugin`، `refreshInterval`، `selectedFlockGroupId`، `smsHistoryCtx`) در
+>    اسنپ‌شات اعلام شده‌اند ولی فقط پس از اجرای واقعی ساخته می‌شوند؛ گارد آن‌ها را اطلاعی
+>    گزارش می‌کند (نه خطا).
+
+### ز) یادداشت نگه‌داری
+
+- اسکریپت مهاجرت (`_3_2a_split.mjs` و ابزارهای کمکی `_3_2a_scan.mjs`/`_3_2a_probe.mjs`)
+  **موقت** بود و پس از تأیید حذف شد؛ فقط ۴ فایل `src` + گارد دائمی + اسنپ‌شات می‌مانند.
+- گارد `test:dashboard-surface` در `package.json` ثبت شد؛ برای سرویس بعدی همین الگو
+  (استاب حداقلی + اسنپ‌شات قرارداد + اسکریپت npm) تکرار می‌شود.
+- در بازبینی این موج **نقص تازهای** پیدا نشد؛ دو نقص شناختهشدهٔ پیش‌موج (`viewPeriod` و
+  `savePeriod`) مربوط به سرویس‌های جوجه‌ریزی‌اند (نه داشبورد) و طبق اصل «بدون تغییر رفتار»
+  دست‌نخورده ماندند (بخش ۸ و بندهای ۸ و ۹ سند `docs/HOTSPOTS.md`).
+
+### ح) گام بعدی
+
+`weekly.service.js` (۱۱۸.۶KB) بزرگ‌ترین فایل باقی‌ماندهٔ فرانت است؛ پیش‌شرط برش آن، یک
+تست رفتاری برای محاسبات هفته است (چون سرویس محاسباتی است، نه فقط چسب DOM). پس از آن
+`halls.service.js` و `chart-dashboard.service.js`.
+
