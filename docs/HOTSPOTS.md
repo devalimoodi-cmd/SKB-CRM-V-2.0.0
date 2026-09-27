@@ -1,8 +1,8 @@
 # نقاط داغ پروژه (Hotspots)
 
 > سند زنده — با اجرای اسکریپت‌های audit به‌رو نگه داشته می‌شود.
-> آخرین به‌روزرسانی: **موج ۳.۲c — شکستن `halls.service.js` (چاق‌ترین فایل مخزن) به ۸ mixin دامنه‌ای + چسب پنجره + گارد دائمی سطح سالن‌ها** (برنچ `chore/wave-3.2c-split-halls`).
-> گزارش‌های کامل: `docs/REVIEW-WAVE-3.md` (موج ۳.۲c و ۳.۲b و ۳.۲a و ۳.۱) · `docs/REVIEW-WAVE-2.md` (موج ۲) · `docs/REVIEW.md` (موج ۰ و ۱)
+> آخرین به‌روزرسانی: **موج ۳.۲d — برش بدنهٔ چهار متد غول خوشهٔ سالن‌ها (۳۰ → ۲۶ متد بزرگ‌تر از بودجه) بدون تغییر یک بایت خروجی** (ادامهٔ برنچ `chore/wave-3.2c-split-halls`).
+> گزارش‌های کامل: `docs/REVIEW-WAVE-3.md` (موج ۳.۲d و ۳.۲c و ۳.۲b و ۳.۲a و ۳.۱) · `docs/REVIEW-WAVE-2.md` (موج ۲) · `docs/REVIEW.md` (موج ۰ و ۱)
 
 ## چطور اندازه‌گیری می‌شود؟
 
@@ -126,21 +126,36 @@ import می‌کند و همان اعداد اسنپ‌شات را روی نمو
 > `prototype` = ۱ سازنده + ۷۰ متد در ۸ mixin · ۳۳ نام `window.*` در `halls.window-glue.js` ·
 > سرویس‌های ثبت‌شده ۴۹ → ۵۰ · سراسری‌های کل مخزن ۲۴۶ → ۲۴۶.
 
+> 📉 **موج ۳.۲d (برش بدنه، بدون تغییر فایل):** بدنِ چهار متد غول همین خوشه بیرون کشیده شد —
+> `halls.report.js` (`generateHTML` ۴۵۰ → ۴۶ + ۷ قطعه: ۶ تابع و ثابت `REPORT_STYLE_BLOCK`)،
+> `halls.renderer.js` (`renderHallInfo` ۲۵۴ → ۲۰ + ۵ تابع)، `halls.basic.js` (`saveBasicInfo`
+> ۱۷۷ → ۶۵ + ۷ تابع) و `halls.units.js` (`renderUnitDetailsPanel` ۱۶۵ → ۲۲ + ۴ تابع).
+> روی‌هم **۲۲ تابع کمکی + یک ثابت** ماژول‌محلی با نام صریح؛ هیچ عضو/`export` تازه‌ای ساخته نشد و
+> هم سطح عمومی (`npm run test:halls:surface`: ۷۱ عضو · ۳۳ نام · ۱۷ ویژگی) و هم خروجی HTML
+> (گارد طلایی `npm run test:halls:body`: ۱۳۶ بررسی · ۱۷ کِیس) بایت‌به‌بایت دست‌نخورده ماند.
+> شرح: `docs/REVIEW-WAVE-3.md` بخش ۱۵.
+
 #### بزرگ‌ترین متدهای باقی‌مانده (بودجهٔ ۱۵۰ خط)
 
-۳۰ متد از بودجه بزرگ‌ترند؛ فهرست کامل با `npm run audit:big-methods`. پنج مورد اول:
+۲۶ متد از بودجه بزرگ‌ترند؛ فهرست کامل با `npm run audit:big-methods`. پنج مورد اول:
 
 | خطوط | مکان | نام |
 | --- | --- | --- |
 | ۵۲۴ | `weekly/weekly.renderer.js:746` | `weeklyRenderer.renderFullReport` |
-| ۴۵۰ | `hall-management/halls.report.js:491` | `generateHTML` |
 | ۳۶۵ | `hatchery/hatchery.completion.period.js:724` | `hatcheryCompletionPeriodMethods.editPeriodCompletion` |
 | ۳۳۶ | `weekly/weekly.report.history.html.js:36` | `buildWeeklyHistoryHTML` |
 | ۳۰۴ | `weekly/weekly.cards.js:92` | `renderWeeks` |
+| ۲۸۴ | `dashboard/dashboard.bookmarks.js:119` | `dashboardBookmarkMethods.showCreateBookmarkModal` |
 
 برش فایل این دو «غول» را کوچک **نکرد**: `buildWeeklyHistoryHTML` همان ۳۳۶ خط است و فقط خانه‌اش
 از `weekly.service.js` به `weekly.report.history.html.js` منتقل شد؛ `renderWeeks` (۳۰۴ خط) هم
 به `weekly.cards.js` رفت. بزرگ‌ترین متد مخزن همچنان `weeklyRenderer.renderFullReport` (۵۲۴ خط) است.
+
+در موج ۳.۲d چهار متد غول خوشهٔ سالن‌ها **برش بدنه** خوردند (نه جابه‌جایی فایل): `generateHTML`
+۴۵۰ → ۴۶، `renderHallInfo` ۲۵۴ → ۲۰، `saveBasicInfo` ۱۷۷ → ۶۵ و `renderUnitDetailsPanel`
+۱۶۵ → ۲۲ خط — ۲۲ تابع کمکی ماژول‌محلی، با گارد بایت‌به‌بایت `npm run test:halls:body` و بدون
+تغییر یک عضو سطح عمومی. بهترین نامزد بعدی برای همین الگو: `weeklyRenderer.renderFullReport`
+(۵۲۴ خط) و `hatcheryCompletionPeriodMethods.editPeriodCompletion` (۳۶۵ خط).
 
 #### فایل‌های js بی‌ارجاع (نه `import`، نه `<script src>`)
 
@@ -184,9 +199,11 @@ import می‌کند و همان اعداد اسنپ‌شات را روی نمو
    `halls.units.js` (۱۶)، `halls.systems.js` (۸)، `halls.forms.js` (۶) + `halls.window-glue.js`
    (۳۳ نام `window.*`) ⇒ ۹۷.۶KB → ۲.۵KB با همان ۷۱ عضو سطح عمومی. گارد زمان اجرا
    `npm run test:halls:surface` (۲۴ بررسی) اضافه شد. شرح: `docs/REVIEW-WAVE-3.md` بخش ۱۴.
-   ⛔ باقی‌ماندهٔ همین خوشه (برش **بدنهٔ متد**، نه فایل): `generateHTML` ۴۵۰ خط
-   (`halls.report.js:491`)، `renderHallInfo` ۲۵۴ خط (`halls.renderer.js:281`)، `saveBasicInfo`
-   ۱۷۷ خط (`halls.basic.js:235`) و `renderUnitDetailsPanel` ۱۶۵ خط (`halls.units.js:292`).
+   ✅ باقی‌ماندهٔ همین خوشه هم در **موج ۳.۲d** تمام شد (برش **بدنهٔ متد**، نه فایل):
+   `generateHTML` ۴۵۰ → ۴۶ (`halls.report.js`)، `renderHallInfo` ۲۵۴ → ۲۰ (`halls.renderer.js`)،
+   `saveBasicInfo` ۱۷۷ → ۶۵ (`halls.basic.js`) و `renderUnitDetailsPanel` ۱۶۵ → ۲۲
+   (`halls.units.js`) — ۲۲ تابع کمکی ماژول‌محلی، صفر تغییر در سطح عمومی و صفر تغییر بایت در
+   خروجی (گارد `npm run test:halls:body`). شرح: `docs/REVIEW-WAVE-3.md` بخش ۱۵.
    **`chart-dashboard.service.js` (۷۱.۴KB)** همچنان دست‌نخورده است: `renderAllCharts` ۲۲۳ خط
    (`chart-dashboard.service.js:1385`) و `renderContainer` ۲۴۹ خط (`chart-dashboard.renderer.js:8`).
 5. **`customer-info.html` (۹۷.۲KB)** — بزرگ‌ترین فایل مخزن پس از موج ۳.۲c؛ صفحهٔ چاق؛ انتقال هندلرهای inline به «چسب پنجره»
