@@ -788,9 +788,13 @@ surface.forEach(([label, target, name]) =>
 
 const captured = {};
 const a1 = { html: "" };
+// نرمال‌سازی پایان خط: نگهبان «برابری محتوا» را می‌سنجد، نه قرارداد پایان خط
+// (core.autocrlf=true در این مخزن می‌تواند همان فایل LF را روی checkout به CRLF
+// تبدیل کند و بی‌دلیل همهٔ هش‌های قالب‌های HTML را بشکند).
+const normalizeNewlines = (payload) => payload.replace(/\r\n/g, "\n");
 for (const testCase of cases) {
   resetCalls();
-  const payload = await testCase.run();
+  const payload = normalizeNewlines(await testCase.run());
   captured[testCase.name] = {
     bytes: Buffer.byteLength(payload, "utf8"),
     sha256: sha256(payload),
