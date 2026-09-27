@@ -16,6 +16,7 @@
     "test:customer-fields": "node customer-fields-test.mjs",
     "test:customer-detail": "node customer-detail-modal-test.mjs",
     "test:hatchery-utils": "node hatchery-slaughter-utils-test.mjs",
+    "test:hatchery-surface": "node hatchery-service-surface-test.mjs",
     "audit:size": "node scripts/audit-size.mjs",
     "audit:dead-exports": "node scripts/audit-dead-exports.mjs",
     "audit:surface": "node scripts/audit-service-surface.mjs",

@@ -194,7 +194,8 @@ ALL GATES PASSED ✅
 | اندازهٔ فایل‌ها | `npm run audit:size -- --fail-on-empty` | فایل صفر‌بایتی ۰ |
 | صادرات بی‌ارجاع | `npm run audit:dead-exports` | ۷۱ (بی‌تغییر) |
 | متدهای بزرگ | `npm run audit:big-methods` | ۳۰ (بی‌تغییر) |
-| اسموک‌تست زمان اجرا | `node _3_1_smoke.mjs` | `SMOKE PASS ✅` |
+| اسموک‌تست زمان اجرا | `node _3_1_smoke.mjs` (فایل موقت، حذف شد) | `SMOKE PASS ✅` |
+| گارد دائمی سطح زمان اجرا | `npm run test:hatchery-surface` | `SMOKE PASS ✅` (جایگزین دائمی همان اسموک‌تست — بخش ۱۱) |
 
 ### ب) شاهد «انتقال کلمه‌به‌کلمه»
 
@@ -257,6 +258,14 @@ SMOKE PASS ✅
   `?.` صدا زده می‌شود خطایی رخ نمی‌دهد و دکمهٔ «مشاهدهٔ ردیف دوره» بی‌اثر است.
   `audit:surface` این مورد را به‌عنوان «۱ اطلاعی» گزارش می‌کند. **عمداً دست‌نخورده** ماند
   (اصل عدم تغییر رفتار) — تسویه در موج بعد.
+- **P2-۳: ارجاع آویزان `savePeriod` (تسویه نشده)** — تعریف `async savePeriod()` در کامیت
+  `e250186` («FIX backend and Frontend - step2») حذف شده، ولی دو صداکننده‌اش مانده است:
+  `hatchery.service.js:351` (`setupEvents` → کلیک دکمهٔ `.btn-primary` تب `#chickPeriodInfoTab`)
+  و `hatchery.window-glue.js:28` (`window.saveChickPeriodInfo`). در کامیت `0458dab` تعریف
+  وجود داشت، پس **رگرسیون پیش‌موجود** است (اثر موج‌های ۲/۳ نیست). چون
+  `hatcheryApi.createPeriod` و `hatcheryValidation.validatePeriod` هم حذف شده‌اند،
+  بازگردانی یک‌به‌یک ممکن نیست. **عمداً دست‌نخورده** ماند؛ گارد زمان اجرا آن را
+  «اطلاعی» گزارش می‌کند (بخش ۱۱) و حذف/بازطراحی آن تصمیم موج بعد است.
 - **P2-۲: سه متد بزرگ، همه در همین خوشه** — `editPeriodCompletion` (۳۶۵ خط)،
   `completePeriod` (۲۷۸ خط)، `_collectCompletionSave` (۲۰۳ خط). برش این موج بر اساس
   **دامنه** بود، نه اندازه؛ شکستن این سه تابع، تغییر ساختار داخلی است و در موج بعد
@@ -294,6 +303,7 @@ npm run test:cache && npm run test:denied && npm run test:toast
 npm run test:weekly && npm run test:weekly:report && npm run test:weekly:groups
 npm run test:weekly:history && npm run test:customer-fields && npm run test:customer-detail
 npm run test:hatchery-utils
+npm run test:hatchery-surface    # گارد زمان اجرا: import واقعی سرویس + پارتیشن‌های اسنپ‌شات
 npm run audit:surface            # اگر عضو گم شود یا قرارداد فراخوانی نقض شود، exit=1
 npm run audit:size -- --fail-on-empty
 npm run audit:big-methods
@@ -328,8 +338,45 @@ npm run audit:dead-exports
 | ۳ | شکستن سه متد بزرگ خودِ خوشهٔ پایان دوره | `editPeriodCompletion` ۳۶۵ خط، `completePeriod` ۲۷۸، `_collectCompletionSave` ۲۰۳ — با تست رفتاری اختصاصی |
 | ۴ | `halls.service.js` (۹۷.۶KB) و `chart-dashboard.service.js` (۷۱.۴KB) | `saveBasicInfo` ۱۷۷ خط، `renderUnitDetailsPanel` ۱۶۵، `renderAllCharts` ۲۲۳ |
 | ۵ | نازک‌کردن `customer-info.html` (۹۵.۹KB) | انتقال هندلرهای inline به «چسب پنجره» — همان الگوی موج ۲.۱ |
-| ۶ | تسویه‌ها | باگ `viewPeriod` (P2-۱)، تصمیم دربارهٔ ۷۱ export بی‌مصرف، خوشهٔ SMS و روت‌های `/sms` |
+| ۶ | تسویه‌ها | باگ `viewPeriod` (P2-۱)، ارجاع آویزان `savePeriod` (P2-۳)، تصمیم دربارهٔ ۷۱ export بی‌مصرف، خوشهٔ SMS و روت‌های `/sms` |
 
 > 🧭 سیاست موج ۳ (همان سیاست موج ۲): اصل «بدون تغییر رفتار» + `npm run audit:surface`
 > قبل و بعد از هر گام. اگر «گم‌شده» گزارش داد، جابه‌جایی ناقص است و باید متوقف شود.
 > برای برش‌های بایت‌به‌بایت، از الگوی «اسکریپت مهاجرت با گیت اثبات» همین موج استفاده کنید.
+
+---
+
+## ۱۱) گام تکمیلی — تبدیل اسموک‌تست موقت به گارد دائمی (زمان اجرا)
+
+اسموک‌تست موج ۳.۱ (`_3_1_smoke.mjs`) موقت بود و پس از تأیید حذف شد. برای اینکه همان
+«اثبات زمان اجرا» به یک گیت دائمی تبدیل شود، در همین برنچ اضافه شد:
+
+- **فایل جدید:** `Frontend/hatchery-service-surface-test.mjs` (فقط‌خواندنی)
+- **اسکریپت npm:** `test:hatchery-surface` در `Frontend/package.json`
+- **منبع حقیقت:** همان `docs/service-surface.json` — هیچ عددی دستی در تست نیست.
+
+### هشت بررسی این گارد
+
+| # | بررسی | مبنای اسنپ‌شات |
+| --- | --- | --- |
+| ۱ | import واقعی سرویس با استاب `window`/`document`/`localStorage` | — |
+| ۲ | همهٔ ۱۰۱ عضو (۶۲ کلاس + ۵+۲۳+۱۱ mixin) روی `prototype` تابع‌اند | `classes.HatcheryService.methods` + `mixins` |
+| ۳ | تعداد اعضای `prototype` دقیقاً ۱۰۱ است | اجتماع دو فهرست بالا |
+| ۴ | فایل هر سه mixin روی دیسک + یک متد شاخص روی نمونه | `classes.HatcheryService.mixins` |
+| ۵ | ویژگی‌های نمونهٔ اعلام‌شده موجودند (۱۷ مورد) | `classes.HatcheryService.properties` |
+| ۶ | همهٔ ۵۷ نام چسب `window.*` ثبت شده‌اند | `services[...hatchery.window-glue.js].windowGlobals` |
+| ۷ | `window.hatcheryService` همان نمونهٔ سرویس است | همان |
+| ۸ | گزارش اطلاعی اعضای اضافه (روی `prototype` و `window`) | — |
+
+خروجی واقعی روی همین برنچ `SMOKE PASS` و `exit=0` است. اعضای اضافهٔ `window`
+(۸ نام مثل `stateService` و `openSmsHistoryModal`) از ماژول‌های دیگر می‌آیند و اطلاعی‌اند.
+
+### یافتهٔ تازهٔ همین گارد: ارجاع آویزان `savePeriod` (P2-۳)
+
+بررسی ۵ نشان داد `savePeriod` — که در `properties` اسنپ‌شات هست — روی نمونهٔ واقعی
+وجود ندارد. ریشه‌یابی با تاریخچه: تعریف `async savePeriod()` در `0458dab` بود و در
+`e250186` حذف شد، ولی `hatchery.service.js:351` و `hatchery.window-glue.js:28` هنوز آن را
+صدا می‌زنند. پس این یک **رگرسیون پیش‌موجود** است، نه اثر این موج؛ طبق اصل «بدون تغییر
+رفتار» دست‌نخورده ماند و در `docs/HOTSPOTS.md` (بند ۹) و بخش ۸ همین سند (`P2-۳`) ثبت شد.
+گارد آن را «اطلاعی» گزارش می‌کند (`DANGLING_CALLS`) ولی اگر نام **تازه‌ای** گم شود،
+فوراً `exit=1` می‌دهد.
