@@ -15,6 +15,7 @@
     "test:weekly:history": "node weekly-history-render-test.mjs",
     "test:weekly:surface": "node weekly-service-surface-test.mjs",
     "test:halls:surface": "node halls-service-surface-test.mjs",
+    "test:halls:body": "node halls-body-split-test.mjs",
     "test:customer-fields": "node customer-fields-test.mjs",
     "test:customer-detail": "node customer-detail-modal-test.mjs",
     "test:hatchery-utils": "node hatchery-slaughter-utils-test.mjs",
