@@ -1950,12 +1950,9 @@
             "_renderExternalTooltip",
             "addChartComparison",
             "buildCardsSignature",
-            "buildSmsStatusContent",
-            "buildSmsStatusHTML",
             "closeSmsLoader",
             "constructor",
             "createFlockCharts",
-            "deleteBookmark",
             "destroy",
             "destroyFlockCharts",
             "ensureChartCompareUi",
@@ -1975,15 +1972,10 @@
             "loadSummary",
             "openChartComparePicker",
             "refresh",
-            "refreshAllTaskSmsStatus",
             "refreshFlockCardsSilently",
-            "refreshSmsHistoryFromModal",
-            "refreshSmsStatus",
             "removeAllDangerCards",
             "removeChartCompare",
             "removeTaskCard",
-            "renderBookmarkItem",
-            "renderBookmarks",
             "renderChartSeriesToggles",
             "renderCompareChips",
             "renderFlockCharts",
@@ -1993,21 +1985,15 @@
             "resetCompareSeries",
             "selectFlockForChart",
             "selectFlockGroupForChart",
-            "sendFlockCardSms",
-            "sendSmsToCustomer",
             "setChartsLoading",
             "setupAccordion",
             "setupChartLayoutToggle",
             "setupChartOptions",
             "setupCharts",
             "setupEvents",
-            "showBookmarkDetail",
-            "showCreateBookmarkModal",
             "showCustomerDetail",
             "showNoFlockSelectedMessage",
-            "showSmsHistory",
             "showSmsLoader",
-            "showSmsModal",
             "startAutoRefresh",
             "switchCustomerDetailTab",
             "toggleChartSeries",
@@ -2017,8 +2003,7 @@
             "updateChartSelectionHeader",
             "updateCharts",
             "updateHallSmsChip",
-            "updateSmsChipsFromCards",
-            "updateTaskSmsStatus"
+            "updateSmsChipsFromCards"
           ],
           "properties": [
             "_addPickedComparisons",
@@ -2111,9 +2096,36 @@
             "updateSmsChipsFromCards",
             "updateTaskSmsStatus"
           ],
-          "mixins": {}
+          "mixins": {
+            "src/features/dashboard/dashboard.bookmarks.js": [
+              "deleteBookmark",
+              "renderBookmarkItem",
+              "renderBookmarks",
+              "showBookmarkDetail",
+              "showCreateBookmarkModal"
+            ],
+            "src/features/dashboard/dashboard.sms.js": [
+              "buildSmsStatusContent",
+              "buildSmsStatusHTML",
+              "refreshAllTaskSmsStatus",
+              "refreshSmsHistoryFromModal",
+              "refreshSmsStatus",
+              "sendFlockCardSms",
+              "sendSmsToCustomer",
+              "showSmsHistory",
+              "showSmsModal",
+              "updateTaskSmsStatus"
+            ]
+          }
         }
       },
+      "windowGlobals": [
+        "setDashboardChartLayout"
+      ]
+    },
+    "src/features/dashboard/dashboard.window-glue.js": {
+      "instances": {},
+      "classes": {},
       "windowGlobals": [
         "DashboardService",
         "dashboardService",
@@ -2129,7 +2141,6 @@
         "selectFlockGroupForChart",
         "sendFlockCardSms",
         "sendSmsToCustomer",
-        "setDashboardChartLayout",
         "showBookmarkDetail",
         "showCreateBookmarkModal",
         "showCustomerDetail",
