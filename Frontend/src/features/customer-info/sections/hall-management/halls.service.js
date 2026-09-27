@@ -573,12 +573,10 @@ class HallsService {
       lengthInput.addEventListener("input", () => this.calculateArea());
       widthInput.addEventListener("input", () => this.calculateArea());
     }
-    const provinceSelect = document.getElementById("skb-province");
-    if (provinceSelect) {
-      provinceSelect.addEventListener("change", (e) => {
-        if (e.target.value) this.loadCities(e.target.value);
-      });
-    }
+    // ✅ شنوندهٔ «تغییر استان» اینجا لازم نیست: فیلد `#skb-province` متعلق به بخش
+    // «اطلاعات پایه» است و basic-info.service.js (خط ۱۲۴-۱۳۱) خودش شهرستان‌ها را
+    // بارگذاری می‌کند. پیش‌تر اینجا متد `loadCities` (که روی HallsService وجود
+    // ندارد) صدا زده می‌شد ⇒ به‌ازای هر تغییر استان TypeError در کنسول.
     const unitNumSelect = document.getElementById("UnitNumber");
     if (unitNumSelect) {
       unitNumSelect.addEventListener("change", () => {
@@ -2381,7 +2379,9 @@ if (typeof window !== "undefined") {
   window.hallsService = hallsService;
   window.HallsService = HallsService;
   window.loadAllHallsDropdowns = () => hallsService.updateHallsDropdowns();
-  window.loadPeriodsDropdown = () => hallsService.loadPeriods();
+  // ✅ پیش‌تر به متد ناموجود `loadPeriods()` اشاره می‌کرد که روی سرویس وجود
+  // ندارد (TypeError در شاخهٔ فالبک)؛ `loadUnits` همان بارگذاری دوره‌هاست.
+  window.loadPeriodsDropdown = () => hallsService.loadUnits();
   window.renderHallsList = () => hallsService.renderHallsList();
   window.refreshAllHallsDropdowns = () => hallsService.updateHallsDropdowns();
   window.checkHasActivePeriod = (id) => hallsService.checkActivePeriod();
