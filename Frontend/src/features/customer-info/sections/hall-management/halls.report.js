@@ -489,150 +489,21 @@ class HallsReport {
   }
 
   generateHTML(reportData) {
-    const { customer, halls, units, generatedAt } = reportData;
-    const now = new Date(generatedAt);
-    const persianDate = formatDate(now);
+    const { customer, halls, units } = reportData;
+    const { persianDate, reportDate, reportTime, reporterName, roleText } =
+      resolveReportContext(reportData);
 
-    // تاریخ و ساعت دریافت گزارش (شمسی/فارسی)
-    const reportDate = new Intl.DateTimeFormat("fa-IR", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    }).format(now);
-    const reportTime = new Intl.DateTimeFormat("fa-IR", {
-      hour: "2-digit",
-      minute: "2-digit",
-    }).format(now);
+    // دو متد رندر سالن/واحد روی همین نمونه اجرا می‌شوند (renderUnitDetails خودش
+    // به this.getExpertName وابسته است)، پس با wrapper به تابع کمکی پاس می‌شوند.
+    const renderers = {
+      renderHallHTML: (hall, index) => this.renderHallHTML(hall, index),
+      renderUnitDetails: (unit) => this.renderUnitDetails(unit),
+    };
+    const unitSectionsHTML = buildUnitSectionsHtml(renderers, halls, units);
 
-    // ===== دریافت‌کننده گزارش (کاربر لاگین‌شده) =====
-    const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
-    const reporterName =
-      currentUser.fullName ||
-      [currentUser.first_name, currentUser.last_name]
-        .filter(Boolean)
-        .join(" ") ||
-      currentUser.username ||
-      "کاربر ناشناس";
-    const roleText =
-      {
-        super_admin: "مدیر اصلی",
-        admin: "مدیر",
-        sub_admin: "مدیر میانی",
-        expert: "کارشناس",
-        customer: "مشتری",
-      }[currentUser.role] || "کاربر";
+    const totals = computeReportTotals(halls, units);
 
-    // ===== گروه‌بندی سالن‌ها بر اساس واحد =====
-    const hallsWithoutUnit = halls.filter((h) => !h.unit_id);
-    let unitSectionsHTML = "";
-
-    // برای هر واحد، سالن‌های مربوطه را پیدا کن
-    units.forEach((unit, unitIndex) => {
-      const unitHalls = halls.filter((h) => h.unit_id == unit.id);
-      if (unitHalls.length === 0) return; // واحد بدون سالن در گروه‌بندی اصلی نمایش داده نمی‌شود
-
-      const activeCount = unitHalls.filter((h) => h.is_active).length;
-      const totalCapacity = unitHalls.reduce(
-        (sum, h) => sum + (parseInt(h.nominal_capacity) || 0),
-        0,
-      );
-      const flockCount = unitHalls.filter((h) => h.chickInfo).length;
-      const totalChicks = unitHalls.reduce(
-        (sum, h) => sum + (parseInt(h.chickInfo?.total_chicks_count) || 0),
-        0,
-      );
-
-      const hallsHTML = unitHalls
-        .map((hall, i) => this.renderHallHTML(hall, i))
-        .join("");
-
-      unitSectionsHTML += `
-        <div class="report-unit">
-          <div class="report-unit-header">
-            <div class="report-unit-title">
-              <i class="fas fa-warehouse"></i>
-              <span>${unit.unit_name || `واحد ${unit.id}`}</span>
-              <span class="badge ${unit.is_active !== false ? "bg-success" : "bg-secondary"}">
-                ${unit.is_active !== false ? "فعال" : "غیرفعال"}
-              </span>
-            </div>
-            <div class="report-unit-stats">
-              <span>${unitHalls.length} سالن</span>
-              <span>${activeCount} فعال</span>
-              <span>ظرفیت: ${totalCapacity.toLocaleString()}</span>
-              <span>${flockCount} گله</span>
-              <span>${totalChicks.toLocaleString()} جوجه</span>
-            </div>
-          </div>
-          <div class="report-unit-body">
-            ${this.renderUnitDetails(unit)}
-            ${hallsHTML}
-          </div>
-        </div>
-      `;
-    });
-
-    // سالن‌هایی که unit_id ندارند
-    if (hallsWithoutUnit.length > 0) {
-      const hallsHTML = hallsWithoutUnit
-        .map((hall, i) => this.renderHallHTML(hall, i))
-        .join("");
-
-      unitSectionsHTML += `
-        <div class="report-unit">
-          <div class="report-unit-header">
-            <div class="report-unit-title">
-              <i class="fas fa-question-circle"></i>
-              <span>سالن‌های بدون واحد</span>
-            </div>
-            <div class="report-unit-stats">
-              <span>${hallsWithoutUnit.length} سالن</span>
-            </div>
-          </div>
-          <div class="report-unit-body">
-            ${hallsHTML}
-          </div>
-        </div>
-      `;
-    }
-
-    // اگر هیچ واحدی نبود، همه سالن‌ها را مستقیم نمایش بده
-    if (unitSectionsHTML === "") {
-      unitSectionsHTML = halls
-        .map((hall, i) => this.renderHallHTML(hall, i))
-        .join("");
-    }
-
-    const totalCapacity = halls.reduce(
-      (sum, h) => sum + (parseInt(h.nominal_capacity) || 0),
-      0,
-    );
-    const activeHalls = halls.filter((h) => h.is_active).length;
-    const hallsWithChick = halls.filter((h) => h.chickInfo).length;
-    const unitsWithHalls = units.filter((u) =>
-      halls.some((h) => h.unit_id == u.id),
-    ).length;
-    const totalChicks = halls.reduce(
-      (sum, h) => sum + (parseInt(h.chickInfo?.total_chicks_count) || 0),
-      0,
-    );
-
-    const customerHTML = customer
-      ? `
-      <div class="report-customer-info">
-        <table class="customer-info-table">
-          <tr>
-            <td><strong>نام مشتری:</strong> ${customer.full_name || "-"}</td>
-            <td><strong>نام فارم:</strong> ${customer.farm_name || "-"}</td>
-          </tr>
-          <tr>
-            <td><strong>موبایل:</strong> ${customer.mobile_number || "-"}</td>
-            <td><strong>استان:</strong> ${customer.province || "-"} | <strong>شهرستان:</strong> ${customer.county || "-"}</td>
-          </tr>
-        </table>
-        <p><strong>آدرس:</strong> ${customer.farm_address || "-"}</p>
-      </div>`
-      : "";
+    const customerHTML = buildCustomerInfoHtml(customer);
 
     return `
       <!DOCTYPE html>
@@ -641,7 +512,62 @@ class HallsReport {
         <meta charset="UTF-8">
         <title>گزارش کامل واحدها و سالن‌ها</title>
         <style>
-          @font-face {
+${REPORT_STYLE_BLOCK}
+        </style>
+      </head>
+      <body>
+        <div class="report-header">
+          <img class="report-logo" src="/assets/images/skb-logo.png" alt="لوگوی شرکت" onerror="this.style.display='none'">
+          <h1>📋 گزارش کامل واحدها و سالن‌ها</h1>
+          <div class="date">تاریخ گزارش: ${persianDate}</div>
+        </div>
+        ${customerHTML}
+
+        ${buildSummaryStatsHtml(totals, halls, units)}
+
+        ${unitSectionsHTML}
+
+        ${buildReportFooterHtml({ reporterName, roleText, reportDate, reportTime })}
+        <script>
+          window.onload = function() { window.print(); }
+        </script>
+      </body>
+      </html>
+    `;
+  }
+
+  async generateAndPrint() {
+    try {
+      await this.init();
+      const reportData = await this.generateFullReport();
+      const html = this.generateHTML(reportData);
+
+      const printWindow = window.open("", "_blank", "width=1100,height=800");
+      if (!printWindow) {
+        notificationService.warning("لطفاً باز شدن پنجره popup را مجاز کنید");
+        return;
+      }
+      // ✅ پاک‌سازی خروجی گزارش (جلوگیری از اجرای اسکریپت تزریق‌شده از دیتابیس)
+      printWindow.document.write(sanitizeHtmlDocument(html));
+      printWindow.document.close();
+    } catch (error) {
+      console.error("❌ Error generating report:", error);
+      notificationService.error("خطا در تولید گزارش: " + error.message);
+    }
+  }
+}
+
+// ================================================================
+// توابع ماژول‌محلی برش بدنهٔ generateHTML (موج ۳.۲d)
+// ----------------------------------------------------------------
+// هدف: کوچک‌کردن «بدنهٔ متد» بدون تغییر یک بایت از خروجی، بدون تغییر فایل،
+// بدون عضو جدید روی prototype و بدون export تازه. این‌ها فقط در همین ماژول
+// دیده می‌شوند (column 0، ماژول‌محلی). نگهبان بایت‌به‌بایت:
+//   npm run test:halls:body   (۱۷ کِیس + اسنپ‌شات طلایی)
+// نکته: پوستهٔ سند و قالب هدر داخل خود متد مانده‌اند، چون ابزار استاتیک
+// audit:surface نام `this.style` را از متن onerror همان قالب می‌خواند.
+// ================================================================
+const REPORT_STYLE_BLOCK =`          @font-face {
             font-family: "Vazir";
             src: url("/assets/fonts/Vazir-Regular-FD.ttf") format("truetype");
             font-weight: 400;
@@ -883,21 +809,177 @@ class HallsReport {
             .report-two-col { page-break-inside: avoid; }
             .report-hall { page-break-inside: avoid; }
             .report-unit { page-break-inside: avoid; }
-          }
-        </style>
-      </head>
-      <body>
-        <div class="report-header">
-          <img class="report-logo" src="/assets/images/skb-logo.png" alt="لوگوی شرکت" onerror="this.style.display='none'">
-          <h1>📋 گزارش کامل واحدها و سالن‌ها</h1>
-          <div class="date">تاریخ گزارش: ${persianDate}</div>
-        </div>
-        ${customerHTML}
+          }`;
 
-        <div class="summary-stats">
+function resolveReportContext(reportData) {
+  const { generatedAt } = reportData;
+  const now = new Date(generatedAt);
+  const persianDate = formatDate(now);
+
+  // تاریخ و ساعت دریافت گزارش (شمسی/فارسی)
+  const reportDate = new Intl.DateTimeFormat("fa-IR", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(now);
+  const reportTime = new Intl.DateTimeFormat("fa-IR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(now);
+
+  // ===== دریافت‌کننده گزارش (کاربر لاگین‌شده) =====
+  const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
+  const reporterName =
+    currentUser.fullName ||
+    [currentUser.first_name, currentUser.last_name]
+      .filter(Boolean)
+      .join(" ") ||
+    currentUser.username ||
+    "کاربر ناشناس";
+  const roleText =
+    {
+      super_admin: "مدیر اصلی",
+      admin: "مدیر",
+      sub_admin: "مدیر میانی",
+      expert: "کارشناس",
+      customer: "مشتری",
+    }[currentUser.role] || "کاربر";
+
+  return { persianDate, reportDate, reportTime, reporterName, roleText };
+}
+
+function buildUnitSectionsHtml(renderers, halls, units) {
+  // ===== گروه‌بندی سالن‌ها بر اساس واحد =====
+  const hallsWithoutUnit = halls.filter((h) => !h.unit_id);
+  let unitSectionsHTML = "";
+
+  // برای هر واحد، سالن‌های مربوطه را پیدا کن
+  units.forEach((unit, unitIndex) => {
+    const unitHalls = halls.filter((h) => h.unit_id == unit.id);
+    if (unitHalls.length === 0) return; // واحد بدون سالن در گروه‌بندی اصلی نمایش داده نمی‌شود
+
+    const activeCount = unitHalls.filter((h) => h.is_active).length;
+    const totalCapacity = unitHalls.reduce(
+      (sum, h) => sum + (parseInt(h.nominal_capacity) || 0),
+      0,
+    );
+    const flockCount = unitHalls.filter((h) => h.chickInfo).length;
+    const totalChicks = unitHalls.reduce(
+      (sum, h) => sum + (parseInt(h.chickInfo?.total_chicks_count) || 0),
+      0,
+    );
+
+    const hallsHTML = unitHalls
+      .map((hall, i) => renderers.renderHallHTML(hall, i))
+      .join("");
+
+    unitSectionsHTML += `
+        <div class="report-unit">
+          <div class="report-unit-header">
+            <div class="report-unit-title">
+              <i class="fas fa-warehouse"></i>
+              <span>${unit.unit_name || `واحد ${unit.id}`}</span>
+              <span class="badge ${unit.is_active !== false ? "bg-success" : "bg-secondary"}">
+                ${unit.is_active !== false ? "فعال" : "غیرفعال"}
+              </span>
+            </div>
+            <div class="report-unit-stats">
+              <span>${unitHalls.length} سالن</span>
+              <span>${activeCount} فعال</span>
+              <span>ظرفیت: ${totalCapacity.toLocaleString()}</span>
+              <span>${flockCount} گله</span>
+              <span>${totalChicks.toLocaleString()} جوجه</span>
+            </div>
+          </div>
+          <div class="report-unit-body">
+            ${renderers.renderUnitDetails(unit)}
+            ${hallsHTML}
+          </div>
+        </div>
+      `;
+  });
+
+  // سالن‌هایی که unit_id ندارند
+  if (hallsWithoutUnit.length > 0) {
+    const hallsHTML = hallsWithoutUnit
+      .map((hall, i) => renderers.renderHallHTML(hall, i))
+      .join("");
+
+    unitSectionsHTML += `
+        <div class="report-unit">
+          <div class="report-unit-header">
+            <div class="report-unit-title">
+              <i class="fas fa-question-circle"></i>
+              <span>سالن‌های بدون واحد</span>
+            </div>
+            <div class="report-unit-stats">
+              <span>${hallsWithoutUnit.length} سالن</span>
+            </div>
+          </div>
+          <div class="report-unit-body">
+            ${hallsHTML}
+          </div>
+        </div>
+      `;
+  }
+
+  // اگر هیچ واحدی نبود، همه سالن‌ها را مستقیم نمایش بده
+  if (unitSectionsHTML === "") {
+    unitSectionsHTML = halls
+      .map((hall, i) => renderers.renderHallHTML(hall, i))
+      .join("");
+  }
+  return unitSectionsHTML;
+}
+
+function computeReportTotals(halls, units) {
+  const totalCapacity = halls.reduce(
+    (sum, h) => sum + (parseInt(h.nominal_capacity) || 0),
+    0,
+  );
+  const activeHalls = halls.filter((h) => h.is_active).length;
+  const hallsWithChick = halls.filter((h) => h.chickInfo).length;
+  const unitsWithHalls = units.filter((u) =>
+    halls.some((h) => h.unit_id == u.id),
+  ).length;
+  const totalChicks = halls.reduce(
+    (sum, h) => sum + (parseInt(h.chickInfo?.total_chicks_count) || 0),
+    0,
+  );
+
+  return {
+    totalCapacity,
+    activeHalls,
+    hallsWithChick,
+    unitsWithHalls,
+    totalChicks,
+  };
+}
+
+function buildCustomerInfoHtml(customer) {
+  return customer
+    ? `
+      <div class="report-customer-info">
+        <table class="customer-info-table">
+          <tr>
+            <td><strong>نام مشتری:</strong> ${customer.full_name || "-"}</td>
+            <td><strong>نام فارم:</strong> ${customer.farm_name || "-"}</td>
+          </tr>
+          <tr>
+            <td><strong>موبایل:</strong> ${customer.mobile_number || "-"}</td>
+            <td><strong>استان:</strong> ${customer.province || "-"} | <strong>شهرستان:</strong> ${customer.county || "-"}</td>
+          </tr>
+        </table>
+        <p><strong>آدرس:</strong> ${customer.farm_address || "-"}</p>
+      </div>`
+    : "";
+}
+
+function buildSummaryStatsHtml(totals, halls, units) {
+  return `<div class="summary-stats">
           <div class="stat-box">
             <div class="stat-label">تعداد واحدها</div>
-            <div class="stat-value">${unitsWithHalls || units.length}</div>
+            <div class="stat-value">${totals.unitsWithHalls || units.length}</div>
           </div>
           <div class="stat-box">
             <div class="stat-label">تعداد سالن‌ها</div>
@@ -905,59 +987,31 @@ class HallsReport {
           </div>
           <div class="stat-box">
             <div class="stat-label">سالن‌های فعال</div>
-            <div class="stat-value">${activeHalls}</div>
+            <div class="stat-value">${totals.activeHalls}</div>
           </div>
           <div class="stat-box">
             <div class="stat-label">ظرفیت کل</div>
-            <div class="stat-value">${totalCapacity.toLocaleString()}</div>
+            <div class="stat-value">${totals.totalCapacity.toLocaleString()}</div>
           </div>
           <div class="stat-box">
             <div class="stat-label">سالن دارای گله</div>
-            <div class="stat-value">${hallsWithChick}</div>
+            <div class="stat-value">${totals.hallsWithChick}</div>
           </div>
           <div class="stat-box">
             <div class="stat-label">مجموع جوجه‌ها</div>
-            <div class="stat-value">${totalChicks.toLocaleString()}</div>
+            <div class="stat-value">${totals.totalChicks.toLocaleString()}</div>
           </div>
-        </div>
+        </div>`;
+}
 
-        ${unitSectionsHTML}
-
-        <div class="report-footer">
+function buildReportFooterHtml({ reporterName, roleText, reportDate, reportTime }) {
+  return `<div class="report-footer">
           <p>
             📌 دریافت گزارش توسط: <strong>${reporterName}</strong> (${roleText}) |
             تاریخ: <strong>${reportDate}</strong> |
             ساعت: <strong>${reportTime}</strong>
           </p>
           <p>این گزارش توسط سامانه مدیریت مشتریان (SKB-CRM) تولید شده است</p>
-        </div>
-        <script>
-          window.onload = function() { window.print(); }
-        </script>
-      </body>
-      </html>
-    `;
-  }
-
-  async generateAndPrint() {
-    try {
-      await this.init();
-      const reportData = await this.generateFullReport();
-      const html = this.generateHTML(reportData);
-
-      const printWindow = window.open("", "_blank", "width=1100,height=800");
-      if (!printWindow) {
-        notificationService.warning("لطفاً باز شدن پنجره popup را مجاز کنید");
-        return;
-      }
-      // ✅ پاک‌سازی خروجی گزارش (جلوگیری از اجرای اسکریپت تزریق‌شده از دیتابیس)
-      printWindow.document.write(sanitizeHtmlDocument(html));
-      printWindow.document.close();
-    } catch (error) {
-      console.error("❌ Error generating report:", error);
-      notificationService.error("خطا در تولید گزارش: " + error.message);
-    }
-  }
+        </div>`;
 }
-
 export const hallsReport = new HallsReport();
