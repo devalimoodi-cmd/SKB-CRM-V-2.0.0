@@ -1,5 +1,3 @@
-# گزارش بازبینی (Review) — موج‌های ۳.۱ و ۳.۲a: شکستن کلاس‌های چاق به mixin دامنه‌ای
-
 برنچ: `chore/wave-3-split-god-classes` — تگ نقطهٔ بازگشت: `pre-wave-3` (روی `8397758`)
 اصل حاکم مثل موج‌های ۰، ۱ و ۲: **بدون تغییر رفتار** (behavior-preserving).
 
@@ -18,12 +16,12 @@
 موج ۲ خوشهٔ «پایان دوره/ویرایش» را از `hatchery.service.js` بیرون کشید، اما **خودِ خوشه**
 دست‌نخورده در یک فایل ماند:
 
-| شاخص (پیش از موج ۳.۱) | مقدار |
-| --- | --- |
-| فایل | `hatchery/hatchery.completion.service.js` |
-| حجم | ۱۰۹.۸ KB (۲۳۳۲ خط، CRLF) |
-| متدها | ۳۹ متد — همه از یک `Object.assign` روی `prototype` می‌آمدند |
-| سهم از کل `src` فرانت | ≈ ۴.۵٪ (از ۲.۳۷ MB) |
+| شاخص (پیش از موج ۳.۱) | مقدار                                                       |
+| --------------------- | ----------------------------------------------------------- |
+| فایل                  | `hatchery/hatchery.completion.service.js`                   |
+| حجم                   | ۱۰۹.۸ KB (۲۳۳۲ خط، CRLF)                                    |
+| متدها                 | ۳۹ متد — همه از یک `Object.assign` روی `prototype` می‌آمدند |
+| سهم از کل `src` فرانت | ≈ ۴.۵٪ (از ۲.۳۷ MB)                                         |
 
 مشکل «بزرگ بودن» نبود؛ **بی‌ربط بودن دو دامنه در یک فایل** بود:
 
@@ -41,11 +39,11 @@
 
 برش بر اساس **دامنه** (و با احترام به هستهٔ مشترک) انجام شد؛ هر فایل یک mixin مستقل است:
 
-| فایل جدید | mixin | متد | خط (بدنه) | حجم | دامنه |
-| --- | --- | --- | --- | --- | --- |
-| `hatchery.completion.age.utils.js` | `hatcheryCompletionAgeMethods` | ۵ | ۵۷ | ۲.۸ KB | هستهٔ مشترک عدد/تاریخ/سن |
-| `hatchery.completion.flock.js` | `hatcheryCompletionFlockMethods` | ۲۳ | ۱۱۳۰ | ۵۴.۲ KB | مودال و ذخیرهٔ «پایان گله» |
-| `hatchery.completion.period.js` | `hatcheryCompletionPeriodMethods` | ۱۱ | ۱۱۱۴ | ۵۴.۶ KB | پایان/مشاهده/ویرایش پایان پریود |
+| فایل جدید                          | mixin                             | متد | خط (بدنه) | حجم     | دامنه                           |
+| ---------------------------------- | --------------------------------- | --- | --------- | ------- | ------------------------------- |
+| `hatchery.completion.age.utils.js` | `hatcheryCompletionAgeMethods`    | ۵   | ۵۷        | ۲.۸ KB  | هستهٔ مشترک عدد/تاریخ/سن        |
+| `hatchery.completion.flock.js`     | `hatcheryCompletionFlockMethods`  | ۲۳  | ۱۱۳۰      | ۵۴.۲ KB | مودال و ذخیرهٔ «پایان گله»      |
+| `hatchery.completion.period.js`    | `hatcheryCompletionPeriodMethods` | ۱۱  | ۱۱۱۴      | ۵۴.۶ KB | پایان/مشاهده/ویرایش پایان پریود |
 
 - `age.utils` (۵ متد): `_toNum`, `_pcDateIso`, `_pcFlockIso`, `_pcAgeOfIso`, `_pcIsoFromAge`
 - `flock` (۲۳ متد): خوشهٔ `pc_*` شامل `completeFlockOf`, `editFlockCompletion`,
@@ -103,7 +101,7 @@ ALL GATES PASSED ✅
 
 `preamble` تنها دو خط ناحیه است که متد نیستند: یک کامنت بخش‌بندی
 (`// ===== مودال جامع «پایان گله» =====`) و یک خط خالی. محتوای معنایی همین کامنت در
-سرصفحهٔ `hatchery.completion.flock.js` («پایان/ویرایش پایان یک گله (مودال جامع pc_*)»)
+سرصفحهٔ `hatchery.completion.flock.js` («پایان/ویرایش پایان یک گله (مودال جامع pc\_\*)»)
 حفظ شده است؛ هیچ کد یا متدی در این دو خط نبود.
 
 ---
@@ -155,13 +153,13 @@ ALL GATES PASSED ✅
 
 **هیچ.** خروجی این موج از دید کاربر و از دید بقیهٔ کد یکسان است:
 
-| سطح | انتظار | نتیجه |
-| --- | --- | --- |
-| متدهای نمونه/کلاس | ۱۰۱ عضو (۶۲ عضو خودِ کلاس + ۳۹ mixin) | ✅ ۱۰۱ (اسموکتست) |
-| سراسری‌های `window` | ۵۷ نام چسب، بدون تغییر | ✅ ۵۷ (اسموکتست) |
-| قرارداد صدا‌زدن از بیرون فایل | ۰ نقض | ✅ `audit:surface` |
-| متن متدها | کلمه‌به‌کلمه | ✅ گیت‌های ۴ و ۸ اسکریپت |
-| نام‌های `pc_*`/`ue_*`/`_pc*` | بدون تغییر (برای سازگاری) | ✅ بدون rename |
+| سطح                           | انتظار                                | نتیجه                    |
+| ----------------------------- | ------------------------------------- | ------------------------ |
+| متدهای نمونه/کلاس             | ۱۰۱ عضو (۶۲ عضو خودِ کلاس + ۳۹ mixin) | ✅ ۱۰۱ (اسموکتست)        |
+| سراسری‌های `window`           | ۵۷ نام چسب، بدون تغییر                | ✅ ۵۷ (اسموکتست)         |
+| قرارداد صدا‌زدن از بیرون فایل | ۰ نقض                                 | ✅ `audit:surface`       |
+| متن متدها                     | کلمه‌به‌کلمه                          | ✅ گیت‌های ۴ و ۸ اسکریپت |
+| نام‌های `pc_*`/`ue_*`/`_pc*`  | بدون تغییر (برای سازگاری)             | ✅ بدون rename           |
 
 > تنها «تغییر ظاهری» در مخزن: یک فایل به سه فایل تقسیم شد و یک کامنت بخش‌بندی به‌همراه
 > یک خط خالی (۲ خط غیرمتدی) از داخل آبجکت جابه‌جا شد؛ متن همان کامنت در سرصفحهٔ
@@ -171,15 +169,15 @@ ALL GATES PASSED ✅
 
 ## ۶) نتیجهٔ عددی موج ۳.۱
 
-| شاخص | پیش از ۳.۱ | پس از ۳.۱ |
-| --- | --- | --- |
-| فایل خوشهٔ پایان دوره | یک فایل ۱۰۹.۸ KB / ۲۳۳۲ خط | سه فایل: ۵۴.۶ + ۵۴.۲ + ۲.۸ KB |
-| متد در بزرگ‌ترین فایل خوشه | ۳۹ | ۲۳ |
-| `hatchery.service.js` | ۹۵.۱ KB / ۲۳۵۹ خط | ۹۵.۴ KB / ۲۳۶۲ خط (+۳ خط: سه import و سه `assign`) |
-| فایل‌های ≥۴۰KB فرانت | ۱۲ | ۱۳ |
-| حجم کل `src` فرانت | ۲.۳۷ MB | ۲.۳۷ MB |
-| سرویس/سراسری تحت گارد | ۴۶ / ۲۴۶ | ۴۶ / ۲۴۶ |
-| صادرات بی‌ارجاع / متد >۱۵۰ خط | ۷۱ / ۳۰ | ۷۱ / ۳۰ |
+| شاخص                          | پیش از ۳.۱                 | پس از ۳.۱                                          |
+| ----------------------------- | -------------------------- | -------------------------------------------------- |
+| فایل خوشهٔ پایان دوره         | یک فایل ۱۰۹.۸ KB / ۲۳۳۲ خط | سه فایل: ۵۴.۶ + ۵۴.۲ + ۲.۸ KB                      |
+| متد در بزرگ‌ترین فایل خوشه    | ۳۹                         | ۲۳                                                 |
+| `hatchery.service.js`         | ۹۵.۱ KB / ۲۳۵۹ خط          | ۹۵.۴ KB / ۲۳۶۲ خط (+۳ خط: سه import و سه `assign`) |
+| فایل‌های ≥۴۰KB فرانت          | ۱۲                         | ۱۳                                                 |
+| حجم کل `src` فرانت            | ۲.۳۷ MB                    | ۲.۳۷ MB                                            |
+| سرویس/سراسری تحت گارد         | ۴۶ / ۲۴۶                   | ۴۶ / ۲۴۶                                           |
+| صادرات بی‌ارجاع / متد >۱۵۰ خط | ۷۱ / ۳۰                    | ۷۱ / ۳۰                                            |
 
 پس از این موج، هیچ فایل خوشهٔ پایان دوره‌ای بیش از ۵۵ KB نیست و بزرگ‌ترین فایل باقی‌ماندهٔ
 پروژه، `dashboard.service.js` (۱۵۷.۴ KB) است.
@@ -190,16 +188,16 @@ ALL GATES PASSED ✅
 
 ### الف) دروازه‌های خودکار — همه سبز ✅
 
-| بررسی | فرمان | نتیجه |
-| --- | --- | --- |
-| ESLint | `npm run lint` | بدون خطا و بدون هشدار |
-| ۱۰ تست فرانت | `test:cache`…`test:hatchery-utils` | همه `exit=0` و `ALL PASS` |
-| قرارداد سطح سرویس | `npm run audit:surface` | گم‌شده ۰ · افزوده ۰ · نقض فراخوانی بیرونی ۰ |
-| اندازهٔ فایل‌ها | `npm run audit:size -- --fail-on-empty` | فایل صفر‌بایتی ۰ |
-| صادرات بی‌ارجاع | `npm run audit:dead-exports` | ۷۱ (بی‌تغییر) |
-| متدهای بزرگ | `npm run audit:big-methods` | ۳۰ (بی‌تغییر) |
-| اسموک‌تست زمان اجرا | `node _3_1_smoke.mjs` (فایل موقت، حذف شد) | `SMOKE PASS ✅` |
-| گارد دائمی سطح زمان اجرا | `npm run test:hatchery-surface` | `SMOKE PASS ✅` (جایگزین دائمی همان اسموک‌تست — بخش ۱۱) |
+| بررسی                    | فرمان                                     | نتیجه                                                   |
+| ------------------------ | ----------------------------------------- | ------------------------------------------------------- |
+| ESLint                   | `npm run lint`                            | بدون خطا و بدون هشدار                                   |
+| ۱۰ تست فرانت             | `test:cache`…`test:hatchery-utils`        | همه `exit=0` و `ALL PASS`                               |
+| قرارداد سطح سرویس        | `npm run audit:surface`                   | گم‌شده ۰ · افزوده ۰ · نقض فراخوانی بیرونی ۰             |
+| اندازهٔ فایل‌ها          | `npm run audit:size -- --fail-on-empty`   | فایل صفر‌بایتی ۰                                        |
+| صادرات بی‌ارجاع          | `npm run audit:dead-exports`              | ۷۱ (بی‌تغییر)                                           |
+| متدهای بزرگ              | `npm run audit:big-methods`               | ۳۰ (بی‌تغییر)                                           |
+| اسموک‌تست زمان اجرا      | `node _3_1_smoke.mjs` (فایل موقت، حذف شد) | `SMOKE PASS ✅`                                         |
+| گارد دائمی سطح زمان اجرا | `npm run test:hatchery-surface`           | `SMOKE PASS ✅` (جایگزین دائمی همان اسموک‌تست — بخش ۱۱) |
 
 ### ب) شاهد «انتقال کلمه‌به‌کلمه»
 
@@ -285,13 +283,13 @@ SMOKE PASS ✅
 ۳۰ متد از بودجه بزرگ‌ترند (بی‌تغییر نسبت به موج ۲). موارد مربوط به جوجه‌ریزی
 (فهرست کامل: `npm run audit:big-methods`):
 
-| خطوط | مکان | نام |
-| --- | --- | --- |
-| ۳۶۵ | `hatchery/hatchery.completion.period.js:724` | `hatcheryCompletionPeriodMethods.editPeriodCompletion` |
-| ۲۷۸ | `hatchery/hatchery.completion.period.js:296` | `hatcheryCompletionPeriodMethods.completePeriod` |
-| ۲۷۷ | `hatchery/hatchery.report.js:579` | `buildFlockSmsReportHTML` |
-| ۲۱۰ | `hatchery/hatchery.service.js:463` | `saveFlock` |
-| ۲۰۳ | `hatchery/hatchery.completion.flock.js:856` | `hatcheryCompletionFlockMethods._collectCompletionSave` |
+| خطوط | مکان                                         | نام                                                     |
+| ---- | -------------------------------------------- | ------------------------------------------------------- |
+| ۳۶۵  | `hatchery/hatchery.completion.period.js:724` | `hatcheryCompletionPeriodMethods.editPeriodCompletion`  |
+| ۲۷۸  | `hatchery/hatchery.completion.period.js:296` | `hatcheryCompletionPeriodMethods.completePeriod`        |
+| ۲۷۷  | `hatchery/hatchery.report.js:579`            | `buildFlockSmsReportHTML`                               |
+| ۲۱۰  | `hatchery/hatchery.service.js:463`           | `saveFlock`                                             |
+| ۲۰۳  | `hatchery/hatchery.completion.flock.js:856`  | `hatcheryCompletionFlockMethods._collectCompletionSave` |
 
 > 📌 مقایسه: در موج ۲ بزرگ‌ترین متد در یک فایل ۱۰۹.۸KB بود؛ اکنون بزرگ‌ترین متد جوجه‌ریزی
 > در فایلی ۵۴.۶KB زندگی می‌کند و شعاع تأثیرش نصف شده است.
@@ -335,14 +333,14 @@ npm run audit:dead-exports
 
 ## ۱۰) گام بعدی (پیشنهاد موج ۳.۲ و بعد از آن)
 
-| اولویت | هدف | چرا |
-| --- | --- | --- |
-| ۱ | `dashboard.service.js` (۱۵۷.۴KB) — بزرگ‌ترین فایل باقی‌مانده | مودال بوکمارک (`showCreateBookmarkModal` ۲۸۴ خط، `showBookmarkDetail` ۱۵۰) و وضعیت پیامک (`refreshSmsStatus` ۲۳۹) با همان الگوی mixin |
-| ۲ | `weekly.service.js` (۱۱۸.۶KB) | رندر و محاسبات در یک فایل: `buildWeeklyHistoryHTML` ۳۳۶ خط، `renderWeeks` ۳۰۴ خط |
-| ۳ | شکستن سه متد بزرگ خودِ خوشهٔ پایان دوره | `editPeriodCompletion` ۳۶۵ خط، `completePeriod` ۲۷۸، `_collectCompletionSave` ۲۰۳ — با تست رفتاری اختصاصی |
-| ۴ | `halls.service.js` (۹۷.۶KB) و `chart-dashboard.service.js` (۷۱.۴KB) | `saveBasicInfo` ۱۷۷ خط، `renderUnitDetailsPanel` ۱۶۵، `renderAllCharts` ۲۲۳ |
-| ۵ | نازک‌کردن `customer-info.html` (۹۵.۹KB) | انتقال هندلرهای inline به «چسب پنجره» — همان الگوی موج ۲.۱ |
-| ۶ | تسویه‌ها | باگ `viewPeriod` (P2-۱)، ارجاع آویزان `savePeriod` (P2-۳)، تصمیم دربارهٔ ۷۱ export بی‌مصرف، خوشهٔ SMS و روت‌های `/sms` |
+| اولویت | هدف                                                                 | چرا                                                                                                                                   |
+| ------ | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| ۱      | `dashboard.service.js` (۱۵۷.۴KB) — بزرگ‌ترین فایل باقی‌مانده        | مودال بوکمارک (`showCreateBookmarkModal` ۲۸۴ خط، `showBookmarkDetail` ۱۵۰) و وضعیت پیامک (`refreshSmsStatus` ۲۳۹) با همان الگوی mixin |
+| ۲      | `weekly.service.js` (۱۱۸.۶KB)                                       | رندر و محاسبات در یک فایل: `buildWeeklyHistoryHTML` ۳۳۶ خط، `renderWeeks` ۳۰۴ خط                                                      |
+| ۳      | شکستن سه متد بزرگ خودِ خوشهٔ پایان دوره                             | `editPeriodCompletion` ۳۶۵ خط، `completePeriod` ۲۷۸، `_collectCompletionSave` ۲۰۳ — با تست رفتاری اختصاصی                             |
+| ۴      | `halls.service.js` (۹۷.۶KB) و `chart-dashboard.service.js` (۷۱.۴KB) | `saveBasicInfo` ۱۷۷ خط، `renderUnitDetailsPanel` ۱۶۵، `renderAllCharts` ۲۲۳                                                           |
+| ۵      | نازک‌کردن `customer-info.html` (۹۵.۹KB)                             | انتقال هندلرهای inline به «چسب پنجره» — همان الگوی موج ۲.۱                                                                            |
+| ۶      | تسویه‌ها                                                            | باگ `viewPeriod` (P2-۱)، ارجاع آویزان `savePeriod` (P2-۳)، تصمیم دربارهٔ ۷۱ export بی‌مصرف، خوشهٔ SMS و روت‌های `/sms`                |
 
 > 🧭 سیاست موج ۳ (همان سیاست موج ۲): اصل «بدون تغییر رفتار» + `npm run audit:surface`
 > قبل و بعد از هر گام. اگر «گم‌شده» گزارش داد، جابه‌جایی ناقص است و باید متوقف شود.
@@ -361,16 +359,16 @@ npm run audit:dead-exports
 
 ### هشت بررسی این گارد
 
-| # | بررسی | مبنای اسنپ‌شات |
-| --- | --- | --- |
-| ۱ | import واقعی سرویس با استاب `window`/`document`/`localStorage` | — |
-| ۲ | همهٔ ۱۰۱ عضو (۶۲ کلاس + ۵+۲۳+۱۱ mixin) روی `prototype` تابع‌اند | `classes.HatcheryService.methods` + `mixins` |
-| ۳ | تعداد اعضای `prototype` دقیقاً ۱۰۱ است | اجتماع دو فهرست بالا |
-| ۴ | فایل هر سه mixin روی دیسک + یک متد شاخص روی نمونه | `classes.HatcheryService.mixins` |
-| ۵ | ویژگی‌های نمونهٔ اعلام‌شده موجودند (۱۷ مورد) | `classes.HatcheryService.properties` |
-| ۶ | همهٔ ۵۷ نام چسب `window.*` ثبت شده‌اند | `services[...hatchery.window-glue.js].windowGlobals` |
-| ۷ | `window.hatcheryService` همان نمونهٔ سرویس است | همان |
-| ۸ | گزارش اطلاعی اعضای اضافه (روی `prototype` و `window`) | — |
+| #   | بررسی                                                           | مبنای اسنپ‌شات                                       |
+| --- | --------------------------------------------------------------- | ---------------------------------------------------- |
+| ۱   | import واقعی سرویس با استاب `window`/`document`/`localStorage`  | —                                                    |
+| ۲   | همهٔ ۱۰۱ عضو (۶۲ کلاس + ۵+۲۳+۱۱ mixin) روی `prototype` تابع‌اند | `classes.HatcheryService.methods` + `mixins`         |
+| ۳   | تعداد اعضای `prototype` دقیقاً ۱۰۱ است                          | اجتماع دو فهرست بالا                                 |
+| ۴   | فایل هر سه mixin روی دیسک + یک متد شاخص روی نمونه               | `classes.HatcheryService.mixins`                     |
+| ۵   | ویژگی‌های نمونهٔ اعلام‌شده موجودند (۱۷ مورد)                    | `classes.HatcheryService.properties`                 |
+| ۶   | همهٔ ۵۷ نام چسب `window.*` ثبت شده‌اند                          | `services[...hatchery.window-glue.js].windowGlobals` |
+| ۷   | `window.hatcheryService` همان نمونهٔ سرویس است                  | همان                                                 |
+| ۸   | گزارش اطلاعی اعضای اضافه (روی `prototype` و `window`)           | —                                                    |
 
 خروجی واقعی روی همین برنچ `SMOKE PASS` و `exit=0` است. اعضای اضافهٔ `window`
 (۸ نام مثل `stateService` و `openSmsHistoryModal`) از ماژول‌های دیگر می‌آیند و اطلاعی‌اند.
@@ -400,11 +398,11 @@ npm run audit:dead-exports
 
 ### الف) پارتیشن (نقشهٔ سه فایل)
 
-| # | فایل جدید | حجم | خطوط | نواحی برش‌خورده از مبدأ | محتوا | عضو |
-| --- | --- | --- | --- | --- | --- | --- |
-| ۱ | `dashboard.sms.js` | ۴۳.۰KB | ۹۹۰ | ۵۴۶–۶۷۳ · ۲۱۷۵–۲۵۸۶ · ۲۶۹۲–۳۱۲۵ | ارسال پیامک گلّه/سالن، وضعیت تحویل، تاریخچهٔ پیامک، همگام‌سازی خودکار وضعیت تسک‌ها | ۱۰ متد |
-| ۲ | `dashboard.bookmarks.js` | ۲۹.۸KB | ۵۸۶ | ۸۲۵–۹۱۹ · ۳۱۲۶–۳۵۹۷ | بوکمارک‌ها: رندر فهرست، مودال ساخت/ویرایش، جزئیات، حذف | ۵ متد |
-| ۳ | `dashboard.window-glue.js` | ۵.۴KB | ۱۳۸ | ۳۹۴۷–۴۰۶۹ | ثبت ۲۴ نام `window.*` + راه‌اندازی رویدادهای DOM | ۰ متد |
+| #   | فایل جدید                  | حجم    | خطوط | نواحی برش‌خورده از مبدأ         | محتوا                                                                              | عضو    |
+| --- | -------------------------- | ------ | ---- | ------------------------------- | ---------------------------------------------------------------------------------- | ------ |
+| ۱   | `dashboard.sms.js`         | ۴۳.۰KB | ۹۹۰  | ۵۴۶–۶۷۳ · ۲۱۷۵–۲۵۸۶ · ۲۶۹۲–۳۱۲۵ | ارسال پیامک گلّه/سالن، وضعیت تحویل، تاریخچهٔ پیامک، همگام‌سازی خودکار وضعیت تسک‌ها | ۱۰ متد |
+| ۲   | `dashboard.bookmarks.js`   | ۲۹.۸KB | ۵۸۶  | ۸۲۵–۹۱۹ · ۳۱۲۶–۳۵۹۷             | بوکمارک‌ها: رندر فهرست، مودال ساخت/ویرایش، جزئیات، حذف                             | ۵ متد  |
+| ۳   | `dashboard.window-glue.js` | ۵.۴KB  | ۱۳۸  | ۳۹۴۷–۴۰۶۹                       | ثبت ۲۴ نام `window.*` + راه‌اندازی رویدادهای DOM                                   | ۰ متد  |
 
 در عوض `dashboard.service.js` سه `import` و سه خط ترکیب گرفت:
 
@@ -425,24 +423,24 @@ registerDashboardWindowGlue({ dashboardService, DashboardService });
 
 ### ب) روش — اسکریپت `_3_2a_split.mjs` با ۳۴ گیت (۹۸ خط PASS)
 
-| گروه | شناسه‌های گیت | چه چیزی را اثبات می‌کند |
-| --- | --- | --- |
-| مبدأ | `01-uniform-eol` · `02-line-count` | مبدأ یکدست CRLF و دقیقاً ۴۰۶۹ خط است (اگر مبدأ حتی یک بایت عوض شود، گیت می‌شکند) |
-| نواحی | `03-start-*` · `04-end-*` · `05-ranges-ordered` | مرز هر ۶ ناحیه روی کامنت/خط خالی درست است، صعودی و بدون هم‌پوشانی |
-| اعضا (AST) | `21-class-found` · `22-member-set-*` · `23-contained-*` · `24-async-flag-*` · `25-glue-no-class-members` · `26-member-end-*` | هر ۱۵ عضو با پرچم درست `async`، فقط از «نوع متد»، دقیقاً همان مجموعهٔ مورد انتظار، و پایان هر متد روی `  }` |
-| بایت | `07-bytes-*` · `08-removed-count` · `09-rebuild-exact` · `10-no-export-in-regions` | برش بایت‌به‌بایت: `concat(نواحی) === ناحیهٔ مبدأ`، `۲۴۰۵ + ۱۶۶۴ = ۴۰۶۹`، و هیچ `export`ی داخل نواحی بریده نشده |
-| ایمپورت | `11-import-block` · `12-import-parse` · `30-imports-minimal-*` · `31-dropped-imports-moved` · `33-service-imports-minimal` · `34-import-coverage` | بلوک ایمپورت خطوط ۱–۱۷ درست شناسایی، هر mixin فقط ایمپورت‌های مصرف‌شده را دارد (sms ۳ خط، bookmarks ۶ خط)، تنها نام هرس‌شدهٔ سرویس (`convertPersianToGregorian`) در mixin حاضر است، و هیچ ایمپورت بی‌مصرفی نمانده |
-| چسب | `13-glue-structure` · `14-glue-window-names` · `16-glue-imports` | ساختار تابع چسب، ۲۴ نام `window.*` با همان ترتیب مبدأ، صفر ایمپورت اضافی |
-| برگشت‌پذیری | `15-body-*` · `27-comma-only-diff-*` | تنها تفاوت متن mixin با مبدأ «ویرگول پایان متد» است؛ برگشت‌پذیری بایت‌به‌بایت اثبات می‌شود |
-| نحو | `28-parse-draft-*` · `29-parse-*` · `32-service-parses` | هر چهار فایل با espree پارس می‌شوند (هم پیش، هم پس از هرس ایمپورت) |
-| شمارش | `18-uniform-eol` · `19-service-line-count` · `20-written-byte-exact` | EOL یکدست، معادلهٔ خط (`۲۴۰۵ + ۸ − ۳ = ۲۴۱۰`) و بازخوانی بایت‌به‌بایت از دیسک |
+| گروه        | شناسه‌های گیت                                                                                                                                     | چه چیزی را اثبات می‌کند                                                                                                                                                                                           |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| مبدأ        | `01-uniform-eol` · `02-line-count`                                                                                                                | مبدأ یکدست CRLF و دقیقاً ۴۰۶۹ خط است (اگر مبدأ حتی یک بایت عوض شود، گیت می‌شکند)                                                                                                                                  |
+| نواحی       | `03-start-*` · `04-end-*` · `05-ranges-ordered`                                                                                                   | مرز هر ۶ ناحیه روی کامنت/خط خالی درست است، صعودی و بدون هم‌پوشانی                                                                                                                                                 |
+| اعضا (AST)  | `21-class-found` · `22-member-set-*` · `23-contained-*` · `24-async-flag-*` · `25-glue-no-class-members` · `26-member-end-*`                      | هر ۱۵ عضو با پرچم درست `async`، فقط از «نوع متد»، دقیقاً همان مجموعهٔ مورد انتظار، و پایان هر متد روی `  }`                                                                                                       |
+| بایت        | `07-bytes-*` · `08-removed-count` · `09-rebuild-exact` · `10-no-export-in-regions`                                                                | برش بایت‌به‌بایت: `concat(نواحی) === ناحیهٔ مبدأ`، `۲۴۰۵ + ۱۶۶۴ = ۴۰۶۹`، و هیچ `export`ی داخل نواحی بریده نشده                                                                                                    |
+| ایمپورت     | `11-import-block` · `12-import-parse` · `30-imports-minimal-*` · `31-dropped-imports-moved` · `33-service-imports-minimal` · `34-import-coverage` | بلوک ایمپورت خطوط ۱–۱۷ درست شناسایی، هر mixin فقط ایمپورت‌های مصرف‌شده را دارد (sms ۳ خط، bookmarks ۶ خط)، تنها نام هرس‌شدهٔ سرویس (`convertPersianToGregorian`) در mixin حاضر است، و هیچ ایمپورت بی‌مصرفی نمانده |
+| چسب         | `13-glue-structure` · `14-glue-window-names` · `16-glue-imports`                                                                                  | ساختار تابع چسب، ۲۴ نام `window.*` با همان ترتیب مبدأ، صفر ایمپورت اضافی                                                                                                                                          |
+| برگشت‌پذیری | `15-body-*` · `27-comma-only-diff-*`                                                                                                              | تنها تفاوت متن mixin با مبدأ «ویرگول پایان متد» است؛ برگشت‌پذیری بایت‌به‌بایت اثبات می‌شود                                                                                                                        |
+| نحو         | `28-parse-draft-*` · `29-parse-*` · `32-service-parses`                                                                                           | هر چهار فایل با espree پارس می‌شوند (هم پیش، هم پس از هرس ایمپورت)                                                                                                                                                |
+| شمارش       | `18-uniform-eol` · `19-service-line-count` · `20-written-byte-exact`                                                                              | EOL یکدست، معادلهٔ خط (`۲۴۰۵ + ۸ − ۳ = ۲۴۱۰`) و بازخوانی بایت‌به‌بایت از دیسک                                                                                                                                     |
 
 ### ج) تغییرات `dashboard.service.js`
 
 `git diff --numstat`: **۹ خط افزوده / ۱۶۶۸ خط حذف‌شده**
 
-| افزوده‌ها (۹) | حذف‌شده‌ها (۱۶۶۸) |
-| --- | --- |
+| افزوده‌ها (۹)                                                                                      | حذف‌شده‌ها (۱۶۶۸)                                              |
+| -------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
 | ۳ ایمپورت mixin + ۲ کامنت + ۲ `Object.assign` + ۱ فراخوانی چسب + ۱ خط تک‌نامی‌شدهٔ `date.utils.js` | ۱۶۶۴ خط متدهای منتقل‌شده + ۴ خط ایمپورت چندخطی `date.utils.js` |
 
 هیچ متدی، هیچ نام `window.*` و هیچ ویژگی نمونه‌ای تغییر نکرد. همچنین import
@@ -451,51 +449,52 @@ registerDashboardWindowGlue({ dashboardService, DashboardService });
 
 ### د) نتیجهٔ عددی موج ۳.۲a
 
-| شاخص | پیش از موج | پس از موج |
-| --- | --- | --- |
-| حجم `dashboard.service.js` | ۱۵۷.۴KB | **۸۷.۱KB** (−۴۵٪) |
-| خطوط `dashboard.service.js` | ۴۰۶۹ | **۲۴۱۰** (−۴۱٪) |
-| بزرگ‌ترین فایل این خوشه | ۱۵۷.۴KB (خودِ سرویس) | ۴۳.۰KB (`dashboard.sms.js`) |
-| اعضای `prototype` سرویس | ۷۸ (۶۳+۱۵) | **۷۸** (۶۳ کلاس + ۱۰ پیامک + ۵ بوکمارک) |
-| نام‌های `window.*` داشبورد | ۲۴ | **۲۴** |
-| سرویس‌های اسنپ‌شات قرارداد | ۴۶ | ۴۷ |
-| فایل‌های فرانت (اسکن‌شده) | ۱۴۷ | ۱۵۰ |
-| کل حجم `src` | ۲.۳۷ MB | ۲.۳۸ MB |
+| شاخص                        | پیش از موج           | پس از موج                               |
+| --------------------------- | -------------------- | --------------------------------------- |
+| حجم `dashboard.service.js`  | ۱۵۷.۴KB              | **۸۷.۱KB** (−۴۵٪)                       |
+| خطوط `dashboard.service.js` | ۴۰۶۹                 | **۲۴۱۰** (−۴۱٪)                         |
+| بزرگ‌ترین فایل این خوشه     | ۱۵۷.۴KB (خودِ سرویس) | ۴۳.۰KB (`dashboard.sms.js`)             |
+| اعضای `prototype` سرویس     | ۷۸ (۶۳+۱۵)           | **۷۸** (۶۳ کلاس + ۱۰ پیامک + ۵ بوکمارک) |
+| نام‌های `window.*` داشبورد  | ۲۴                   | **۲۴**                                  |
+| سرویس‌های اسنپ‌شات قرارداد  | ۴۶                   | ۴۷                                      |
+| فایل‌های فرانت (اسکن‌شده)   | ۱۴۷                  | ۱۵۰                                     |
+| کل حجم `src`                | ۲.۳۷ MB              | ۲.۳۸ MB                                 |
 
 ### ه) شواهد تأیید نهایی (اجرای واقعی روی همین برنچ)
 
-| # | شاهد | نتیجه |
-| --- | --- | --- |
-| ۱ | `node _3_2a_split.mjs` | `✅ SPLIT 3.2a PASS` — ۳۴ شناسه / ۹۸ خط PASS، `exit=0` |
-| ۲ | **اجرای دوبارهٔ مهاجرت از مبدأ دست‌نخوردهٔ `HEAD`** و مقایسهٔ SHA-256 | هر چهار فایل **بایت‌به‌بایت یکسان** ⇒ نتیجه قطعی و بازتولیدپذیر است |
-| ۳ | `npx eslint` روی هر چهار فایل تولیدی | `exit=0` |
-| ۴ | ۱۲ تست فرانت (`npm run test:*`) | همه `exit=0` |
-| ۵ | `npm run lint` | `exit=0` |
-| ۶ | `npm run audit:size` · `audit:dead-exports` · `audit:surface` | همه `exit=0` (بدون «گم‌شده») |
-| ۷ | `npm run audit:surface -- --snapshot` | `docs/service-surface.json` بازتولید شد: `DashboardService` دارای `mixins` (sms ۱۰ + bookmarks ۵)، `dashboard.window-glue.js` با ۲۴ نام، ۷۸ عضو `prototype` |
+| #   | شاهد                                                                  | نتیجه                                                                                                                                                       |
+| --- | --------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ۱   | `node _3_2a_split.mjs`                                                | `✅ SPLIT 3.2a PASS` — ۳۴ شناسه / ۹۸ خط PASS، `exit=0`                                                                                                      |
+| ۲   | **اجرای دوبارهٔ مهاجرت از مبدأ دست‌نخوردهٔ `HEAD`** و مقایسهٔ SHA-256 | هر چهار فایل **بایت‌به‌بایت یکسان** ⇒ نتیجه قطعی و بازتولیدپذیر است                                                                                         |
+| ۳   | `npx eslint` روی هر چهار فایل تولیدی                                  | `exit=0`                                                                                                                                                    |
+| ۴   | ۱۲ تست فرانت (`npm run test:*`)                                       | همه `exit=0`                                                                                                                                                |
+| ۵   | `npm run lint`                                                        | `exit=0`                                                                                                                                                    |
+| ۶   | `npm run audit:size` · `audit:dead-exports` · `audit:surface`         | همه `exit=0` (بدون «گم‌شده»)                                                                                                                                |
+| ۷   | `npm run audit:surface -- --snapshot`                                 | `docs/service-surface.json` بازتولید شد: `DashboardService` دارای `mixins` (sms ۱۰ + bookmarks ۵)، `dashboard.window-glue.js` با ۲۴ نام، ۷۸ عضو `prototype` |
 
 ### و) گارد دائمی جدید — `npm run test:dashboard-surface`
 
 فایل جدید: `Frontend/dashboard-service-surface-test.mjs` (فقط‌خواندنی، منبع حقیقت:
 همان `docs/service-surface.json`؛ هیچ عددی دستی در تست نیست). ۱۱ بررسی:
 
-| # | بررسی | مبنای اسنپ‌شات |
-| --- | --- | --- |
-| ۱ | import واقعی سرویس در Node با استاب `window`/`document`/`localStorage` و ساخت نمونه | — |
-| ۲ | نمونه واقعاً از کلاس چسب‌خورده ساخته شده (هر دو `Object.assign` اجرا شده‌اند) | `classes.DashboardService.mixins` |
-| ۳ | همهٔ ۷۸ عضو روی `prototype` تابع‌اند | `classes.DashboardService.methods` + `mixins` |
-| ۴ | تعداد اعضای `prototype` دقیقاً ۷۸ است | اجتماع دو فهرست بالا |
-| ۵ | فایل `dashboard.bookmarks.js` روی دیسک + ۵ متد شاخص روی نمونه | `classes.DashboardService.mixins` |
-| ۶ | فایل `dashboard.sms.js` روی دیسک + ۱۰ متد شاخص روی نمونه | همان |
-| ۷ | ویژگی‌های نمونهٔ اعلام‌شده موجودند (۳۱ مورد) | `classes.DashboardService.properties` |
-| ۸ | همهٔ ۲۴ نام چسب `window.*` ثبت شده‌اند | `services[...dashboard.window-glue.js].windowGlobals` |
-| ۹ | `window.dashboardService` همان نمونهٔ سرویس است | همان |
-| ۱۰ | `window.DashboardService` کلاس سازندهٔ همان نمونه است | — |
-| ۱۱ | گزارش اطلاعی «اعضای تنبل» و «ثبت هنگام‌نیاز» (۸ مورد) | — |
+| #   | بررسی                                                                               | مبنای اسنپ‌شات                                        |
+| --- | ----------------------------------------------------------------------------------- | ----------------------------------------------------- |
+| ۱   | import واقعی سرویس در Node با استاب `window`/`document`/`localStorage` و ساخت نمونه | —                                                     |
+| ۲   | نمونه واقعاً از کلاس چسب‌خورده ساخته شده (هر دو `Object.assign` اجرا شده‌اند)       | `classes.DashboardService.mixins`                     |
+| ۳   | همهٔ ۷۸ عضو روی `prototype` تابع‌اند                                                | `classes.DashboardService.methods` + `mixins`         |
+| ۴   | تعداد اعضای `prototype` دقیقاً ۷۸ است                                               | اجتماع دو فهرست بالا                                  |
+| ۵   | فایل `dashboard.bookmarks.js` روی دیسک + ۵ متد شاخص روی نمونه                       | `classes.DashboardService.mixins`                     |
+| ۶   | فایل `dashboard.sms.js` روی دیسک + ۱۰ متد شاخص روی نمونه                            | همان                                                  |
+| ۷   | ویژگی‌های نمونهٔ اعلام‌شده موجودند (۳۱ مورد)                                        | `classes.DashboardService.properties`                 |
+| ۸   | همهٔ ۲۴ نام چسب `window.*` ثبت شده‌اند                                              | `services[...dashboard.window-glue.js].windowGlobals` |
+| ۹   | `window.dashboardService` همان نمونهٔ سرویس است                                     | همان                                                  |
+| ۱۰  | `window.DashboardService` کلاس سازندهٔ همان نمونه است                               | —                                                     |
+| ۱۱  | گزارش اطلاعی «اعضای تنبل» و «ثبت هنگام‌نیاز» (۸ مورد)                               | —                                                     |
 
 خروجی واقعی روی همین برنچ `SURFACE PASS` و `exit=0` است.
 
 > 🔎 سه نکتهٔ ظریف که همین گارد و اسکریپت آشکار کردند:
+>
 > 1. **کلاس `DashboardService` صادر (export) نمی‌شود** — فقط نمونهٔ `dashboardService`
 >    صادر می‌شود؛ کلاس تنها از مسیر `window.DashboardService` قابل دسترسی است. اولین
 >    نسخهٔ گارد فرض کرده بود کلاس صادر می‌شود و شکست خورد (شفافیت: همان‌جا اصلاح شد).
@@ -521,4 +520,3 @@ registerDashboardWindowGlue({ dashboardService, DashboardService });
 `weekly.service.js` (۱۱۸.۶KB) بزرگ‌ترین فایل باقی‌ماندهٔ فرانت است؛ پیش‌شرط برش آن، یک
 تست رفتاری برای محاسبات هفته است (چون سرویس محاسباتی است، نه فقط چسب DOM). پس از آن
 `halls.service.js` و `chart-dashboard.service.js`.
-
