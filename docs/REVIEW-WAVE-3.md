@@ -5,9 +5,10 @@
 > `window.*`، نه یک ویژگی نمونه. متن متدها **کلمه‌به‌کلمه (byte-for-byte)** منتقل شده؛
 > حتی یک ویرگول هم تغییر نکرده است.
 
-> 🆕 بخش‌های ۱۱ و ۱۲ به تکمیل‌های همین برنچ می‌پردازند: بخش ۱۱ گارد دائمی سطح
-> جوجه‌ریزی، و بخش ۱۲ **موج ۳.۲a** (شکستن `dashboard.service.js` به سه mixin دامنه‌ای +
-> گارد دائمی سطح داشبورد) با همان اصل «بدون تغییر رفتار».
+> 🆕 بخش‌های ۱۱، ۱۲ و ۱۳ به تکمیل‌های همین برنچ می‌پردازند: بخش ۱۱ گارد دائمی سطح
+> جوجه‌ریزی، بخش ۱۲ **موج ۳.۲a** (شکستن `dashboard.service.js` به سه mixin دامنه‌ای +
+> گارد دائمی سطح داشبورد) و بخش ۱۳ **موج ۳.۲b** (شکستن `weekly.service.js` به ۸ mixin
+> دامنه‌ای + چسب پنجره + گارد دائمی سطح هفتگی) — همه با همان اصل «بدون تغییر رفتار».
 
 ---
 
@@ -520,3 +521,165 @@ registerDashboardWindowGlue({ dashboardService, DashboardService });
 `weekly.service.js` (۱۱۸.۶KB) بزرگ‌ترین فایل باقی‌ماندهٔ فرانت است؛ پیش‌شرط برش آن، یک
 تست رفتاری برای محاسبات هفته است (چون سرویس محاسباتی است، نه فقط چسب DOM). پس از آن
 `halls.service.js` و `chart-dashboard.service.js`.
+
+> ✅ انجام شد در موج ۳.۲b (بخش ۱۳ همین سند).
+
+---
+
+## ۱۳) موج ۳.۲b — شکستن `weekly.service.js` به ۸ mixin دامنه‌ای + چسب پنجره
+
+`weekly.service.js` آخرین «گادکلاس» فرانت بود: **۱۱۸.۶KB / ۲۸۶۷ خط / ۴۹ عضو سطح عمومی**
+(۱ سازنده + ۴۸ متد) و ۱۶ نام `window.*` (۱۵ نام واقعی + `onload` که فقط داخل متن HTMLِ پنجرهٔ
+چاپ است). همهٔ این ۴۹ متد از «بارگذاری داده» تا «ساخت HTML گزارش» و «محاسبات هفته» در یک
+کلاس جمع بودند. در این موج، بدون تغییر رفتار، ۴۸ متد به **۸ mixin دامنه‌ای** و ۱۵ نام
+`window.*` به یک فایل «چسب پنجره» منتقل شدند؛ خودِ فایل فقط **۲.۷KB / ۵۲ خط** ماند.
+
+سه تفاوت مهم با موج ۳.۲a (داشبورد):
+
+۱. **شکل mixinها** — در داشبورد هر mixin یک **کلاس** بود (`class DashboardSmsMethods { … }`) و
+   سرویس `extends` می‌کرد؛ در هفتگی mixinها **شیء سادهٔ متدی** هستند
+   (`export const weeklyCardsMethods = { renderWeeks() { … }, … }`) و سرویس با
+   `Object.assign(WeeklyService.prototype, …)` آن‌ها را می‌چسباند.
+۲. **چسب پنجره** — در داشبورد یک کار کلاس‌محور بود (۲۴ نام در `dashboard.window-glue.js`)؛ در
+   هفتگی به یک **تابع ثبت** تبدیل شد: `registerWeeklyWindowGlue({ weeklyService, WeeklyService })`
+   که **بعد از** ساخته‌شدن نمونه فراخوانی می‌شود، چون نام‌ها به نمونهٔ زنده گره خورده‌اند.
+۳. **سنجش سه‌لایه** — اسنپ‌شات استاتیک (`docs/service-surface.json`) + گارد زمان اجرا
+   (`weekly-service-surface-test.mjs`) + چهار تست رفتاری موجود هفتگی (`test:weekly` و سه خواهرش).
+
+### الف) پارتیشن نهایی (۹ فایل، ۴۹ عضو)
+
+| # | فایل | حجم | خطوط | عضو | دامنه | اعضای شاخص |
+| --- | --- | --- | --- | --- | --- | --- |
+| ۱ | `weekly.loading.js` | ۵.۲KB | ۱۵۱ | ۸ | بارگذاری داده و چرخهٔ عمر | `init`, `loadData`, `refresh`, `resetCache`, `loadFlocks`, `loadHalls`, `loadUnits`, `loadDictionaries` |
+| ۲ | `weekly.flocks.js` | ۱۴.۴KB | ۳۹۲ | ۱۳ | کارت گله‌ها، فیلترها، باز/بسته کردن هفته‌ها | `setupEvents`, `setupFilters`, `renderFlocks`, `toggleFlock`, `toggleFlockGroup`, `groupFlockCards`, `showMoreWeeks`, `toggleWeek`, `getWeeksForFlock`, `loadFlocksFilter`, `loadStandardsForFlock`, `openAllWeeks`, `closeAllWeeks` |
+| ۳ | `weekly.cards.js` | ۳۴.۵KB | ۶۷۷ | ۱۰ | کارت هفته، جدول و محاسبات نمایشی | `renderWeeks`, `updateWeekCards`, `updateAllWeekCards`, `mergeWeeks`, `calculateWeeks`, `handleFeedAutoCalc`, `weightStatusText`, `fcrStatusText`, `gainStatusText`, `dailyGainStatusText` |
+| ۴ | `weekly.form.js` | ۹.۶KB | ۲۵۸ | ۳ | فرم ثبت/ویرایش هفته | `saveWeek`, `resetWeekForm`, `deleteWeek` |
+| ۵ | `weekly.report.full.js` | ۹.۹KB | ۲۳۸ | ۴ | گزارش کامل و گزارش گله | `generateFullReport`, `generateFlockReport`, `buildFlockReportData`, `openReportWindow` |
+| ۶ | `weekly.report.history.js` | ۱۵.۵KB | ۳۶۷ | ۲ | گردآوری داده‌های تاریخچه | `generateWeeklyHistoryReport`, `pickHistoryFlocks` |
+| ۷ | `weekly.report.history.html.js` | ۱۸.۹KB | ۳۸۴ | ۲ | ساخت HTML پنجرهٔ چاپ | `buildWeeklyHistoryHTML`, `calculateAge` |
+| ۸ | `weekly.report.pickers.js` | ۲۱.۴KB | ۵۰۴ | ۶ | انتخابگرها و قواعد ذخیره‌شدهٔ گزارش | `pickReportGroups`, `pickReportWeeksPerFlock`, `loadSavedReportGroups`, `saveReportGroups`, `loadSavedWeekRule`, `saveWeekRule` |
+| ۹ | `weekly.window-glue.js` | ۲.۱KB | ۳۵ | — | چسب پنجره (فقط `window.*`) | ۱۵ نام: `weeklyService`، `WeeklyService`، `refreshWeeksDisplay`، `resetWeeksCache`، `openAllWeeks`، `closeAllWeeks`، `generateFullWeeklyReport`، `generateWeeklyHistoryReport`، `generateFlockReport`، `saveWeekFromForm`، `resetWeekForm`، `deleteWeekFromForm`، `toggleWeekAccordion`، `toggleFlockCard`، `showMoreWeeks` |
+| — | `weekly.service.js` | ۲.۷KB | ۵۲ | ۴۹ | سازنده + `Object.assign` + `export` | `constructor` + زنجیرهٔ ترکیب و فراخوانی چسب |
+
+ترکیب نهایی در `weekly.service.js`:
+
+```js
+import { weeklyLoadingMethods } from "./weekly.loading.js";
+/* … ۷ ایمپورت mixin دیگر + weekly.window-glue.js … */
+
+class WeeklyService {
+  constructor() { /* … بدنهٔ دست‌نخوردهٔ قبلی … */ }
+}
+
+Object.assign(
+  WeeklyService.prototype,
+  weeklyLoadingMethods, /* …×۸ … */
+);
+
+export const weeklyService = new WeeklyService();
+registerWeeklyWindowGlue({ weeklyService, WeeklyService });
+```
+
+⚠️ ترتیب مهم است: چسب پنجره **باید بعد از** `new WeeklyService()` اجرا شود (نام‌ها به نمونهٔ
+زنده اشاره می‌کنند) و گارد زمان اجرا همین ترتیب را هم می‌سنجد.
+
+### ب) روش و اثبات (اسکریپت‌های موقت، حذف‌شده پس از تأیید)
+
+مثل موج‌های ۳.۱ و ۳.۲a، هیچ متدی «بازنویسی» نشد؛ فقط جابه‌جایی + ترکیب. دو هارنس موقت
+نوشته و پس از PASS حذف شد:
+
+- **سنجش استاتیک پیش/پس** — اجتماع نام‌های `window.*` هفتگی (۱۶ نام: ۱۵ چسب + `onload`) ·
+  سراسری‌های کل مخزن **۲۴۶ → ۲۴۶** (بدون تغییر) · هیچ سرویس دیگری در `docs/service-surface.json`
+  عوض نشده · «نقض قرارداد فراخوانی از بیرون» در `audit:surface` = ۰ · مجموعهٔ متدهای سطح
+  عمومی هفتگی همان ۴۹ عضو.
+- **اثبات کلمه‌به‌کلمه با blob گیت** — مقایسهٔ `git show pre-wave-3.2b:<file>` با فایل‌های روی
+  دیسک: هر ۴۸ متد در ۸ فایل جدید با متن قبلی یکی است، بدنهٔ چسب با فهرست ۱۵ نام می‌خواند، و
+  ترتیب `import` → `Object.assign` → `new WeeklyService()` → `registerWeeklyWindowGlue` درست است.
+
+توزیع اعضا: `constructor` (۱) + loading ۸ + flocks ۱۳ + cards ۱۰ + form ۳ + report.full ۴ +
+report.history ۲ + report.history.html ۲ + report.pickers ۶ = **۴۹** (دقیقاً برابر سطح قبلی).
+
+### ج) تغییرات فایل‌ها
+
+| بخش | افزوده | حذف‌شده |
+| --- | --- | --- |
+| `weekly.service.js` | ۳۱ خط | ۲۸۴۶ خط |
+| ۹ فایل جدید (`weekly.*.js`) | ۳۰۰۶ خط | — |
+| `docs/service-surface.json` (بازتولید عمدی) | ۷۹ خط | ۵۱ خط |
+| **جمع کامیت refactor (`c4a382f`)** | **۳۱۱۶** | **۲۸۹۷** |
+
+۳۱ خط افزودهٔ سرویس = ۹ `import` + زنجیرهٔ `Object.assign` + فراخوانی چسب + `export` — یعنی
+کلاس دیگر هیچ منطقی ندارد: فقط «سازنده + ترکیب». هیچ خطی از بدنهٔ متدها تغییر نکرد (اثبات blob
+بالا) و مصرف‌کنندهٔ HTML هم دست‌نخورده است.
+
+### د) نتیجهٔ عددی
+
+| شاخص | پیش از ۳.۲b | پس از ۳.۲b |
+| --- | --- | --- |
+| `weekly.service.js` | ۱۱۸.۶KB / ۲۸۶۷ خط | **۲.۷KB / ۵۲ خط** |
+| بزرگ‌ترین فایل مخزن | `weekly.service.js` (۱۱۸.۶KB) | `halls.service.js` (۹۷.۶KB) |
+| سطح عمومی هفتگی | ۴۹ عضو / ۱۶ نام `window.*` | **همان ۴۹ عضو** / ۱۵ چسب + `onload` |
+| بزرگ‌ترین فایل تولیدشده | — | `weekly.cards.js` (۳۴.۵KB / ۶۷۷ خط) |
+| فایل‌های ≥۴۰KB فرانت | ۱۴ | **۱۳** (هیچ فایل هفتگی تازه‌ای وارد نشد) |
+| فایل‌های اسکن‌شده / حجم `src` | ۱۵۰ / ۲.۳۸ MB | **۱۵۹ / ۲.۴۰ MB** |
+| ورودی‌های اسنپ‌شات قرارداد | ۴۷ | **۴۹** (چسب هفتگی + سازندهٔ HTML گزارش) |
+| سراسری‌های `window` تحت گارد | ۲۴۶ | **۲۴۶** (بدون تغییر) |
+| export بی‌ارجاع / فایل js بی‌ارجاع | ۷۱ / ۳ | **۷۱ / ۳** |
+
+### ه) شواهد تأیید نهایی
+
+| بررسی | فرمان | نتیجه |
+| --- | --- | --- |
+| گارد زمان اجرای سطح هفتگی | `npm run test:weekly:surface` | ۲۱ بررسی PASS · `SURFACE PASS` · `exit=0` |
+| تست‌های رفتاری هفتگی | `npm run test:weekly` · `test:weekly:report` · `test:weekly:history` · `test:weekly:groups` | همه سبز |
+| گاردهای موج‌های قبل | `npm run test:hatchery-surface` · `npm run test:dashboard-surface` | بدون افت |
+| قرارداد فراخوانی از بیرون | `npm run audit:surface` | «نقض قرارداد: ۰» · `exit=0` |
+| اندازه‌ها | `npm run audit:size` | ۱۵۹ فایل · ۲.۴۰ MB · ۰ فایل صفر‌بایتی |
+| exportهای مرده | `npm run audit:dead-exports` | ۷۱ export بی‌ارجاع · ۳ فایل js بی‌ارجاع |
+| بزرگ‌ترین متدها | `npm run audit:big-methods` | ۳۰ متد با ≥۱۵۰ خط (بدون تغییر) |
+| لینت | `npm run lint` | تمیز |
+
+### و) گارد دائمی جدید: `npm run test:weekly:surface`
+
+`Frontend/weekly-service-surface-test.mjs` (سیزدهمین تست فرانت) ماژول را با استاب‌های
+`window`/`document`/`localStorage` واقعاً import می‌کند و ۲۱ بررسی انجام می‌دهد:
+
+| گروه | بررسی‌ها |
+| --- | --- |
+| صادرات و کلاس | `weeklyService` صادر می‌شود · `window.WeeklyService` کلاس همان نمونه است (کلاس صادر نمی‌شود) |
+| سطح `prototype` | تابع‌بودن هر ۴۹ عضو · شمارش دقیق ۴۹ عضو |
+| mixinها | ثبت هر ۸ mixin در اسنپ‌شات · وجود فایل + متد شاخص روی نمونه (۸ بررسی) |
+| ویژگی‌های نمونه | ۱۵ ویژگی غیرمتدی اعلام‌شده موجودند |
+| چسب پنجره | ثبت هر ۱۵ نام `window.*` · `window.weeklyService === weeklyService` · ثبت ۱۵ نام فایل چسب |
+| مصرف‌کنندهٔ بیرونی | ۴ ارجاع `window.weeklyService` · مسیر `window.weeklyService?.init` (`customer-info.service.js:500`/`501`) · فراخوانی `showMoreWeeks` در HTML رندرشده (`weekly.cards.js:387`) |
+| پاکیزگی | نبود اسکریپت موقت `_*` در پوشهٔ weekly |
+
+سه نکتهٔ ظریف که گارد آگاهانه مدیریت می‌کند:
+
+- **`WeeklyService` صادر نمی‌شود** (فقط `window.WeeklyService`)، پس گارد کلاس را از مسیر
+  `window` می‌گیرد — همان کاری که چسب پنجره می‌کند.
+- **`style`** یک «شبه‌ویژگی» است: ابزار استاتیک از `this.style.x` آن را عضو نمونه دیده، ولی API
+  عنصر DOM است؛ گارد آن را از بررسی ویژگی‌ها کنار می‌گذارد.
+- **`onload`** نام شانزدهم هفتگی است، اما «متنِ HTML/هنگام‌نیاز» است (داخل
+  `<script>window.onload = function(){ window.print(); }</script>` پنجرهٔ چاپ)، نه تخصیص واقعی
+  `window`؛ گارد آن را «اطلاعی» گزارش می‌کند و در شمارش `window` نمی‌آورد.
+
+### ز) یادداشت نگه‌داری
+
+- اسکریپت‌های موقت این موج (برش + دو هارنس سنجش) **موقت** بودند و پس از تأیید حذف شدند؛ خود
+  گارد هم بررسی می‌کند که در پوشهٔ weekly هیچ فایل `_*` جامانده نباشد.
+- `package.json` اسکریپت `test:weekly:surface` را ثبت کرد؛ برای سرویس بعدی همین الگو
+  (استاب حداقلی + اسنپ‌شات قرارداد + یک اسکریپت npm) تکرار می‌شود.
+- مصرف‌کنندهٔ HTML دست‌نخورده است: `customer-info.html` همان `weekly.service.js` را با
+  `<script type="module">` بار می‌کند و ۹ فایل تازه فقط از مسیر همان ماژول دیده می‌شوند.
+- در بازبینی این موج **نقص تازه‌ای** پیدا نشد؛ دو نقص شناخته‌شدهٔ پیش‌موج (`viewPeriod` و
+  `savePeriod`) مربوط به سرویس جوجه‌ریزی‌اند (نه هفتگی) و طبق اصل «بدون تغییر رفتار»
+  دست‌نخورده ماندند (بخش ۸ و بندهای ۸ و ۹ سند `docs/HOTSPOTS.md`).
+
+### ح) گام بعدی
+
+`halls.service.js` (۹۷.۶KB) بزرگ‌ترین فایل مخزن است؛ پس از آن `customer-info.html` (۹۷.۲KB)،
+`hatchery.service.js` (۹۵.۴KB)، `weekly.renderer.js` (۷۴.۸KB) و `chart-dashboard.service.js`
+(۷۱.۴KB). در کنار برش فایل، سه «متد غول» کاندید برش **بدنهٔ متد** هستند:
+`buildWeeklyHistoryHTML` ۳۳۶ خط، `renderWeeks` ۳۰۴ خط و `renderFullReport` ۵۲۴ خط (بزرگ‌ترین
+متد مخزن) — با تکیه بر چهار تست رفتاری موجود هفتگی.
