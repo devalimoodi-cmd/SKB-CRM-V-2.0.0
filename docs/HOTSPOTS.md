@@ -1,8 +1,8 @@
 # نقاط داغ پروژه (Hotspots)
 
 > سند زنده — با اجرای اسکریپت‌های audit به‌رو نگه داشته می‌شود.
-> آخرین به‌روزرسانی: **موج ۳.۲b — شکستن `weekly.service.js` به ۸ mixin دامنه‌ای (بارگذاری/گله‌ها/کارت‌ها/فرم/گزارش‌ها) + چسب پنجره + گارد دائمی سطح هفتگی** (برنچ `chore/wave-3.2b-split-weekly`).
-> گزارش‌های کامل: `docs/REVIEW-WAVE-3.md` (موج ۳.۲b و ۳.۲a و ۳.۱) · `docs/REVIEW-WAVE-2.md` (موج ۲) · `docs/REVIEW.md` (موج ۰ و ۱)
+> آخرین به‌روزرسانی: **موج ۳.۲c — شکستن `halls.service.js` (چاق‌ترین فایل مخزن) به ۸ mixin دامنه‌ای + چسب پنجره + گارد دائمی سطح سالن‌ها** (برنچ `chore/wave-3.2c-split-halls`).
+> گزارش‌های کامل: `docs/REVIEW-WAVE-3.md` (موج ۳.۲c و ۳.۲b و ۳.۲a و ۳.۱) · `docs/REVIEW-WAVE-2.md` (موج ۲) · `docs/REVIEW.md` (موج ۰ و ۱)
 
 ## چطور اندازه‌گیری می‌شود؟
 
@@ -16,6 +16,7 @@ npm run audit:big-methods       # متدهای بزرگ‌تر از بودجهٔ
 npm run test:hatchery-surface   # گارد «سطح زمان اجرا» جوجه‌ریزی (import واقعی + اسنپ‌شات قرارداد)
 npm run test:dashboard-surface  # گارد «سطح زمان اجرا» داشبورد (۷۸ عضو prototype + ۲۴ نام window)
 npm run test:weekly:surface     # گارد «سطح زمان اجرا» هفتگی (۴۹ عضو prototype · ۱۵ نام window · ۱ نام اطلاعی)
+npm run test:halls:surface      # گارد «سطح زمان اجرا» سالن‌ها (۷۱ عضو prototype · ۳۳ نام window · ۱۷ ویژگی نمونه)
 
 # Backend
 cd Backend
@@ -46,29 +47,35 @@ import می‌کند و همان اعداد اسنپ‌شات را روی نمو
 `WeeklyService` صادر نمی‌شود (فقط نمونهٔ `weeklyService`؛ کلاس از مسیر `window.WeeklyService`
 دیده می‌شود) و چسب پنجره با تابع ثبت `registerWeeklyWindowGlue({ weeklyService, WeeklyService })`
 **بعد از** ساخته‌شدن نمونه اجرا می‌شود؛ گارد همین ترتیب را هم می‌سنجد.
+`test:halls:surface` همین گارد را برای `halls.service.js` تکرار می‌کند (۲۴ بررسی): ۷۱ عضو
+`prototype` (= ۱ سازنده + ۷۰ متد در ۸ mixin دامنه‌ای) · ۳۳ نام `window.*` در
+`halls.window-glue.js` · ۱۷ ویژگی نمونه (۱۲ مورد در `constructor` + ۴ فیلد تنبل که وجودشان
+با `this.X =` در متن اثبات می‌شود + یک شبه‌ویژگی DOM) · وجود هر ۸ فایل mixin روی دیسک.
+دو نکتهٔ خاص سالن‌ها: کلاس `HallsService` صادر نمی‌شود (فقط نمونهٔ `hallsService`؛ کلاس از
+مسیر `window.HallsService` دیده می‌شود) و گارد دستهٔ باگ «عضو فانتوم» را هم می‌گیرد: نامی که
+در سطح عمومی *صدا زده* می‌شود ولی هیچ‌جا ساخته نمی‌شود (همان الگوی `loadCities`) → قرمز.
 
 اسکریپت‌ها **فقط خواندنی** هستند (جز `--snapshot`) و گزینه‌های `--json`، `--top=`،
 `--big=`، `--fail-on-empty` و `--fail-on-dead` را پشتیبانی می‌کنند.
 
-## وضعیت فعلی (پس از موج ۳.۲b)
+## وضعیت فعلی (پس از موج ۳.۲c)
 
 ### Frontend
 
 | شاخص | مقدار |
 | --- | --- |
-| فایل‌های اسکن‌شده | ۱۵۹ |
-| حجم کل `src` | ۲.۴۰ MB |
+| فایل‌های اسکن‌شده | ۱۶۸ |
+| حجم کل `src` | ۲.۴۱ MB |
 | فایل صفر‌بایتی | ۰ |
 | export بدون ارجاع بیرونی | ۷۱ |
 | فایل js بی‌ارجاع | ۳ |
-| سرویس‌های ثبت‌شده در اسنپ‌شات قرارداد | ۴۹ |
+| سرویس‌های ثبت‌شده در اسنپ‌شات قرارداد | ۵۰ |
 | سراسری‌های `window` تحت گارد | ۲۴۶ |
 
 #### بزرگ‌ترین فایل‌ها (≥ ۴۰KB)
 
 | حجم | فایل |
 | --- | --- |
-| 97.6 KB | `src/features/customer-info/sections/hall-management/halls.service.js` |
 | 97.2 KB | `src/pages/customer-info.html` |
 | 95.4 KB | `src/features/customer-info/sections/hatchery/hatchery.service.js` |
 | 87.1 KB | `src/features/dashboard/dashboard.service.js` |
@@ -107,6 +114,17 @@ import می‌کند و همان اعداد اسنپ‌شات را روی نمو
 > ۹ فایل است، نه کد تازه. اسنپ‌شات `docs/service-surface.json` عمداً بازتولید شد: ۴۹ عضو
 > `prototype` = ۱ سازنده + ۴۸ متد در ۸ mixin · ۱۵ نام `window.*` در `weekly.window-glue.js` ·
 > سراسری‌های کل مخزن ۲۴۶ → ۲۴۶.
+
+> 📉 `halls.service.js` (چاق‌ترین فایل مخزن: **۹۷.۶KB / ۲۴۲۴ خط / ۷۱ عضو سطح عمومی** = ۱ سازنده +
+> ۷۰ متد + ۳۳ نام `window.*`) در **موج ۳.۲c** به ۸ mixin دامنه‌ای + «چسب پنجره» شکست و به
+> **۲.۵KB / ۵۰ خط** رسید (−۹۷٪ حجم). بزرگ‌ترین فایل تولیدشده `halls.units.js`
+> (۲۷.۲KB / ۵۷۳ خط / ۱۶ عضو) است و هیچ‌کدام از ۹ فایل تازه به آستانهٔ ۴۰KB نمی‌رسند؛ از این پس
+> **`customer-info.html` (۹۷.۲KB)** بزرگ‌ترین فایل مخزن است. دیف سرویس: **۳۱ خط افزوده /
+> ۲۴۰۵ خط حذف‌شده** (حجم فایل درست پیش از کامیت برش، یعنی پس از دو رفع باگ همین موج: ۹۸.۰KB)؛
+> ۹ فایل جدید روی‌هم ۲۴۸۸ خط. حجم `src` از ۲.۴۰ به ۲.۴۱ MB رفت (+۱۶KB سربار
+> سرصفحه/ایمپورت، نه کد تازه). اسنپ‌شات `docs/service-surface.json` عمداً بازتولید شد: ۷۱ عضو
+> `prototype` = ۱ سازنده + ۷۰ متد در ۸ mixin · ۳۳ نام `window.*` در `halls.window-glue.js` ·
+> سرویس‌های ثبت‌شده ۴۹ → ۵۰ · سراسری‌های کل مخزن ۲۴۶ → ۲۴۶.
 
 #### بزرگ‌ترین متدهای باقی‌مانده (بودجهٔ ۱۵۰ خط)
 
@@ -161,9 +179,17 @@ import می‌کند و همان اعداد اسنپ‌شات را روی نمو
    (`hatchery.completion.period.js:724`)، `completePeriod` ۲۷۸ خط و
    `_collectCompletionSave` ۲۰۳ خط (`hatchery.completion.flock.js:856`)؛ نیازمند
    تست رفتاری اختصاصی (شکستن بدنهٔ متد، نه جابه‌جایی متد).
-4. **`halls.service.js` (۹۷.۶KB)** و **`chart-dashboard.service.js` (۷۱.۴KB)** —
-   `saveBasicInfo` ۱۷۷ خط، `renderUnitDetailsPanel` ۱۶۵ خط، `renderAllCharts` ۲۲۳ خط.
-5. **`customer-info.html` (۹۷.۲KB)** — صفحهٔ چاق؛ انتقال هندلرهای inline به «چسب پنجره»
+4. ✅ **`halls.service.js`** — در **موج ۳.۲c** به ۸ mixin دامنه‌ای شکست: `halls.core.js` (۹ عضو)،
+   `halls.tabs.js` (۶)، `halls.basic.js` (۹)، `halls.list.js` (۹)، `halls.edit-mode.js` (۷)،
+   `halls.units.js` (۱۶)، `halls.systems.js` (۸)، `halls.forms.js` (۶) + `halls.window-glue.js`
+   (۳۳ نام `window.*`) ⇒ ۹۷.۶KB → ۲.۵KB با همان ۷۱ عضو سطح عمومی. گارد زمان اجرا
+   `npm run test:halls:surface` (۲۴ بررسی) اضافه شد. شرح: `docs/REVIEW-WAVE-3.md` بخش ۱۴.
+   ⛔ باقی‌ماندهٔ همین خوشه (برش **بدنهٔ متد**، نه فایل): `generateHTML` ۴۵۰ خط
+   (`halls.report.js:491`)، `renderHallInfo` ۲۵۴ خط (`halls.renderer.js:281`)، `saveBasicInfo`
+   ۱۷۷ خط (`halls.basic.js:235`) و `renderUnitDetailsPanel` ۱۶۵ خط (`halls.units.js:292`).
+   **`chart-dashboard.service.js` (۷۱.۴KB)** همچنان دست‌نخورده است: `renderAllCharts` ۲۲۳ خط
+   (`chart-dashboard.service.js:1385`) و `renderContainer` ۲۴۹ خط (`chart-dashboard.renderer.js:8`).
+5. **`customer-info.html` (۹۷.۲KB)** — بزرگ‌ترین فایل مخزن پس از موج ۳.۲c؛ صفحهٔ چاق؛ انتقال هندلرهای inline به «چسب پنجره»
    (همان الگوی موج ۲.۱) تا صفحات نازک شوند.
 6. **۷۱ export بی‌مصرف در فرانت** — بیشترشان توابع کمکی عمومی (`dom.utils.js`،
    `number.utils.js`، `form.utils.js`) هستند؛ تصمیم بگیر «نگه‌دار برای آینده» یا «حذف».
@@ -196,17 +222,21 @@ import می‌کند و همان اعداد اسنپ‌شات را روی نمو
 - فایل‌های بزرگ‌تر از ۴۰KB فقط با برنامهٔ شکستن (issue) بزرگ‌تر شوند.
 - **قبل و بعد از هر جابه‌جایی/شکستن، `npm run audit:surface` را اجرا کنید**؛ اگر «گم‌شده»
   گزارش داد، جابه‌جایی ناقص است. متدهای منتقل‌شده به mixin هم توسط همین ابزار شناخته می‌شوند.
-- برای برش فایل‌های چاق، **اسکریپت مهاجرت + گیت اثبات** بنویسید (الگو: موج‌های ۳.۲a و ۳.۲b در
-  `docs/REVIEW-WAVE-3.md` بخش‌های ۱۲ و ۱۳ — نسخهٔ تکامل‌یافتهٔ الگوی بخش ۳): برش بر اساس **آفست
+- برای برش فایل‌های چاق، **اسکریپت مهاجرت + گیت اثبات** بنویسید (الگو: موج‌های ۳.۲a/۳.۲b/۳.۲c در
+  `docs/REVIEW-WAVE-3.md` بخش‌های ۱۲/۱۳/۱۴ — نسخهٔ تکامل‌یافتهٔ الگوی بخش ۳): برش بر اساس **آفست
   بایت** (نه شمارهٔ خط/جست‌وجوی متنی)، اثبات `concat(قطعات) === ناحیهٔ اصلی`، گارد «حذف
   تصادفی `export`»، پاسخ‌گویی **AST (espree)** به «آیا هر عضو به mixin درست منتقل شده؟»،
   هرس ایمپورت‌های بی‌مصرف سرویس، و EOL یکدست. اگر mixinها **شیء سادهٔ متدی** باشند
   (الگوی هفتگی)، سرویس فقط `Object.assign` می‌کند و اثبات باید `git show pre-wave-3.2b:<file>`
-  را کلمه‌به‌کلمه با دیسک مقایسه کند. اسکریپت موقت را پس از تأیید حذف کنید تا در `src` نماند
+  را کلمه‌به‌کلمه با دیسک مقایسه کند. در موج ۳.۲c این اثبات سخت‌تر شد: گیت‌های خودِ اسکریپت
+  بررسی می‌کنند که «منبع روی دیسک == بلاب تگ `pre-wave-3.2c` + دو ناحیهٔ رفع باگ مستند،
+  بایت‌به‌بایت» و «concat(قطعات) == ناحیهٔ برش‌شده» — یعنی اثبات به خود ابزار منتقل شد، نه به
+  چشم بازبین. اسکریپت موقت را پس از تأیید حذف کنید تا در `src` نماند
   (وگرنه `audit:dead-exports`/`audit:size` را آلوده می‌کند).
 - پس از هر شکستن mixin، **حجم/متد فایل‌های جدید** را در جدول‌های بالای همین سند به‌روز کنید.
 - برای سرویس‌های وابسته به DOM، **گارد زمان اجرا** را هم اجرا کنید
-  (`npm run test:hatchery-surface` · `npm run test:dashboard-surface` · `npm run test:weekly:surface`)؛
+  (`npm run test:hatchery-surface` · `npm run test:dashboard-surface` · `npm run test:weekly:surface` ·
+  `npm run test:halls:surface`)؛
   این تست‌ها ماژول را واقعاً با استاب `window`/`document`/`localStorage` import می‌کنند و سطح
   عمومی را با `docs/service-surface.json` مقایسه می‌کنند، پس هم «گم‌شدن بی‌صدای عضو» را
   می‌گیرند و هم «بزرگ‌شدن ناخواستهٔ سطح عمومی» را. برای سرویس بعدی همین الگو را تکرار کنید:
