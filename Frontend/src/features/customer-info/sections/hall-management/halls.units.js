@@ -293,164 +293,22 @@ export const hallsUnitMethods = {
     if (!unit) return "";
 
     // محاسبه زنده بر اساس رکوردهای واقعی سالن‌های همین واحد
-    const unitHalls = (this.halls || []).filter((h) => h.unit_id == unit.id);
-    const activeHalls = unitHalls.filter((h) => h.is_active !== false);
-    const realHallCount = unitHalls.length;
-    const unitCapacity = Number(unit.capacity) || 0;
-    const usedCapacity = activeHalls.reduce(
-      (sum, h) => sum + (Number(h.nominal_capacity) || 0),
-      0,
+    const { realHallCount, freeHtml } = computeUnitCapacityView(
+      this.halls,
+      unit,
     );
-    const freeCapacity = unitCapacity - usedCapacity;
 
-    const freeHtml =
-      unitCapacity > 0
-        ? freeCapacity >= 0
-          ? `<span class="value">${freeCapacity.toLocaleString()} قطعه</span>`
-          : `<span class="value" style="color:#dc2626;font-weight:700;">مازاد ${Math.abs(
-              freeCapacity,
-            ).toLocaleString()} قطعه</span>`
-        : `<span class="value">—</span>`;
-
-    const experts = unit.experts || [];
-    const expertListHtml = experts.length
-      ? experts
-          .map(
-            (e) => `
-            <div class="unit-expert-chip">
-              <i class="fas fa-user-tie"></i>
-              <strong>${e.expert_name || "-"}</strong>
-              ${e.expert_phone ? `<span class="chip-phone">${e.expert_phone}</span>` : ""}
-              ${e.expert_role ? `<span class="chip-role">${e.expert_role}</span>` : ""}
-            </div>`,
-          )
-          .join("")
-      : '<span class="unit-no-experts">کارشناسی ثبت نشده است</span>';
+    const expertListHtml = buildUnitExpertChips(unit);
 
     return `
       <div class="unit-details-panel">
-        <div class="unit-details-view">
-          <div class="unit-details-grid">
-            <div class="unit-detail-item">
-              <div class="detail-icon"><i class="fas fa-map-marker-alt"></i></div>
-              <div class="detail-content">
-                <span class="label">آدرس</span>
-                <span class="value">${unit.address || "—"}</span>
-              </div>
-            </div>
-            <div class="unit-detail-item">
-              <div class="detail-icon"><i class="fas fa-hashtag"></i></div>
-              <div class="detail-content">
-                <span class="label">تعداد سالن‌ها</span>
-                <span class="value">${realHallCount}</span>
-              </div>
-            </div>
-            <div class="unit-detail-item">
-              <div class="detail-icon"><i class="fas fa-globe-asia"></i></div>
-              <div class="detail-content">
-                <span class="label">طول جغرافیایی</span>
-                <span class="value">${unit.longitude || "—"}</span>
-              </div>
-            </div>
-            <div class="unit-detail-item">
-              <div class="detail-icon"><i class="fas fa-globe"></i></div>
-              <div class="detail-content">
-                <span class="label">عرض جغرافیایی</span>
-                <span class="value">${unit.latitude || "—"}</span>
-              </div>
-            </div>
-            <div class="unit-detail-item">
-              <div class="detail-icon"><i class="fas fa-weight-hanging"></i></div>
-              <div class="detail-content">
-                <span class="label">ظرفیت واحد</span>
-                <span class="value">${(unit.capacity ?? 0).toLocaleString()} قطعه</span>
-              </div>
-            </div>
-            <div class="unit-detail-item">
-              <div class="detail-icon"><i class="fas fa-chart-pie"></i></div>
-              <div class="detail-content">
-                <span class="label">ظرفیت خالی واحد</span>
-                ${freeHtml}
-              </div>
-            </div>
-            <div class="unit-detail-item">
-              <div class="detail-icon"><i class="fas fa-user"></i></div>
-              <div class="detail-content">
-                <span class="label">مدیر واحد</span>
-                <span class="value">${unit.manager_name || "—"}</span>
-              </div>
-            </div>
-            <div class="unit-detail-item">
-              <div class="detail-icon"><i class="fas fa-phone"></i></div>
-              <div class="detail-content">
-                <span class="label">تماس مدیر</span>
-                <span class="value" dir="ltr">${unit.manager_phone || "—"}</span>
-              </div>
-            </div>
-          </div>
-          <div class="unit-experts-section">
-            <div class="unit-experts-title"><i class="fas fa-user-tie"></i> کارشناسان واحد</div>
-            <div class="unit-experts-list">${expertListHtml}</div>
-          </div>
-          <div class="unit-details-actions">
-            <button class="btn-edit-unit" onclick="event.stopPropagation(); window.openUnitEdit(${unit.id})">
-              <i class="fas fa-edit"></i> بروزرسانی اطلاعات واحد
-            </button>
-          </div>
-        </div>
-        <div class="unit-details-edit" style="display:none;">
-          <div class="unit-edit-form">
-            <div class="form-grid">
-              <div class="form-group"><label>نام واحد <span class="required">*</span></label><input type="text" id="editUnitName" value="${unit.unit_name || ""}"></div>
-              <div class="form-group"><label>آدرس واحد</label><input type="text" id="editUnitAddress" value="${unit.address || ""}"></div>
-              <div class="form-group"><label>طول جغرافیایی</label><input type="text" id="editUnitLongitude" value="${unit.longitude || ""}"></div>
-              <div class="form-group"><label>عرض جغرافیایی</label><input type="text" id="editUnitLatitude" value="${unit.latitude || ""}"></div>
-              <div class="form-group"><label>تعداد سالن‌ها <span class="required">*</span></label><input type="number" id="editUnitHallCount" min="1" max="99" value="${realHallCount || unit.hall_count || ""}"></div>
-              <div class="form-group"><label>ظرفیت واحد (قطعه) <span class="required">*</span></label><input type="number" id="editUnitCapacity" min="0" max="1000000" value="${unit.capacity ?? ""}"></div>
-              <div class="form-group"><label>نام مدیر واحد <span class="required">*</span></label><input type="text" id="editUnitManagerName" value="${unit.manager_name || ""}"></div>
-              <div class="form-group"><label>شماره تماس مدیر <span class="required">*</span></label><input type="text" id="editUnitManagerPhone" value="${unit.manager_phone || ""}"></div>
-            </div>
-            <div class="unit-edit-experts-section">
-              <div class="unit-experts-title"><i class="fas fa-user-tie"></i> ویرایش کارشناسان</div>
-              <div class="unit-edit-experts-container">
-                ${(unit.experts || [])
-                  .map(
-                    (e) => `
-                <div class="unit-edit-expert-row" data-expert-id="${e.id}">
-                  <input type="text" maxlength="50" class="unit-edit-expert-name" value="${e.expert_name || ""}" placeholder="نام کارشناس">
-                  <input type="text" maxlength="11" inputmode="numeric" class="unit-edit-expert-phone" value="${e.expert_phone || ""}" placeholder="شماره تماس"
-                    oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,11)">
-                  <input type="text" maxlength="50" class="unit-edit-expert-role" value="${e.expert_role || ""}" placeholder="نقش / تخصص">
-                  <button type="button" class="btn-remove-expert" data-expert-id="${e.id}" onclick="event.stopPropagation(); window.removeUnitEditExpertRow(this)" title="حذف کارشناس">
-                    <i class="fas fa-trash"></i>
-                  </button>
-                </div>`,
-                  )
-                  .join("")}
-                <div class="unit-edit-expert-row" data-is-new="true">
-                  <input type="text" maxlength="50" class="unit-edit-expert-name" placeholder="نام کارشناس">
-                  <input type="text" maxlength="11" inputmode="numeric" class="unit-edit-expert-phone" placeholder="شماره تماس"
-                    oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,11)">
-                  <input type="text" maxlength="50" class="unit-edit-expert-role" placeholder="نقش / تخصص">
-                  <button type="button" class="btn-remove-expert" onclick="window.removeUnitEditExpertRow(this)" title="حذف">
-                    <i class="fas fa-times"></i>
-                  </button>
-                </div>
-              </div>
-              <button type="button" class="btn-add-expert" onclick="event.stopPropagation(); window.addUnitEditExpertRow(${unit.id})">
-                <i class="fas fa-plus"></i> افزودن کارشناس
-              </button>
-            </div>
-            <div class="unit-edit-actions">
-              <button class="btn-save-unit-edit" onclick="window.updateUnitInfo(${unit.id})">
-                <i class="fas fa-save"></i> ذخیره تغییرات
-              </button>
-              <button class="btn-cancel-unit-edit" onclick="event.stopPropagation(); window.closeUnitEdit(${unit.id})">
-                <i class="fas fa-times"></i> انصراف
-              </button>
-            </div>
-          </div>
-        </div>
+        ${buildUnitDetailsViewHtml({
+          unit,
+          realHallCount,
+          freeHtml,
+          expertListHtml,
+        })}
+        ${buildUnitEditFormHtml({ unit, realHallCount })}
       </div>
     `;
   },
@@ -571,3 +429,183 @@ export const hallsUnitMethods = {
   },
 
 };
+
+// ============================================================
+//  توابع کمکی ماژول‌محلی renderUnitDetailsPanel (موج ۳.۲d — برش بدنه)
+//  کد پیش‌تر داخل بدنهٔ متد بود؛ اینجا فقط «۸ فاصلهٔ خط اول» هر بلوک HTML
+//  برداشته شده چون متد همان فاصله را در خط اسلات تأمین می‌کند؛ بنابراین
+//  رشتهٔ HTML خروجی بایت‌به‌بایت ثابت است (گارد: npm run test:halls:body).
+// ============================================================
+
+function computeUnitCapacityView(halls, unit) {
+  const unitHalls = (halls || []).filter((h) => h.unit_id == unit.id);
+  const activeHalls = unitHalls.filter((h) => h.is_active !== false);
+  const realHallCount = unitHalls.length;
+  const unitCapacity = Number(unit.capacity) || 0;
+  const usedCapacity = activeHalls.reduce(
+    (sum, h) => sum + (Number(h.nominal_capacity) || 0),
+    0,
+  );
+  const freeCapacity = unitCapacity - usedCapacity;
+
+  const freeHtml =
+    unitCapacity > 0
+      ? freeCapacity >= 0
+        ? `<span class="value">${freeCapacity.toLocaleString()} قطعه</span>`
+        : `<span class="value" style="color:#dc2626;font-weight:700;">مازاد ${Math.abs(
+              freeCapacity,
+            ).toLocaleString()} قطعه</span>`
+      : `<span class="value">—</span>`;
+  return { realHallCount, freeHtml };
+}
+
+function buildUnitExpertChips(unit) {
+  const experts = unit.experts || [];
+  const expertListHtml = experts.length
+    ? experts
+        .map(
+          (e) => `
+            <div class="unit-expert-chip">
+              <i class="fas fa-user-tie"></i>
+              <strong>${e.expert_name || "-"}</strong>
+              ${e.expert_phone ? `<span class="chip-phone">${e.expert_phone}</span>` : ""}
+              ${e.expert_role ? `<span class="chip-role">${e.expert_role}</span>` : ""}
+            </div>`,
+        )
+        .join("")
+    : '<span class="unit-no-experts">کارشناسی ثبت نشده است</span>';
+  return expertListHtml;
+}
+
+function buildUnitDetailsViewHtml({
+  unit,
+  realHallCount,
+  freeHtml,
+  expertListHtml,
+}) {
+  return `<div class="unit-details-view">
+          <div class="unit-details-grid">
+            <div class="unit-detail-item">
+              <div class="detail-icon"><i class="fas fa-map-marker-alt"></i></div>
+              <div class="detail-content">
+                <span class="label">آدرس</span>
+                <span class="value">${unit.address || "—"}</span>
+              </div>
+            </div>
+            <div class="unit-detail-item">
+              <div class="detail-icon"><i class="fas fa-hashtag"></i></div>
+              <div class="detail-content">
+                <span class="label">تعداد سالن‌ها</span>
+                <span class="value">${realHallCount}</span>
+              </div>
+            </div>
+            <div class="unit-detail-item">
+              <div class="detail-icon"><i class="fas fa-globe-asia"></i></div>
+              <div class="detail-content">
+                <span class="label">طول جغرافیایی</span>
+                <span class="value">${unit.longitude || "—"}</span>
+              </div>
+            </div>
+            <div class="unit-detail-item">
+              <div class="detail-icon"><i class="fas fa-globe"></i></div>
+              <div class="detail-content">
+                <span class="label">عرض جغرافیایی</span>
+                <span class="value">${unit.latitude || "—"}</span>
+              </div>
+            </div>
+            <div class="unit-detail-item">
+              <div class="detail-icon"><i class="fas fa-weight-hanging"></i></div>
+              <div class="detail-content">
+                <span class="label">ظرفیت واحد</span>
+                <span class="value">${(unit.capacity ?? 0).toLocaleString()} قطعه</span>
+              </div>
+            </div>
+            <div class="unit-detail-item">
+              <div class="detail-icon"><i class="fas fa-chart-pie"></i></div>
+              <div class="detail-content">
+                <span class="label">ظرفیت خالی واحد</span>
+                ${freeHtml}
+              </div>
+            </div>
+            <div class="unit-detail-item">
+              <div class="detail-icon"><i class="fas fa-user"></i></div>
+              <div class="detail-content">
+                <span class="label">مدیر واحد</span>
+                <span class="value">${unit.manager_name || "—"}</span>
+              </div>
+            </div>
+            <div class="unit-detail-item">
+              <div class="detail-icon"><i class="fas fa-phone"></i></div>
+              <div class="detail-content">
+                <span class="label">تماس مدیر</span>
+                <span class="value" dir="ltr">${unit.manager_phone || "—"}</span>
+              </div>
+            </div>
+          </div>
+          <div class="unit-experts-section">
+            <div class="unit-experts-title"><i class="fas fa-user-tie"></i> کارشناسان واحد</div>
+            <div class="unit-experts-list">${expertListHtml}</div>
+          </div>
+          <div class="unit-details-actions">
+            <button class="btn-edit-unit" onclick="event.stopPropagation(); window.openUnitEdit(${unit.id})">
+              <i class="fas fa-edit"></i> بروزرسانی اطلاعات واحد
+            </button>
+          </div>
+        </div>`;
+}
+
+function buildUnitEditFormHtml({ unit, realHallCount }) {
+  return `<div class="unit-details-edit" style="display:none;">
+          <div class="unit-edit-form">
+            <div class="form-grid">
+              <div class="form-group"><label>نام واحد <span class="required">*</span></label><input type="text" id="editUnitName" value="${unit.unit_name || ""}"></div>
+              <div class="form-group"><label>آدرس واحد</label><input type="text" id="editUnitAddress" value="${unit.address || ""}"></div>
+              <div class="form-group"><label>طول جغرافیایی</label><input type="text" id="editUnitLongitude" value="${unit.longitude || ""}"></div>
+              <div class="form-group"><label>عرض جغرافیایی</label><input type="text" id="editUnitLatitude" value="${unit.latitude || ""}"></div>
+              <div class="form-group"><label>تعداد سالن‌ها <span class="required">*</span></label><input type="number" id="editUnitHallCount" min="1" max="99" value="${realHallCount || unit.hall_count || ""}"></div>
+              <div class="form-group"><label>ظرفیت واحد (قطعه) <span class="required">*</span></label><input type="number" id="editUnitCapacity" min="0" max="1000000" value="${unit.capacity ?? ""}"></div>
+              <div class="form-group"><label>نام مدیر واحد <span class="required">*</span></label><input type="text" id="editUnitManagerName" value="${unit.manager_name || ""}"></div>
+              <div class="form-group"><label>شماره تماس مدیر <span class="required">*</span></label><input type="text" id="editUnitManagerPhone" value="${unit.manager_phone || ""}"></div>
+            </div>
+            <div class="unit-edit-experts-section">
+              <div class="unit-experts-title"><i class="fas fa-user-tie"></i> ویرایش کارشناسان</div>
+              <div class="unit-edit-experts-container">
+                ${(unit.experts || [])
+                  .map(
+                    (e) => `
+                <div class="unit-edit-expert-row" data-expert-id="${e.id}">
+                  <input type="text" maxlength="50" class="unit-edit-expert-name" value="${e.expert_name || ""}" placeholder="نام کارشناس">
+                  <input type="text" maxlength="11" inputmode="numeric" class="unit-edit-expert-phone" value="${e.expert_phone || ""}" placeholder="شماره تماس"
+                    oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,11)">
+                  <input type="text" maxlength="50" class="unit-edit-expert-role" value="${e.expert_role || ""}" placeholder="نقش / تخصص">
+                  <button type="button" class="btn-remove-expert" data-expert-id="${e.id}" onclick="event.stopPropagation(); window.removeUnitEditExpertRow(this)" title="حذف کارشناس">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </div>`,
+                  )
+                  .join("")}
+                <div class="unit-edit-expert-row" data-is-new="true">
+                  <input type="text" maxlength="50" class="unit-edit-expert-name" placeholder="نام کارشناس">
+                  <input type="text" maxlength="11" inputmode="numeric" class="unit-edit-expert-phone" placeholder="شماره تماس"
+                    oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,11)">
+                  <input type="text" maxlength="50" class="unit-edit-expert-role" placeholder="نقش / تخصص">
+                  <button type="button" class="btn-remove-expert" onclick="window.removeUnitEditExpertRow(this)" title="حذف">
+                    <i class="fas fa-times"></i>
+                  </button>
+                </div>
+              </div>
+              <button type="button" class="btn-add-expert" onclick="event.stopPropagation(); window.addUnitEditExpertRow(${unit.id})">
+                <i class="fas fa-plus"></i> افزودن کارشناس
+              </button>
+            </div>
+            <div class="unit-edit-actions">
+              <button class="btn-save-unit-edit" onclick="window.updateUnitInfo(${unit.id})">
+                <i class="fas fa-save"></i> ذخیره تغییرات
+              </button>
+              <button class="btn-cancel-unit-edit" onclick="event.stopPropagation(); window.closeUnitEdit(${unit.id})">
+                <i class="fas fa-times"></i> انصراف
+              </button>
+            </div>
+          </div>
+        </div>`;
+}
