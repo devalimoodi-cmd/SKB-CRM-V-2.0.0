@@ -788,86 +788,6 @@ export const weeklyRenderer = {
       }
     };
 
-    // ===== جدول شاخص‌های عملکردی (۱۴ ستون) — ستون‌ها بر اساس انتخاب کاربر فیلتر می‌شوند =====
-
-    const renderMetricsTable = (
-      savedWeeks,
-      title,
-      selectedGroups = ALL_GROUP_KEYS,
-      audit = null,
-      selectedWeekNumbers = null,
-    ) => {
-      const selected = normalizeGroups(selectedGroups);
-      const columns = metricsColumnsFor(selected);
-      const rows = (savedWeeks || []).filter((week) => week.metrics);
-      if (columns.length === 0) return "";
-
-      const allWeekNumbers = (
-        audit?.weeks?.length ? audit.weeks : rows.map((week) => week.week_number)
-      )
-        .slice()
-        .sort((a, b) => a - b);
-      // ✅ اگر کاربر هفتههای خاصی را انتخاب کرده باشد، فقط همان‌ها نمایش داده می‌شوند
-      const weekNumbers = Array.isArray(selectedWeekNumbers)
-        ? allWeekNumbers.filter((week) => selectedWeekNumbers.includes(week))
-        : allWeekNumbers;
-      if (weekNumbers.length === 0) return "";
-
-      const cellOf = (column, metrics) =>
-        column.type === "pct"
-          ? fmtPct(column.get(metrics), column.digits)
-          : fmtNum(column.get(metrics), column.digits);
-
-      const byWeek = new Map(rows.map((week) => [week.week_number, week]));
-
-      const bodyHtml = weekNumbers
-        .map((weekNumber) => {
-          const week = byWeek.get(weekNumber);
-          if (!week) {
-            return `
-                                    <tr class="week-missing">
-                                        <td>هفته ${weekNumber}</td>
-                                        <td colspan="${columns.length}">${MISSING_CELL}</td>
-                                    </tr>`;
-          }
-          const partial =
-            audit?.statuses?.[weekNumber] === WEEK_STATUS.PARTIAL;
-          const warn = partial
-            ? ' <span class="cell-warn" title="وزن یا خوراک این هفته ثبت نشده است">⚠️</span>'
-            : "";
-          return `
-                                    <tr class="${partial ? "week-partial" : ""}">
-                                        <td>هفته ${weekNumber}${warn}</td>
-                                        ${columns
-                                          .map(
-                                            (column) =>
-                                              `<td>${cellOf(column, week.metrics)}</td>`,
-                                          )
-                                          .join("")}
-                                    </tr>`;
-        })
-        .join("");
-
-      return `
-                        <h4 class="metrics-title">${title}</h4>
-                        <div class="table-scroll">
-                        <table class="week-table metrics-table">
-                            <thead>
-                                <tr>
-                                    <th>هفته</th>
-                                    ${columns
-                                      .map(
-                                        (column) =>
-                                          `<th${column.title ? ` title="${column.title}"` : ""}>${column.label}</th>`,
-                                      )
-                                      .join("")}
-                                </tr>
-                            </thead>
-                            <tbody>${bodyHtml}</tbody>
-                        </table>
-                        </div>`;
-    };
-
     // بخش‌های هر سالن بر اساس کلید گله جمع می‌شوند تا زیر جدول «کل گله» بچینند
     const hallSections = new Map();
     const pushHallSection = (flock, html) => {
@@ -983,7 +903,7 @@ export const weeklyRenderer = {
                         <span><strong>هفته‌های تکمیل شده:</strong> ${flock.statistics.weekCount}</span>
                     </div>
 
-                    ${renderMetricsTable(
+                    ${buildMetricsTableHtml(
                       flock.savedWeeks,
                       "📈 شاخص‌های عملکردی هفتگی",
                       selected,
@@ -1118,7 +1038,7 @@ export const weeklyRenderer = {
 
                     ${renderWeekGapsAlert(groupAudit, "کل گله")}
 
-                    ${renderMetricsTable(
+                    ${buildMetricsTableHtml(
                       aggregate.savedWeeks,
                       "📈 شاخص‌های عملکردی هفتگی — کل گله",
                       selected,
@@ -1523,3 +1443,89 @@ if (typeof window !== "undefined") {
 }
 
 console.log("✅ WeeklyRenderer loaded");
+
+// ============================================================
+//  توابع کمکی ماژول‌محلی renderFullReport (موج ۳.۲e — برش بدنه)
+//  این کد پیش‌تر داخل بدنهٔ متد بود؛ بیرون کشیده شد بدون هیچ تغییر
+//  رفتاری یا ترتیبی. خروجی HTML بایت‌به‌بایت همان قبلی است
+//  (گارد: npm run test:weekly:body — ۱۲ کِیس · اسنپ‌شات طلایی).
+//  ⚠️ تورفتگی خطوط عیناً حفظ شده است: فاصله‌های داخل رشته‌های
+//     template بخشی از خروجی HTMLاند و کم‌کردنشان بایت‌ها را عوض می‌کند.
+// ============================================================
+    const buildMetricsTableHtml = (
+      savedWeeks,
+      title,
+      selectedGroups = ALL_GROUP_KEYS,
+      audit = null,
+      selectedWeekNumbers = null,
+    ) => {
+      const selected = normalizeGroups(selectedGroups);
+      const columns = metricsColumnsFor(selected);
+      const rows = (savedWeeks || []).filter((week) => week.metrics);
+      if (columns.length === 0) return "";
+
+      const allWeekNumbers = (
+        audit?.weeks?.length ? audit.weeks : rows.map((week) => week.week_number)
+      )
+        .slice()
+        .sort((a, b) => a - b);
+      // ✅ اگر کاربر هفتههای خاصی را انتخاب کرده باشد، فقط همان‌ها نمایش داده می‌شوند
+      const weekNumbers = Array.isArray(selectedWeekNumbers)
+        ? allWeekNumbers.filter((week) => selectedWeekNumbers.includes(week))
+        : allWeekNumbers;
+      if (weekNumbers.length === 0) return "";
+
+      const cellOf = (column, metrics) =>
+        column.type === "pct"
+          ? fmtPct(column.get(metrics), column.digits)
+          : fmtNum(column.get(metrics), column.digits);
+
+      const byWeek = new Map(rows.map((week) => [week.week_number, week]));
+
+      const bodyHtml = weekNumbers
+        .map((weekNumber) => {
+          const week = byWeek.get(weekNumber);
+          if (!week) {
+            return `
+                                    <tr class="week-missing">
+                                        <td>هفته ${weekNumber}</td>
+                                        <td colspan="${columns.length}">${MISSING_CELL}</td>
+                                    </tr>`;
+          }
+          const partial =
+            audit?.statuses?.[weekNumber] === WEEK_STATUS.PARTIAL;
+          const warn = partial
+            ? ' <span class="cell-warn" title="وزن یا خوراک این هفته ثبت نشده است">⚠️</span>'
+            : "";
+          return `
+                                    <tr class="${partial ? "week-partial" : ""}">
+                                        <td>هفته ${weekNumber}${warn}</td>
+                                        ${columns
+                                          .map(
+                                            (column) =>
+                                              `<td>${cellOf(column, week.metrics)}</td>`,
+                                          )
+                                          .join("")}
+                                    </tr>`;
+        })
+        .join("");
+
+      return `
+                        <h4 class="metrics-title">${title}</h4>
+                        <div class="table-scroll">
+                        <table class="week-table metrics-table">
+                            <thead>
+                                <tr>
+                                    <th>هفته</th>
+                                    ${columns
+                                      .map(
+                                        (column) =>
+                                          `<th${column.title ? ` title="${column.title}"` : ""}>${column.label}</th>`,
+                                      )
+                                      .join("")}
+                                </tr>
+                            </thead>
+                            <tbody>${bodyHtml}</tbody>
+                        </table>
+                        </div>`;
+    };
