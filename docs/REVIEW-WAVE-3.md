@@ -1052,3 +1052,90 @@ test:weekly:surface :: pass=21
   `weeklyHistoryHtmlMethods.buildWeeklyHistoryHTML` (۳۳۶ خط).
 - ابزارهای موقت این موج (اسکریپت‌های `CUT_*.mjs` و تحلیل‌گرها) در پوشهٔ `.git/` ماندند؛ **بخشی از
   درخت کاری نیستند** (نه کامیت می‌شوند، نه `git status` را آلوده می‌کنند).
+
+## ۱۶) موج ۳.۲e — برش بدنهٔ بزرگ‌ترین متد مخزن: `weeklyRenderer.renderFullReport`
+
+> ادامهٔ مستقیم بخش ۱۵ با همان الگو (گارد اول، بعد برش)، این‌بار روی متدی که چهار closure
+> تودرتو دارد و به «ساعت سیستم» وابسته است.
+
+### الف) هدف و معیار موفقیت
+
+| مورد | پیش از موج | پس از موج |
+| --- | --- | --- |
+| `weeklyRenderer.renderFullReport` (`weekly.renderer.js:746`) | ۵۲۴ خط (بزرگ‌ترین متد مخزن) | **۱۳۹ خط** |
+| متدهای بزرگ‌تر از بودجهٔ ۱۵۰ خط (`audit:big-methods`) | ۲۶ | **۲۵** |
+| توابع کمکی ماژول‌محلی تازه | ۰ | **۱۰** |
+| سطح عمومی (`audit:surface`) | ۰ گم‌شده · ۰ افزوده · ۰ نقض | همان (بی‌تغییر) |
+| خروجی HTML | فاقد گارد بایت‌به‌بایت | گارد `npm run test:weekly:body` (۶۷ بررسی · ۱۲ کِیس) |
+
+### ب) گارد پیش از برش — هارنس طلایی `test:weekly:body`
+
+- `Frontend/weekly-body-split-test.mjs` با استاب حداقلی مرورگر (هم‌سان با
+  `weekly-report-render-smoke.mjs` موجود) و ⚠️ **تثبیت ساعت**: کلاس `Date` استاب می‌شود و
+  `process.env.TZ` روی `Asia/Tehran` قفل می‌گردد — چون متد `now`/`nowTime` را از
+  `new Date().toLocaleDateString/TimeString("fa-IR")` می‌سازد و بدون تثبیت، هیچ اسنپ‌شاتی
+  پایدار نیست. خودآزمون «دو اجرای متوالی کِیس اصلی هش یکسان می‌دهند» همین را اثبات می‌کند.
+- ۱۲ کِیس از فیکسچرهای موجود چهار تست هفتگی: گزارش کامل دو سالن + جدول «کل گله» · بدون
+  آرگومان گروه · گپ و هفتهٔ ناقص · فقط وزن · همهٔ گروه‌ها صریح · بازهٔ هفته · گلهٔ بدون هفتهٔ
+  انتخابی · انتخاب هرگله · ترتیب معکوس سالن‌ها · حالت خالی · کاربر ناشناس · مشتری ناقص.
+- اسنپ‌شات `docs/weekly-body-golden.json` (sha256 + bytes هر کِیس) پیش از برش، با تگ
+  `pre-weekly-body-split`. وابستگی locale/ICU/TZ در `note2` سند ثبت شده است.
+
+### پ) برش‌ها (شش کامیت)
+
+| کامیت | محتوا |
+| --- | --- |
+| `becb797` | گارد طلایی `weekly-body-split-test.mjs` + اسنپ‌شات (۱۲ کِیس) + ثبت `npm run test:weekly:body` (تگ `pre-weekly-body-split`) |
+| `08acd97` | برش A — `renderMetricsTable` → `buildMetricsTableHtml` (۸۰ خط) |
+| `1def99b` | برش B1 — `toPersian` → `toPersianDate` (۱۲ خط) |
+| `dce26bf` | برش B2 — حلقهٔ هر گله (۱۵۲ → ۱۹ خط) → `resolveFlockReportContext` · `buildWeekDetailRows` · `buildFlockSectionHtml` |
+| `26ba07a` | برش C — بخش «کل گله» + مونتاژ (۱۲۸ → ۱۳ خط) → `buildGroupSectionHtml` · `mergeReportSections` |
+| `cfc8007` | برش D — مقدمه (۳۰ → ۱۲) و یادداشت‌های پای گزارش (۳۳ → ۸) → `resolveReportContext` · `buildGroupsNoteHtml` · `buildGapsSummaryHtml` |
+
+هیچ فایل دیگری تغییر نکرد: نه `weekly.service.js`، نه چسب پنجره، نه `docs/service-surface.json`.
+
+### ت) درس تازهٔ این موج: «dedent ممنوع» (وقتی خط اسلات وجود ندارد)
+
+در موج ۳.۲d (برش بدنهٔ خوشهٔ سالن‌ها) هر بلوک در «خط اسلات» با تورفتگی بیشتر می‌نشست و همان
+فاصله‌ها را برمی‌گرداند؛ پس `dedent` بی‌خطر بود. اینجا کل یک تابع منتقل می‌شود و فاصله‌های
+داخل رشته‌های template **بخشی از خروجی HTML**اند: انتقال با `dedent 4`، ۱۰ بررسی گارد را
+قرمز کرد (کاهش ۹۶ تا ۳۳۶ بایت در خروجی کِیس‌ها). قاعدهٔ ثابت‌شده: **انتقال verbatim بدون
+dedent**؛ و همین هشدار در سرصفحهٔ بخش کمکی فایل ثبت شد.
+
+### ث) تله‌هایی که گیت‌های خودِ اسکریپت گرفتند (شفافیت)
+
+1. برش A (dedent) → ۱۰ بررسی گارد قرمز ⇒ بازگردانی از بکاپ و انتقال verbatim.
+2. برش B1: بررسی «یکتایی» بدنهٔ منتقل‌شده بی‌معنا بود (همان بدنه در متد `renderFlockReport` هم
+   هست) ⇒ با «تغییر نسبی شمارش» جایگزین شد؛ همچنین شمارش صداکننده‌ها ۴ بود نه ۳.
+3. برش C: (الف) نشانگر مقایسهٔ payload با خط `html: ""` شاخهٔ حذف هم تطبیق می‌کرد ⇒ نشانگر
+   یکتا شد. (ب) خط `      }` بستن شرط در جایگزینی جا افتاد ⇒ خطای نحوی؛ گارد ساختاری پیش از
+   نوشتن فایل آن را گرفت.
+4. برش D: خط اعلان `const selected = normalizeGroups(...)` (خط ۷۴۷) از بازهٔ انتقال جا افتاد ⇒
+   `ReferenceError: selected is not defined` در گارد زمان اجرا؛ اصلاح و بازاجرا.
+
+هیچ کامیت نیمه‌کاره‌ای ساخته نشد و همهٔ برش‌ها با «بازسازی معکوس == اصل» بایت‌به‌بایت اثبات شدند.
+
+### ج) شواهد تأیید نهایی (دروازهٔ ۲۱ گامی پس از آخرین کامیت)
+
+```text
+lint :: exit=0                    test:weekly:surface   :: pass=21    audit:size :: exit=0
+test:cache :: pass=86             test:weekly:body      :: pass=67    audit:dead-exports :: exit=0
+test:denied :: pass=19            test:halls:surface    :: pass=24    audit:surface :: exit=0
+test:toast :: pass=9              test:halls:body       :: pass=136   audit:big-methods :: exit=0
+test:weekly :: pass=118           test:customer-fields  :: pass=22
+test:weekly:report :: pass=33     test:customer-detail  :: pass=60
+test:weekly:groups :: pass=13     test:hatchery-utils   :: pass=28
+test:weekly:history :: pass=9     test:hatchery-surface :: pass=9
+                                  test:dashboard-surface :: pass=11
+```
+
+### ح) یادداشت نگه‌داری و گام بعدی
+
+- **گارد دائمی این موج `npm run test:weekly:body` است.** اگر رفتار خروجی عمداً تغییر کرد،
+  ابتدا `npm run test:weekly:body -- --snapshot` و بعد توضیح تغییر در پیام کامیت.
+- ⚠️ اسنپ‌شات این گارد به locale/ICU و منطقهٔ زمانی محیط Node وابسته است (تاریخ شمسی و ارقام
+  فارسی)، پس مقایسه فقط در همان محیطی معنا دارد که اسنپ‌شات گرفته شده است.
+- نامزدهای بعدی همین الگو: `hatcheryCompletionPeriodMethods.editPeriodCompletion` (۳۶۵ خط)،
+  `weeklyHistoryHtmlMethods.buildWeeklyHistoryHTML` (۳۳۶) و `weeklyCardMethods.renderWeeks` (۳۰۴).
+- ابزارهای این موج (اسکریپت‌های `CUT_W*.mjs` و `DOCS_WE.mjs`) در پوشهٔ `.git/` ماندند و بخشی از
+  درخت کاری نیستند.

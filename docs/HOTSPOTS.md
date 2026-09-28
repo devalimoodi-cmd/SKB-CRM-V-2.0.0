@@ -1,7 +1,7 @@
 # نقاط داغ پروژه (Hotspots)
 
 > سند زنده — با اجرای اسکریپت‌های audit به‌رو نگه داشته می‌شود.
-> آخرین به‌روزرسانی: **موج ۳.۲d — برش بدنهٔ چهار متد غول خوشهٔ سالن‌ها (۳۰ → ۲۶ متد بزرگ‌تر از بودجه) بدون تغییر یک بایت خروجی** (ادامهٔ برنچ `chore/wave-3.2c-split-halls`).
+> آخرین به‌روزرسانی: **موج ۳.۲e — برش بدنهٔ بزرگ‌ترین متد مخزن `weeklyRenderer.renderFullReport` (۵۲۴ → ۱۳۹ خط) با گارد طلایی تازه؛ شمارش متدهای بزرگ‌تر از بودجه ۲۶ → ۲۵** (ادامهٔ برنچ `chore/wave-3.2c-split-halls`).
 > گزارش‌های کامل: `docs/REVIEW-WAVE-3.md` (موج ۳.۲d و ۳.۲c و ۳.۲b و ۳.۲a و ۳.۱) · `docs/REVIEW-WAVE-2.md` (موج ۲) · `docs/REVIEW.md` (موج ۰ و ۱)
 
 ## چطور اندازه‌گیری می‌شود؟
@@ -137,27 +137,45 @@ import می‌کند و همان اعداد اسنپ‌شات را روی نمو
 > (گارد طلایی `npm run test:halls:body`: ۱۳۶ بررسی · ۱۷ کِیس) بایت‌به‌بایت دست‌نخورده ماند.
 > شرح: `docs/REVIEW-WAVE-3.md` بخش ۱۵.
 
+> 📉 **موج ۳.۲e (برش بدنه، بدون تغییر فایل):** متد غول `renderFullReport` (بزرگ‌ترین متد مخزن،
+> ۵۲۴ خط شامل چهار closure تودرتو) به ۱۳۹ خط رسید؛ کد بیرون‌کشیده‌شده در **۱۰ کمکی
+> ماژول‌محلی** نشست: `buildMetricsTableHtml` · `toPersianDate` · `resolveFlockReportContext` ·
+> `buildWeekDetailRows` · `buildFlockSectionHtml` · `buildGroupSectionHtml` ·
+> `mergeReportSections` · `resolveReportContext` · `buildGroupsNoteHtml` · `buildGapsSummaryHtml`.
+> خروجی HTML بایت‌به‌بایت ثابت است (گارد طلایی `npm run test:weekly:body`: ۶۷ بررسی · ۱۲ کِیس)
+> و سطح عمومی هم دست‌نخورده (`audit:surface`: ۰ گم‌شده · ۰ افزوده · ۰ نقض). شمارش
+> `audit:big-methods` از ۲۶ به **۲۵** رسید.
+
 #### بزرگ‌ترین متدهای باقی‌مانده (بودجهٔ ۱۵۰ خط)
 
-۲۶ متد از بودجه بزرگ‌ترند؛ فهرست کامل با `npm run audit:big-methods`. پنج مورد اول:
+۲۵ متد از بودجه بزرگ‌ترند؛ فهرست کامل با `npm run audit:big-methods`. پنج مورد اول:
 
 | خطوط | مکان | نام |
 | --- | --- | --- |
-| ۵۲۴ | `weekly/weekly.renderer.js:746` | `weeklyRenderer.renderFullReport` |
 | ۳۶۵ | `hatchery/hatchery.completion.period.js:724` | `hatcheryCompletionPeriodMethods.editPeriodCompletion` |
 | ۳۳۶ | `weekly/weekly.report.history.html.js:36` | `buildWeeklyHistoryHTML` |
 | ۳۰۴ | `weekly/weekly.cards.js:92` | `renderWeeks` |
 | ۲۸۴ | `dashboard/dashboard.bookmarks.js:119` | `dashboardBookmarkMethods.showCreateBookmarkModal` |
+| ۲۷۸ | `hatchery/hatchery.completion.period.js:296` | `hatcheryCompletionPeriodMethods.completePeriod` |
 
 برش فایل این دو «غول» را کوچک **نکرد**: `buildWeeklyHistoryHTML` همان ۳۳۶ خط است و فقط خانه‌اش
 از `weekly.service.js` به `weekly.report.history.html.js` منتقل شد؛ `renderWeeks` (۳۰۴ خط) هم
-به `weekly.cards.js` رفت. بزرگ‌ترین متد مخزن همچنان `weeklyRenderer.renderFullReport` (۵۲۴ خط) است.
+برش فایل این دو «غول» را کوچک **نکرد**: `buildWeeklyHistoryHTML` همان ۳۳۶ خط است و فقط خانه‌اش
+از `weekly.service.js` به `weekly.report.history.html.js` منتقل شد؛ `renderWeeks` (۳۰۴ خط) هم
+به `weekly.cards.js` رفت. بزرگ‌ترین متد مخزن اکنون `hatcheryCompletionPeriodMethods.editPeriodCompletion`
+(۳۶۵ خط) است — چون در موج ۳.۲e، `weeklyRenderer.renderFullReport` از ۵۲۴ به ۱۳۹ خط رسید.
 
 در موج ۳.۲d چهار متد غول خوشهٔ سالن‌ها **برش بدنه** خوردند (نه جابه‌جایی فایل): `generateHTML`
 ۴۵۰ → ۴۶، `renderHallInfo` ۲۵۴ → ۲۰، `saveBasicInfo` ۱۷۷ → ۶۵ و `renderUnitDetailsPanel`
 ۱۶۵ → ۲۲ خط — ۲۲ تابع کمکی ماژول‌محلی، با گارد بایت‌به‌بایت `npm run test:halls:body` و بدون
 تغییر یک عضو سطح عمومی. بهترین نامزد بعدی برای همین الگو: `weeklyRenderer.renderFullReport`
 (۵۲۴ خط) و `hatcheryCompletionPeriodMethods.editPeriodCompletion` (۳۶۵ خط).
+
+در موج ۳.۲e همین الگوی «برش بدنه» روی بزرگ‌ترین متد مخزن اجرا شد:
+`weeklyRenderer.renderFullReport` (۵۲۴ → ۱۳۹ خط) با **۱۰ تابع کمکی ماژول‌محلی** و گارد طلایی
+تازهٔ `npm run test:weekly:body` (۶۷ بررسی · ۱۲ کِیس · هش `sha256` خروجی). نامزدهای بعدی:
+`hatcheryCompletionPeriodMethods.editPeriodCompletion` (۳۶۵) · `buildWeeklyHistoryHTML` (۳۳۶) ·
+`weeklyCardMethods.renderWeeks` (۳۰۴). شرح: `docs/REVIEW-WAVE-3.md` بخش ۱۶.
 
 #### فایل‌های js بی‌ارجاع (نه `import`، نه `<script src>`)
 
