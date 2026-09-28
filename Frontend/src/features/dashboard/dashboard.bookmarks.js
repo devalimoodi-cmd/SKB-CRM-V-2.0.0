@@ -168,59 +168,7 @@ export const dashboardBookmarkMethods = {
             container: "bm-swal-container",
             popup: "bm-swal-popup",
           },
-          didOpen: () => {
-            // انتخاب اولویت
-            const priorityGroup = document.getElementById(
-              "bookmarkPriorityGroup",
-            );
-            const priorityInput = document.getElementById("bookmarkPriority");
-            if (priorityGroup) {
-              priorityGroup
-                .querySelectorAll(".bm-priority-option")
-                .forEach((option) => {
-                  option.addEventListener("click", function () {
-                    priorityGroup
-                      .querySelectorAll(".bm-priority-option")
-                      .forEach((o) => o.classList.remove("active"));
-                    this.classList.add("active");
-                    priorityInput.value = this.dataset.value;
-                  });
-                });
-            }
-
-            // تقویم شمسی (Jalali) برای تاریخ سررسید
-            const dueDateInput = document.getElementById("bookmarkDueDate");
-            if (
-              dueDateInput &&
-              !dueDateInput.hasAttribute("data-datepicker-initialized")
-            ) {
-              try {
-                if (typeof $.fn.persianDatepicker !== "undefined") {
-                  $(dueDateInput).persianDatepicker({
-                    format: "YYYY/MM/DD",
-                    autoClose: true,
-                    initialValue: false,
-                    observer: true,
-                    calendar: {
-                      persian: {
-                        locale: "fa",
-                      },
-                    },
-                    onSelect: function () {
-                      const selected = $(this).val();
-                      if (selected) {
-                        dueDateInput.dataset.selectedDate = selected;
-                        dueDateInput.value = selected;
-                      }
-                    },
-                  });
-                }
-              } catch (e) {
-                console.warn("⚠️ Error initializing datepicker:", e);
-              }
-              dueDateInput.setAttribute("data-datepicker-initialized", "true");
-            }
-          },
+          didOpen: () => initBookmarkModalFields(),
           preConfirm: () => {
             const title = document
               .getElementById("bookmarkTitle")
@@ -602,3 +550,62 @@ const buildBookmarkModalHtml = ({
               </div>
             </div>
           `;
+
+// ------------------------------------------------------------
+//  کمکی برش B موج ۳.۲i: مقداردهی اولیهٔ فیلدهای مودال بوکمارک
+//  (انتخاب اولویت + تقویم شمسی تاریخ سررسید) — همان بدنهٔ didOpen،
+//  فقط یک سطح کم‌تورفتگی (behavior-neutral؛ هیچ رشتهٔ چندسطری در این بلوک نیست).
+// ------------------------------------------------------------
+const initBookmarkModalFields = () => {
+  // انتخاب اولویت
+  const priorityGroup = document.getElementById(
+    "bookmarkPriorityGroup",
+  );
+  const priorityInput = document.getElementById("bookmarkPriority");
+  if (priorityGroup) {
+    priorityGroup
+      .querySelectorAll(".bm-priority-option")
+      .forEach((option) => {
+        option.addEventListener("click", function () {
+          priorityGroup
+            .querySelectorAll(".bm-priority-option")
+            .forEach((o) => o.classList.remove("active"));
+          this.classList.add("active");
+          priorityInput.value = this.dataset.value;
+        });
+      });
+  }
+
+  // تقویم شمسی (Jalali) برای تاریخ سررسید
+  const dueDateInput = document.getElementById("bookmarkDueDate");
+  if (
+    dueDateInput &&
+    !dueDateInput.hasAttribute("data-datepicker-initialized")
+  ) {
+    try {
+      if (typeof $.fn.persianDatepicker !== "undefined") {
+        $(dueDateInput).persianDatepicker({
+          format: "YYYY/MM/DD",
+          autoClose: true,
+          initialValue: false,
+          observer: true,
+          calendar: {
+            persian: {
+              locale: "fa",
+            },
+          },
+          onSelect: function () {
+            const selected = $(this).val();
+            if (selected) {
+              dueDateInput.dataset.selectedDate = selected;
+              dueDateInput.value = selected;
+            }
+          },
+        });
+      }
+    } catch (e) {
+      console.warn("⚠️ Error initializing datepicker:", e);
+    }
+    dueDateInput.setAttribute("data-datepicker-initialized", "true");
+  }
+};
