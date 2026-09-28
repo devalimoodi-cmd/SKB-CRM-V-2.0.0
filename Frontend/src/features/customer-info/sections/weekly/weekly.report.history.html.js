@@ -34,96 +34,23 @@ import { formatDate } from "../../../../core/utils/date.utils.js";
 
 export const weeklyHistoryHtmlMethods = {
   buildWeeklyHistoryHTML(customer, blocks, options = {}) {
-    const selectedGroups = normalizeGroups(options.selectedGroups);
-    const weekSelection = options.weekSelection || null;
-    const title = "🕓 گزارش تاریخچه هفتگی (گله‌های تکمیل‌شده)";
-    const now = new Date();
-    const persianDate = formatDate(now);
-
-    // تاریخ و ساعت دریافت گزارش (شمسی/فارسی)
-    const reportDate = new Intl.DateTimeFormat("fa-IR", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    }).format(now);
-    const reportTime = new Intl.DateTimeFormat("fa-IR", {
-      hour: "2-digit",
-      minute: "2-digit",
-    }).format(now);
-
-    // ===== دریافت‌کننده گزارش (کاربر لاگین‌شده) =====
-    const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
-    const reporterName =
-      currentUser.fullName ||
-      [currentUser.first_name, currentUser.last_name]
-        .filter(Boolean)
-        .join(" ") ||
-      currentUser.username ||
-      "کاربر ناشناس";
-    const roleText =
-      {
-        super_admin: "مدیر اصلی",
-        admin: "مدیر",
-        sub_admin: "مدیر میانی",
-        expert: "کارشناس",
-        customer: "مشتری",
-      }[currentUser.role] || "کاربر";
-
-    // ===== ابزارهای کمکی نمایش =====
-    const fmtCount = (v) => (parseInt(v) || 0).toLocaleString("fa-IR");
-    const toPersianShort = (date) => {
-      if (!date) return "-";
-      try {
-        return new Intl.DateTimeFormat("fa-IR", {
-          year: "numeric",
-          month: "2-digit",
-          day: "2-digit",
-        }).format(new Date(date));
-      } catch {
-        return "-";
-      }
-    };
-
-    // آمار کل گزارش برای کارت‌های ابتدای صفحه
-    const totalHalls = blocks.reduce((s, b) => s + (b.halls?.length || 0), 0);
-    const totalWeeks = blocks.reduce(
-      (s, b) =>
-        s + (b.halls || []).reduce((s2, h) => s2 + (h.weeks?.length || 0), 0),
-      0,
-    );
-    // ✅ شمارش کل هفته‌های بدون ثبت (برای کارت هشدار ابتدای گزارش)
-    const totalMissingWeeks = blocks.reduce(
-      (s, b) =>
-        s +
-        (b.halls || []).reduce(
-          (s2, h) => s2 + (h.audit?.missing?.length || 0),
-          0,
-        ),
-      0,
-    );
+    const {
+      selectedGroups,
+      weekSelection,
+      title,
+      persianDate,
+      reportDate,
+      reportTime,
+      reporterName,
+      roleText,
+      totalHalls,
+      totalWeeks,
+      totalMissingWeeks,
+      weekSelectionNote,
+    } = resolveHistoryReportContext(blocks, options);
 
     // گله‌هایی که کاربر هیچ هفته‌ای برایشان انتخاب نکرده (خط اطلاعی در ابتدای گزارش)
     const excludedBlockNames = [];
-
-    // ✅ خلاصهٔ انتخاب هفته‌ها (خط خلاصهٔ ابتدای گزارش)
-    const weekSelectionSummary = weekSelection
-      ? summarizeWeekSelection(
-          weekSelection,
-          Object.fromEntries(
-            blocks.map((block) => [
-              `f${block.flock.id}`,
-              mergeWeekTimelines(
-                (block.halls || []).map((h) =>
-                  buildWeekTimeline(h.allWeeks || h.weeks || []),
-                ),
-              ),
-            ]),
-          ),
-        )
-      : null;
-    const weekSelectionNote = weekSelectionSummary
-      ? ` · 🎯 هفته‌ها: <strong>${fmtCount(weekSelectionSummary.weeks)} هفته</strong> از ${fmtCount(weekSelectionSummary.totalFlocks)} گله${weekSelectionSummary.overridden ? ` — ${fmtCount(weekSelectionSummary.overridden)} گله با انتخاب سفارشی` : ""}`
-      : "";
 
     const bodyBlocks = blocks
       .map((b) => {
@@ -159,10 +86,10 @@ export const weeklyHistoryHtmlMethods = {
           ? scopeAuditToWeeks(flockAuditFull, flockWeekNumbers)
           : flockAuditFull;
         const flockBasisChip = b.halls?.[0]?.timeline
-          ? `<span class="hh-meta basis-chip" title="مبنای شمارش هفته‌های مورد انتظار">⚓ مبنای پایان: ${timelineBasisLabel(b.halls[0].timeline, toPersianShort)}</span>`
+          ? `<span class="hh-meta basis-chip" title="مبنای شمارش هفته‌های مورد انتظار">⚓ مبنای پایان: ${timelineBasisLabel(b.halls[0].timeline, toPersianShortDate)}</span>`
           : "";
         const flockWeekChip = Array.isArray(flockWeekNumbers)
-          ? `<span class="hh-meta week-range-chip">🎯 ${weekSelectionLabel(flockWeekNumbers, flockTimeline.map((w) => w.weekNumber), fmtCount)}</span>`
+          ? `<span class="hh-meta week-range-chip">🎯 ${weekSelectionLabel(flockWeekNumbers, flockTimeline.map((w) => w.weekNumber), fmtCountFa)}</span>`
           : "";
         const excludedHalls = [];
 
@@ -178,9 +105,9 @@ export const weeklyHistoryHtmlMethods = {
         const completionStrip = comp
           ? `<div class="flock-summary-strip history-completion-strip">
               <span class="label-chip">🏁 پایان دوره</span>
-              <span><strong>جوجه اولیه:</strong> ${fmtCount(comp.initial_chicks_count)} قطعه</span>
-              <span><strong>جوجه نهایی:</strong> ${fmtCount(comp.final_chicks_count)} قطعه</span>
-              <span><strong>تلفات کل:</strong> ${fmtCount(comp.total_mortality)} قطعه</span>
+              <span><strong>جوجه اولیه:</strong> ${fmtCountFa(comp.initial_chicks_count)} قطعه</span>
+              <span><strong>جوجه نهایی:</strong> ${fmtCountFa(comp.final_chicks_count)} قطعه</span>
+              <span><strong>تلفات کل:</strong> ${fmtCountFa(comp.total_mortality)} قطعه</span>
               <span><strong>FCR:</strong> ${comp.system_fcr ?? "-"}</span>
               <span><strong>سن کشتار:</strong> ${comp.slaughter_age_days ?? "-"} روز</span>
             </div>`
@@ -215,24 +142,24 @@ export const weeklyHistoryHtmlMethods = {
                 )
               : fullTimeline;
             const basisChip = h.timeline
-              ? `<span class="hh-meta basis-chip" title="مبنای شمارش هفته‌های مورد انتظار و هشدارهای ثبت">⚓ مبنای پایان: ${timelineBasisLabel(h.timeline, toPersianShort)}</span>`
+              ? `<span class="hh-meta basis-chip" title="مبنای شمارش هفته‌های مورد انتظار و هشدارهای ثبت">⚓ مبنای پایان: ${timelineBasisLabel(h.timeline, toPersianShortDate)}</span>`
               : "";
             const weekRangeChip = Array.isArray(hallWeekNumbers)
-              ? `<span class="hh-meta week-range-chip">🎯 ${weekSelectionLabel(hallWeekNumbers, hallTimeline.map((w) => w.weekNumber), fmtCount)}</span>`
+              ? `<span class="hh-meta week-range-chip">🎯 ${weekSelectionLabel(hallWeekNumbers, hallTimeline.map((w) => w.weekNumber), fmtCountFa)}</span>`
               : "";
             const placement = h.placement || {};
             const weeksChip =
               list.length > 0
-                ? `<span class="hh-meta">📅 ${fmtCount(list.length)} هفتهٔ ثبت‌شده${audit.missing.length ? ` از ${fmtCount(audit.total)}` : ""}</span>`
+                ? `<span class="hh-meta">📅 ${fmtCountFa(list.length)} هفتهٔ ثبت‌شده${audit.missing.length ? ` از ${fmtCountFa(audit.total)}` : ""}</span>`
                 : "";
             const gapChip = audit.hasIssues
               ? weeklyRenderer.renderGapBadge(audit)
               : "";
             const chicksChip = placement.total_chicks_count
-              ? `<span class="hh-meta">🐣 ${fmtCount(placement.total_chicks_count)} قطعه</span>`
+              ? `<span class="hh-meta">🐣 ${fmtCountFa(placement.total_chicks_count)} قطعه</span>`
               : "";
             const dateChip = placement.placement_date
-              ? `<span class="hh-meta">📆 ${toPersianShort(placement.placement_date)}</span>`
+              ? `<span class="hh-meta">📆 ${toPersianShortDate(placement.placement_date)}</span>`
               : "";
             return `
               <div class="history-hall">
@@ -243,7 +170,7 @@ export const weeklyHistoryHtmlMethods = {
                 ${weeklyRenderer.renderWeekGapsAlert(audit, h.hallName)}
                 ${
                   outsideIssues.length
-                    ? `<p class="gap-outside-note">ℹ️ ${fmtCount(outsideIssues.length)} هفتهٔ مشکل‌دار دیگر این سالن (${outsideIssues.join("، ")}) خارج از انتخاب شماست.</p>`
+                    ? `<p class="gap-outside-note">ℹ️ ${fmtCountFa(outsideIssues.length)} هفتهٔ مشکل‌دار دیگر این سالن (${outsideIssues.join("، ")}) خارج از انتخاب شماست.</p>`
                     : ""
                 }
                 ${
@@ -263,8 +190,8 @@ export const weeklyHistoryHtmlMethods = {
                 <div class="flock-title">🐔 گله ${flockNum} — واحد ${unitName}</div>
               </div>
               <div class="flock-meta">
-                <span>🏭 ${fmtCount(b.halls.length)} سالن</span>
-                <span>📅 ${fmtCount(flockWeeksCount)} هفته ثبت‌شده${flockAudit.missing.length ? ` از ${fmtCount(flockAudit.total)}` : ""}</span>
+                <span>🏭 ${fmtCountFa(b.halls.length)} سالن</span>
+                <span>📅 ${fmtCountFa(flockWeeksCount)} هفته ثبت‌شده${flockAudit.missing.length ? ` از ${fmtCountFa(flockAudit.total)}` : ""}</span>
                 ${weeklyRenderer.renderGapBadge(flockAudit)}
                 ${flockBasisChip}
                 ${flockWeekChip}
@@ -275,12 +202,12 @@ export const weeklyHistoryHtmlMethods = {
             ${weeklyRenderer.renderWeekGapsAlert(flockAudit)}
             ${
               flockOutsideIssues.length
-                ? `<p class="gap-outside-note">ℹ️ ${fmtCount(flockOutsideIssues.length)} هفتهٔ مشکل‌دار دیگر این گله (${flockOutsideIssues.join("، ")}) خارج از انتخاب شماست.</p>`
+                ? `<p class="gap-outside-note">ℹ️ ${fmtCountFa(flockOutsideIssues.length)} هفتهٔ مشکل‌دار دیگر این گله (${flockOutsideIssues.join("، ")}) خارج از انتخاب شماست.</p>`
                 : ""
             }
             ${
               excludedHalls.length
-                ? `<p class="gap-outside-note">ℹ️ ${fmtCount(excludedHalls.length)} سالن (${excludedHalls.join("، ")}) به‌خاطر انتخاب‌نشدن هیچ هفته‌ای در این گزارش نیامده است.</p>`
+                ? `<p class="gap-outside-note">ℹ️ ${fmtCountFa(excludedHalls.length)} سالن (${excludedHalls.join("، ")}) به‌خاطر انتخاب‌نشدن هیچ هفته‌ای در این گزارش نیامده است.</p>`
                 : ""
             }
             ${halls}
@@ -291,12 +218,12 @@ export const weeklyHistoryHtmlMethods = {
 
     const summaryStats = `
       <div class="summary-stats">
-        <div class="summary-stat"><div class="stat-number">${fmtCount(blocks.length)}</div><div class="stat-label">گلهٔ تکمیل‌شده</div></div>
-        <div class="summary-stat"><div class="stat-number">${fmtCount(totalHalls)}</div><div class="stat-label">سالن</div></div>
-        <div class="summary-stat"><div class="stat-number">${fmtCount(totalWeeks)}</div><div class="stat-label">هفتهٔ ثبت‌شده</div></div>
+        <div class="summary-stat"><div class="stat-number">${fmtCountFa(blocks.length)}</div><div class="stat-label">گلهٔ تکمیل‌شده</div></div>
+        <div class="summary-stat"><div class="stat-number">${fmtCountFa(totalHalls)}</div><div class="stat-label">سالن</div></div>
+        <div class="summary-stat"><div class="stat-number">${fmtCountFa(totalWeeks)}</div><div class="stat-label">هفتهٔ ثبت‌شده</div></div>
         ${
           totalMissingWeeks > 0
-            ? `<div class="summary-stat warn-stat"><div class="stat-number">${fmtCount(totalMissingWeeks)}</div><div class="stat-label">هفتهٔ بدون ثبت</div></div>`
+            ? `<div class="summary-stat warn-stat"><div class="stat-number">${fmtCountFa(totalMissingWeeks)}</div><div class="stat-label">هفتهٔ بدون ثبت</div></div>`
             : ""
         }
       </div>`;
@@ -308,17 +235,7 @@ export const weeklyHistoryHtmlMethods = {
         <meta charset="UTF-8">
         <title>${title}</title>
         <style>
-          ${REPORT_STYLES}
-          body { background: #f8fafc; color: #1e293b; font-size: 12px; margin: 0; padding: 16px; }
-          .report-main { width: 100%; border-collapse: collapse; }
-          .report-main thead { display: table-header-group; }
-          .report-main td { border: none; padding: 0; }
-          .report-page-header { text-align: center; background: linear-gradient(135deg, #2c7a6e 0%, #065f46 100%); color: #fff; border-radius: 12px; padding: 22px 18px; margin-bottom: 20px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-          .report-page-header h1 { color: #fff; font-size: 22px; margin: 0 0 6px; font-weight: 700; }
-          .report-page-header .date { color: rgba(255,255,255,0.92); font-size: 12px; margin-top: 6px; }
-          .report-page-header .report-logo { display: block; height: 46px; width: auto; margin: 0 auto 10px; background: #fff; padding: 5px 10px; border-radius: 10px; }
-          .report-main .customer-info { margin: 0 0 16px; }
-        </style>
+          ${REPORT_STYLES}${HISTORY_REPORT_STYLE_BLOCK}        </style>
       </head>
       <body>
         <table class="report-main">
@@ -345,7 +262,7 @@ export const weeklyHistoryHtmlMethods = {
               <div class="report-groups-note">🧾 شاخص‌های این گزارش: <strong>${REPORT_GROUPS.filter((g) => selectedGroups.includes(g.key)).map((g) => g.title).join("، ") || "—"}</strong>${weekSelectionNote}</div>
               ${
                 excludedBlockNames.length
-                  ? `<p class="gap-outside-note">ℹ️ ${fmtCount(excludedBlockNames.length)} گله (${excludedBlockNames.join("، ")}) به‌خاطر انتخاب‌نشدن هیچ هفته‌ای در این گزارش نیامده است.</p>`
+                  ? `<p class="gap-outside-note">ℹ️ ${fmtCountFa(excludedBlockNames.length)} گله (${excludedBlockNames.join("، ")}) به‌خاطر انتخاب‌نشدن هیچ هفته‌ای در این گزارش نیامده است.</p>`
                   : ""
               }
             </td></tr>
@@ -382,3 +299,126 @@ export const weeklyHistoryHtmlMethods = {
   },
 
 };
+
+// ------------------------------------------------------------
+//  کمکی‌های برش A موج ۳.۲g: زمینهٔ گزارش تاریخچه + ابزارهای نمایش + بلوک CSS
+//  متن‌ها عیناً (verbatim) منتقل شده‌اند؛ تنها تغییر: نام ابزارهای نمایش
+//  (fmtCount → fmtCountFa و toPersianShort → toPersianShortDate) تا ماژول‌محلی شوند.
+//  ⚠️ در بلوک CSS فقط «محتوای درونی» جایگزین شده و تگ‌ها سر جای خود مانده‌اند.
+// ------------------------------------------------------------
+const resolveHistoryReportContext = (blocks, options) => {
+    const selectedGroups = normalizeGroups(options.selectedGroups);
+    const weekSelection = options.weekSelection || null;
+    const title = "🕓 گزارش تاریخچه هفتگی (گله‌های تکمیل‌شده)";
+    const now = new Date();
+    const persianDate = formatDate(now);
+
+    // تاریخ و ساعت دریافت گزارش (شمسی/فارسی)
+    const reportDate = new Intl.DateTimeFormat("fa-IR", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(now);
+    const reportTime = new Intl.DateTimeFormat("fa-IR", {
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(now);
+
+    // ===== دریافت‌کننده گزارش (کاربر لاگین‌شده) =====
+    const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
+    const reporterName =
+      currentUser.fullName ||
+      [currentUser.first_name, currentUser.last_name]
+        .filter(Boolean)
+        .join(" ") ||
+      currentUser.username ||
+      "کاربر ناشناس";
+    const roleText =
+      {
+        super_admin: "مدیر اصلی",
+        admin: "مدیر",
+        sub_admin: "مدیر میانی",
+        expert: "کارشناس",
+        customer: "مشتری",
+      }[currentUser.role] || "کاربر";
+
+    // ===== ابزارهای کمکی نمایش =====
+    // آمار کل گزارش برای کارت‌های ابتدای صفحه
+    const totalHalls = blocks.reduce((s, b) => s + (b.halls?.length || 0), 0);
+    const totalWeeks = blocks.reduce(
+      (s, b) =>
+        s + (b.halls || []).reduce((s2, h) => s2 + (h.weeks?.length || 0), 0),
+      0,
+    );
+    // ✅ شمارش کل هفته‌های بدون ثبت (برای کارت هشدار ابتدای گزارش)
+    const totalMissingWeeks = blocks.reduce(
+      (s, b) =>
+        s +
+        (b.halls || []).reduce(
+          (s2, h) => s2 + (h.audit?.missing?.length || 0),
+          0,
+        ),
+      0,
+    );
+
+    // ✅ خلاصهٔ انتخاب هفته‌ها (خط خلاصهٔ ابتدای گزارش)
+    const weekSelectionSummary = weekSelection
+      ? summarizeWeekSelection(
+          weekSelection,
+          Object.fromEntries(
+            blocks.map((block) => [
+              `f${block.flock.id}`,
+              mergeWeekTimelines(
+                (block.halls || []).map((h) =>
+                  buildWeekTimeline(h.allWeeks || h.weeks || []),
+                ),
+              ),
+            ]),
+          ),
+        )
+      : null;
+    const weekSelectionNote = weekSelectionSummary
+      ? ` · 🎯 هفته‌ها: <strong>${fmtCountFa(weekSelectionSummary.weeks)} هفته</strong> از ${fmtCountFa(weekSelectionSummary.totalFlocks)} گله${weekSelectionSummary.overridden ? ` — ${fmtCountFa(weekSelectionSummary.overridden)} گله با انتخاب سفارشی` : ""}`
+      : "";
+  return {
+    selectedGroups,
+    weekSelection,
+    title,
+    persianDate,
+    reportDate,
+    reportTime,
+    reporterName,
+    roleText,
+    totalHalls,
+    totalWeeks,
+    totalMissingWeeks,
+    weekSelectionSummary,
+    weekSelectionNote,
+  };
+};
+
+const fmtCountFa = (value) => (parseInt(value) || 0).toLocaleString("fa-IR");
+const toPersianShortDate = (date) => {
+      if (!date) return "-";
+      try {
+        return new Intl.DateTimeFormat("fa-IR", {
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+        }).format(new Date(date));
+      } catch {
+        return "-";
+      }
+    };
+
+const HISTORY_REPORT_STYLE_BLOCK = `
+          body { background: #f8fafc; color: #1e293b; font-size: 12px; margin: 0; padding: 16px; }
+          .report-main { width: 100%; border-collapse: collapse; }
+          .report-main thead { display: table-header-group; }
+          .report-main td { border: none; padding: 0; }
+          .report-page-header { text-align: center; background: linear-gradient(135deg, #2c7a6e 0%, #065f46 100%); color: #fff; border-radius: 12px; padding: 22px 18px; margin-bottom: 20px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          .report-page-header h1 { color: #fff; font-size: 22px; margin: 0 0 6px; font-weight: 700; }
+          .report-page-header .date { color: rgba(255,255,255,0.92); font-size: 12px; margin-top: 6px; }
+          .report-page-header .report-logo { display: block; height: 46px; width: auto; margin: 0 auto 10px; background: #fff; padding: 5px 10px; border-radius: 10px; }
+          .report-main .customer-info { margin: 0 0 16px; }
+`;
