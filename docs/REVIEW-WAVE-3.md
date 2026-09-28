@@ -1289,3 +1289,103 @@ test:weekly:history :: pass=9     test:customer-detail :: pass=60
 - نامزدهای بعدی همین الگو: `weeklyCardMethods.renderWeeks` (۳۰۴) ·
   `dashboardBookmarkMethods.showCreateBookmarkModal` (۲۸۴) · `buildFlockSmsReportHTML` (۲۷۷) ·
   `chartDashboardRenderer.renderContainer` (۲۴۹) · `weeklyRenderer.renderFlockReport` (۲۴۲).
+
+---
+
+## ۱۹) موج ۳.۲h — برش بدنهٔ متد غول کارت‌های هفتگی (`weeklyCardMethods.renderWeeks`)
+
+### الف) هدف و اعداد
+
+`weeklyCardMethods.renderWeeks` در `weekly.cards.js:92` با **۳۰۴ خط** بزرگ‌ترین متد مخزن بود و
+عضو خوشهٔ «کارت‌های هفتگی» محسوب می‌شد. ساختار داخلی‌اش یک ویژگی کم‌نظیر داشت: به‌جای آنکه قالب هر
+هفته را مستقیماً در حلقه بسازد، سازندهٔ آیتم را در `this._weekItemBuilders[flockId]` ذخیره می‌کرد
+تا `showMoreWeeks` هم بتواند از همان استفاده کند — یعنی ~۲۷۳ خط از بدنهٔ متد «در سکوت» زندگی
+می‌کرد و هر گاردی که فقط `return` متد را می‌دید، بخش عمدهٔ رفتار را پوشش نمی‌داد.
+
+| سنجه | پیش | پس |
+| --- | --- | --- |
+| `renderWeeks` | ۳۰۴ خط | **۳۰ خط** (−۹۰٪) |
+| خطوط جابه‌جاشده به کمکی | — | ۲۷۳ خط / ۲۰٬۸۷۲ بایت |
+| توابع کمکی ماژول‌محلی تازه | — | ۱ (`buildWeekAccordionItemHtml`) |
+| `audit:big-methods` | ۲۲ متد | **۲۱ متد** (بزرگ‌ترین: `showCreateBookmarkModal` ۲۸۴) |
+| `weekly.cards.js` | ۳۴.۵KB / ۶۷۷ خط | ۳۵.۲KB / ۶۸۵ خط |
+
+### ب) گارد پیش از برش — `test:weekly:cards:body`
+
+پیش از هر تغییر، گارد طلایی بایت‌به‌بایت نوشته شد (کامیت `d864d8e`، تگ `pre-cards-body-split`):
+
+- `Frontend/weekly-cards-body-split-test.mjs` با **۸ کِیس** و **۳۷ بررسی**، اسنپ‌شات
+  `docs/weekly-cards-body-golden.json` (هش `sha256`).
+- **کشف کلیدی:** ضبط خروجی فقط با `renderWeeks(...)` کافی نبود (چون قالب آیتم در
+  `_weekItemBuilders` است). هارنس هر کِیس را به‌شکل
+  `{ html, items[], weeksShown, builderStored }` ضبط می‌کند: `html` خروجی متد · `items` با
+  صدا زدن سازندهٔ ذخیره‌شده برای هر هفته (پوشش ~۲۵۰ خط قالب) · `weeksShown` وضعیت بوک‌کیپینگ ·
+  `builderStored` وجود سازنده.
+- محیط قطعی‌سازی‌شده: `Date` فریز روی `2026-06-15T06:30Z` · `TZ=Asia/Tehran` ·
+  استاب `authService.getUserRole`/`getUserId` برای شاخهٔ کارشناس.
+- ۸ کِیس: ۳ هفته (نقش admin) · «نمایش بیشتر» (۱۲ هفته در برابر پیش‌فرض ۱۰) · صفر هفته · نقش
+  کارشناس · ثبت‌شده روی یک هفته (`data-selected`) · پیش‌فرض ۳ · مقادیر خالی · دو گلهٔ همزمان
+  (اثبات جدایی وضعیت `weeksShown`/`_weekItemBuilders` بین گله‌ها).
+
+### پ) برش A (یک کامیت اتمی)
+
+- کل بدنهٔ سازنده (خطوط ۱۰۴..۳۷۶) به کمکی ماژول‌محلی زیر منتقل شد:
+  `const buildWeekAccordionItemHtml = (flockId, week) => { … };`
+  با **پارامترهای صریح** و بدون هیچ ارجاعی به `this` (پیش‌بررسی اسکریپت: اگر `this.` پیدا
+  می‌شد، برش متوقف می‌شد).
+- در متد فقط پوسته‌ای دو خطی ماند:
+  `this._weekItemBuilders[flockId] = (week) => buildWeekAccordionItemHtml(flockId, week);`
+  ⇒ ارجاع‌های `this._weekItemBuilders` (خط ۱۰۲ برای مقداردهی اولیه + پوسته + `.map(...)` در
+  حلقهٔ رندر) عیناً در متد باقی ماندند و `audit:surface` صفر/صفر/صفر ماند.
+- **قاعدهٔ verbatim:** متن قالب با تورفتگی اصلی (۶ فاصله) و بدون هیچ dedent منتقل شد؛ فاصله‌های
+  داخل template literal بخشی از خروجی HTML‌اند و کوتاه‌کردنشان گارد بایت‌به‌بایت را می‌شکست.
+- اثبات اسکریپت برش: «جایگزینی پوستهٔ جدید با ناحیهٔ اصلی، متن فایل را بایت‌به‌بایت بازمی‌سازد»
+  ✓ · «بدنهٔ قالب در متن کمکی verbatim حاضر است» ✓ · «دقیقاً یک اعلان و یک فراخوانی» ✓ ·
+  «شمارش `this._weekItemBuilders` در متد = ۴» ✓ · «فایل بدون CR» ✓.
+- چون متد با ۳۰ خط از بودجهٔ ۱۵۰ بیرون رفت، برش B (جدا کردن سر/دم متد) لازم نشد.
+
+### ت) تله‌های واقعی که گیت‌ها گرفتند (شفافیت)
+
+1. **شمارش ارجاع‌ها:** اسکریپت انتظار ۳ ارجاع `this._weekItemBuilders` در متد داشت (مقداردهی
+   اولیه + پوسته + حلقه)، اما خط ۱۰۲ دو ارجاع در **یک خط** دارد
+   (`this._weekItemBuilders = this._weekItemBuilders || {};`) ⇒ واقعیت ۴ بود. assert پیش از
+   نوشتن فایل متوقف شد (به‌جای کامیت خراب) و انتظار اصلاح شد.
+2. **هاردکد نکردن نتیجهٔ «قبل»:** همان درس موج ۳.۲g — آفست‌ها روی متنِ پس از «جایگزینی‌های
+   هم‌زمان» محاسبه می‌شوند؛ اینجا چون هیچ تغییر نامی نداشتیم، ناحیهٔ انتقال تک‌تکه و مستقل بود و
+   همین تله تکرار نشد.
+
+### ث) شواهد تأیید نهایی (دروازهٔ ۲۴ گامی — اولین موج با گارد `test:weekly:cards:body`)
+
+```text
+lint :: exit=0                    test:weekly:history:body :: pass=57   audit:size :: exit=0
+test:cache :: pass=86             test:weekly:cards:body   :: pass=37   audit:dead-exports :: exit=0
+test:denied :: pass=19            test:weekly:surface      :: pass=21   audit:surface :: exit=0
+test:toast :: pass=9              test:weekly:body         :: pass=67   audit:big-methods :: exit=0 (۲۱ متد)
+test:weekly :: pass=118           test:halls:surface       :: pass=24
+test:weekly:report :: pass=33     test:halls:body          :: pass=136
+test:weekly:groups :: pass=13     test:hatchery:body       :: pass=96
+test:weekly:history :: pass=9     test:customer-fields     :: pass=22
+                                  test:customer-detail     :: pass=60
+                                  test:hatchery-utils      :: pass=28
+                                  test:hatchery-surface    :: pass=9
+                                  test:dashboard-surface   :: pass=11
+```
+
+`audit:surface` در این موج ۰ گم‌شده · ۰ افزوده · ۰ نقض داد. رویداد ضبط گارد
+`{ html, items[], weeksShown, builderStored }` تنها رویداد گارد مخزن است که خروجی یک **کلوژر
+ذخیره‌شده روی نمونه** را هم بایت‌به‌بایت قفل می‌کند.
+
+### ج) یادداشت نگه‌داری و گام بعدی
+
+- **گارد دائمی این موج `npm run test:weekly:cards:body` است.** اگر رفتار عمداً تغییر کرد، ابتدا
+  `npm run test:weekly:cards:body -- --snapshot` و بعد توضیح تغییر در پیام کامیت.
+- ⚠️ مثل گاردهای قبلی، اسنپ‌شات به locale/ICU/TZ محیط Node وابسته است؛ مقایسه فقط در همان
+  محیطی معنا دارد که اسنپ‌شات گرفته شده است.
+- نکتهٔ الگو برای برش‌های بعدی: اگر متد «قالب را در نمونه/کلوژر ذخیره» می‌کند، گارد باید **هم
+  خروجی متد و هم خروجی سازندهٔ ذخیره‌شده** را ضبط کند؛ در غیر این صورت بیشترین حجم بدنه
+  پوشش‌داده‌نشده می‌ماند.
+- نامزدهای بعدی: `dashboardBookmarkMethods.showCreateBookmarkModal` (۲۸۴) ·
+  `buildFlockSmsReportHTML` (۲۷۷) · `chartDashboardRenderer.renderContainer` (۲۴۹) ·
+  `weeklyRenderer.renderFlockReport` (۲۴۲).
+
+

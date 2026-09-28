@@ -1,7 +1,7 @@
 # نقاط داغ پروژه (Hotspots)
 
 > سند زنده — با اجرای اسکریپت‌های audit به‌رو نگه داشته می‌شود.
-> آخرین به‌روزرسانی: **موج ۳.۲g — برش بدنهٔ متد غول تاریخچهٔ هفتگی `buildWeeklyHistoryHTML` (۳۳۶ → ۱۳۱ خط) با گارد طلایی تازه؛ شمارش متدهای بزرگ‌تر از بودجه ۲۳ → ۲۲** (ادامهٔ برنچ `chore/wave-3.2c-split-halls`).
+> آخرین به‌روزرسانی: **موج ۳.۲h — برش بدنهٔ متد غول کارت‌های هفتگی `weeklyCardMethods.renderWeeks` (۳۰۴ → ۳۰ خط) با گارد طلایی تازهٔ `test:weekly:cards:body`؛ شمارش متدهای بزرگ‌تر از بودجه ۲۲ → ۲۱** (ادامهٔ برنچ `chore/wave-3.2c-split-halls`).
 > گزارش‌های کامل: `docs/REVIEW-WAVE-3.md` (موج ۳.۲d و ۳.۲c و ۳.۲b و ۳.۲a و ۳.۱) · `docs/REVIEW-WAVE-2.md` (موج ۲) · `docs/REVIEW.md` (موج ۰ و ۱)
 
 ## چطور اندازه‌گیری می‌شود؟
@@ -113,7 +113,7 @@ import می‌کند و همان اعداد اسنپ‌شات را روی نمو
 
 > 📉 `weekly.service.js` پیش از موج ۳.۲b برابر **۱۱۸.۶KB / ۲۸۶۷ خط / ۴۹ عضو سطح عمومی** (بزرگ‌ترین
 > فایل مخزن) بود؛ با بیرون‌کشیدن ۸ دامنه + «چسب پنجره» به **۲.۷KB / ۵۲ خط / همان ۴۹ عضو** رسید
-> (−۹۸٪ حجم). بزرگ‌ترین فایل تولیدشده `weekly.cards.js` (۳۴.۵KB / ۶۷۷ خط) است و هیچ‌کدام از
+> (−۹۸٪ حجم). بزرگ‌ترین فایل تولیدشده `weekly.cards.js` (۳۴.۵KB / ۶۷۷ خط؛ پس از برش بدنهٔ موج ۳.۲h: ۳۵.۲KB / ۶۸۵ خط) است و هیچ‌کدام از
 > ۹ فایل تازه به آستانهٔ ۴۰KB نمی‌رسند. دیف سرویس: **۳۱ خط افزوده / ۲۸۴۶ خط حذف‌شده**؛ ۹ فایل
 > جدید روی‌هم ۳۰۰۶ خط. حجم `src` از ۲.۳۸ به ۲.۴۰ MB رفت (+۲۲KB) که سربار سرصفحه/ایمپورت
 > ۹ فایل است، نه کد تازه. اسنپ‌شات `docs/service-surface.json` عمداً بازتولید شد: ۴۹ عضو
@@ -169,15 +169,25 @@ import می‌کند و همان اعداد اسنپ‌شات را روی نمو
 > دست‌نخورده (`audit:surface`: ۰ گم‌شده · ۰ افزوده · ۰ نقض). شمارش `audit:big-methods` از ۲۳ به
 > **۲۲** رسید.
 
+در **موج ۳.۲h** نوبت متد غول کارت‌های هفتگی رسید: `weeklyCardMethods.renderWeeks`
+(`weekly.cards.js:92`) از **۳۰۴ به ۳۰ خط** رسید. کل سازندهٔ آیتم هفته — همان بلوک ~۲۷۳ خطی که در
+`this._weekItemBuilders[flockId]` ذخیره و برای «نمایش بیشتر» هم استفاده می‌شود — به کمکی
+ماژول‌محلی `buildWeekAccordionItemHtml(flockId, week)` منتقل شد (پارامترهای صریح، بدون `this`)
+و در متد فقط یک پوستهٔ دو خطی ماند:
+`this._weekItemBuilders[flockId] = (week) => buildWeekAccordionItemHtml(flockId, week);`
+⇒ صفر تغییر بایت در خروجی HTML (گارد طلایی `npm run test:weekly:cards:body`: ۳۷ بررسی · ۸ کِیس
+با هش `sha256` روی `{ html, items[], weeksShown, builderStored }`) و سطح عمومی دست‌نخورده
+(`audit:surface`: ۰ گم‌شده · ۰ افزوده · ۰ نقض). شمارش `audit:big-methods` از ۲۲ به **۲۱** رسید.
+
 #### بزرگ‌ترین متدهای باقی‌مانده (بودجهٔ ۱۵۰ خط)
 
-۲۲ متد از بودجه بزرگ‌ترند؛ فهرست کامل با `npm run audit:big-methods`. پنج مورد اول:
+۲۱ متد از بودجه بزرگ‌ترند؛ فهرست کامل با `npm run audit:big-methods`. پنج مورد اول:
 
 | خطوط | مکان | نام |
 | خطوط | مکان | نام |
 | خطوط | مکان | نام |
 | --- | --- | --- |
-| ۳۰۴ | `weekly/weekly.cards.js:92` | `weeklyCardMethods.renderWeeks` |
+| ۲۳۹ | `dashboard/dashboard.sms.js:750` | `dashboardSmsMethods.refreshSmsStatus` |
 | ۲۸۴ | `dashboard/dashboard.bookmarks.js:119` | `dashboardBookmarkMethods.showCreateBookmarkModal` |
 | ۲۷۷ | `hatchery/hatchery.report.js:579` | `buildFlockSmsReportHTML` |
 | ۲۴۹ | `chart-dashboard/chart-dashboard.renderer.js:8` | `chartDashboardRenderer.renderContainer` |
@@ -185,8 +195,9 @@ import می‌کند و همان اعداد اسنپ‌شات را روی نمو
 از `weekly.service.js` به `weekly.report.history.html.js` منتقل شد؛ `renderWeeks` (۳۰۴ خط) هم
 برش فایل این دو «غول» را کوچک **نکرد**: `buildWeeklyHistoryHTML` همان ۳۳۶ خط است و فقط خانه‌اش
 از `weekly.service.js` به `weekly.report.history.html.js` منتقل شد؛ `renderWeeks` (۳۰۴ خط) هم
-به `weekly.cards.js` رفت. بزرگ‌ترین متد مخزن اکنون `weeklyCardMethods.renderWeeks` (۳۰۴ خط) است —
-سه متد غول هفتگی/پایان دوره در موج‌های ۳.۲e/۳.۲f/۳.۲g از فهرست بودجه بیرون رفتند.
+به `weekly.cards.js` رفت. بزرگ‌ترین متد مخزن پس از موج ۳.۲h اکنون
+`dashboardBookmarkMethods.showCreateBookmarkModal` (۲۸۴ خط) است —
+چهار متد غول هفتگی/پایان دوره در موج‌های ۳.۲e/۳.۲f/۳.۲g/۳.۲h از فهرست بودجه بیرون رفتند.
 
 در موج ۳.۲d چهار متد غول خوشهٔ سالن‌ها **برش بدنه** خوردند (نه جابه‌جایی فایل): `generateHTML`
 ۴۵۰ → ۴۶، `renderHallInfo` ۲۵۴ → ۲۰، `saveBasicInfo` ۱۷۷ → ۶۵ و `renderUnitDetailsPanel`
@@ -196,9 +207,11 @@ import می‌کند و همان اعداد اسنپ‌شات را روی نمو
 
 در موج ۳.۲e همین الگوی «برش بدنه» روی بزرگ‌ترین متد مخزن اجرا شد:
 `weeklyRenderer.renderFullReport` (۵۲۴ → ۱۳۹ خط) با **۱۰ تابع کمکی ماژول‌محلی** و گارد طلایی
-تازهٔ `npm run test:weekly:body` (۶۷ بررسی · ۱۲ کِیس · هش `sha256` خروجی). نامزدهای بعدی:
-`hatcheryCompletionPeriodMethods.editPeriodCompletion` (۳۶۵) · `buildWeeklyHistoryHTML` (۳۳۶) ·
-`weeklyCardMethods.renderWeeks` (۳۰۴). شرح: `docs/REVIEW-WAVE-3.md` بخش ۱۶.
+تازهٔ `npm run test:weekly:body` (۶۷ بررسی · ۱۲ کِیس · هش `sha256` خروجی). همین الگو در موج‌های
+بعدی روی `buildWeeklyHistoryHTML` (موج ۳.۲g) و `weeklyCardMethods.renderWeeks` (موج ۳.۲h) هم
+اجرا شد و هر سه از فهرست بودجه بیرون رفتند. نامزدهای باقی‌مانده:
+`dashboardBookmarkMethods.showCreateBookmarkModal` (۲۸۴) · `buildFlockSmsReportHTML` (۲۷۷) ·
+`chartDashboardRenderer.renderContainer` (۲۴۹). شرح: `docs/REVIEW-WAVE-3.md` بخش ۱۶ و ۱۸ و ۱۹.
 
 #### فایل‌های js بی‌ارجاع (نه `import`، نه `<script src>`)
 
@@ -269,11 +282,14 @@ import می‌کند و همان اعداد اسنپ‌شات را روی نمو
    تا آن زمان گارد زمان اجرا این نام را «اطلاعی» گزارش می‌کند و همچنان هر «گم‌شدن نام
    جدید» را می‌گیرد.
 
-10. **برش بدنهٔ متدهای غول (فاز بعد از برش فایل)** — `weekly.report.history.html.js:36`
-    (`buildWeeklyHistoryHTML` ۳۳۶ خط) و `weekly.cards.js:92` (`renderWeeks` ۳۰۴ خط) و
-    `weeklyRenderer.renderFullReport` ۵۲۴ خط (`weekly.renderer.js:746`) — این‌بار برش **بدنهٔ
-    متد** (نه جابه‌جایی فایل) با تکیه بر چهار تست رفتاری موجود هفتگی: `test:weekly` ·
-    `test:weekly:report` · `test:weekly:history` · `test:weekly:groups`.
+10. **برش بدنهٔ متدهای غول (فاز بعد از برش فایل)** — سه نامزد اول این فهرست تمام شدند:
+    `weeklyRenderer.renderFullReport` ۵۲۴ → ۱۳۹ (`weekly.renderer.js`، موج ۳.۲e) ·
+    `buildWeeklyHistoryHTML` ۳۳۶ → ۱۳۱ (`weekly.report.history.html.js`، موج ۳.۲g) ·
+    `weeklyCardMethods.renderWeeks` ۳۰۴ → ۳۰ (`weekly.cards.js`، موج ۳.۲h). هر سه برش **بدنهٔ
+    متد** (نه جابه‌جایی فایل) بودند و هر سه گارد طلایی بایت‌به‌بایت گرفتند: `test:weekly:body` ·
+    `test:weekly:history:body` · `test:weekly:cards:body`. نامزدهای باقی‌مانده با
+    `npm run audit:big-methods`: `dashboardBookmarkMethods.showCreateBookmarkModal` (۲۸۴) ·
+    `buildFlockSmsReportHTML` (۲۷۷) · `chartDashboardRenderer.renderContainer` (۲۴۹).
 
 ## قواعد نگه‌داری
 
