@@ -1388,4 +1388,112 @@ test:weekly:history :: pass=9     test:customer-fields     :: pass=22
   `buildFlockSmsReportHTML` (۲۷۷) · `chartDashboardRenderer.renderContainer` (۲۴۹) ·
   `weeklyRenderer.renderFlockReport` (۲۴۲).
 
+---
+
+## ۲۰) موج ۳.۲i — برش بدنهٔ متد غول بوکمارک‌های داشبورد (`showCreateBookmarkModal`)
+
+### الف) هدف و اعداد
+
+`dashboardBookmarkMethods.showCreateBookmarkModal` در `dashboard.bookmarks.js:119` با **۲۸۴ خط**
+بزرگ‌ترین متد باقی‌ماندهٔ مخزن بود — و «غول پنهان» نامیده می‌شود چون هیچ تستی آن را مستقیم صدا
+نمی‌زد (تنها از `dashboard.window-glue.js` با نام `window.showCreateBookmarkModal`) و حجمش در سه
+ناحیهٔ داخلی پخش شده بود: قالب `html` مودال، بدنهٔ `didOpen` و بدنهٔ `preConfirm`.
+
+| سنجه | پیش | پس |
+| --- | --- | --- |
+| `showCreateBookmarkModal` | ۲۸۴ خط | **۹۸ خط** (−۶۵٪) |
+| خطوط منتقل‌شده به کمکی‌ها | — | ۱۰۸ + ۵۳ + ۳۰ = **۱۹۱ خط** |
+| توابع کمکی ماژول‌محلی تازه | — | ۳ (`buildBookmarkModalHtml` · `initBookmarkModalFields` · `collectBookmarkModalPayload`) |
+| `audit:big-methods` | ۲۱ متد | **۲۰ متد** (بزرگ‌ترین: `buildFlockSmsReportHTML` ۲۷۷) |
+| `dashboard.bookmarks.js` | ۵۸۶ خط / ۲۹.۲KB | ۶۲۱ خط / ۳۱.۴KB |
+
+### ب) گارد پیش از برش — `test:dashboard:bookmarks:body`
+
+پیش از هر تغییر، گارد طلایی بایت‌به‌بایت نوشته شد (کامیت `7866d66`، تگ `pre-bookmarks-body-split`):
+
+- `Frontend/dashboard-bookmarks-body-split-test.mjs` با **۲۰ کِیس** و **۹۳ بررسی**، اسنپ‌شات
+  `docs/dashboard-bookmarks-body-golden.json` (هش `sha256`).
+- متد روی یک میزبان جعلی صدا زده می‌شود (`{ bookmarks, loadBookmarks, renderBookmarks }`) با
+  استاب‌های `document` (عناصر جعلی با `value`/`dataset`/`classList`/`hasAttribute`/هندلرها) ·
+  `Swal` (ضبط `fire` + صدا زدن `didOpen`/`preConfirm` + `showValidationMessage`) · `$` (تقویم شمسی
+  با/بدون/پرتاب‌خطا) · پچ `apiService.get/put/post` و `notificationService.error/success`.
+- رکورد هر کِیس:
+  `{ swalCalls[], validation[], priority, datepicker, calls{get,put,post,loadBookmarks,renderBookmarks}, notifications[], console[], thrown }`
+  — قالب ۱۰۸ خطی داخل `swalCalls[0].html` است، پس بدون ضبط آن بخش عمدهٔ متد بی‌پوشش می‌ماند.
+- ۲۰ کِیس: ایجاد · ویرایش · شناسهٔ ناموجود · مشتریان ناموفق/پرتاب/بدون‌کلید (`TypeError` شاخهٔ
+  catch بیرونی!) · کلیک اولویت · تقویم موجود/غایب/پرتاب/قبلاً‌مقداردهی/انتخاب تاریخ ·
+  اعتبارسنجی بدون عنوان/بدون مشتری · انصراف · ذخیرهٔ ناموفق/پرتاب · `Swal` غایب · تبدیل تاریخ ·
+  مشتری بی‌نام.
+
+**دو تلهٔ واقعی همان‌جا که گارد ساخته می‌شد (شفافیت):**
+
+1. **ضبط فقط «آخرین» `Swal.fire`:** در مسیر موفق، متد یک `Swal.fire` دوم (توست «✅ بوکمارک ایجاد شد»)
+   هم صدا می‌زند و رکوردِ تک‌شیئی، قالب اصلی را **با توست جایگزین** می‌کرد (به‌ظاهر «برش خراب است»،
+   در واقع «گارد ناقص است»). راه‌حل: ضبط آرایه‌ای `swalCalls[]`.
+2. **هشدار `MODULE_TYPELESS_PACKAGE_JSON` نود** به‌صورت آسنکرون چاپ می‌شود و در ضبطِ کِیس اول
+   می‌افتاد ⇒ بررسی «دو اجرای متوالی کِیس اول» ناپایدار می‌شد. راه‌حل: یک چرخهٔ انتظار
+   (`await setImmediate`) **پیش از** شروع ضبط تا هشدار بیرون بیاید.
+
+### پ) سه برش (سه کامیت اتمی)
+
+| برش | ناحیه | کمکی | اعداد |
+| --- | --- | --- | --- |
+| A (`89126da`) | `html:` ۱۵۱..۲۵۸ | `buildBookmarkModalHtml({ bookmarkId, bookmark, customerOptions, currentPriority })` | ۱۰۸ → ۶ خط · ۸٬۳۲۵ بایت |
+| B (`56534e7`) | `didOpen` ۱۷۱..۲۲۳ | `initBookmarkModalFields()` | ۵۳ → ۱ خط |
+| C (`e2f9b0a`) | `preConfirm` ۱۷۲..۲۰۳ | `collectBookmarkModalPayload()` | ۳۰ → ۱ خط (۱٬۳۷۲ بایت) |
+
+- در **برش A** قالب با تورفتگی اصلی و **بدون dedent** منتقل شد (فاصله‌های داخل template بخشی از
+  خروجی HTML‌اند) و تک‌تک نام‌های درون‌یابی (`bookmarkId`/`bookmark`/`customerOptions`/
+  `currentPriority`/`convertToPersianDate`) به‌صورت پارامتر صریح به کمکی داده شدند.
+- در **برش B/C** کد معمولی (نه template) است، پس یک سطح کم‌تورفتگی (`dedent 10`) مجاز و
+  رفتارخنثی است؛ اسکریپت پیش از جابه‌جایی، وجود بک‌تیک و کافی‌بودن تورفتگی هر سطر را بررسی می‌کند.
+- اثبات هر برش: «جایگزینی متن جدید با ناحیهٔ اصلی، فایل را بایت‌به‌بایت بازمی‌سازد» + «بدنه در
+  کمکی حاضر است» + «دقیقاً ۱ اعلان + ۱ فراخوانی» + «شمارش `this.` متد تغییر نکرده» + «بدون CR».
+- چون متد با ۹۸ خط از بودجهٔ ۱۵۰ بیرون رفت، برش D (جدا کردن زنجیرهٔ `.then` ذخیره) لازم نشد.
+
+### ت) تله‌های واقعی که گیت‌ها گرفتند (شفافیت)
+
+1. **شمارش سراسری یک نام در فایل گمراه‌کننده است:** assert «۱ ویژگی didOpen» روی کل فایل شکست، چون
+   همان نام در سرصفحهٔ کمکی و در نام فایل/دادهٔ `data-datepicker-initialized` هم هست. راه‌حل: سنجش
+   را به **بدنهٔ متد** محدود کردم (اسکوپ‌کردن assert به ناحیهٔ متد).
+2. **مقایسهٔ `this.` با آفست‌های متنِ *جدید* روی متن *قدیم*:** در نسخهٔ اول برش C، مرزهای متد با
+   آفست‌های پس از ادیت روی متن قبل از ادیت بریده می‌شد ⇒ assert نادرست. راه‌حل: مرزهای نسخهٔ قدیم را
+   مستقل با `indexOf` محاسبه کن (همان درس موج ۳.۲g).
+3. **اجرای «نامرئی» ترمینال:** یک‌بار خروجی اجرای اسکریپت برش به دست نرسید (شل integration) و
+   هم‌زمان برش اعمال شده بود ⇒ اجرای بعدی روی assertهای «قبل از برش» شکست (که خودش نشانهٔ سالم‌بودن
+   گارد بود). هیچ کامیت خرابی ساخته نشد؛ وضعیت فایل با خواندن مستقیم تأیید و برش B کامیت شد.
+4. **برش A همان‌جا کارِ برش B/C را کوچک کرد:** جابه‌جایی قالب، آفست‌های `didOpen`/`preConfirm` را
+   جابه‌جا کرد؛ هر اسکریپت برش روی «وضعیت جاری» assert می‌کند نه روی اعدادِ تاریخی.
+
+### ث) شواهد تأیید نهایی (دروازهٔ ۲۵ گامی)
+
+```text
+lint :: exit=0                     test:weekly:cards:body  :: pass=37   audit:size :: exit=0
+test:cache :: pass=86              test:dashboard:bookmarks:body :: pass=93   audit:dead-exports :: exit=0
+test:denied :: pass=19             test:weekly:surface     :: pass=21   audit:surface :: exit=0 (۰/۰/۰)
+test:toast :: pass=9               test:weekly:body        :: pass=67   audit:big-methods :: exit=0 (۲۰ متد)
+test:weekly :: pass=118            test:halls:surface      :: pass=24
+test:weekly:report :: pass=33      test:halls:body         :: pass=136
+test:weekly:groups :: pass=13      test:hatchery:body      :: pass=96
+test:weekly:history :: pass=9      test:customer-fields    :: pass=22
+test:weekly:history:body :: pass=57  test:customer-detail  :: pass=60
+                                   test:hatchery-utils     :: pass=28
+                                   test:hatchery-surface   :: pass=9
+                                   test:dashboard-surface  :: pass=11
+```
+
+گارد جدید در هر سه برش **۹۳/۹۳** داد (یعنی رکورد ۲۰ کِیس پس از A و B و C بایت‌به‌بایت ثابت ماند)
+و `audit:surface` در تمام موج ۰ گم‌شده · ۰ افزوده · ۰ نقض بود.
+
+### ج) یادداشت نگه‌داری و گام بعدی
+
+- **گارد دائمی این موج `npm run test:dashboard:bookmarks:body` است.** در تغییر عمدی رفتار، ابتدا
+  `npm run test:dashboard:bookmarks:body -- --snapshot` و بعد توضیح در پیام کامیت.
+- ⚠️ اسنپ‌شات به locale/ICU/TZ محیط Node وابسته است (تبدیل تاریخ شمسی در قالب و payload).
+- الگوی تکرارشوندهٔ این خوشه: «قالب/هندلر داخلیِ یک callback بزرگ ⇒ گارد باید همان callback را هم
+  صدا بزند و خروجی‌اش را قفل کند»، وگرنه برش بی‌گارد می‌ماند (درس ۳.۲h و ۳.۲i).
+- نامزدهای بعدی: `buildFlockSmsReportHTML` (۲۷۷) · `chartDashboardRenderer.renderContainer` (۲۴۹) ·
+  `weeklyRenderer.renderFlockReport` (۲۴۲) · `dashboardSmsMethods.refreshSmsStatus` (۲۳۹).
+
+
 

@@ -6,7 +6,10 @@
 // متن متدها کلمه‌به‌کلمه منتقل شده است؛ تنها تفاوت با مبدأ «ویرگول پایان متد» است
 // که برای اعتبار نحو object literal لازم است (گیت ۲۷ برگشت‌پذیری بایت‌به‌بایت را اثبات می‌کند).
 // ترکیب: Object.assign(DashboardService.prototype, dashboardBookmarkMethods) در dashboard.service.js
-// حجم: 5 متد / 567 خط
+// موج ۳.۲i — برش بدنهٔ `showCreateBookmarkModal` (۲۸۴ → ۹۸ خط): قالب html مودال،
+// بدنهٔ didOpen و بدنهٔ preConfirm به سه کمکی ماژول‌محلی منتقل شدند؛ خروجی بایت‌به‌بایت
+// ثابت است (گارد `npm run test:dashboard:bookmarks:body` · ۹۳ بررسی · ۲۰ کِیس).
+// حجم: 5 متد + 3 کمکی ماژول‌محلی (موج ۳.۲i) / 621 خط
 // ============================================================
 import { apiService } from "../../core/services/api.service.js";
 import { notificationService } from "../../core/services/notification.service.js";
