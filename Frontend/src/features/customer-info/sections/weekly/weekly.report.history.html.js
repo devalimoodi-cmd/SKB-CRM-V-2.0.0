@@ -54,168 +54,47 @@ export const weeklyHistoryHtmlMethods = {
 
     const bodyBlocks = blocks
       .map((b) => {
-        const f = b.flock;
-        const flockNum = f.flock_number || "-";
-        const unitName = f.unit?.unit_name || "-";
-        const comp = b.completion;
-        const flockWeeksCount = (b.halls || []).reduce(
-          (s, h) => s + (h.weeks?.length || 0),
-          0,
-        );
-        // ✅ ترتیب ثابت سالن‌ها از A به آخر (مستقل از ترتیب ورودی دیتابیس)
-        const orderedHalls = sortFlocksByHall(b.halls || []);
-        // هشدار سطح گله: اجتماع هفته‌های بدون ثبت/ناقص همهٔ سالن‌های همین گله
-        const hallAudits = orderedHalls.map(
-          (h) =>
-            h.audit || auditWeeks(h.allWeeks || h.weeks || [], h.hallName || ""),
-        );
-
-        // ✅ انتخاب هفته‌های این گله (کلید f<flockId>) — هر سالن با خط زمانی خودش
-        const flockKey = `f${b.flock.id}`;
-        const flockTimeline = mergeWeekTimelines(
-          orderedHalls.map((h) => buildWeekTimeline(h.allWeeks || h.weeks || [])),
-        );
-        const flockWeekNumbers = weekSelection
-          ? effectiveWeeksFor(weekSelection, flockKey, flockTimeline)
-          : null;
-        const flockOutsideIssues = weekSelection
-          ? issuesOutsideSelection(weekSelection, flockKey, flockTimeline)
-          : [];
-        const flockAuditFull = mergeAudits(hallAudits);
-        const flockAudit = Array.isArray(flockWeekNumbers)
-          ? scopeAuditToWeeks(flockAuditFull, flockWeekNumbers)
-          : flockAuditFull;
-        const flockBasisChip = b.halls?.[0]?.timeline
-          ? `<span class="hh-meta basis-chip" title="مبنای شمارش هفته‌های مورد انتظار">⚓ مبنای پایان: ${timelineBasisLabel(b.halls[0].timeline, toPersianShortDate)}</span>`
-          : "";
-        const flockWeekChip = Array.isArray(flockWeekNumbers)
-          ? `<span class="hh-meta week-range-chip">🎯 ${weekSelectionLabel(flockWeekNumbers, flockTimeline.map((w) => w.weekNumber), fmtCountFa)}</span>`
-          : "";
-        const excludedHalls = [];
-
-        // گله‌ای که هیچ هفته‌ای برایش انتخاب نشده → از گزارش حذف می‌شود
-        if (Array.isArray(flockWeekNumbers) && flockWeekNumbers.length === 0) {
-          excludedBlockNames.push(
-            `گله ${b.flock.flock_number || "-"} — واحد ${b.flock.unit?.unit_name || "-"}`,
-          );
+        const ctx = resolveHistoryFlockContext(b, weekSelection);
+        if (ctx.excluded) {
+          excludedBlockNames.push(ctx.excludedName);
           return "";
         }
 
         // 🏁 اطلاعات پایان دوره گله — نوار خلاصهٔ گروهی
-        const completionStrip = comp
+        const completionStrip = ctx.comp
           ? `<div class="flock-summary-strip history-completion-strip">
               <span class="label-chip">🏁 پایان دوره</span>
-              <span><strong>جوجه اولیه:</strong> ${fmtCountFa(comp.initial_chicks_count)} قطعه</span>
-              <span><strong>جوجه نهایی:</strong> ${fmtCountFa(comp.final_chicks_count)} قطعه</span>
-              <span><strong>تلفات کل:</strong> ${fmtCountFa(comp.total_mortality)} قطعه</span>
-              <span><strong>FCR:</strong> ${comp.system_fcr ?? "-"}</span>
-              <span><strong>سن کشتار:</strong> ${comp.slaughter_age_days ?? "-"} روز</span>
+              <span><strong>جوجه اولیه:</strong> ${fmtCountFa(ctx.comp.initial_chicks_count)} قطعه</span>
+              <span><strong>جوجه نهایی:</strong> ${fmtCountFa(ctx.comp.final_chicks_count)} قطعه</span>
+              <span><strong>تلفات کل:</strong> ${fmtCountFa(ctx.comp.total_mortality)} قطعه</span>
+              <span><strong>FCR:</strong> ${ctx.comp.system_fcr ?? "-"}</span>
+              <span><strong>سن کشتار:</strong> ${ctx.comp.slaughter_age_days ?? "-"} روز</span>
             </div>`
           : "";
 
-        const halls = orderedHalls
+        const excludedHalls = [];
+        const halls = ctx.orderedHalls
           .map((h) => {
-            const list = h.weeks || [];
-            // ✅ خط زمانی کامل (هفته‌های نظری + ثبت‌شده) تا هفته‌های بدون ثبت هم در ماتریس بیاید
-            const fullTimeline = h.allWeeks?.length ? h.allWeeks : list;
-            const hallTimeline = buildWeekTimeline(fullTimeline);
-            const rawAudit =
-              h.audit || auditWeeks(fullTimeline, h.hallName || "");
-
-            // ✅ محدود به هفته‌های انتخاب‌شدهٔ همین گله (اگر کاربر انتخاب سفارشی داشته باشد)
-            const hallWeekNumbers = weekSelection
-              ? effectiveWeeksFor(weekSelection, flockKey, hallTimeline)
-              : null;
-            if (Array.isArray(hallWeekNumbers) && hallWeekNumbers.length === 0) {
-              excludedHalls.push(h.hallName || "-");
-              return "";
-            }
-            const audit = Array.isArray(hallWeekNumbers)
-              ? scopeAuditToWeeks(rawAudit, hallWeekNumbers)
-              : rawAudit;
-            const outsideIssues = weekSelection
-              ? issuesOutsideSelection(weekSelection, flockKey, hallTimeline)
-              : [];
-            const timeline = Array.isArray(hallWeekNumbers)
-              ? fullTimeline.filter((week) =>
-                  hallWeekNumbers.includes(parseInt(week.week_number, 10)),
-                )
-              : fullTimeline;
-            const basisChip = h.timeline
-              ? `<span class="hh-meta basis-chip" title="مبنای شمارش هفته‌های مورد انتظار و هشدارهای ثبت">⚓ مبنای پایان: ${timelineBasisLabel(h.timeline, toPersianShortDate)}</span>`
-              : "";
-            const weekRangeChip = Array.isArray(hallWeekNumbers)
-              ? `<span class="hh-meta week-range-chip">🎯 ${weekSelectionLabel(hallWeekNumbers, hallTimeline.map((w) => w.weekNumber), fmtCountFa)}</span>`
-              : "";
-            const placement = h.placement || {};
-            const weeksChip =
-              list.length > 0
-                ? `<span class="hh-meta">📅 ${fmtCountFa(list.length)} هفتهٔ ثبت‌شده${audit.missing.length ? ` از ${fmtCountFa(audit.total)}` : ""}</span>`
-                : "";
-            const gapChip = audit.hasIssues
-              ? weeklyRenderer.renderGapBadge(audit)
-              : "";
-            const chicksChip = placement.total_chicks_count
-              ? `<span class="hh-meta">🐣 ${fmtCountFa(placement.total_chicks_count)} قطعه</span>`
-              : "";
-            const dateChip = placement.placement_date
-              ? `<span class="hh-meta">📆 ${toPersianShortDate(placement.placement_date)}</span>`
-              : "";
-            return `
-              <div class="history-hall">
-                <div class="history-hall-head">
-                  <span class="hh-title">🧩 ${h.hallName}</span>
-                  ${weeksChip}${gapChip}${chicksChip}${dateChip}${basisChip}${weekRangeChip}
-                </div>
-                ${weeklyRenderer.renderWeekGapsAlert(audit, h.hallName)}
-                ${
-                  outsideIssues.length
-                    ? `<p class="gap-outside-note">ℹ️ ${fmtCountFa(outsideIssues.length)} هفتهٔ مشکل‌دار دیگر این سالن (${outsideIssues.join("، ")}) خارج از انتخاب شماست.</p>`
-                    : ""
-                }
-                ${
-                  list.length || audit.missing.length
-                    ? renderHistoryWeekMatrix(timeline, selectedGroups)
-                    : '<p style="color:#94a3b8;padding:4px 2px;">ثبت هفتگی‌ای برای این سالن موجود نیست</p>'
-                }
-              </div>
-            `;
+            const hall = buildHistoryHallHtml(
+              h,
+              ctx.flockKey,
+              weekSelection,
+              selectedGroups,
+            );
+            if (hall.excludedName) excludedHalls.push(hall.excludedName);
+            return hall.html;
           })
           .join("");
 
-        return `
-          <div class="flock-section history-flock-section">
-            <div class="flock-header">
-              <div>
-                <div class="flock-title">🐔 گله ${flockNum} — واحد ${unitName}</div>
-              </div>
-              <div class="flock-meta">
-                <span>🏭 ${fmtCountFa(b.halls.length)} سالن</span>
-                <span>📅 ${fmtCountFa(flockWeeksCount)} هفته ثبت‌شده${flockAudit.missing.length ? ` از ${fmtCountFa(flockAudit.total)}` : ""}</span>
-                ${weeklyRenderer.renderGapBadge(flockAudit)}
-                ${flockBasisChip}
-                ${flockWeekChip}
-                <span class="status-badge history-done-badge">🏁 تکمیل‌شده</span>
-              </div>
-            </div>
-            ${completionStrip}
-            ${weeklyRenderer.renderWeekGapsAlert(flockAudit)}
-            ${
-              flockOutsideIssues.length
-                ? `<p class="gap-outside-note">ℹ️ ${fmtCountFa(flockOutsideIssues.length)} هفتهٔ مشکل‌دار دیگر این گله (${flockOutsideIssues.join("، ")}) خارج از انتخاب شماست.</p>`
-                : ""
-            }
-            ${
-              excludedHalls.length
-                ? `<p class="gap-outside-note">ℹ️ ${fmtCountFa(excludedHalls.length)} سالن (${excludedHalls.join("، ")}) به‌خاطر انتخاب‌نشدن هیچ هفته‌ای در این گزارش نیامده است.</p>`
-                : ""
-            }
-            ${halls}
-          </div>
-        `;
+        return buildHistoryFlockSectionHtml({
+          ...ctx,
+          hallCount: (b.halls || []).length,
+          completionStrip,
+          excludedHalls,
+          halls,
+        });
       })
       .join("");
-
     const summaryStats = `
       <div class="summary-stats">
         <div class="summary-stat"><div class="stat-number">${fmtCountFa(blocks.length)}</div><div class="stat-label">گلهٔ تکمیل‌شده</div></div>
@@ -422,3 +301,186 @@ const HISTORY_REPORT_STYLE_BLOCK = `
           .report-page-header .report-logo { display: block; height: 46px; width: auto; margin: 0 auto 10px; background: #fff; padding: 5px 10px; border-radius: 10px; }
           .report-main .customer-info { margin: 0 0 16px; }
 `;
+
+// ------------------------------------------------------------
+//  کمکی‌های برش B موج ۳.۲g: حلقهٔ گله/سالن گزارش تاریخچه
+//  متن نواحی عیناً (verbatim) منتقل شده است؛ تنها تغییرها:
+//   ۱) b. → block. و h. → hall. (پارامتر کمکی‌ها).
+//   ۲) شرط‌های حذف گله/سالن بهجای push/return، مقدار برمی‌گردانند
+//      («{ excluded: true, excludedName }» و «{ html, excludedName }»).
+//   ۳) تک‌تک حلقهٔ سالن‌ها از map/join بیرونی به کمکی منتقل شده است.
+// ------------------------------------------------------------
+const resolveHistoryFlockContext = (block, weekSelection) => {
+        const f = block.flock;
+        const flockNum = f.flock_number || "-";
+        const unitName = f.unit?.unit_name || "-";
+        const comp = block.completion;
+        const flockWeeksCount = (block.halls || []).reduce(
+          (s, h) => s + (h.weeks?.length || 0),
+          0,
+        );
+        // ✅ ترتیب ثابت سالن‌ها از A به آخر (مستقل از ترتیب ورودی دیتابیس)
+        const orderedHalls = sortFlocksByHall(block.halls || []);
+        // هشدار سطح گله: اجتماع هفته‌های بدون ثبت/ناقص همهٔ سالن‌های همین گله
+        const hallAudits = orderedHalls.map(
+          (h) =>
+            h.audit || auditWeeks(h.allWeeks || h.weeks || [], h.hallName || ""),
+        );
+
+        // ✅ انتخاب هفته‌های این گله (کلید f<flockId>) — هر سالن با خط زمانی خودش
+        const flockKey = `f${block.flock.id}`;
+        const flockTimeline = mergeWeekTimelines(
+          orderedHalls.map((h) => buildWeekTimeline(h.allWeeks || h.weeks || [])),
+        );
+        const flockWeekNumbers = weekSelection
+          ? effectiveWeeksFor(weekSelection, flockKey, flockTimeline)
+          : null;
+        const flockOutsideIssues = weekSelection
+          ? issuesOutsideSelection(weekSelection, flockKey, flockTimeline)
+          : [];
+        const flockAuditFull = mergeAudits(hallAudits);
+        const flockAudit = Array.isArray(flockWeekNumbers)
+          ? scopeAuditToWeeks(flockAuditFull, flockWeekNumbers)
+          : flockAuditFull;
+        const flockBasisChip = block.halls?.[0]?.timeline
+          ? `<span class="hh-meta basis-chip" title="مبنای شمارش هفته‌های مورد انتظار">⚓ مبنای پایان: ${timelineBasisLabel(block.halls[0].timeline, toPersianShortDate)}</span>`
+          : "";
+        const flockWeekChip = Array.isArray(flockWeekNumbers)
+          ? `<span class="hh-meta week-range-chip">🎯 ${weekSelectionLabel(flockWeekNumbers, flockTimeline.map((w) => w.weekNumber), fmtCountFa)}</span>`
+          : "";
+
+        if (Array.isArray(flockWeekNumbers) && flockWeekNumbers.length === 0) {
+          return { excluded: true, excludedName: `گله ${block.flock.flock_number || "-"} — واحد ${block.flock.unit?.unit_name || "-"}` };
+        }
+  return {
+    flockNum,
+    unitName,
+    comp,
+    flockWeeksCount,
+    orderedHalls,
+    flockKey,
+    flockTimeline,
+    flockWeekNumbers,
+    flockOutsideIssues,
+    flockAudit,
+    flockBasisChip,
+    flockWeekChip,
+  };
+};
+
+const buildHistoryHallHtml = (hall, flockKey, weekSelection, selectedGroups) => {
+            const list = hall.weeks || [];
+            // ✅ خط زمانی کامل (هفته‌های نظری + ثبت‌شده) تا هفته‌های بدون ثبت هم در ماتریس بیاید
+            const fullTimeline = hall.allWeeks?.length ? hall.allWeeks : list;
+            const hallTimeline = buildWeekTimeline(fullTimeline);
+            const rawAudit =
+              hall.audit || auditWeeks(fullTimeline, hall.hallName || "");
+
+            // ✅ محدود به هفته‌های انتخاب‌شدهٔ همین گله (اگر کاربر انتخاب سفارشی داشته باشد)
+            const hallWeekNumbers = weekSelection
+              ? effectiveWeeksFor(weekSelection, flockKey, hallTimeline)
+              : null;
+            if (Array.isArray(hallWeekNumbers) && hallWeekNumbers.length === 0) {
+              return {
+                html: "",
+                excludedName: hall.hallName || "-",
+              };
+            }
+            const audit = Array.isArray(hallWeekNumbers)
+              ? scopeAuditToWeeks(rawAudit, hallWeekNumbers)
+              : rawAudit;
+            const outsideIssues = weekSelection
+              ? issuesOutsideSelection(weekSelection, flockKey, hallTimeline)
+              : [];
+            const timeline = Array.isArray(hallWeekNumbers)
+              ? fullTimeline.filter((week) =>
+                  hallWeekNumbers.includes(parseInt(week.week_number, 10)),
+                )
+              : fullTimeline;
+            const basisChip = hall.timeline
+              ? `<span class="hh-meta basis-chip" title="مبنای شمارش هفته‌های مورد انتظار و هشدارهای ثبت">⚓ مبنای پایان: ${timelineBasisLabel(hall.timeline, toPersianShortDate)}</span>`
+              : "";
+            const weekRangeChip = Array.isArray(hallWeekNumbers)
+              ? `<span class="hh-meta week-range-chip">🎯 ${weekSelectionLabel(hallWeekNumbers, hallTimeline.map((w) => w.weekNumber), fmtCountFa)}</span>`
+              : "";
+            const placement = hall.placement || {};
+            const weeksChip =
+              list.length > 0
+                ? `<span class="hh-meta">📅 ${fmtCountFa(list.length)} هفتهٔ ثبت‌شده${audit.missing.length ? ` از ${fmtCountFa(audit.total)}` : ""}</span>`
+                : "";
+            const gapChip = audit.hasIssues
+              ? weeklyRenderer.renderGapBadge(audit)
+              : "";
+            const chicksChip = placement.total_chicks_count
+              ? `<span class="hh-meta">🐣 ${fmtCountFa(placement.total_chicks_count)} قطعه</span>`
+              : "";
+            const dateChip = placement.placement_date
+              ? `<span class="hh-meta">📆 ${toPersianShortDate(placement.placement_date)}</span>`
+              : "";
+            return { html: `
+              <div class="history-hall">
+                <div class="history-hall-head">
+                  <span class="hh-title">🧩 ${hall.hallName}</span>
+                  ${weeksChip}${gapChip}${chicksChip}${dateChip}${basisChip}${weekRangeChip}
+                </div>
+                ${weeklyRenderer.renderWeekGapsAlert(audit, hall.hallName)}
+                ${
+                  outsideIssues.length
+                    ? `<p class="gap-outside-note">ℹ️ ${fmtCountFa(outsideIssues.length)} هفتهٔ مشکل‌دار دیگر این سالن (${outsideIssues.join("، ")}) خارج از انتخاب شماست.</p>`
+                    : ""
+                }
+                ${
+                  list.length || audit.missing.length
+                    ? renderHistoryWeekMatrix(timeline, selectedGroups)
+                    : '<p style="color:#94a3b8;padding:4px 2px;">ثبت هفتگی‌ای برای این سالن موجود نیست</p>'
+                }
+              </div>
+            `,
+              excludedName: null,
+            };
+};
+
+const buildHistoryFlockSectionHtml = ({
+  flockNum,
+  unitName,
+  hallCount,
+  flockWeeksCount,
+  flockAudit,
+  flockBasisChip,
+  flockWeekChip,
+  completionStrip,
+  flockOutsideIssues,
+  excludedHalls,
+  halls,
+}) => {
+        return `
+          <div class="flock-section history-flock-section">
+            <div class="flock-header">
+              <div>
+                <div class="flock-title">🐔 گله ${flockNum} — واحد ${unitName}</div>
+              </div>
+              <div class="flock-meta">
+                <span>🏭 ${fmtCountFa(hallCount)} سالن</span>
+                <span>📅 ${fmtCountFa(flockWeeksCount)} هفته ثبت‌شده${flockAudit.missing.length ? ` از ${fmtCountFa(flockAudit.total)}` : ""}</span>
+                ${weeklyRenderer.renderGapBadge(flockAudit)}
+                ${flockBasisChip}
+                ${flockWeekChip}
+                <span class="status-badge history-done-badge">🏁 تکمیل‌شده</span>
+              </div>
+            </div>
+            ${completionStrip}
+            ${weeklyRenderer.renderWeekGapsAlert(flockAudit)}
+            ${
+              flockOutsideIssues.length
+                ? `<p class="gap-outside-note">ℹ️ ${fmtCountFa(flockOutsideIssues.length)} هفتهٔ مشکل‌دار دیگر این گله (${flockOutsideIssues.join("، ")}) خارج از انتخاب شماست.</p>`
+                : ""
+            }
+            ${
+              excludedHalls.length
+                ? `<p class="gap-outside-note">ℹ️ ${fmtCountFa(excludedHalls.length)} سالن (${excludedHalls.join("، ")}) به‌خاطر انتخاب‌نشدن هیچ هفته‌ای در این گزارش نیامده است.</p>`
+                : ""
+            }
+            ${halls}
+          </div>
+        `;
+};
