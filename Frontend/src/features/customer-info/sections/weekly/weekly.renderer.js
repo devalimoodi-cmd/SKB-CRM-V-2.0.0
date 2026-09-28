@@ -744,36 +744,17 @@ export const weeklyRenderer = {
   // ===== گزارش کامل =====
 
   renderFullReport(customer, flocks, periods, groups = [], options = {}) {
-    const selected = normalizeGroups(options.selectedGroups);
-    // ✅ ترتیب ثابت سالن‌ها از A به آخر (مستقل از ترتیب ورودی سرویس/دیتابیس)
-    const orderedFlocks = sortFlocksByHall(flocks || []);
-    const now = new Date().toLocaleDateString("fa-IR");
-    const nowTime = new Date().toLocaleTimeString("fa-IR");
-
-    const user = JSON.parse(localStorage.getItem("user") || "{}");
-    const userName =
-      user.fullName ||
-      [user.first_name, user.last_name].filter(Boolean).join(" ") ||
-      user.username ||
-      "کاربر ناشناس";
-    const roleText =
-      {
-        super_admin: "مدیر اصلی",
-        admin: "مدیر",
-        sub_admin: "مدیر میانی",
-        expert: "کارشناس",
-        customer: "مشتری",
-      }[user.role] || "کاربر";
-
-    const totalFlocks = flocks.length;
-    const totalChicks = flocks.reduce(
-      (sum, f) => sum + (f.total_chicks_count || 0),
-      0,
-    );
-    const totalMortality = flocks.reduce(
-      (sum, f) => sum + f.statistics.totalMortality,
-      0,
-    );
+    const {
+      selected,
+      orderedFlocks,
+      now,
+      nowTime,
+      userName,
+      roleText,
+      totalFlocks,
+      totalChicks,
+      totalMortality,
+    } = resolveReportContext(flocks, options);
 
 
     // بخش‌های هر سالن بر اساس کلید گله جمع می‌شوند تا زیر جدول «کل گله» بچینند
@@ -822,39 +803,14 @@ export const weeklyRenderer = {
     const flocksHTML = merged.html;
 
     // ===== یادداشت شاخص‌های انتخابی + محدودهٔ هفته‌ها + خلاصهٔ هشدارها =====
-    const weekSelectionSummary = options?.weekSelection
-      ? summarizeWeekSelection(
-          options.weekSelection,
-          Object.fromEntries(
-            orderedFlocks.map((flock) => [
-              flockWeeksKey(flock),
-              buildWeekTimeline(flock.weeks || []),
-            ]),
-          ),
-        )
-      : null;
-    const weekSelectionNote = weekSelectionSummary
-      ? ` · 🎯 هفته‌ها: <strong>${toFa(weekSelectionSummary.weeks)} هفته</strong> از ${toFa(weekSelectionSummary.totalFlocks)} گله/سالن${weekSelectionSummary.overridden ? ` — ${toFa(weekSelectionSummary.overridden)} گله با انتخاب سفارشی` : ""}`
-      : "";
-    const groupsNoteHtml = `<div class="report-groups-note">🧾 شاخص‌های این گزارش: <strong>${selectedGroupsLabel(selected)}</strong>${weekSelectionNote}</div>`;
+    const groupsNoteHtml = buildGroupsNoteHtml({
+      selected,
+      options,
+      orderedFlocks,
+    });
     const excludedNoteHtml = excludedFlocksNote(excludedFlockNames);
-
-    const flocksWithGaps = orderedFlocks
-      .map((flock) => ({ flock, audit: auditOfFlock(flock) }))
-      .filter((item) => item.audit.hasIssues);
-    const gapsSummaryHtml = flocksWithGaps.length
-      ? `<div class="report-alert" role="alert">
-                    <div class="gap-line danger">
-                      <span class="gap-ico">⚠️</span>
-                      <span><strong>${toFa(flocksWithGaps.length)} گله/سالن</strong> هفتهٔ ثبت‌نشده یا ناقص دارند (${flocksWithGaps
-                        .map(
-                          (item) =>
-                            `گله ${item.flock.flock_number} — ${item.flock.hall_name || ""}`,
-                        )
-                        .join("، ")}) — جزئیات در ابتدای بخش هر گله آمده است.</span>
-                    </div>
-                </div>`
-      : "";
+    const { flocksWithGaps, html: gapsSummaryHtml } =
+      buildGapsSummaryHtml(orderedFlocks);
 
     return `
             <!DOCTYPE html>
@@ -1617,4 +1573,93 @@ const mergeReportSections = ({
       });
     });
   return { html: flocksHTML, excludedNames };
+};
+
+// ============================================================
+//  کمکی‌های برش D: مقدمهٔ زمینه + یادداشت‌های پای گزارش (renderFullReport)
+//  متن‌ها عیناً منتقل شده‌اند؛ فقط شکل برگرداندن صریح شده است:
+//  resolveReportContext مقدارها را برمی‌گرداند و متد آن‌ها را destructure می‌کند
+//  (به‌جای closure مستقیم روی localStorage/تاریخ سیستم).
+//  ⚠️ تورفتگی verbatim حفظ شده (فاصله‌های داخل template بخشی از خروجی‌اند).
+// ============================================================
+const resolveReportContext = (flocks, options) => {
+    const selected = normalizeGroups(options.selectedGroups);
+    // ✅ ترتیب ثابت سالن‌ها از A به آخر (مستقل از ترتیب ورودی سرویس/دیتابیس)
+    const orderedFlocks = sortFlocksByHall(flocks || []);
+    const now = new Date().toLocaleDateString("fa-IR");
+    const nowTime = new Date().toLocaleTimeString("fa-IR");
+
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
+    const userName =
+      user.fullName ||
+      [user.first_name, user.last_name].filter(Boolean).join(" ") ||
+      user.username ||
+      "کاربر ناشناس";
+    const roleText =
+      {
+        super_admin: "مدیر اصلی",
+        admin: "مدیر",
+        sub_admin: "مدیر میانی",
+        expert: "کارشناس",
+        customer: "مشتری",
+      }[user.role] || "کاربر";
+
+    const totalFlocks = flocks.length;
+    const totalChicks = flocks.reduce(
+      (sum, f) => sum + (f.total_chicks_count || 0),
+      0,
+    );
+    const totalMortality = flocks.reduce(
+      (sum, f) => sum + f.statistics.totalMortality,
+      0,
+    );
+  return {
+    selected,
+    orderedFlocks,
+    now,
+    nowTime,
+    userName,
+    roleText,
+    totalFlocks,
+    totalChicks,
+    totalMortality,
+  };
+};
+const buildGroupsNoteHtml = ({ selected, options, orderedFlocks }) => {
+    const weekSelectionSummary = options?.weekSelection
+      ? summarizeWeekSelection(
+          options.weekSelection,
+          Object.fromEntries(
+            orderedFlocks.map((flock) => [
+              flockWeeksKey(flock),
+              buildWeekTimeline(flock.weeks || []),
+            ]),
+          ),
+        )
+      : null;
+    const weekSelectionNote = weekSelectionSummary
+      ? ` · 🎯 هفته‌ها: <strong>${toFa(weekSelectionSummary.weeks)} هفته</strong> از ${toFa(weekSelectionSummary.totalFlocks)} گله/سالن${weekSelectionSummary.overridden ? ` — ${toFa(weekSelectionSummary.overridden)} گله با انتخاب سفارشی` : ""}`
+      : "";
+    const groupsNoteHtml = `<div class="report-groups-note">🧾 شاخص‌های این گزارش: <strong>${selectedGroupsLabel(selected)}</strong>${weekSelectionNote}</div>`;
+  return groupsNoteHtml;
+};
+
+const buildGapsSummaryHtml = (orderedFlocks) => {
+    const flocksWithGaps = orderedFlocks
+      .map((flock) => ({ flock, audit: auditOfFlock(flock) }))
+      .filter((item) => item.audit.hasIssues);
+    const gapsSummaryHtml = flocksWithGaps.length
+      ? `<div class="report-alert" role="alert">
+                    <div class="gap-line danger">
+                      <span class="gap-ico">⚠️</span>
+                      <span><strong>${toFa(flocksWithGaps.length)} گله/سالن</strong> هفتهٔ ثبت‌نشده یا ناقص دارند (${flocksWithGaps
+                        .map(
+                          (item) =>
+                            `گله ${item.flock.flock_number} — ${item.flock.hall_name || ""}`,
+                        )
+                        .join("، ")}) — جزئیات در ابتدای بخش هر گله آمده است.</span>
+                    </div>
+                </div>`
+      : "";
+  return { flocksWithGaps, html: gapsSummaryHtml };
 };
