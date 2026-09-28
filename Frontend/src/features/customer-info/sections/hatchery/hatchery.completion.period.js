@@ -337,15 +337,7 @@ export const hatcheryCompletionPeriodMethods = {
       const formHtml = `
         ${periodInfo}
         <div style="text-align:right; font-family:'Vazir';">
-          <style>
-            .cf-field { width:100%; padding:8px 12px; border:1.5px solid #e2e8f0; border-radius:10px; font-family:'Vazir'; font-size:12.5px; margin-top:4px; box-sizing:border-box; transition:all .3s; }
-            .cf-field:focus { outline:none; border-color:#2c7a6e; box-shadow:0 0 0 3px rgba(44,122,110,.1); }
-            .cf-label { display:block; font-size:12px; font-weight:600; color:#1e293b; }
-            .cf-section { background:#f8fafc; border-radius:12px; padding:12px 14px; margin-bottom:12px; border:1px solid #eef2f6; }
-            .cf-section-title { font-size:12.5px; font-weight:700; color:#2c7a6e; margin-bottom:8px; display:flex; align-items:center; gap:6px; }
-            .cf-2col { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-            .cf-3col { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
-          </style>
+          <style>${CF_FORM_STYLE_BLOCK}</style>
 
           <!-- انتخاب گله‌ها -->
           <div class="cf-section">
@@ -750,26 +742,7 @@ export const hatcheryCompletionPeriodMethods = {
 
       const formHtml = `
         <div style="text-align:right; font-family:'Vazir'; direction:rtl;">
-          <style>
-            .ue-field { width:100%; padding:8px 12px; border:1.5px solid #e2e8f0; border-radius:10px; font-family:'Vazir'; font-size:12.5px; margin-top:4px; box-sizing:border-box; }
-            .ue-field:focus { outline:none; border-color:#2c7a6e; box-shadow:0 0 0 3px rgba(44,122,110,.1); }
-            .ue-label { display:block; font-size:12px; font-weight:600; color:#1e293b; }
-            .ue-section { background:#f8fafc; border-radius:12px; padding:12px 14px; margin-bottom:12px; border:1px solid #eef2f6; }
-            .ue-section-title { font-size:12.5px; font-weight:700; color:#2c7a6e; margin-bottom:8px; display:flex; align-items:center; gap:6px; }
-            .ue-2col { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-            .ue-3col { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
-            .ue-method-pills{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;}
-            .ue-method-pill{border:1.5px solid #cbd5e1;background:#fff;color:#475569;border-radius:999px;padding:6px 12px;font-family:'Vazir';font-size:11.5px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;}
-            .ue-method-pill:hover{border-color:#2c7a6e;color:#2c7a6e;}
-            .ue-method-pill.ue-method-active{background:#2c7a6e;border-color:#2c7a6e;color:#fff;}
-            .ue-method-panel{background:#fff;border:1px dashed #d1fae5;border-radius:10px;padding:10px;margin-bottom:10px;}
-            .ue-age-calc-note{background:#f0fdf4;border:1px solid #d1fae5;color:#047857;border-radius:8px;padding:6px 10px;font-size:11px;margin-top:8px;font-family:'Vazir';}
-            .ue-add-ship{border:1.5px dashed #2c7a6e;background:#ecfdf5;color:#2c7a6e;border-radius:9px;padding:6px 12px;font-family:'Vazir';font-size:11.5px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:6px;}
-            .ue-ship-row{display:grid;grid-template-columns:1fr 1fr 1.2fr auto;gap:6px;align-items:center;margin-bottom:6px;}
-            .ue-ship-date{text-align:center;background:#f1f5f9;font-family:'Vazir';}
-            .ue-ship-del{width:32px;height:34px;border:none;background:#fef2f2;color:#dc2626;border-radius:8px;cursor:pointer;font-size:12px;}
-            .ue-ship-del:hover{background:#fee2e2;}
-          </style>
+          <style>${UE_FORM_STYLE_BLOCK}</style>
 
           <div style="background:linear-gradient(135deg,#2c7a6e,#035552); color:#fff; border-radius:12px; padding:14px 16px; margin-bottom:16px; display:flex; align-items:center; gap:12px; position:relative;">
             <div style="width:42px; height:42px; border-radius:50%; background:rgba(255,255,255,0.2); display:flex; align-items:center; justify-content:center; font-size:20px;">
@@ -1136,3 +1109,39 @@ export const hatcheryCompletionPeriodMethods = {
     }
   },
 };
+
+// ------------------------------------------------------------
+//  ثابت‌های استایل فرم‌های پایان دوره (موج ۳.۲f — برش A)
+//  پیش‌تر به‌صورت CSS درون‌خطی داخل template هر متد بودند؛ حالا ثابت ماژول‌اند
+//  و با «${NAME}» در همان جای قبلی درج می‌شوند ⇒ خروجی HTML بایت‌به‌بایت ثابت.
+//  ⚠️ تورفتگی سطرها عیناً حفظ شده است (متن داخل template بخشی از خروجی است).
+// ------------------------------------------------------------
+const UE_FORM_STYLE_BLOCK = `
+            .ue-field { width:100%; padding:8px 12px; border:1.5px solid #e2e8f0; border-radius:10px; font-family:'Vazir'; font-size:12.5px; margin-top:4px; box-sizing:border-box; }
+            .ue-field:focus { outline:none; border-color:#2c7a6e; box-shadow:0 0 0 3px rgba(44,122,110,.1); }
+            .ue-label { display:block; font-size:12px; font-weight:600; color:#1e293b; }
+            .ue-section { background:#f8fafc; border-radius:12px; padding:12px 14px; margin-bottom:12px; border:1px solid #eef2f6; }
+            .ue-section-title { font-size:12.5px; font-weight:700; color:#2c7a6e; margin-bottom:8px; display:flex; align-items:center; gap:6px; }
+            .ue-2col { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+            .ue-3col { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
+            .ue-method-pills{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;}
+            .ue-method-pill{border:1.5px solid #cbd5e1;background:#fff;color:#475569;border-radius:999px;padding:6px 12px;font-family:'Vazir';font-size:11.5px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;}
+            .ue-method-pill:hover{border-color:#2c7a6e;color:#2c7a6e;}
+            .ue-method-pill.ue-method-active{background:#2c7a6e;border-color:#2c7a6e;color:#fff;}
+            .ue-method-panel{background:#fff;border:1px dashed #d1fae5;border-radius:10px;padding:10px;margin-bottom:10px;}
+            .ue-age-calc-note{background:#f0fdf4;border:1px solid #d1fae5;color:#047857;border-radius:8px;padding:6px 10px;font-size:11px;margin-top:8px;font-family:'Vazir';}
+            .ue-add-ship{border:1.5px dashed #2c7a6e;background:#ecfdf5;color:#2c7a6e;border-radius:9px;padding:6px 12px;font-family:'Vazir';font-size:11.5px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:6px;}
+            .ue-ship-row{display:grid;grid-template-columns:1fr 1fr 1.2fr auto;gap:6px;align-items:center;margin-bottom:6px;}
+            .ue-ship-date{text-align:center;background:#f1f5f9;font-family:'Vazir';}
+            .ue-ship-del{width:32px;height:34px;border:none;background:#fef2f2;color:#dc2626;border-radius:8px;cursor:pointer;font-size:12px;}
+            .ue-ship-del:hover{background:#fee2e2;}
+          `;
+const CF_FORM_STYLE_BLOCK = `
+            .cf-field { width:100%; padding:8px 12px; border:1.5px solid #e2e8f0; border-radius:10px; font-family:'Vazir'; font-size:12.5px; margin-top:4px; box-sizing:border-box; transition:all .3s; }
+            .cf-field:focus { outline:none; border-color:#2c7a6e; box-shadow:0 0 0 3px rgba(44,122,110,.1); }
+            .cf-label { display:block; font-size:12px; font-weight:600; color:#1e293b; }
+            .cf-section { background:#f8fafc; border-radius:12px; padding:12px 14px; margin-bottom:12px; border:1px solid #eef2f6; }
+            .cf-section-title { font-size:12.5px; font-weight:700; color:#2c7a6e; margin-bottom:8px; display:flex; align-items:center; gap:6px; }
+            .cf-2col { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+            .cf-3col { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
+          `;
