@@ -1,0 +1,43 @@
+{
+  "note": "اسنپ‌شات رکورد متد غول کارت‌های هفتگی (renderWeeks)، گرفته‌شده پیش از موج برش بدنه (۳.۲h). هر کِیس = خروجی متد + خروجی سازندهٔ آیتم هفته (this._weekItemBuilders) + وضعیت نمونه (weeksShown). بازتولید: npm run test:weekly:cards:body -- --snapshot",
+  "node": "v24.13.0",
+  "locale": "en-US",
+  "timeZone": "Asia/Tehran",
+  "frozenClockUtc": "2026-06-15T06:30:00.000Z",
+  "source": "HEAD پیش از برش بدنه — git tag pre-cards-body-split",
+  "note2": "خروجی به locale/ICU و منطقهٔ زمانی محیط Node وابسته است (تاریخ شمسی در کارت‌ها)؛ هارنس ساعت را تثبیت و TZ را روی Asia/Tehran قفل می‌کند، پس مقایسه در همان محیطی معنا دارد که اسنپ‌شات گرفته شده است.",
+  "cases": {
+    "K1.renderWeeks-سه-هفته-مدیر": {
+      "bytes": 119444,
+      "sha256": "0c6918036145bed71388665cbcaa0270eef112e2effb3d93efc82350f939d648"
+    },
+    "K2.renderWeeks-نمایش-بیشتر": {
+      "bytes": 439395,
+      "sha256": "d07baa72d7d8029bf19281325344f293b1f959850d80e2ed7282be779133b5c7"
+    },
+    "K3.renderWeeks-بدون-هفته": {
+      "bytes": 90,
+      "sha256": "28633ced92bc80178a4cefbaa3a64bfb6c5fcc625663109d98f803cb402ff5cb"
+    },
+    "K4.renderWeeks-کارشناس-خدمات": {
+      "bytes": 119450,
+      "sha256": "9ecf4be6c69a956a0a0d8658e8d1564ad5bc2f363ab2d60b42473e6c59423c52"
+    },
+    "K5.renderWeeks-کارشناس-ثبت‌شده": {
+      "bytes": 120046,
+      "sha256": "9818d98d5c31277e2e8865caa2845438449d47231c48f7c7f8fcbfdb08c6bd0d"
+    },
+    "K6.renderWeeks-پیش‌فرض-سه": {
+      "bytes": 260015,
+      "sha256": "6dffb6ea0899ea34cf704268d76fe3fe042dae94c3d76464d76e56be32056917"
+    },
+    "K7.renderWeeks-مقادیر-خالی": {
+      "bytes": 40060,
+      "sha256": "9be2bcba99fdb9e397d7fb37160749ad6ac1a8f8a3c4b2903b14e3c6d35ee010"
+    },
+    "K8.renderWeeks-دو-گله": {
+      "bytes": 518736,
+      "sha256": "82451e4787762a8dac39ffbca881af46371c1798448ece7909bd41c3d21adcb5"
+    }
+  }
+}

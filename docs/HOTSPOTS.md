@@ -21,6 +21,7 @@ npm run test:halls:body         # گارد طلایی بایت‌به‌بایت
 npm run test:weekly:body        # گارد طلایی بایت‌به‌بایت بدنهٔ متد غول هفتگی (renderFullReport · ۱۲ کِیس)
 npm run test:hatchery:body      # گارد طلایی بایت‌به‌بایت بدنهٔ دو متد غول پایان دوره (۲۲ کِیس)
 npm run test:weekly:history:body # گارد طلایی بایت‌به‌بایت بدنهٔ متد غول تاریخچهٔ هفتگی (۱۲ کِیس)
+npm run test:weekly:cards:body  # گارد طلایی بایت‌به‌بایت بدنهٔ متد غول کارت‌های هفتگی (۸ کِیس)
 
 # Backend
 cd Backend
