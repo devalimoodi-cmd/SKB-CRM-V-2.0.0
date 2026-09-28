@@ -100,282 +100,8 @@ export const weeklyCardMethods = {
 
     // سازندهٔ HTML هر آیتم هفته — برای رندر اولیه و «نمایش بیشتر» مشترک است
     this._weekItemBuilders = this._weekItemBuilders || {};
-    this._weekItemBuilders[flockId] = (week) => {
-      const hasData = week.existsInDb;
-      const statusHTML = hasData
-        ? '<span class="week-status saved">✅ ثبت شده</span>'
-        : '<span class="week-status pending">⏳ تکمیل نشده</span>';
-
-      const buttonText = hasData ? "بروزرسانی" : "ذخیره";
-      const buttonIcon = hasData ? "fa-edit" : "fa-save";
-
-      // ✅ پیش‌فرض کارشناس خدمات: فقط اگر کاربر لاگین‌شده نقش کارشناس (expert) باشد
-      const isExpert =
-        typeof authService !== "undefined" &&
-        typeof authService.getUserRole === "function" &&
-        authService.getUserRole() === "expert";
-      const currentExpertId = isExpert ? authService.getUserId() : null;
-      const defaultExpertId = week.service_expert_id || currentExpertId || "";
-
-      return `
-                <div class="week-accordion-item" data-week-id="${week.id || ""}" data-flock="${flockId}" data-week-num="${week.week_number}">
-                    <div class="week-accordion-header" onclick="window.toggleWeekAccordion(this)">
-                        <div class="week-info">
-                            <span class="week-number">هفته ${week.week_number}</span>
-                            <span class="week-date">
-                                ${convertToPersianDate(week.week_start_date)} - ${convertToPersianDate(week.week_end_date)}
-                            </span>
-                            ${statusHTML}
-                        </div>
-                        <i class="fas fa-chevron-down week-accordion-icon"></i>
-                    </div>
-                    <div class="week-accordion-body">
-                        <form class="week-edit-form" data-week-id="${week.id || ""}" data-flock-id="${flockId}" data-week-number="${week.week_number}">
-                            <input type="hidden" name="week_start_date" value="${week.week_start_date}">
-                            <input type="hidden" name="week_end_date" value="${week.week_end_date}">
-                            <input type="hidden" name="flock_age_days" value="${week.flock_age_days}">
-                            
-                            <div class="form-section">
-                                <h4>📅 اطلاعات تقویمی</h4>
-                                <div class="form-row">
-                                    <div class="form-group">
-                                        <label>تاریخ شروع</label>
-                                        <input type="text" value="${convertToPersianDate(week.week_start_date)}" disabled>
-                                    </div>
-                                    <div class="form-group">
-                                        <label>تاریخ پایان</label>
-                                        <input type="text" value="${convertToPersianDate(week.week_end_date)}" disabled>
-                                    </div>
-                                    <div class="form-group">
-                                        <label>سن گله</label>
-                                        <input type="text" value="${week.flock_age_days} روز" disabled>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="form-section">
-                                <h4>👤 کارشناس خدمات</h4>
-                                <div class="form-group">
-                                    <select name="service_expert_id" class="expert-select" data-selected="${defaultExpertId}">
-                                        <option value="">انتخاب کارشناس...</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div class="form-section">
-                                <h4>📊 مصارف و عملکرد</h4>
-
-                                <!-- بخش ۱: ورود اطلاعات -->
-                                <div class="weekly-input-section">
-                                    <div class="form-row">
-                                        <div class="form-group">
-                                            <label>تلفات هفته (قطعه) <span class="wc-required">*</span>
-                                                <span class="field-help" tabindex="0"
-                                                    data-help="تعداد تلفات ۷ روز گذشته را وارد کنید. این عدد از جمع تلفات روزانه به‌دست می‌آید و برای محاسبه درصد تلفات و جمعیت زنده گله استفاده می‌شود.">؟</span></label>
-                                            <input type="number" name="weekly_mortality" class="weekly-live-input"
-                                                   value="${week.weekly_mortality || ""}"
-                                                   placeholder="مثال: 15">
-                                        </div>
-                                        <div class="form-group">
-                                            <label>دان مصرفی روزانه (کیلوگرم - کل گله)
-                                                <span class="field-help" tabindex="0"
-                                                    data-help="مقدار خوراک مصرفی کل گله در یک روز را بر اساس توزین خوراک ریخته‌شده منهای باقی‌مانده ثبت کنید. این داده برای محاسبه سرانه مصرف روزانه به کار می‌رود.">؟</span></label>
-                                            <input type="number" step="0.01" name="daily_feed_intake"
-                                                   class="weekly-feed-daily weekly-live-input"
-                                                   value="${week.daily_feed_intake || ""}"
-                                                   placeholder="مثال: 450">
-                                        </div>
-                                    </div>
-                                    <div class="form-row">
-                                        <div class="form-group">
-                                            <label>دان مصرفی هفتگی (کیلوگرم - کل گله)
-                                                <span class="field-help" tabindex="0"
-                                                    data-help="جمع مصرف روزانه ۷ روز متوالی را وارد کنید. این عدد باید با مصرف روزانه همخوانی داشته باشد و مبنای محاسبه FCR و هزینه خوراک است.">؟</span></label>
-                                            <input type="number" step="0.01" name="weekly_feed_intake"
-                                                   class="weekly-feed-weekly weekly-live-input"
-                                                   value="${week.weekly_feed_intake || ""}"
-                                                   placeholder="مثال: 3150">
-                                        </div>
-                                        <div class="form-group">
-                                            <label>وزن هفتگی (کیلوگرم) <span class="wc-required">*</span>
-                                                <span class="field-help" tabindex="0"
-                                                    data-help="میانگین وزنی که از نمونه‌برداری تصادفی از نقاط مختلف سالن (حداقل ۱۰۰ قطعه) به‌دست می‌آید. این داده برای محاسبه نرخ رشد و مقایسه با استاندارد نژاد استفاده می‌شود.">؟</span></label>
-                                            <input type="number" step="0.001" name="weekly_weight" class="weekly-live-input"
-                                                   value="${week.weekly_weight || ""}"
-                                                   placeholder="مثال: 0.170">
-                                        </div>
-                                    </div>
-                                    <div class="form-row">
-                                        <div class="form-group">
-                                            <label>خاموشی سالن (ساعت) - اختیاری
-                                                <span class="field-help" tabindex="0"
-                                                    data-help="تعداد ساعات خاموشی نور در شبانه‌روز که با افزایش سن گله، ساعت خاموشی افزایش می‌یابد و باعث استراحت بهتر جوجه‌ها می‌شود.">؟</span></label>
-                                            <input type="number" step="0.5" name="blackout_hours"
-                                                   value="${week.blackout_hours || ""}"
-                                                   placeholder="مثال: 2">
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- بخش ۲: کارت‌های محاسباتی زنده -->
-                                <div class="week-cards-grid" data-week-cards>
-                                    <div class="wc-group-title">🐔 جمعیت و زنده‌مانی</div>
-                                    <div class="wc-card wc-primary">
-                                        <div class="wc-label">🐔 جمعیت مانده (زنده)</div>
-                                        <div class="wc-value" data-metric="birdsEndOfWeek">—</div>
-                                        <div class="wc-sub" data-metric="birdsStartOfWeekSub">ابتدای هفته: —</div>
-                                    </div>
-                                    <div class="wc-card">
-                                        <div class="wc-label">🛡️ زنده‌مانی هفتگی</div>
-                                        <div class="wc-value" data-metric="weeklySurvivalPercent">—</div>
-                                        <div class="wc-sub">درصد زنده‌مانی این هفته</div>
-                                    </div>
-                                    <div class="wc-card">
-                                        <div class="wc-label">🛡️ زنده‌مانی تجمعی</div>
-                                        <div class="wc-value" data-metric="cumulativeSurvivalPercent">—</div>
-                                        <div class="wc-sub">از ابتدا تا این هفته</div>
-                                    </div>
-                                    <div class="wc-card">
-                                        <div class="wc-label">💀 تلفات هفتگی</div>
-                                        <div class="wc-value" data-metric="weeklyMortalityPercent">—</div>
-                                        <div class="wc-sub">درصد تلفات این هفته</div>
-                                    </div>
-                                    <div class="wc-card">
-                                        <div class="wc-label">📉 تلفات کل</div>
-                                        <div class="wc-value" data-metric="totalMortalityPercent">—</div>
-                                        <div class="wc-sub">درصد تلفات تا این هفته</div>
-                                    </div>
-
-                                    <div class="wc-group-title">⚖️ وزن</div>
-                                    <div class="wc-card">
-                                        <div class="wc-label">⚖️ میانگین وزن هفتگی</div>
-                                        <div class="wc-value" data-metric="weight">—</div>
-                                        <div class="wc-sub" data-metric="weightStatusText">—</div>
-                                    </div>
-                                    <div class="wc-card">
-                                        <div class="wc-label">🏋️ وزن کل گله (زنده)</div>
-                                        <div class="wc-value" data-metric="totalLiveWeight">—</div>
-                                        <div class="wc-sub">کیلوگرم - میانگین وزن × جمعیت</div>
-                                    </div>
-                                    <div class="wc-card">
-                                        <div class="wc-label">📈 افزایش وزن هفتگی</div>
-                                        <div class="wc-value" data-metric="weightGain">—</div>
-                                        <div class="wc-sub" data-metric="gainStatusText">—</div>
-                                    </div>
-                                    <div class="wc-card">
-                                        <div class="wc-label">📊 افزایش وزن کل گله</div>
-                                        <div class="wc-value" data-metric="totalWeightGain">—</div>
-                                        <div class="wc-sub">کیلوگرم - از جوجه‌ریزی تا این هفته</div>
-                                    </div>
-                                    <div class="wc-card">
-                                        <div class="wc-label">🎯 وزن استاندارد نژاد</div>
-                                        <div class="wc-value" data-metric="standardWeight">—</div>
-                                        <div class="wc-sub">کیلوگرم - هفته ${week.week_number}</div>
-                                    </div>
-
-                                    <div class="wc-group-title">🚀 رشد</div>
-                                    <div class="wc-card">
-                                        <div class="wc-label">⚡ ADG هفتگی (نرخ رشد)</div>
-                                        <div class="wc-value" data-metric="dailyGainGrams">—</div>
-                                        <div class="wc-sub" data-metric="dailyGainStatusText">گرم در روز</div>
-                                    </div>
-                                    <div class="wc-card">
-                                        <div class="wc-label">🚀 ADG تجمعی</div>
-                                        <div class="wc-value" data-metric="cumulativeAdg">—</div>
-                                        <div class="wc-sub">گرم در روز از ابتدای دوره</div>
-                                    </div>
-
-                                    <div class="wc-group-title">🛒 خوراک</div>
-                                    <div class="wc-card">
-                                        <div class="wc-label">🛒 دان مصرفی کل</div>
-                                        <div class="wc-value" data-metric="cumulativeFeed">—</div>
-                                        <div class="wc-sub">کیلوگرم تا این هفته</div>
-                                    </div>
-                                    <div class="wc-card">
-                                        <div class="wc-label">🍽️ سرانه مصرف روزانه</div>
-                                        <div class="wc-value" data-metric="dailyFeedPerBird">—</div>
-                                        <div class="wc-sub">گرم به ازای هر قطعه</div>
-                                    </div>
-                                    <div class="wc-card">
-                                        <div class="wc-label">🍽️ سرانه مصرف هفتگی</div>
-                                        <div class="wc-value" data-metric="weeklyFeedPerBird">—</div>
-                                        <div class="wc-sub">کیلوگرم به ازای هر قطعه</div>
-                                    </div>
-                                    <div class="wc-card">
-                                        <div class="wc-label">🍗 FCR تا این هفته</div>
-                                        <div class="wc-value" data-metric="fcr">—</div>
-                                        <div class="wc-sub" data-metric="fcrStatusText">—</div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="form-section">
-                                <h4>💊 وضعیت بهداشتی و درمانی</h4>
-                                <div class="form-row">
-                                    <div class="form-group">
-                                        <label>بیماری‌ها</label>
-                                        <select name="disease_id" class="dict-select" multiple size="3" data-selected="${(week.disease_ids || []).join(",")}">
-                                            <option value="">انتخاب بیماری...</option>
-                                        </select>
-                                    </div>
-                                    <div class="form-group">
-                                        <label>واکسن‌ها</label>
-                                        <select name="vaccine_id" class="dict-select" multiple size="3" data-selected="${(week.vaccine_ids || []).join(",")}">
-                                            <option value="">انتخاب واکسن...</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="form-row">
-                                    <div class="form-group">
-                                        <label>داروها</label>
-                                        <select name="medicine_id" class="dict-select" multiple size="3" data-selected="${(week.medicine_ids || []).join(",")}">
-                                            <option value="">انتخاب دارو...</option>
-                                        </select>
-                                    </div>
-                                    <div class="form-group">
-                                        <label>نوع خوراک</label>
-                                        <select name="feed_type_id" class="dict-select" multiple size="3" data-selected="${(week.feed_type_ids || []).join(",")}">
-                                            <option value="">انتخاب نوع خوراک...</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="form-row">
-                                    <div class="form-group">
-                                        <label>پیشنهادات</label>
-                                        <select name="suggestion_id" class="dict-select" multiple size="3" data-selected="${(week.suggestion_ids || []).join(",")}">
-                                            <option value="">انتخاب پیشنهاد...</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="form-group">
-                                    <label>توضیحات</label>
-                                    <textarea name="additional_notes" rows="3" placeholder="توضیحات تکمیلی...">${week.additional_notes || ""}</textarea>
-                                </div>
-                            </div>
-
-                            <div class="form-actions">
-                                <button type="button" class="btn-save-week" onclick="window.saveWeekFromForm(this)">
-                                    <i class="fas ${buttonIcon}"></i> ${buttonText}
-                                </button>
-                                <button type="button" class="btn-cancel-week" onclick="window.resetWeekForm(this)">
-                                    <i class="fas fa-undo"></i> بازنشانی
-                                </button>
-                                ${
-                                  hasData
-                                    ? `
-                                    <button type="button" class="btn-delete-week" onclick="window.deleteWeekFromForm(this)">
-                                        <i class="fas fa-trash"></i> حذف
-                                    </button>
-                                `
-                                    : ""
-                                }
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            `;
-    };
-
+    this._weekItemBuilders[flockId] = (week) =>
+      buildWeekAccordionItemHtml(flockId, week);
     let html = weeks
       .slice(0, visibleCount)
       .map((week) => this._weekItemBuilders[flockId](week))
@@ -674,4 +400,286 @@ export const weeklyCardMethods = {
     return `${base} | ${sign} ${fa(Math.abs(diff))}`;
   },
 
+};
+
+// ------------------------------------------------------------
+//  کمکی برش A موج ۳.۲h: قالب آیتم هفته (کارت بازشوی هر هفته)
+//  متن قالب و مقدمهٔ محلی‌اش عیناً (verbatim) منتقل شده است؛ تنها تغییر:
+//  پارامترهای صریح (flockId, week) به‌جای اسارت closure.
+//  ⚠️ تورفتگی سطرها حفظ شده (فاصله‌های داخل template بخشی از خروجی HTML‌اند).
+// ------------------------------------------------------------
+const buildWeekAccordionItemHtml = (flockId, week) => {
+      const hasData = week.existsInDb;
+      const statusHTML = hasData
+        ? '<span class="week-status saved">✅ ثبت شده</span>'
+        : '<span class="week-status pending">⏳ تکمیل نشده</span>';
+
+      const buttonText = hasData ? "بروزرسانی" : "ذخیره";
+      const buttonIcon = hasData ? "fa-edit" : "fa-save";
+
+      // ✅ پیش‌فرض کارشناس خدمات: فقط اگر کاربر لاگین‌شده نقش کارشناس (expert) باشد
+      const isExpert =
+        typeof authService !== "undefined" &&
+        typeof authService.getUserRole === "function" &&
+        authService.getUserRole() === "expert";
+      const currentExpertId = isExpert ? authService.getUserId() : null;
+      const defaultExpertId = week.service_expert_id || currentExpertId || "";
+
+      return `
+                <div class="week-accordion-item" data-week-id="${week.id || ""}" data-flock="${flockId}" data-week-num="${week.week_number}">
+                    <div class="week-accordion-header" onclick="window.toggleWeekAccordion(this)">
+                        <div class="week-info">
+                            <span class="week-number">هفته ${week.week_number}</span>
+                            <span class="week-date">
+                                ${convertToPersianDate(week.week_start_date)} - ${convertToPersianDate(week.week_end_date)}
+                            </span>
+                            ${statusHTML}
+                        </div>
+                        <i class="fas fa-chevron-down week-accordion-icon"></i>
+                    </div>
+                    <div class="week-accordion-body">
+                        <form class="week-edit-form" data-week-id="${week.id || ""}" data-flock-id="${flockId}" data-week-number="${week.week_number}">
+                            <input type="hidden" name="week_start_date" value="${week.week_start_date}">
+                            <input type="hidden" name="week_end_date" value="${week.week_end_date}">
+                            <input type="hidden" name="flock_age_days" value="${week.flock_age_days}">
+                            
+                            <div class="form-section">
+                                <h4>📅 اطلاعات تقویمی</h4>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>تاریخ شروع</label>
+                                        <input type="text" value="${convertToPersianDate(week.week_start_date)}" disabled>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>تاریخ پایان</label>
+                                        <input type="text" value="${convertToPersianDate(week.week_end_date)}" disabled>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>سن گله</label>
+                                        <input type="text" value="${week.flock_age_days} روز" disabled>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-section">
+                                <h4>👤 کارشناس خدمات</h4>
+                                <div class="form-group">
+                                    <select name="service_expert_id" class="expert-select" data-selected="${defaultExpertId}">
+                                        <option value="">انتخاب کارشناس...</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="form-section">
+                                <h4>📊 مصارف و عملکرد</h4>
+
+                                <!-- بخش ۱: ورود اطلاعات -->
+                                <div class="weekly-input-section">
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label>تلفات هفته (قطعه) <span class="wc-required">*</span>
+                                                <span class="field-help" tabindex="0"
+                                                    data-help="تعداد تلفات ۷ روز گذشته را وارد کنید. این عدد از جمع تلفات روزانه به‌دست می‌آید و برای محاسبه درصد تلفات و جمعیت زنده گله استفاده می‌شود.">؟</span></label>
+                                            <input type="number" name="weekly_mortality" class="weekly-live-input"
+                                                   value="${week.weekly_mortality || ""}"
+                                                   placeholder="مثال: 15">
+                                        </div>
+                                        <div class="form-group">
+                                            <label>دان مصرفی روزانه (کیلوگرم - کل گله)
+                                                <span class="field-help" tabindex="0"
+                                                    data-help="مقدار خوراک مصرفی کل گله در یک روز را بر اساس توزین خوراک ریخته‌شده منهای باقی‌مانده ثبت کنید. این داده برای محاسبه سرانه مصرف روزانه به کار می‌رود.">؟</span></label>
+                                            <input type="number" step="0.01" name="daily_feed_intake"
+                                                   class="weekly-feed-daily weekly-live-input"
+                                                   value="${week.daily_feed_intake || ""}"
+                                                   placeholder="مثال: 450">
+                                        </div>
+                                    </div>
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label>دان مصرفی هفتگی (کیلوگرم - کل گله)
+                                                <span class="field-help" tabindex="0"
+                                                    data-help="جمع مصرف روزانه ۷ روز متوالی را وارد کنید. این عدد باید با مصرف روزانه همخوانی داشته باشد و مبنای محاسبه FCR و هزینه خوراک است.">؟</span></label>
+                                            <input type="number" step="0.01" name="weekly_feed_intake"
+                                                   class="weekly-feed-weekly weekly-live-input"
+                                                   value="${week.weekly_feed_intake || ""}"
+                                                   placeholder="مثال: 3150">
+                                        </div>
+                                        <div class="form-group">
+                                            <label>وزن هفتگی (کیلوگرم) <span class="wc-required">*</span>
+                                                <span class="field-help" tabindex="0"
+                                                    data-help="میانگین وزنی که از نمونه‌برداری تصادفی از نقاط مختلف سالن (حداقل ۱۰۰ قطعه) به‌دست می‌آید. این داده برای محاسبه نرخ رشد و مقایسه با استاندارد نژاد استفاده می‌شود.">؟</span></label>
+                                            <input type="number" step="0.001" name="weekly_weight" class="weekly-live-input"
+                                                   value="${week.weekly_weight || ""}"
+                                                   placeholder="مثال: 0.170">
+                                        </div>
+                                    </div>
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label>خاموشی سالن (ساعت) - اختیاری
+                                                <span class="field-help" tabindex="0"
+                                                    data-help="تعداد ساعات خاموشی نور در شبانه‌روز که با افزایش سن گله، ساعت خاموشی افزایش می‌یابد و باعث استراحت بهتر جوجه‌ها می‌شود.">؟</span></label>
+                                            <input type="number" step="0.5" name="blackout_hours"
+                                                   value="${week.blackout_hours || ""}"
+                                                   placeholder="مثال: 2">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- بخش ۲: کارت‌های محاسباتی زنده -->
+                                <div class="week-cards-grid" data-week-cards>
+                                    <div class="wc-group-title">🐔 جمعیت و زنده‌مانی</div>
+                                    <div class="wc-card wc-primary">
+                                        <div class="wc-label">🐔 جمعیت مانده (زنده)</div>
+                                        <div class="wc-value" data-metric="birdsEndOfWeek">—</div>
+                                        <div class="wc-sub" data-metric="birdsStartOfWeekSub">ابتدای هفته: —</div>
+                                    </div>
+                                    <div class="wc-card">
+                                        <div class="wc-label">🛡️ زنده‌مانی هفتگی</div>
+                                        <div class="wc-value" data-metric="weeklySurvivalPercent">—</div>
+                                        <div class="wc-sub">درصد زنده‌مانی این هفته</div>
+                                    </div>
+                                    <div class="wc-card">
+                                        <div class="wc-label">🛡️ زنده‌مانی تجمعی</div>
+                                        <div class="wc-value" data-metric="cumulativeSurvivalPercent">—</div>
+                                        <div class="wc-sub">از ابتدا تا این هفته</div>
+                                    </div>
+                                    <div class="wc-card">
+                                        <div class="wc-label">💀 تلفات هفتگی</div>
+                                        <div class="wc-value" data-metric="weeklyMortalityPercent">—</div>
+                                        <div class="wc-sub">درصد تلفات این هفته</div>
+                                    </div>
+                                    <div class="wc-card">
+                                        <div class="wc-label">📉 تلفات کل</div>
+                                        <div class="wc-value" data-metric="totalMortalityPercent">—</div>
+                                        <div class="wc-sub">درصد تلفات تا این هفته</div>
+                                    </div>
+
+                                    <div class="wc-group-title">⚖️ وزن</div>
+                                    <div class="wc-card">
+                                        <div class="wc-label">⚖️ میانگین وزن هفتگی</div>
+                                        <div class="wc-value" data-metric="weight">—</div>
+                                        <div class="wc-sub" data-metric="weightStatusText">—</div>
+                                    </div>
+                                    <div class="wc-card">
+                                        <div class="wc-label">🏋️ وزن کل گله (زنده)</div>
+                                        <div class="wc-value" data-metric="totalLiveWeight">—</div>
+                                        <div class="wc-sub">کیلوگرم - میانگین وزن × جمعیت</div>
+                                    </div>
+                                    <div class="wc-card">
+                                        <div class="wc-label">📈 افزایش وزن هفتگی</div>
+                                        <div class="wc-value" data-metric="weightGain">—</div>
+                                        <div class="wc-sub" data-metric="gainStatusText">—</div>
+                                    </div>
+                                    <div class="wc-card">
+                                        <div class="wc-label">📊 افزایش وزن کل گله</div>
+                                        <div class="wc-value" data-metric="totalWeightGain">—</div>
+                                        <div class="wc-sub">کیلوگرم - از جوجه‌ریزی تا این هفته</div>
+                                    </div>
+                                    <div class="wc-card">
+                                        <div class="wc-label">🎯 وزن استاندارد نژاد</div>
+                                        <div class="wc-value" data-metric="standardWeight">—</div>
+                                        <div class="wc-sub">کیلوگرم - هفته ${week.week_number}</div>
+                                    </div>
+
+                                    <div class="wc-group-title">🚀 رشد</div>
+                                    <div class="wc-card">
+                                        <div class="wc-label">⚡ ADG هفتگی (نرخ رشد)</div>
+                                        <div class="wc-value" data-metric="dailyGainGrams">—</div>
+                                        <div class="wc-sub" data-metric="dailyGainStatusText">گرم در روز</div>
+                                    </div>
+                                    <div class="wc-card">
+                                        <div class="wc-label">🚀 ADG تجمعی</div>
+                                        <div class="wc-value" data-metric="cumulativeAdg">—</div>
+                                        <div class="wc-sub">گرم در روز از ابتدای دوره</div>
+                                    </div>
+
+                                    <div class="wc-group-title">🛒 خوراک</div>
+                                    <div class="wc-card">
+                                        <div class="wc-label">🛒 دان مصرفی کل</div>
+                                        <div class="wc-value" data-metric="cumulativeFeed">—</div>
+                                        <div class="wc-sub">کیلوگرم تا این هفته</div>
+                                    </div>
+                                    <div class="wc-card">
+                                        <div class="wc-label">🍽️ سرانه مصرف روزانه</div>
+                                        <div class="wc-value" data-metric="dailyFeedPerBird">—</div>
+                                        <div class="wc-sub">گرم به ازای هر قطعه</div>
+                                    </div>
+                                    <div class="wc-card">
+                                        <div class="wc-label">🍽️ سرانه مصرف هفتگی</div>
+                                        <div class="wc-value" data-metric="weeklyFeedPerBird">—</div>
+                                        <div class="wc-sub">کیلوگرم به ازای هر قطعه</div>
+                                    </div>
+                                    <div class="wc-card">
+                                        <div class="wc-label">🍗 FCR تا این هفته</div>
+                                        <div class="wc-value" data-metric="fcr">—</div>
+                                        <div class="wc-sub" data-metric="fcrStatusText">—</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-section">
+                                <h4>💊 وضعیت بهداشتی و درمانی</h4>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>بیماری‌ها</label>
+                                        <select name="disease_id" class="dict-select" multiple size="3" data-selected="${(week.disease_ids || []).join(",")}">
+                                            <option value="">انتخاب بیماری...</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>واکسن‌ها</label>
+                                        <select name="vaccine_id" class="dict-select" multiple size="3" data-selected="${(week.vaccine_ids || []).join(",")}">
+                                            <option value="">انتخاب واکسن...</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>داروها</label>
+                                        <select name="medicine_id" class="dict-select" multiple size="3" data-selected="${(week.medicine_ids || []).join(",")}">
+                                            <option value="">انتخاب دارو...</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>نوع خوراک</label>
+                                        <select name="feed_type_id" class="dict-select" multiple size="3" data-selected="${(week.feed_type_ids || []).join(",")}">
+                                            <option value="">انتخاب نوع خوراک...</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>پیشنهادات</label>
+                                        <select name="suggestion_id" class="dict-select" multiple size="3" data-selected="${(week.suggestion_ids || []).join(",")}">
+                                            <option value="">انتخاب پیشنهاد...</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label>توضیحات</label>
+                                    <textarea name="additional_notes" rows="3" placeholder="توضیحات تکمیلی...">${week.additional_notes || ""}</textarea>
+                                </div>
+                            </div>
+
+                            <div class="form-actions">
+                                <button type="button" class="btn-save-week" onclick="window.saveWeekFromForm(this)">
+                                    <i class="fas ${buttonIcon}"></i> ${buttonText}
+                                </button>
+                                <button type="button" class="btn-cancel-week" onclick="window.resetWeekForm(this)">
+                                    <i class="fas fa-undo"></i> بازنشانی
+                                </button>
+                                ${
+                                  hasData
+                                    ? `
+                                    <button type="button" class="btn-delete-week" onclick="window.deleteWeekFromForm(this)">
+                                        <i class="fas fa-trash"></i> حذف
+                                    </button>
+                                `
+                                    : ""
+                                }
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `;
 };
