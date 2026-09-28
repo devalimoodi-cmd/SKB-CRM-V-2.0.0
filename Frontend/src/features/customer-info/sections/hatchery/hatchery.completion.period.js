@@ -740,144 +740,19 @@ export const hatcheryCompletionPeriodMethods = {
           ? ((editTotalMortality / editInitialChicks) * 100).toFixed(2)
           : "";
 
-      const formHtml = `
-        <div style="text-align:right; font-family:'Vazir'; direction:rtl;">
-          <style>${UE_FORM_STYLE_BLOCK}</style>
-
-          <div style="background:linear-gradient(135deg,#2c7a6e,#035552); color:#fff; border-radius:12px; padding:14px 16px; margin-bottom:16px; display:flex; align-items:center; gap:12px; position:relative;">
-            <div style="width:42px; height:42px; border-radius:50%; background:rgba(255,255,255,0.2); display:flex; align-items:center; justify-content:center; font-size:20px;">
-              <i class="fas fa-pen"></i>
-            </div>
-            <div>
-              <div style="font-size:15px; font-weight:800;">ویرایش اطلاعات پایان دوره</div>
-              <div style="font-size:11px; opacity:0.85;">گله ${flock.flock_number || "-"} | ${completions.length} گله</div>
-            </div>
-          </div>
-
-          <div style="display:flex; justify-content:flex-end; margin-bottom:12px;">
-            <button type="button" id="ueRecomputeBtn"
-              style="padding:8px 18px; background:#d97706; color:#fff; border:none; border-radius:10px; font-family:'Vazir'; font-size:12.5px; font-weight:600; cursor:pointer; transition:all .3s; display:flex; align-items:center; gap:6px;">
-              <i class="fas fa-sync-alt" id="ueRecomputeIcon"></i> محاسبه مجدد فیلدهای سیستمی
-            </button>
-          </div>
-
-          <!-- فیلدهای سیستمی -->
-          <div class="ue-section">
-            <div class="ue-section-title"><i class="fas fa-calculator"></i> فیلدهای سیستمی (قابل ویرایش)</div>
-            <div class="ue-3col">
-              <div>
-                <label class="ue-label">جوجه اولیه</label>
-                <input type="number" id="ueInitialChicks" class="ue-field" value="${editInitialChicks || ""}">
-              </div>
-              <div>
-                <label class="ue-label">جوجه نهایی</label>
-                <input type="number" id="ueFinalChicks" class="ue-field" value="${editFinalChicks || ""}">
-              </div>
-              <div>
-                <label class="ue-label">هفته آخر</label>
-                <input type="number" id="ueFinalWeek" class="ue-field" value="${c.final_week_number ?? ""}">
-              </div>
-              <div>
-                <label class="ue-label">کل خوراک</label>
-                <input type="number" step="0.01" id="ueTotalFeed" class="ue-field" value="${c.system_total_feed ?? c.total_feed_intake ?? ""}">
-              </div>
-              <div>
-                <label class="ue-label">آخرین وزن</label>
-                <input type="number" step="0.01" id="ueLastWeight" class="ue-field" value="${c.system_last_weight ?? c.final_avg_weight ?? ""}">
-              </div>
-              <div>
-                <label class="ue-label">FCR سیستمی</label>
-                <input type="number" step="0.01" id="ueSystemFcr" class="ue-field" value="${c.system_fcr ?? ""}">
-              </div>
-              <div>
-                <label class="ue-label">تلفات کل (سیستم + حمل)</label>
-                <input type="number" id="ueTotalMortality" class="ue-field" value="${editTotalMortality || ""}">
-              </div>
-              <div>
-                <label class="ue-label">درصد تلفات</label>
-                <input type="number" step="0.01" id="ueMortalityRate" class="ue-field" value="${editMortalityRate}">
-              </div>
-            </div>
-          </div>
-
-          ${this._ueSlaughterSectionHtml(c, flock)}
-
-          <!-- اطلاعات کشتارگاه -->
-          <div class="ue-section">
-            <div class="ue-section-title"><i class="fas fa-industry"></i> اطلاعات کشتارگاه</div>
-            <div class="ue-2col">
-              <div>
-                <label class="ue-label">نام کشتارگاه</label>
-                <input type="text" id="ueSlaughterhouse" class="ue-field" value="${c.slaughterhouse_name ?? ""}">
-              </div>
-              <div>
-                <label class="ue-label">تلفات حمل</label>
-                <input type="number" id="ueTransportMortality" class="ue-field" value="${c.transport_mortality ?? 0}">
-              </div>
-              <div>
-                <label class="ue-label">تعداد ارسالی به کشتارگاه</label>
-                <input type="number" id="ueTotalSent" class="ue-field" value="${c.total_sent ?? ""}">
-              </div>
-              <div>
-                <label class="ue-label">وزن کل زنده</label>
-                <input type="number" step="0.01" id="ueTotalLiveWeight" class="ue-field" value="${c.total_live_weight ?? ""}">
-              </div>
-              <div>
-                <label class="ue-label">میانگین وزن</label>
-                <input type="number" step="0.01" id="ueAvgLiveWeight" class="ue-field" value="${c.avg_live_weight ?? ""}">
-              </div>
-            </div>
-          </div>
-
-          <!-- اطلاعات اعلامی مرغدار -->
-          <div class="ue-section">
-            <div class="ue-section-title"><i class="fas fa-user-tie"></i> اطلاعات اعلامی مرغدار</div>
-            <div class="ue-2col">
-              <div>
-                <label class="ue-label">FCR مرغدار</label>
-                <input type="number" step="0.01" id="ueFarmerFcr" class="ue-field" value="${c.farmer_fcr ?? ""}">
-              </div>
-              <div>
-                <label class="ue-label">کل گوشت (کیلوگرم)</label>
-                <input type="number" step="0.01" id="ueFarmerMeat" class="ue-field" value="${c.farmer_total_meat ?? ""}">
-              </div>
-              <div>
-                <label class="ue-label">کل خوراک (کیلوگرم)</label>
-                <input type="number" step="0.01" id="ueFarmerFeed" class="ue-field" value="${c.farmer_total_feed ?? ""}">
-              </div>
-              <div>
-                <label class="ue-label">وزن کل (کیلوگرم)</label>
-                <input type="number" step="0.01" id="ueFarmerWeight" class="ue-field" value="${c.farmer_total_weight ?? ""}">
-              </div>
-            </div>
-          </div>
-
-          <!-- تنظیمات -->
-          <div class="ue-section">
-            <div class="ue-section-title"><i class="fas fa-cogs"></i> تنظیمات</div>
-            <div class="ue-2col">
-              <div>
-                <label class="ue-label">نوع پایان</label>
-                <select id="ueCompletionType" class="ue-field">
-                  <option value="completed" ${c.completion_type === "completed" ? "selected" : ""}>تکمیل</option>
-                  <option value="culled" ${c.completion_type === "culled" ? "selected" : ""}>حذف</option>
-                  <option value="emergency" ${c.completion_type === "emergency" ? "selected" : ""}>اضطراری</option>
-                </select>
-              </div>
-              <div style="display:flex; align-items:center; gap:8px; margin-top:20px;">
-                <input type="checkbox" id="ueConfirmed" style="width:16px;height:16px;" ${c.confirmed_by_customer ? "checked" : ""}>
-                <label for="ueConfirmed" class="ue-label" style="margin:0;">تأیید مرغدار</label>
-              </div>
-            </div>
-            <div style="margin-top:8px;">
-              <label class="ue-label">توضیحات</label>
-              <textarea id="ueNotes" class="ue-field" rows="2">${c.notes ?? ""}</textarea>
-            </div>
-          </div>
-
-          <input type="hidden" id="ueCompletionId" value="${c.id}">
-        </div>
-      `;
+      const formHtml = buildCompletionEditFormHtml({
+        c,
+        flock,
+        completions,
+        editInitialChicks,
+        editFinalChicks,
+        editTotalMortality,
+        editMortalityRate,
+        // بخش «کشتار» به‌شکل wrapper پاس داده می‌شود تا ارجاع this روی سرویس
+        // ثبت‌شده بماند — گارد audit:surface این ویژگی را از متن همین فایل می‌خواند.
+        slaughterSectionHtml: (completion, completionFlock) =>
+          this._ueSlaughterSectionHtml(completion, completionFlock),
+      });
 
       const result = await Swal.fire({
         title: "",
@@ -1145,3 +1020,157 @@ const CF_FORM_STYLE_BLOCK = `
             .cf-2col { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
             .cf-3col { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
           `;
+
+// ------------------------------------------------------------
+//  کمکی برش B: قالب فرم «ویرایش اطلاعات پایان دوره»
+//  متن قالب عیناً (verbatim) منتقل شده است؛ تنها تغییر: فراخوانی بخش کشتار
+//  از this به service (کمکی‌های ماژول‌محلی هرگز this نمی‌گیرند).
+//  ⚠️ تورفتگی سطرها حفظ شده (فاصله‌های داخل template بخشی از خروجی HTML‌اند).
+// ------------------------------------------------------------
+const buildCompletionEditFormHtml = ({
+  c,
+  flock,
+  completions,
+  editInitialChicks,
+  editFinalChicks,
+  editTotalMortality,
+  editMortalityRate,
+  slaughterSectionHtml,
+}) => `
+        <div style="text-align:right; font-family:'Vazir'; direction:rtl;">
+          <style>${UE_FORM_STYLE_BLOCK}</style>
+
+          <div style="background:linear-gradient(135deg,#2c7a6e,#035552); color:#fff; border-radius:12px; padding:14px 16px; margin-bottom:16px; display:flex; align-items:center; gap:12px; position:relative;">
+            <div style="width:42px; height:42px; border-radius:50%; background:rgba(255,255,255,0.2); display:flex; align-items:center; justify-content:center; font-size:20px;">
+              <i class="fas fa-pen"></i>
+            </div>
+            <div>
+              <div style="font-size:15px; font-weight:800;">ویرایش اطلاعات پایان دوره</div>
+              <div style="font-size:11px; opacity:0.85;">گله ${flock.flock_number || "-"} | ${completions.length} گله</div>
+            </div>
+          </div>
+
+          <div style="display:flex; justify-content:flex-end; margin-bottom:12px;">
+            <button type="button" id="ueRecomputeBtn"
+              style="padding:8px 18px; background:#d97706; color:#fff; border:none; border-radius:10px; font-family:'Vazir'; font-size:12.5px; font-weight:600; cursor:pointer; transition:all .3s; display:flex; align-items:center; gap:6px;">
+              <i class="fas fa-sync-alt" id="ueRecomputeIcon"></i> محاسبه مجدد فیلدهای سیستمی
+            </button>
+          </div>
+
+          <!-- فیلدهای سیستمی -->
+          <div class="ue-section">
+            <div class="ue-section-title"><i class="fas fa-calculator"></i> فیلدهای سیستمی (قابل ویرایش)</div>
+            <div class="ue-3col">
+              <div>
+                <label class="ue-label">جوجه اولیه</label>
+                <input type="number" id="ueInitialChicks" class="ue-field" value="${editInitialChicks || ""}">
+              </div>
+              <div>
+                <label class="ue-label">جوجه نهایی</label>
+                <input type="number" id="ueFinalChicks" class="ue-field" value="${editFinalChicks || ""}">
+              </div>
+              <div>
+                <label class="ue-label">هفته آخر</label>
+                <input type="number" id="ueFinalWeek" class="ue-field" value="${c.final_week_number ?? ""}">
+              </div>
+              <div>
+                <label class="ue-label">کل خوراک</label>
+                <input type="number" step="0.01" id="ueTotalFeed" class="ue-field" value="${c.system_total_feed ?? c.total_feed_intake ?? ""}">
+              </div>
+              <div>
+                <label class="ue-label">آخرین وزن</label>
+                <input type="number" step="0.01" id="ueLastWeight" class="ue-field" value="${c.system_last_weight ?? c.final_avg_weight ?? ""}">
+              </div>
+              <div>
+                <label class="ue-label">FCR سیستمی</label>
+                <input type="number" step="0.01" id="ueSystemFcr" class="ue-field" value="${c.system_fcr ?? ""}">
+              </div>
+              <div>
+                <label class="ue-label">تلفات کل (سیستم + حمل)</label>
+                <input type="number" id="ueTotalMortality" class="ue-field" value="${editTotalMortality || ""}">
+              </div>
+              <div>
+                <label class="ue-label">درصد تلفات</label>
+                <input type="number" step="0.01" id="ueMortalityRate" class="ue-field" value="${editMortalityRate}">
+              </div>
+            </div>
+          </div>
+
+          ${slaughterSectionHtml(c, flock)}
+
+          <!-- اطلاعات کشتارگاه -->
+          <div class="ue-section">
+            <div class="ue-section-title"><i class="fas fa-industry"></i> اطلاعات کشتارگاه</div>
+            <div class="ue-2col">
+              <div>
+                <label class="ue-label">نام کشتارگاه</label>
+                <input type="text" id="ueSlaughterhouse" class="ue-field" value="${c.slaughterhouse_name ?? ""}">
+              </div>
+              <div>
+                <label class="ue-label">تلفات حمل</label>
+                <input type="number" id="ueTransportMortality" class="ue-field" value="${c.transport_mortality ?? 0}">
+              </div>
+              <div>
+                <label class="ue-label">تعداد ارسالی به کشتارگاه</label>
+                <input type="number" id="ueTotalSent" class="ue-field" value="${c.total_sent ?? ""}">
+              </div>
+              <div>
+                <label class="ue-label">وزن کل زنده</label>
+                <input type="number" step="0.01" id="ueTotalLiveWeight" class="ue-field" value="${c.total_live_weight ?? ""}">
+              </div>
+              <div>
+                <label class="ue-label">میانگین وزن</label>
+                <input type="number" step="0.01" id="ueAvgLiveWeight" class="ue-field" value="${c.avg_live_weight ?? ""}">
+              </div>
+            </div>
+          </div>
+
+          <!-- اطلاعات اعلامی مرغدار -->
+          <div class="ue-section">
+            <div class="ue-section-title"><i class="fas fa-user-tie"></i> اطلاعات اعلامی مرغدار</div>
+            <div class="ue-2col">
+              <div>
+                <label class="ue-label">FCR مرغدار</label>
+                <input type="number" step="0.01" id="ueFarmerFcr" class="ue-field" value="${c.farmer_fcr ?? ""}">
+              </div>
+              <div>
+                <label class="ue-label">کل گوشت (کیلوگرم)</label>
+                <input type="number" step="0.01" id="ueFarmerMeat" class="ue-field" value="${c.farmer_total_meat ?? ""}">
+              </div>
+              <div>
+                <label class="ue-label">کل خوراک (کیلوگرم)</label>
+                <input type="number" step="0.01" id="ueFarmerFeed" class="ue-field" value="${c.farmer_total_feed ?? ""}">
+              </div>
+              <div>
+                <label class="ue-label">وزن کل (کیلوگرم)</label>
+                <input type="number" step="0.01" id="ueFarmerWeight" class="ue-field" value="${c.farmer_total_weight ?? ""}">
+              </div>
+            </div>
+          </div>
+
+          <!-- تنظیمات -->
+          <div class="ue-section">
+            <div class="ue-section-title"><i class="fas fa-cogs"></i> تنظیمات</div>
+            <div class="ue-2col">
+              <div>
+                <label class="ue-label">نوع پایان</label>
+                <select id="ueCompletionType" class="ue-field">
+                  <option value="completed" ${c.completion_type === "completed" ? "selected" : ""}>تکمیل</option>
+                  <option value="culled" ${c.completion_type === "culled" ? "selected" : ""}>حذف</option>
+                  <option value="emergency" ${c.completion_type === "emergency" ? "selected" : ""}>اضطراری</option>
+                </select>
+              </div>
+              <div style="display:flex; align-items:center; gap:8px; margin-top:20px;">
+                <input type="checkbox" id="ueConfirmed" style="width:16px;height:16px;" ${c.confirmed_by_customer ? "checked" : ""}>
+                <label for="ueConfirmed" class="ue-label" style="margin:0;">تأیید مرغدار</label>
+              </div>
+            </div>
+            <div style="margin-top:8px;">
+              <label class="ue-label">توضیحات</label>
+              <textarea id="ueNotes" class="ue-field" rows="2">${c.notes ?? ""}</textarea>
+            </div>
+          </div>
+
+          <input type="hidden" id="ueCompletionId" value="${c.id}">
+        </div>
+      `;
