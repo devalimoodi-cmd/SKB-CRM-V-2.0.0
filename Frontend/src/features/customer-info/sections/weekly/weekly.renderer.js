@@ -788,156 +788,23 @@ export const weeklyRenderer = {
     const excludedFlockNames = [];
 
     orderedFlocks.forEach((flock) => {
-      // ✅ هفته‌های انتخاب‌شدهٔ کاربر برای همین گله/سالن (null = همهٔ هفته‌ها)
-      const timeline = buildWeekTimeline(flock.weeks || []);
-      const timelineNumbers = timeline.map((week) => week.weekNumber);
-      const weekNumbers = resolveFlockWeekNumbers(
-        options,
-        flockWeeksKey(flock),
-        timeline,
-      );
+      const ctx = resolveFlockReportContext(flock, options);
 
       // گلهٔ بدون هیچ هفتهٔ انتخابی → از گزارش حذف می‌شود
-      if (Array.isArray(weekNumbers) && weekNumbers.length === 0) {
-        excludedFlockNames.push(
-          `گله ${flock.flock_number} (${flock.hall_name || "-"})`,
-        );
+      if (ctx.excluded) {
+        excludedFlockNames.push(ctx.excludedName);
         return;
       }
 
-      // حسابرسی هفته‌های ثبت‌نشده/ناقص همین سالن (هشدار + ردیف‌های ❌)
-      const auditFull = auditOfFlock(flock);
-      const audit = Array.isArray(weekNumbers)
-        ? scopeAuditToWeeks(auditFull, weekNumbers)
-        : auditFull;
-      const outsideIssues = Array.isArray(weekNumbers)
-        ? issuesOutsideSelection(
-            options.weekSelection,
-            flockWeeksKey(flock),
-            timeline,
-          )
-        : [];
-
-      // فقط هفته‌های انتخاب‌شده در جدول «جزئیات ثبت هفتگی» می‌آید
-      const visibleWeeks = Array.isArray(weekNumbers)
-        ? (flock.weeks || []).filter((week) =>
-            weekNumbers.includes(parseInt(week.week_number, 10)),
-          )
-        : flock.weeks;
-
-      const weeksHTML = visibleWeeks
-        .map(
-          (week, i) => `
-                <tr class="${week.existsInDb ? "has-data" : "week-missing"}">
-                    <td>${i + 1}</td>
-                    <td>هفته ${week.week_number}</td>
-                    <td>${toPersianDate(week.week_start_date)}</td>
-                    <td>${toPersianDate(week.week_end_date)}</td>
-                    <td>${week.flock_age_days}</td>
-                    <td>${week.daily_feed_intake || "-"}</td>
-                    <td class="${week.weekly_feed_intake ? "highlight" : ""}">${week.weekly_feed_intake || "-"}</td>
-                    <td class="${week.weekly_weight ? "highlight" : ""}">${week.weekly_weight || "-"}</td>
-                    <td class="${week.weekly_mortality > 0 ? "highlight" : ""}">${week.weekly_mortality || 0}</td>
-                    <td>${week.blackout_hours || 0}</td>
-                    <td>${week.diseases?.join("، ") || "-"}</td>
-                    <td>${week.vaccines?.join("، ") || "-"}</td>
-                    <td>${week.medicines?.join("، ") || "-"}</td>
-                    <td>${week.feedTypes?.join("، ") || "-"}</td>
-                    <td>${week.suggestions?.join("، ") || "-"}</td>
-                    <td>${week.additional_notes || "-"}</td>
-                    <td>
-                        ${
-                          week.existsInDb
-                            ? '<span class="status-badge status-active">✅ ثبت شده</span>'
-                            : '<span class="status-badge status-pending">⏳ تکمیل نشده</span>'
-                        }
-                    </td>
-                </tr>
-            `,
-        )
-        .join("");
-
-      pushHallSection(flock, `
-                <div class="flock-section">
-                    <div class="flock-header">
-                        <div>
-                            <div class="flock-title">🐔 گله ${flock.flock_number}</div>
-                            <div style="font-size: 13px; color: #64748b;">
-                                ${flock.hall_name} | ${flock.breed_name || "-"} | ${toPersianDate(flock.placement_date)}
-                            </div>
-                        </div>
-                        <div class="flock-meta">
-                            <span>🧮 ${flock.total_chicks_count?.toLocaleString() || 0} قطعه</span>
-                            <span>📊 ${flock.weeks.length} هفته (${flock.savedWeeks.length} ثبت‌شده)</span>
-                            ${renderGapBadge(audit)}
-                            ${timelineChip(flock.timeline)}
-                            ${weekRangeChip(weekNumbers, timelineNumbers)}
-                            <span class="status-badge ${flock.is_active ? "status-active" : "status-inactive"}">
-                                ${flock.is_active ? "فعال" : "غیرفعال"}
-                            </span>
-                        </div>
-                    </div>
-
-                    ${renderWeekGapsAlert(audit)}
-                    ${outsideIssuesNote(outsideIssues)}
-
-                    <div class="flock-summary-strip">
-                        <span><strong>تلفات:</strong> ${flock.statistics.totalMortality} قطعه</span>
-                        <span><strong>جمعیت مانده:</strong> ${fmtNum(flock.statistics.finalMetrics?.birdsEndOfWeek, 0)} قطعه</span>
-                        <span><strong>زنده‌مانی:</strong> ${fmtPct(flock.statistics.finalMetrics?.cumulativeSurvivalPercent)}</span>
-                        <span><strong>وزن کل گله:</strong> ${fmtNum(flock.statistics.finalMetrics?.totalLiveWeight, 1)} کیلوگرم</span>
-                        <span><strong>کل خوراک:</strong> ${fmtNum(flock.statistics.totalFeed, 1)} کیلوگرم</span>
-                        <span><strong>🐔 ضریب تبدیل:</strong> ${flock.statistics.fcr !== null ? fmtNum(flock.statistics.fcr, 3) : "-"}</span>
-                        <span><strong>هفته‌های تکمیل شده:</strong> ${flock.statistics.weekCount}</span>
-                    </div>
-
-                    ${buildMetricsTableHtml(
-                      flock.savedWeeks,
-                      "📈 شاخص‌های عملکردی هفتگی",
-                      selected,
-                      audit,
-                      weekNumbers,
-                    )}
-
-                    ${
-                      visibleWeeks.length > 0 && isGroupSelected(selected, "details")
-                        ? `
-                        <h4 class="metrics-title">📋 جزئیات ثبت هفتگی</h4>
-                        <table class="week-table">
-                            <thead>
-                                <tr>
-                                    <th>#</th>
-                                    <th>هفته</th>
-                                    <th>تاریخ شروع</th>
-                                    <th>تاریخ پایان</th>
-                                    <th>سن</th>
-                                    <th>خوراک روزانه</th>
-                                    <th>خوراک هفتگی</th>
-                                    <th>وزن</th>
-                                    <th>تلفات</th>
-                                    <th>خاموشی</th>
-                                    <th>بیماری‌ها</th>
-                                    <th>واکسن‌ها</th>
-                                    <th>داروها</th>
-                                    <th>نوع خوراک</th>
-                                    <th>پیشنهادات</th>
-                                    <th>توضیحات</th>
-                                    <th>وضعیت</th>
-                                </tr>
-                            </thead>
-                            <tbody>${weeksHTML}</tbody>
-                        </table>
-                    `
-                        : visibleWeeks.length === 0
-                          ? `
-                        <div style="text-align: center; padding: 20px; color: #94a3b8;">
-                            <p>هیچ داده‌ای برای این گله ثبت نشده است</p>
-                        </div>
-                    `
-                          : ""
-                    }
-                </div>
-            `);
+      pushHallSection(
+        flock,
+        buildFlockSectionHtml({
+          ...ctx,
+          flock,
+          selected,
+          weeksHTML: buildWeekDetailRows(ctx.visibleWeeks),
+        }),
+      );
     });
 
     // ===== سرصفحه + خلاصه + جدول تجمعی «کل گله» (فقط گله‌های چندسالنه) =====
@@ -1534,3 +1401,182 @@ const toPersianDate = (date) => {
         return "-";
       }
 };
+
+// ============================================================
+//  کمکی‌های برش B2: حلقهٔ هر گله در renderFullReport
+//  این کدها پیش‌تر داخل بدنهٔ متد بودند؛ فقط «شکل برگرداندن» عوض شد
+//  (به‌جای push روی آرایه‌ها و return داخل forEach، اکنون مقدار برمی‌گردد
+//  و متد خودش push می‌کند). متن رشته‌ها و ترتیب دقیقاً همان قبلی است.
+//  ⚠️ تورفتگی verbatim حفظ شده (فاصله‌های داخل template بخشی از خروجی‌اند).
+// ============================================================
+const resolveFlockReportContext = (flock, options) => {
+      const timeline = buildWeekTimeline(flock.weeks || []);
+      const timelineNumbers = timeline.map((week) => week.weekNumber);
+      const weekNumbers = resolveFlockWeekNumbers(
+        options,
+        flockWeeksKey(flock),
+        timeline,
+      );
+
+      // گلهٔ بدون هیچ هفتهٔ انتخابی → از گزارش حذف می‌شود
+      if (Array.isArray(weekNumbers) && weekNumbers.length === 0) {
+        return {
+          excluded: true,
+          excludedName: `گله ${flock.flock_number} (${flock.hall_name || "-"})`,
+        };
+      }
+
+
+      // حسابرسی هفته‌های ثبت‌نشده/ناقص همین سالن (هشدار + ردیف‌های ❌)
+      const auditFull = auditOfFlock(flock);
+      const audit = Array.isArray(weekNumbers)
+        ? scopeAuditToWeeks(auditFull, weekNumbers)
+        : auditFull;
+      const outsideIssues = Array.isArray(weekNumbers)
+        ? issuesOutsideSelection(
+            options.weekSelection,
+            flockWeeksKey(flock),
+            timeline,
+          )
+        : [];
+
+      // فقط هفته‌های انتخاب‌شده در جدول «جزئیات ثبت هفتگی» می‌آید
+      const visibleWeeks = Array.isArray(weekNumbers)
+        ? (flock.weeks || []).filter((week) =>
+            weekNumbers.includes(parseInt(week.week_number, 10)),
+          )
+        : flock.weeks;
+  return {
+    excluded: false,
+    timeline,
+    timelineNumbers,
+    weekNumbers,
+    audit,
+    outsideIssues,
+    visibleWeeks,
+  };
+};
+const buildWeekDetailRows = (visibleWeeks) => {
+      const weeksHTML = visibleWeeks
+        .map(
+          (week, i) => `
+                <tr class="${week.existsInDb ? "has-data" : "week-missing"}">
+                    <td>${i + 1}</td>
+                    <td>هفته ${week.week_number}</td>
+                    <td>${toPersianDate(week.week_start_date)}</td>
+                    <td>${toPersianDate(week.week_end_date)}</td>
+                    <td>${week.flock_age_days}</td>
+                    <td>${week.daily_feed_intake || "-"}</td>
+                    <td class="${week.weekly_feed_intake ? "highlight" : ""}">${week.weekly_feed_intake || "-"}</td>
+                    <td class="${week.weekly_weight ? "highlight" : ""}">${week.weekly_weight || "-"}</td>
+                    <td class="${week.weekly_mortality > 0 ? "highlight" : ""}">${week.weekly_mortality || 0}</td>
+                    <td>${week.blackout_hours || 0}</td>
+                    <td>${week.diseases?.join("، ") || "-"}</td>
+                    <td>${week.vaccines?.join("، ") || "-"}</td>
+                    <td>${week.medicines?.join("، ") || "-"}</td>
+                    <td>${week.feedTypes?.join("، ") || "-"}</td>
+                    <td>${week.suggestions?.join("، ") || "-"}</td>
+                    <td>${week.additional_notes || "-"}</td>
+                    <td>
+                        ${
+                          week.existsInDb
+                            ? '<span class="status-badge status-active">✅ ثبت شده</span>'
+                            : '<span class="status-badge status-pending">⏳ تکمیل نشده</span>'
+                        }
+                    </td>
+                </tr>
+            `,
+        )
+        .join("");
+      return weeksHTML;
+};
+const buildFlockSectionHtml = ({
+  flock,
+  audit,
+  outsideIssues,
+  weekNumbers,
+  timelineNumbers,
+  visibleWeeks,
+  weeksHTML,
+  selected,
+}) => `
+                <div class="flock-section">
+                    <div class="flock-header">
+                        <div>
+                            <div class="flock-title">🐔 گله ${flock.flock_number}</div>
+                            <div style="font-size: 13px; color: #64748b;">
+                                ${flock.hall_name} | ${flock.breed_name || "-"} | ${toPersianDate(flock.placement_date)}
+                            </div>
+                        </div>
+                        <div class="flock-meta">
+                            <span>🧮 ${flock.total_chicks_count?.toLocaleString() || 0} قطعه</span>
+                            <span>📊 ${flock.weeks.length} هفته (${flock.savedWeeks.length} ثبت‌شده)</span>
+                            ${renderGapBadge(audit)}
+                            ${timelineChip(flock.timeline)}
+                            ${weekRangeChip(weekNumbers, timelineNumbers)}
+                            <span class="status-badge ${flock.is_active ? "status-active" : "status-inactive"}">
+                                ${flock.is_active ? "فعال" : "غیرفعال"}
+                            </span>
+                        </div>
+                    </div>
+
+                    ${renderWeekGapsAlert(audit)}
+                    ${outsideIssuesNote(outsideIssues)}
+
+                    <div class="flock-summary-strip">
+                        <span><strong>تلفات:</strong> ${flock.statistics.totalMortality} قطعه</span>
+                        <span><strong>جمعیت مانده:</strong> ${fmtNum(flock.statistics.finalMetrics?.birdsEndOfWeek, 0)} قطعه</span>
+                        <span><strong>زنده‌مانی:</strong> ${fmtPct(flock.statistics.finalMetrics?.cumulativeSurvivalPercent)}</span>
+                        <span><strong>وزن کل گله:</strong> ${fmtNum(flock.statistics.finalMetrics?.totalLiveWeight, 1)} کیلوگرم</span>
+                        <span><strong>کل خوراک:</strong> ${fmtNum(flock.statistics.totalFeed, 1)} کیلوگرم</span>
+                        <span><strong>🐔 ضریب تبدیل:</strong> ${flock.statistics.fcr !== null ? fmtNum(flock.statistics.fcr, 3) : "-"}</span>
+                        <span><strong>هفته‌های تکمیل شده:</strong> ${flock.statistics.weekCount}</span>
+                    </div>
+
+                    ${buildMetricsTableHtml(
+                      flock.savedWeeks,
+                      "📈 شاخص‌های عملکردی هفتگی",
+                      selected,
+                      audit,
+                      weekNumbers,
+                    )}
+
+                    ${
+                      visibleWeeks.length > 0 && isGroupSelected(selected, "details")
+                        ? `
+                        <h4 class="metrics-title">📋 جزئیات ثبت هفتگی</h4>
+                        <table class="week-table">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>هفته</th>
+                                    <th>تاریخ شروع</th>
+                                    <th>تاریخ پایان</th>
+                                    <th>سن</th>
+                                    <th>خوراک روزانه</th>
+                                    <th>خوراک هفتگی</th>
+                                    <th>وزن</th>
+                                    <th>تلفات</th>
+                                    <th>خاموشی</th>
+                                    <th>بیماری‌ها</th>
+                                    <th>واکسن‌ها</th>
+                                    <th>داروها</th>
+                                    <th>نوع خوراک</th>
+                                    <th>پیشنهادات</th>
+                                    <th>توضیحات</th>
+                                    <th>وضعیت</th>
+                                </tr>
+                            </thead>
+                            <tbody>${weeksHTML}</tbody>
+                        </table>
+                    `
+                        : visibleWeeks.length === 0
+                          ? `
+                        <div style="text-align: center; padding: 20px; color: #94a3b8;">
+                            <p>هیچ داده‌ای برای این گله ثبت نشده است</p>
+                        </div>
+                    `
+                          : ""
+                    }
+                </div>
+            `;
