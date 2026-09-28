@@ -754,181 +754,18 @@ export const hatcheryCompletionPeriodMethods = {
           this._ueSlaughterSectionHtml(completion, completionFlock),
       });
 
-      const result = await Swal.fire({
-        title: "",
-        html: formHtml,
-        showCancelButton: true,
-        confirmButtonText: "💾 ذخیره تغییرات",
-        cancelButtonText: "انصراف",
-        confirmButtonColor: "#2c7a6e",
-        cancelButtonColor: "#64748b",
-        width: 720,
-        padding: "20px 24px",
-        didOpen: () => {
-          // دکمه محاسبه مجدد
-          const recomputeBtn = document.getElementById("ueRecomputeBtn");
-          if (recomputeBtn) {
-            recomputeBtn.addEventListener("click", () => {
-              const icon = document.getElementById("ueRecomputeIcon");
-              if (icon) icon.classList.add("fa-spin");
+      const result = await Swal.fire(
+        buildEditCompletionSwalOptions({
+          formHtml,
+          completionId: c.id,
+          completions,
+          recomputeSystemFields: (id, all) =>
+            this.recomputeSystemFields(id, all),
+          recalcSlaughterMethod: () => this.ueRecalcSlaughterMethod(),
+        }),
+      );
 
-              const requestedFields = this.recomputeSystemFields(
-                c.id,
-                completions,
-              );
-              // Promise را مدیریت می‌کنیم
-              requestedFields.then(() => {
-                if (icon) icon.classList.remove("fa-spin");
-              });
-            });
-          }
-
-          // پیش‌نمایش لحظه‌ای سن کشتار بر اساس روش انتخابی
-          this.ueRecalcSlaughterMethod();
-
-          // تقویم شمسی برای بازه کشتار (شروع و پایان)
-          if (typeof $.fn.persianDatepicker !== "undefined") {
-            ["ueSlaughterDate", "ueSlaughterEndDate"].forEach((inputId) => {
-              const dateInput = document.getElementById(inputId);
-              if (!dateInput) return;
-              try {
-                $(dateInput).persianDatepicker({
-                  format: "YYYY/MM/DD",
-                  autoClose: true,
-                  initialValue: false,
-                  observer: true,
-                });
-              } catch (e) {
-                console.warn("⚠️ datepicker init error:", e);
-              }
-            });
-          }
-        },
-        preConfirm: () => {
-          const completionId = document.getElementById("ueCompletionId")?.value;
-          if (!completionId) {
-            Swal.showValidationMessage("شناسه پایان دوره یافت نشد");
-            return false;
-          }
-
-          const slaughterData = this.ueRecalcSlaughterMethod();
-          const slaughterDate = slaughterData.slaughterDate;
-          const slaughterEndDate = slaughterData.slaughterEndDate;
-          if (
-            slaughterDate &&
-            slaughterEndDate &&
-            String(slaughterEndDate) < String(slaughterDate)
-          ) {
-            Swal.showValidationMessage(
-              "تاریخ پایان کشتار نمی‌تواند قبل از تاریخ شروع باشد",
-            );
-            return false;
-          }
-          if (slaughterData.method === "range" && !slaughterDate) {
-            Swal.showValidationMessage("تاریخ شروع کشتار را وارد کنید");
-            return false;
-          }
-          if (
-            slaughterData.method === "direct" &&
-            (!slaughterData.age || slaughterData.age < 1)
-          ) {
-            Swal.showValidationMessage("سن کشتار را وارد کنید (عدد مثبت)");
-            return false;
-          }
-          if (
-            slaughterData.method === "weighted" &&
-            slaughterData.shipments.length === 0
-          ) {
-            Swal.showValidationMessage(
-              "در روش چندمرحله‌ای حداقل یک ارسال با سن و تعداد معتبر اضافه کنید",
-            );
-            return false;
-          }
-
-          return {
-            id: parseInt(completionId),
-            data: {
-              recompute: true,
-              initial_chicks_count:
-                document.getElementById("ueInitialChicks")?.value || null,
-              final_chicks_count:
-                document.getElementById("ueFinalChicks")?.value || null,
-              final_week_number:
-                document.getElementById("ueFinalWeek")?.value || null,
-              total_feed_intake:
-                document.getElementById("ueTotalFeed")?.value || null,
-              system_total_feed:
-                document.getElementById("ueTotalFeed")?.value || null,
-              system_last_weight:
-                document.getElementById("ueLastWeight")?.value || null,
-              final_avg_weight:
-                document.getElementById("ueLastWeight")?.value || null,
-              system_fcr: document.getElementById("ueSystemFcr")?.value || null,
-              total_mortality:
-                document.getElementById("ueTotalMortality")?.value || null,
-              mortality_rate:
-                document.getElementById("ueMortalityRate")?.value || null,
-              slaughter_age_method: slaughterData.method,
-              slaughter_age_days:
-                slaughterData.age > 0 ? slaughterData.age : null,
-              slaughter_age_end_days: null,
-              slaughter_date: slaughterDate,
-              slaughter_end_date: slaughterEndDate,
-              slaughter_shipments:
-                slaughterData.method === "weighted" &&
-                slaughterData.shipments.length
-                  ? slaughterData.shipments.map((r) => ({
-                      age_days: r.age_days,
-                      quantity: r.quantity,
-                      date: r.date,
-                    }))
-                  : null,
-              slaughterhouse_name:
-                document.getElementById("ueSlaughterhouse")?.value?.trim() ||
-                null,
-              transport_mortality:
-                document.getElementById("ueTransportMortality")?.value || 0,
-              total_sent: document.getElementById("ueTotalSent")?.value || null,
-              total_live_weight:
-                document.getElementById("ueTotalLiveWeight")?.value || null,
-              avg_live_weight:
-                document.getElementById("ueAvgLiveWeight")?.value || null,
-              farmer_fcr: document.getElementById("ueFarmerFcr")?.value || null,
-              farmer_total_meat:
-                document.getElementById("ueFarmerMeat")?.value || null,
-              farmer_total_feed:
-                document.getElementById("ueFarmerFeed")?.value || null,
-              farmer_total_weight:
-                document.getElementById("ueFarmerWeight")?.value || null,
-              completion_type:
-                document.getElementById("ueCompletionType")?.value ||
-                "completed",
-              confirmed_by_customer:
-                !!document.getElementById("ueConfirmed")?.checked,
-              notes: document.getElementById("ueNotes")?.value?.trim() || null,
-            },
-          };
-        },
-      });
-
-      if (result.isConfirmed && result.value) {
-        notificationService.showLoading("در حال ذخیره تغییرات...");
-        try {
-          const { id, data } = result.value;
-          const updateRes = await hatcheryApi.updateCompletion(id, data);
-          notificationService.hideLoading();
-          if (updateRes.success) {
-            notificationService.success("✅ اطلاعات پایان دوره بروزرسانی شد");
-            await this.loadData();
-          } else {
-            notificationService.error(updateRes.message || "خطا در بروزرسانی");
-          }
-        } catch (e) {
-          notificationService.hideLoading();
-          console.error("❌ Error updating completion:", e);
-          notificationService.error("خطا در ارتباط با سرور");
-        }
-      }
+      await applyCompletionEditResult(result, () => this.loadData());
     } catch (error) {
       console.error("❌ Error in editPeriodCompletion:", error);
       notificationService.error("خطا در نمایش فرم ویرایش");
@@ -1174,3 +1011,202 @@ const buildCompletionEditFormHtml = ({
           <input type="hidden" id="ueCompletionId" value="${c.id}">
         </div>
       `;
+
+// ------------------------------------------------------------
+//  کمکی‌های برش C: گزینه‌های Swal + payload + ذخیرهٔ ویرایش پایان دوره
+//  متن شیء گزینه‌ها و payload و بلوک ذخیره عیناً منتقل شده‌اند؛ تنها تغییرها:
+//   ۱) this.recomputeSystemFields/this.ueRecalcSlaughterMethod/this.loadData
+//      به‌شکل wrapper در محل فراخوانی می‌مانند (گارد audit:surface این
+//      ویژگی‌ها را از متن همین فایل می‌خواند).
+//   ۲) payload در تابع جدا با خواندن completionId از DOM ساخته می‌شود.
+// ------------------------------------------------------------
+const collectCompletionEditPayload = (slaughterData) => {
+  const completionId = document.getElementById("ueCompletionId")?.value;
+  const slaughterDate = slaughterData.slaughterDate;
+  const slaughterEndDate = slaughterData.slaughterEndDate;
+          return {
+            id: parseInt(completionId),
+            data: {
+              recompute: true,
+              initial_chicks_count:
+                document.getElementById("ueInitialChicks")?.value || null,
+              final_chicks_count:
+                document.getElementById("ueFinalChicks")?.value || null,
+              final_week_number:
+                document.getElementById("ueFinalWeek")?.value || null,
+              total_feed_intake:
+                document.getElementById("ueTotalFeed")?.value || null,
+              system_total_feed:
+                document.getElementById("ueTotalFeed")?.value || null,
+              system_last_weight:
+                document.getElementById("ueLastWeight")?.value || null,
+              final_avg_weight:
+                document.getElementById("ueLastWeight")?.value || null,
+              system_fcr: document.getElementById("ueSystemFcr")?.value || null,
+              total_mortality:
+                document.getElementById("ueTotalMortality")?.value || null,
+              mortality_rate:
+                document.getElementById("ueMortalityRate")?.value || null,
+              slaughter_age_method: slaughterData.method,
+              slaughter_age_days:
+                slaughterData.age > 0 ? slaughterData.age : null,
+              slaughter_age_end_days: null,
+              slaughter_date: slaughterDate,
+              slaughter_end_date: slaughterEndDate,
+              slaughter_shipments:
+                slaughterData.method === "weighted" &&
+                slaughterData.shipments.length
+                  ? slaughterData.shipments.map((r) => ({
+                      age_days: r.age_days,
+                      quantity: r.quantity,
+                      date: r.date,
+                    }))
+                  : null,
+              slaughterhouse_name:
+                document.getElementById("ueSlaughterhouse")?.value?.trim() ||
+                null,
+              transport_mortality:
+                document.getElementById("ueTransportMortality")?.value || 0,
+              total_sent: document.getElementById("ueTotalSent")?.value || null,
+              total_live_weight:
+                document.getElementById("ueTotalLiveWeight")?.value || null,
+              avg_live_weight:
+                document.getElementById("ueAvgLiveWeight")?.value || null,
+              farmer_fcr: document.getElementById("ueFarmerFcr")?.value || null,
+              farmer_total_meat:
+                document.getElementById("ueFarmerMeat")?.value || null,
+              farmer_total_feed:
+                document.getElementById("ueFarmerFeed")?.value || null,
+              farmer_total_weight:
+                document.getElementById("ueFarmerWeight")?.value || null,
+              completion_type:
+                document.getElementById("ueCompletionType")?.value ||
+                "completed",
+              confirmed_by_customer:
+                !!document.getElementById("ueConfirmed")?.checked,
+              notes: document.getElementById("ueNotes")?.value?.trim() || null,
+            },
+          };
+};
+
+const buildEditCompletionSwalOptions = ({
+  formHtml,
+  completionId,
+  completions,
+  recomputeSystemFields,
+  recalcSlaughterMethod,
+}) => ({
+        title: "",
+        html: formHtml,
+        showCancelButton: true,
+        confirmButtonText: "💾 ذخیره تغییرات",
+        cancelButtonText: "انصراف",
+        confirmButtonColor: "#2c7a6e",
+        cancelButtonColor: "#64748b",
+        width: 720,
+        padding: "20px 24px",
+        didOpen: () => {
+          // دکمه محاسبه مجدد
+          const recomputeBtn = document.getElementById("ueRecomputeBtn");
+          if (recomputeBtn) {
+            recomputeBtn.addEventListener("click", () => {
+              const icon = document.getElementById("ueRecomputeIcon");
+              if (icon) icon.classList.add("fa-spin");
+
+              const requestedFields = recomputeSystemFields(
+                completionId,
+                completions,
+              );
+              // Promise را مدیریت می‌کنیم
+              requestedFields.then(() => {
+                if (icon) icon.classList.remove("fa-spin");
+              });
+            });
+          }
+
+          // پیش‌نمایش لحظه‌ای سن کشتار بر اساس روش انتخابی
+          recalcSlaughterMethod();
+
+          // تقویم شمسی برای بازه کشتار (شروع و پایان)
+          if (typeof $.fn.persianDatepicker !== "undefined") {
+            ["ueSlaughterDate", "ueSlaughterEndDate"].forEach((inputId) => {
+              const dateInput = document.getElementById(inputId);
+              if (!dateInput) return;
+              try {
+                $(dateInput).persianDatepicker({
+                  format: "YYYY/MM/DD",
+                  autoClose: true,
+                  initialValue: false,
+                  observer: true,
+                });
+              } catch (e) {
+                console.warn("⚠️ datepicker init error:", e);
+              }
+            });
+          }
+        },
+        preConfirm: () => {
+          const completionId = document.getElementById("ueCompletionId")?.value;
+          if (!completionId) {
+            Swal.showValidationMessage("شناسه پایان دوره یافت نشد");
+            return false;
+          }
+
+          const slaughterData = recalcSlaughterMethod();
+          const slaughterDate = slaughterData.slaughterDate;
+          const slaughterEndDate = slaughterData.slaughterEndDate;
+          if (
+            slaughterDate &&
+            slaughterEndDate &&
+            String(slaughterEndDate) < String(slaughterDate)
+          ) {
+            Swal.showValidationMessage(
+              "تاریخ پایان کشتار نمی‌تواند قبل از تاریخ شروع باشد",
+            );
+            return false;
+          }
+          if (slaughterData.method === "range" && !slaughterDate) {
+            Swal.showValidationMessage("تاریخ شروع کشتار را وارد کنید");
+            return false;
+          }
+          if (
+            slaughterData.method === "direct" &&
+            (!slaughterData.age || slaughterData.age < 1)
+          ) {
+            Swal.showValidationMessage("سن کشتار را وارد کنید (عدد مثبت)");
+            return false;
+          }
+          if (
+            slaughterData.method === "weighted" &&
+            slaughterData.shipments.length === 0
+          ) {
+            Swal.showValidationMessage(
+              "در روش چندمرحله‌ای حداقل یک ارسال با سن و تعداد معتبر اضافه کنید",
+            );
+            return false;
+          }
+
+          return collectCompletionEditPayload(slaughterData);
+        },
+      });
+
+const applyCompletionEditResult = async (result, loadData) => {
+      if (result.isConfirmed && result.value) {
+        notificationService.showLoading("در حال ذخیره تغییرات...");
+        try {
+          const { id, data } = result.value;
+          const updateRes = await hatcheryApi.updateCompletion(id, data);
+          notificationService.hideLoading();
+          if (updateRes.success) {
+            notificationService.success("✅ اطلاعات پایان دوره بروزرسانی شد");
+            await loadData();
+          } else {
+            notificationService.error(updateRes.message || "خطا در بروزرسانی");
+          }
+        } catch (e) {
+          notificationService.hideLoading();
+          console.error("❌ Error updating completion:", e);
+          notificationService.error("خطا در ارتباط با سرور");
+        }
+      }
+};
