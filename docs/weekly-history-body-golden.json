@@ -1,0 +1,59 @@
+{
+  "note": "اسنپ‌شات خروجی متد غول تاریخچهٔ هفتگی (buildWeeklyHistoryHTML)، گرفته‌شده پیش از موج برش بدنه (۳.۲g). هر کِیس = کل HTML برگشتی متد. بازتولید: npm run test:weekly:history:body -- --snapshot",
+  "node": "v24.13.0",
+  "locale": "en-US",
+  "timeZone": "Asia/Tehran",
+  "frozenClockUtc": "2026-06-15T06:30:00.000Z",
+  "source": "HEAD پیش از برش بدنه — git tag pre-history-body-split",
+  "note2": "خروجی به locale/ICU و منطقهٔ زمانی محیط Node وابسته است (تاریخ/ساعت شمسی و ارقام فارسی)؛ هارنس ساعت را تثبیت و TZ را روی Asia/Tehran قفل می‌کند، پس مقایسه در همان محیطی معنا دارد که اسنپ‌شات گرفته شده است.",
+  "cases": {
+    "H1.buildWeeklyHistoryHTML-حالت-پایه": {
+      "bytes": 31427,
+      "sha256": "8cee758f0e7dbf4fccc76097ebe2700ad69e15e3337b287649af32b554ff8f96"
+    },
+    "H2.buildWeeklyHistoryHTML-کاربر-لاگین‌شده": {
+      "bytes": 31419,
+      "sha256": "d3f18a36d043dc6f57b7327bcc0dbc323a93b517b8a850a45140ef2834c6831f"
+    },
+    "H3.buildWeeklyHistoryHTML-انتخاب-هفته-و-گروه": {
+      "bytes": 20179,
+      "sha256": "868faf6f7d15c112985861b6ffe539553c1fb78f77f77dd900da8c409dad4d13"
+    },
+    "H4.buildWeeklyHistoryHTML-گلهٔ-بدون-انتخاب": {
+      "bytes": 16617,
+      "sha256": "7bf6b6f8768517ef936a7a05cb54680d0143e4e067d6ad17c47a11adb73ce706"
+    },
+    "H5.buildWeeklyHistoryHTML-ترتیب-سالن‌ها": {
+      "bytes": 44624,
+      "sha256": "aa5317fe7f5cf65fc0582a53c11c2334a71c91465eec36d7ede740b3c588990b"
+    },
+    "H6.buildWeeklyHistoryHTML-دو-گله": {
+      "bytes": 46543,
+      "sha256": "ac9f0c36c0bab3b8197a43b4a4c1e1d0a80cccd785cd5b690efc721f654c2b83"
+    },
+    "H7.buildWeeklyHistoryHTML-رکورد-حداقلی": {
+      "bytes": 17957,
+      "sha256": "e3c222503e61fe724ce24351e60b510a3ea3dfad6cd5a5723532cdcc10d6695c"
+    },
+    "H8.buildWeeklyHistoryHTML-بلوک-خالی": {
+      "bytes": 16496,
+      "sha256": "e1dda63361892a07a5cd94d7b3ae5601b8189c10b25f9651c76e9b38e3696452"
+    },
+    "H9.buildWeeklyHistoryHTML-مشتری-ناقص": {
+      "bytes": 31422,
+      "sha256": "b049150010a1eeecbc9e8d3549047b46fd80b6c3eaf0e03fb85e43c1035d0288"
+    },
+    "H10.buildWeeklyHistoryHTML-همهٔ-گروه‌ها-صریح": {
+      "bytes": 31427,
+      "sha256": "8cee758f0e7dbf4fccc76097ebe2700ad69e15e3337b287649af32b554ff8f96"
+    },
+    "H11.buildWeeklyHistoryHTML-انتخاب-مشترک-و-سفارشی": {
+      "bytes": 24689,
+      "sha256": "8b39b33d2b04011c8a24430fdcf26f7a5fba05558519fdc42c6fffbdfd87ab35"
+    },
+    "H12.buildWeeklyHistoryHTML-دو-گله-انتخاب-مجزا": {
+      "bytes": 39965,
+      "sha256": "20bd39730e44c2c3682f8ee7e18a6c85f73324cb5b1c910e8c7f4ade54ae4dde"
+    }
+  }
+}

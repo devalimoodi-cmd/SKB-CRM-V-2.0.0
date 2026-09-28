@@ -13,6 +13,7 @@
     "test:weekly:report": "node weekly-report-render-smoke.mjs",
     "test:weekly:groups": "node weekly-report-groups-test.mjs",
     "test:weekly:history": "node weekly-history-render-test.mjs",
+    "test:weekly:history:body": "node weekly-history-body-split-test.mjs",
     "test:weekly:surface": "node weekly-service-surface-test.mjs",
     "test:weekly:body": "node weekly-body-split-test.mjs",
     "test:hatchery:body": "node hatchery-completion-body-split-test.mjs",

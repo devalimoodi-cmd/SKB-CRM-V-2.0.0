@@ -20,6 +20,7 @@ npm run test:halls:surface      # گارد «سطح زمان اجرا» سالن
 npm run test:halls:body         # گارد طلایی بایت‌به‌بایت بدنهٔ چهار متد همین خوشه (۱۷ کِیس · ۱۳۶ بررسی)
 npm run test:weekly:body        # گارد طلایی بایت‌به‌بایت بدنهٔ متد غول هفتگی (renderFullReport · ۱۲ کِیس)
 npm run test:hatchery:body      # گارد طلایی بایت‌به‌بایت بدنهٔ دو متد غول پایان دوره (۲۲ کِیس)
+npm run test:weekly:history:body # گارد طلایی بایت‌به‌بایت بدنهٔ متد غول تاریخچهٔ هفتگی (۱۲ کِیس)
 
 # Backend
 cd Backend
