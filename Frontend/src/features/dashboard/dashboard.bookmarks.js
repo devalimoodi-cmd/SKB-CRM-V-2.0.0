@@ -148,115 +148,12 @@ export const dashboardBookmarkMethods = {
         Swal.fire({
           // عنوان در هدر گرافیکی قرار دارد؛ تایتل SweetAlert خالی می‌ماند تا تکراری نباشد
           title: "",
-          html: `
-            <div style="text-align: right; font-family: 'Vazir', 'Vazirmatn', sans-serif; direction: rtl;">
-              <!-- ===== هدر گرافیکی ===== -->
-              <div style="display:flex; align-items:center; gap:12px; background:linear-gradient(135deg,#2c7a6e 0%,#035552 100%); border-radius:14px; padding:12px 16px; margin-bottom:16px; color:#fff; position:relative; overflow:hidden;">
-                <div style="position:absolute; top:0; left:0; right:0; height:4px; background:linear-gradient(135deg,#2c7a6e,#4a9e8f,#f59e0b); background-size:200% 200%; animation: bmShimmer 3s ease-in-out infinite;"></div>
-                <div style="width:42px; height:42px; border-radius:12px; background:rgba(255,255,255,0.2); display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0;">
-                  <i class="fas fa-bookmark"></i>
-                </div>
-                <div>
-                  <div style="font-size:15px; font-weight:800; line-height:1.3;">${bookmarkId ? "✏️ ویرایش بوکمارک" : "📌 بوکمارک جدید"}</div>
-                  <div style="font-size:11px; opacity:0.85; margin-top:1px;">${bookmarkId ? "بروزرسانی اطلاعات بوکمارک" : "ایجاد یک بوکمارک یا یادآوری جدید"}</div>
-                </div>
-              </div>
-
-              <style>
-                @keyframes bmShimmer { 0%,100%{background-position:0% 50%;} 50%{background-position:100% 50%;} }
-                .bm-field { width:100%; padding:8px 12px; border:1.5px solid #e2e8f0; border-radius:10px; font-family:'Vazir','Vazirmatn',sans-serif; font-size:12.5px; transition:all 0.3s ease; background:white; color:#1e293b; margin-top:4px; box-sizing:border-box; }
-                .bm-field:focus { outline:none; border-color:#2c7a6e; box-shadow:0 0 0 4px rgba(44,122,110,0.08); }
-                .bm-label { display:block; font-size:12px; font-weight:600; color:#1e293b; }
-                .bm-label .bm-req { color:#dc2626; }
-                .bm-label .bm-hint { font-weight:400; font-size:10px; color:#94a3b8; }
-                .bm-fg { margin-bottom:10px; animation:bmFieldIn 0.4s ease forwards; opacity:0; transform:translateY(8px); }
-                .bm-fg:nth-child(1){animation-delay:0.04s;} .bm-fg:nth-child(2){animation-delay:0.08s;}
-                .bm-fg:nth-child(3){animation-delay:0.12s;} .bm-fg:nth-child(4){animation-delay:0.16s;}
-                .bm-fg:nth-child(5){animation-delay:0.20s;} .bm-fg:nth-child(6){animation-delay:0.24s;}
-                @keyframes bmFieldIn { to { opacity:1; transform:translateY(0); } }
-                .bm-col-2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-                select.bm-field { background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2364748b' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:left 12px center; padding-left:36px; appearance:none; -webkit-appearance:none; }
-                .bm-priority-group { display:flex; gap:6px; margin-top:4px; }
-                .bm-priority-option { flex:1; min-width:0; padding:6px 3px; border:2px solid #e2e8f0; border-radius:8px; text-align:center; cursor:pointer; transition:all 0.3s cubic-bezier(0.34,1.56,0.64,1); font-size:10.5px; font-weight:600; background:white; color:#64748b; display:flex; flex-direction:column; align-items:center; gap:1px; }
-                .bm-priority-option i { font-size:12px; }
-                .bm-priority-option .pl { font-size:8.5px; font-weight:400; color:#94a3b8; }
-                .bm-priority-option:hover { transform:translateY(-2px); box-shadow:0 2px 12px rgba(0,0,0,0.06); }
-                .bm-priority-option[data-value="critical"]{border-color:#fca5a5; color:#dc2626;}
-                .bm-priority-option[data-value="high"]{border-color:#fcd34d; color:#b45309;}
-                .bm-priority-option[data-value="medium"]{border-color:#93c5fd; color:#3b82f6;}
-                .bm-priority-option[data-value="low"]{border-color:#cbd5e1; color:#64748b;}
-                .bm-priority-option.active{box-shadow:0 2px 8px rgba(0,0,0,0.08);}
-                .bm-priority-option[data-value="critical"].active{background:#fee2e2; border-color:#dc2626;}
-                .bm-priority-option[data-value="high"].active{background:#fef3c7; border-color:#f59e0b;}
-                .bm-priority-option[data-value="medium"].active{background:#dbeafe; border-color:#3b82f6;}
-                .bm-priority-option[data-value="low"].active{background:#e2e8f0; border-color:#64748b;}
-                textarea.bm-field { resize:vertical; min-height:55px; }
-              </style>
-
-              <!-- عنوان (تمام عرض) -->
-              <div class="bm-fg">
-                <label class="bm-label">عنوان <span class="bm-req">*</span> <span class="bm-hint">(مشخص و کوتاه)</span></label>
-                <input id="bookmarkTitle" class="bm-field" value="${bookmark.title || ""}" placeholder="مثال: پیگیری هفتگی گله">
-              </div>
-
-              <!-- نوع + مشتری (۲ ستونه) -->
-              <div class="bm-col-2">
-                <div class="bm-fg">
-                  <label class="bm-label">نوع</label>
-                  <select id="bookmarkType" class="bm-field">
-                    <option value="bookmark" ${bookmark.type === "bookmark" ? "selected" : ""}>📌 بوکمارک</option>
-                    <option value="reminder" ${bookmark.type === "reminder" ? "selected" : ""}>🔔 یادآوری</option>
-                  </select>
-                </div>
-
-                <div class="bm-fg">
-                  <label class="bm-label">مشتری</label>
-                  <select id="bookmarkCustomer" class="bm-field">
-                    <option value="">بدون مشتری (شخصی)</option>
-                    ${customerOptions}
-                  </select>
-                </div>
-              </div>
-
-              <!-- اولویت (تمام عرض) -->
-              <div class="bm-fg">
-                <label class="bm-label">اولویت</label>
-                <div class="bm-priority-group" id="bookmarkPriorityGroup">
-                  <div class="bm-priority-option ${currentPriority === "critical" ? "active" : ""}" data-value="critical">
-                    <i class="fas fa-circle" style="color:#dc2626;"></i>
-                    بحرانی <span class="pl">فوری</span>
-                  </div>
-                  <div class="bm-priority-option ${currentPriority === "high" ? "active" : ""}" data-value="high">
-                    <i class="fas fa-circle" style="color:#f59e0b;"></i>
-                    بالا <span class="pl">مهم</span>
-                  </div>
-                  <div class="bm-priority-option ${currentPriority === "medium" ? "active" : ""}" data-value="medium">
-                    <i class="fas fa-circle" style="color:#3b82f6;"></i>
-                    متوسط <span class="pl">معمولی</span>
-                  </div>
-                  <div class="bm-priority-option ${currentPriority === "low" ? "active" : ""}" data-value="low">
-                    <i class="fas fa-circle" style="color:#94a3b8;"></i>
-                    پایین <span class="pl">کم</span>
-                  </div>
-                </div>
-                <input type="hidden" id="bookmarkPriority" value="${currentPriority}">
-              </div>
-
-              <!-- تاریخ + توضیحات (۲ ستونه) -->
-              <div class="bm-col-2">
-                <div class="bm-fg">
-                  <label class="bm-label">تاریخ سررسید <span class="bm-hint">(اختیاری - شمسی)</span></label>
-                  <input type="text" id="bookmarkDueDate" class="bm-field" placeholder="۱۴۰۴/۰۱/۰۱" value="${bookmark.due_date ? convertToPersianDate(bookmark.due_date) : ""}">
-                </div>
-
-                <div class="bm-fg">
-                  <label class="bm-label">توضیحات</label>
-                  <textarea id="bookmarkDescription" class="bm-field" rows="2" placeholder="توضیحات تکمیلی...">${bookmark.description || ""}</textarea>
-                </div>
-              </div>
-            </div>
-          `,
-          showCancelButton: true,
+          html: buildBookmarkModalHtml({
+            bookmarkId,
+            bookmark,
+            customerOptions,
+            currentPriority,
+          }),          showCancelButton: true,
           confirmButtonText: bookmarkId
             ? "💾 ذخیره تغییرات"
             : "✅ ایجاد بوکمارک",
@@ -584,3 +481,124 @@ export const dashboardBookmarkMethods = {
   },
 
 };
+
+// ------------------------------------------------------------
+//  کمکی برش A موج ۳.۲i: قالب html مودال بوکمارک
+//  متن قالب عیناً (verbatim) منتقل شده است؛ تنها تغییر: پارامترهای صریح
+//  به‌جای بستهٔ محلی متد. عبارت‌های درون‌یابی همان نام‌ها را می‌خواهند:
+//  bookmarkId · bookmark · customerOptions · currentPriority · convertToPersianDate
+//  ⚠️ تورفتگی سطرها حفظ شده (فاصله‌های داخل template بخشی از خروجی HTML‌اند).
+// ------------------------------------------------------------
+const buildBookmarkModalHtml = ({
+  bookmarkId,
+  bookmark,
+  customerOptions,
+  currentPriority,
+}) => `
+            <div style="text-align: right; font-family: 'Vazir', 'Vazirmatn', sans-serif; direction: rtl;">
+              <!-- ===== هدر گرافیکی ===== -->
+              <div style="display:flex; align-items:center; gap:12px; background:linear-gradient(135deg,#2c7a6e 0%,#035552 100%); border-radius:14px; padding:12px 16px; margin-bottom:16px; color:#fff; position:relative; overflow:hidden;">
+                <div style="position:absolute; top:0; left:0; right:0; height:4px; background:linear-gradient(135deg,#2c7a6e,#4a9e8f,#f59e0b); background-size:200% 200%; animation: bmShimmer 3s ease-in-out infinite;"></div>
+                <div style="width:42px; height:42px; border-radius:12px; background:rgba(255,255,255,0.2); display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0;">
+                  <i class="fas fa-bookmark"></i>
+                </div>
+                <div>
+                  <div style="font-size:15px; font-weight:800; line-height:1.3;">${bookmarkId ? "✏️ ویرایش بوکمارک" : "📌 بوکمارک جدید"}</div>
+                  <div style="font-size:11px; opacity:0.85; margin-top:1px;">${bookmarkId ? "بروزرسانی اطلاعات بوکمارک" : "ایجاد یک بوکمارک یا یادآوری جدید"}</div>
+                </div>
+              </div>
+
+              <style>
+                @keyframes bmShimmer { 0%,100%{background-position:0% 50%;} 50%{background-position:100% 50%;} }
+                .bm-field { width:100%; padding:8px 12px; border:1.5px solid #e2e8f0; border-radius:10px; font-family:'Vazir','Vazirmatn',sans-serif; font-size:12.5px; transition:all 0.3s ease; background:white; color:#1e293b; margin-top:4px; box-sizing:border-box; }
+                .bm-field:focus { outline:none; border-color:#2c7a6e; box-shadow:0 0 0 4px rgba(44,122,110,0.08); }
+                .bm-label { display:block; font-size:12px; font-weight:600; color:#1e293b; }
+                .bm-label .bm-req { color:#dc2626; }
+                .bm-label .bm-hint { font-weight:400; font-size:10px; color:#94a3b8; }
+                .bm-fg { margin-bottom:10px; animation:bmFieldIn 0.4s ease forwards; opacity:0; transform:translateY(8px); }
+                .bm-fg:nth-child(1){animation-delay:0.04s;} .bm-fg:nth-child(2){animation-delay:0.08s;}
+                .bm-fg:nth-child(3){animation-delay:0.12s;} .bm-fg:nth-child(4){animation-delay:0.16s;}
+                .bm-fg:nth-child(5){animation-delay:0.20s;} .bm-fg:nth-child(6){animation-delay:0.24s;}
+                @keyframes bmFieldIn { to { opacity:1; transform:translateY(0); } }
+                .bm-col-2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+                select.bm-field { background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2364748b' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:left 12px center; padding-left:36px; appearance:none; -webkit-appearance:none; }
+                .bm-priority-group { display:flex; gap:6px; margin-top:4px; }
+                .bm-priority-option { flex:1; min-width:0; padding:6px 3px; border:2px solid #e2e8f0; border-radius:8px; text-align:center; cursor:pointer; transition:all 0.3s cubic-bezier(0.34,1.56,0.64,1); font-size:10.5px; font-weight:600; background:white; color:#64748b; display:flex; flex-direction:column; align-items:center; gap:1px; }
+                .bm-priority-option i { font-size:12px; }
+                .bm-priority-option .pl { font-size:8.5px; font-weight:400; color:#94a3b8; }
+                .bm-priority-option:hover { transform:translateY(-2px); box-shadow:0 2px 12px rgba(0,0,0,0.06); }
+                .bm-priority-option[data-value="critical"]{border-color:#fca5a5; color:#dc2626;}
+                .bm-priority-option[data-value="high"]{border-color:#fcd34d; color:#b45309;}
+                .bm-priority-option[data-value="medium"]{border-color:#93c5fd; color:#3b82f6;}
+                .bm-priority-option[data-value="low"]{border-color:#cbd5e1; color:#64748b;}
+                .bm-priority-option.active{box-shadow:0 2px 8px rgba(0,0,0,0.08);}
+                .bm-priority-option[data-value="critical"].active{background:#fee2e2; border-color:#dc2626;}
+                .bm-priority-option[data-value="high"].active{background:#fef3c7; border-color:#f59e0b;}
+                .bm-priority-option[data-value="medium"].active{background:#dbeafe; border-color:#3b82f6;}
+                .bm-priority-option[data-value="low"].active{background:#e2e8f0; border-color:#64748b;}
+                textarea.bm-field { resize:vertical; min-height:55px; }
+              </style>
+
+              <!-- عنوان (تمام عرض) -->
+              <div class="bm-fg">
+                <label class="bm-label">عنوان <span class="bm-req">*</span> <span class="bm-hint">(مشخص و کوتاه)</span></label>
+                <input id="bookmarkTitle" class="bm-field" value="${bookmark.title || ""}" placeholder="مثال: پیگیری هفتگی گله">
+              </div>
+
+              <!-- نوع + مشتری (۲ ستونه) -->
+              <div class="bm-col-2">
+                <div class="bm-fg">
+                  <label class="bm-label">نوع</label>
+                  <select id="bookmarkType" class="bm-field">
+                    <option value="bookmark" ${bookmark.type === "bookmark" ? "selected" : ""}>📌 بوکمارک</option>
+                    <option value="reminder" ${bookmark.type === "reminder" ? "selected" : ""}>🔔 یادآوری</option>
+                  </select>
+                </div>
+
+                <div class="bm-fg">
+                  <label class="bm-label">مشتری</label>
+                  <select id="bookmarkCustomer" class="bm-field">
+                    <option value="">بدون مشتری (شخصی)</option>
+                    ${customerOptions}
+                  </select>
+                </div>
+              </div>
+
+              <!-- اولویت (تمام عرض) -->
+              <div class="bm-fg">
+                <label class="bm-label">اولویت</label>
+                <div class="bm-priority-group" id="bookmarkPriorityGroup">
+                  <div class="bm-priority-option ${currentPriority === "critical" ? "active" : ""}" data-value="critical">
+                    <i class="fas fa-circle" style="color:#dc2626;"></i>
+                    بحرانی <span class="pl">فوری</span>
+                  </div>
+                  <div class="bm-priority-option ${currentPriority === "high" ? "active" : ""}" data-value="high">
+                    <i class="fas fa-circle" style="color:#f59e0b;"></i>
+                    بالا <span class="pl">مهم</span>
+                  </div>
+                  <div class="bm-priority-option ${currentPriority === "medium" ? "active" : ""}" data-value="medium">
+                    <i class="fas fa-circle" style="color:#3b82f6;"></i>
+                    متوسط <span class="pl">معمولی</span>
+                  </div>
+                  <div class="bm-priority-option ${currentPriority === "low" ? "active" : ""}" data-value="low">
+                    <i class="fas fa-circle" style="color:#94a3b8;"></i>
+                    پایین <span class="pl">کم</span>
+                  </div>
+                </div>
+                <input type="hidden" id="bookmarkPriority" value="${currentPriority}">
+              </div>
+
+              <!-- تاریخ + توضیحات (۲ ستونه) -->
+              <div class="bm-col-2">
+                <div class="bm-fg">
+                  <label class="bm-label">تاریخ سررسید <span class="bm-hint">(اختیاری - شمسی)</span></label>
+                  <input type="text" id="bookmarkDueDate" class="bm-field" placeholder="۱۴۰۴/۰۱/۰۱" value="${bookmark.due_date ? convertToPersianDate(bookmark.due_date) : ""}">
+                </div>
+
+                <div class="bm-fg">
+                  <label class="bm-label">توضیحات</label>
+                  <textarea id="bookmarkDescription" class="bm-field" rows="2" placeholder="توضیحات تکمیلی...">${bookmark.description || ""}</textarea>
+                </div>
+              </div>
+            </div>
+          `;
