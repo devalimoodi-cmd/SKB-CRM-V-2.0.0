@@ -1,0 +1,59 @@
+{
+  "note": "اسنپ‌شات خروجی متد غول هفتگی (renderFullReport)، گرفته‌شده پیش از موج برش بدنه (۳.۲e). هر کِیس = خروجی کامل متد در یک سناریو. بازتولید: npm run test:weekly:body -- --snapshot",
+  "node": "v24.13.0",
+  "locale": "en-US",
+  "timeZone": "Asia/Tehran",
+  "frozenClockUtc": "2026-06-15T06:30:00.000Z",
+  "source": "HEAD پیش از برش بدنه — git tag pre-weekly-body-split",
+  "note2": "خروجی به locale/ICU و منطقهٔ زمانی محیط Node وابسته است (ارقام فارسی، جداکنندهٔ هزارگان، تاریخ شمسی)؛ هارنس ساعت را تثبیت و TZ را روی Asia/Tehran قفل می‌کند، پس مقایسه در همان محیطی معنا دارد که اسنپ‌شات گرفته شده است.",
+  "cases": {
+    "W1.renderFullReport-گزارش-کامل-دو-سالن": {
+      "bytes": 34187,
+      "sha256": "d4d2a2bef89a52fb482a07d3c399e496aed36efa11b65e8d28f3952ecd570ed5"
+    },
+    "W2.renderFullReport-بدون-گروه": {
+      "bytes": 43463,
+      "sha256": "ea21a8b70a27c113b9eb171208b1ed9690f1a6963e28f872f56c4367646d91d7"
+    },
+    "W3.renderFullReport-گپ-و-هفتهٔ-ناقص": {
+      "bytes": 25837,
+      "sha256": "4b13c46f66d06f691f3d31f9eeb943ce7bdbcea27ce76f8537ea8a07e1a1b383"
+    },
+    "W4.renderFullReport-فقط-وزن": {
+      "bytes": 20554,
+      "sha256": "f96d40e0365dcb4af6d5ce18a7555d3d10c1ffaec2e7d768bba292f2b4e5f3ff"
+    },
+    "W5.renderFullReport-همهٔ-گروه‌ها-صریح": {
+      "bytes": 25837,
+      "sha256": "4b13c46f66d06f691f3d31f9eeb943ce7bdbcea27ce76f8537ea8a07e1a1b383"
+    },
+    "W6.renderFullReport-بازهٔ-هفته": {
+      "bytes": 24657,
+      "sha256": "804a3b47a073510321025f7aee732988d4d3756ed87e72cbca2f656fa6aac482"
+    },
+    "W7.renderFullReport-گلهٔ-بدون-هفتهٔ-انتخابی": {
+      "bytes": 16560,
+      "sha256": "464ef5a49c5aec5495bf1b7d589426ce4b9076558415144275da62f4c21010bc"
+    },
+    "W8.renderFullReport-انتخاب-هرگله": {
+      "bytes": 43889,
+      "sha256": "08857c25c9f79fd9db30443efb7598a0afd3f6e0ea7a2a11a3959c6de1eaefa5"
+    },
+    "W9.renderFullReport-ترتیب-سالن‌های-معکوس": {
+      "bytes": 45598,
+      "sha256": "9e9dd3da7e32eefade604d1df5d9172edea140ee055ccc6a8a0328aad74cea95"
+    },
+    "W10.renderFullReport-حالت-خالی": {
+      "bytes": 15406,
+      "sha256": "c8f63fa0e898e1ad74dcddcb100f896729c436d0856c6b13c51e86860f1c37e6"
+    },
+    "W11.renderFullReport-کاربر-ناشناس": {
+      "bytes": 23263,
+      "sha256": "1ae73a1e81b839929a8d021343d9550867664a08e2fc83775440e4149b74578b"
+    },
+    "W12.renderFullReport-مشتری-ناقص": {
+      "bytes": 23228,
+      "sha256": "4e2e3dc08c8711934750830084b6209ac61f76394fff6cc0135e033a7de53fe9"
+    }
+  }
+}
