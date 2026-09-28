@@ -1,7 +1,7 @@
 # نقاط داغ پروژه (Hotspots)
 
 > سند زنده — با اجرای اسکریپت‌های audit به‌رو نگه داشته می‌شود.
-> آخرین به‌روزرسانی: **موج ۳.۲e — برش بدنهٔ بزرگ‌ترین متد مخزن `weeklyRenderer.renderFullReport` (۵۲۴ → ۱۳۹ خط) با گارد طلایی تازه؛ شمارش متدهای بزرگ‌تر از بودجه ۲۶ → ۲۵** (ادامهٔ برنچ `chore/wave-3.2c-split-halls`).
+> آخرین به‌روزرسانی: **موج ۳.۲f — برش بدنهٔ دو متد غول خوشهٔ پایان دوره (`completePeriod` و `editPeriodCompletion`؛ ۳۶۵ و ۲۷۸ → ۵۷ و ۲۳ خط) با گارد طلایی تازه؛ شمارش متدهای بزرگ‌تر از بودجه ۲۵ → ۲۳** (ادامهٔ برنچ `chore/wave-3.2c-split-halls`).
 > گزارش‌های کامل: `docs/REVIEW-WAVE-3.md` (موج ۳.۲d و ۳.۲c و ۳.۲b و ۳.۲a و ۳.۱) · `docs/REVIEW-WAVE-2.md` (موج ۲) · `docs/REVIEW.md` (موج ۰ و ۱)
 
 ## چطور اندازه‌گیری می‌شود؟
@@ -147,24 +147,36 @@ import می‌کند و همان اعداد اسنپ‌شات را روی نمو
 > و سطح عمومی هم دست‌نخورده (`audit:surface`: ۰ گم‌شده · ۰ افزوده · ۰ نقض). شمارش
 > `audit:big-methods` از ۲۶ به **۲۵** رسید.
 
+> 📉 **موج ۳.۲f (برش بدنه، بدون تغییر فایل):** دو متد غول خوشهٔ پایان دوره بیرون کشیده شدند:
+> `completePeriod` (۲۷۸ → **۲۳** خط) و `editPeriodCompletion` (۳۶۵ → **۵۷** خط). ثابت‌ها و
+> کمکی‌های ماژول‌محلی تازه (**۱۵** مورد): `UE_FORM_STYLE_BLOCK` · `CF_FORM_STYLE_BLOCK` ·
+> `buildCompletionEditFormHtml` · `collectCompletionEditPayload` · `buildEditCompletionSwalOptions`
+> · `applyCompletionEditResult` · `resolvePeriodForCompletion` · `buildCompletionFlockOptions` ·
+> `buildPeriodCompletionInfoHtml` · `buildPeriodCompletionFormHtml` · `readSelectedPeriodFlocks` ·
+> `validatePeriodCompletionSelection` · `collectPeriodCompletionPayload` ·
+> `createCompletionSwalOptions` · `applyPeriodCompletionResult`. خروجی/رکورد بایت‌به‌بایت ثابت
+> (گارد طلایی `npm run test:hatchery:body`: ۹۶ بررسی · ۲۲ کِیس · هش `sha256`) و سطح عمومی
+> دست‌نخورده (`audit:surface`: ۰ گم‌شده · ۰ افزوده · ۰ نقض). شمارش `audit:big-methods` از ۲۵ به
+> **۲۳** رسید.
+
 #### بزرگ‌ترین متدهای باقی‌مانده (بودجهٔ ۱۵۰ خط)
 
-۲۵ متد از بودجه بزرگ‌ترند؛ فهرست کامل با `npm run audit:big-methods`. پنج مورد اول:
+۲۳ متد از بودجه بزرگ‌ترند؛ فهرست کامل با `npm run audit:big-methods`. پنج مورد اول:
 
 | خطوط | مکان | نام |
+| خطوط | مکان | نام |
 | --- | --- | --- |
-| ۳۶۵ | `hatchery/hatchery.completion.period.js:724` | `hatcheryCompletionPeriodMethods.editPeriodCompletion` |
-| ۳۳۶ | `weekly/weekly.report.history.html.js:36` | `buildWeeklyHistoryHTML` |
-| ۳۰۴ | `weekly/weekly.cards.js:92` | `renderWeeks` |
+| ۳۳۶ | `weekly/weekly.report.history.html.js:36` | `weeklyHistoryHtmlMethods.buildWeeklyHistoryHTML` |
+| ۳۰۴ | `weekly/weekly.cards.js:92` | `weeklyCardMethods.renderWeeks` |
 | ۲۸۴ | `dashboard/dashboard.bookmarks.js:119` | `dashboardBookmarkMethods.showCreateBookmarkModal` |
-| ۲۷۸ | `hatchery/hatchery.completion.period.js:296` | `hatcheryCompletionPeriodMethods.completePeriod` |
-
+| ۲۷۷ | `hatchery/hatchery.report.js:579` | `buildFlockSmsReportHTML` |
+| ۲۴۹ | `chart-dashboard/chart-dashboard.renderer.js:8` | `chartDashboardRenderer.renderContainer` |
 برش فایل این دو «غول» را کوچک **نکرد**: `buildWeeklyHistoryHTML` همان ۳۳۶ خط است و فقط خانه‌اش
 از `weekly.service.js` به `weekly.report.history.html.js` منتقل شد؛ `renderWeeks` (۳۰۴ خط) هم
 برش فایل این دو «غول» را کوچک **نکرد**: `buildWeeklyHistoryHTML` همان ۳۳۶ خط است و فقط خانه‌اش
 از `weekly.service.js` به `weekly.report.history.html.js` منتقل شد؛ `renderWeeks` (۳۰۴ خط) هم
-به `weekly.cards.js` رفت. بزرگ‌ترین متد مخزن اکنون `hatcheryCompletionPeriodMethods.editPeriodCompletion`
-(۳۶۵ خط) است — چون در موج ۳.۲e، `weeklyRenderer.renderFullReport` از ۵۲۴ به ۱۳۹ خط رسید.
+به `weekly.cards.js` رفت. بزرگ‌ترین متد مخزن اکنون `weeklyHistoryHtmlMethods.buildWeeklyHistoryHTML`
+(۳۳۶ خط) است — دو متد غول خوشهٔ پایان دوره در موج ۳.۲f از فهرست بودجه بیرون رفتند.
 
 در موج ۳.۲d چهار متد غول خوشهٔ سالن‌ها **برش بدنه** خوردند (نه جابه‌جایی فایل): `generateHTML`
 ۴۵۰ → ۴۶، `renderHallInfo` ۲۵۴ → ۲۰، `saveBasicInfo` ۱۷۷ → ۶۵ و `renderUnitDetailsPanel`
@@ -211,7 +223,7 @@ import می‌کند و همان اعداد اسنپ‌شات را روی نمو
    `weekly.report.history.js` (۲)، `weekly.report.history.html.js` (۲)، `weekly.report.pickers.js` (۶)
    + `weekly.window-glue.js` (۱۵ نام `window.*`) ⇒ ۱۱۸.۶KB → ۲.۷KB با همان ۴۹ عضو سطح عمومی.
    گارد زمان اجرا `npm run test:weekly:surface` (۲۱ بررسی) اضافه شد. شرح: `docs/REVIEW-WAVE-3.md` بخش ۱۳.
-3. **سه متد بزرگ داخل خوشهٔ پایان دوره** — `editPeriodCompletion` ۳۶۵ خط
+3. ✅ **انجام‌شده در موج ۳.۲f:** سه متد بزرگ خوشهٔ پایان دوره برش بدنه خوردند —
    (`hatchery.completion.period.js:724`)، `completePeriod` ۲۷۸ خط و
    `_collectCompletionSave` ۲۰۳ خط (`hatchery.completion.flock.js:856`)؛ نیازمند
    تست رفتاری اختصاصی (شکستن بدنهٔ متد، نه جابه‌جایی متد).

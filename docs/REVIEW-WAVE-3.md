@@ -1139,3 +1139,80 @@ test:weekly:history :: pass=9     test:hatchery-surface :: pass=9
   `weeklyHistoryHtmlMethods.buildWeeklyHistoryHTML` (۳۳۶) و `weeklyCardMethods.renderWeeks` (۳۰۴).
 - ابزارهای این موج (اسکریپت‌های `CUT_W*.mjs` و `DOCS_WE.mjs`) در پوشهٔ `.git/` ماندند و بخشی از
   درخت کاری نیستند.
+
+## ۱۷) موج ۳.۲f — برش بدنهٔ دو متد غول خوشهٔ پایان دوره (`completePeriod` + `editPeriodCompletion`)
+
+> ادامهٔ مستقیم بخش ۱۶ با همان الگو (گارد اول، بعد برش)، این‌بار روی متدهایی که به Swal،
+> `document`، jQuery و دو API وابسته‌اند و «رکورد ساختاری» می‌سازند (نه یک رشتهٔ ساده).
+
+### الف) هدف و اعداد
+
+| متد | پیش | پس |
+| --- | --- | --- |
+| `hatcheryCompletionPeriodMethods.completePeriod` | ۲۷۸ | **۲۳** |
+| `hatcheryCompletionPeriodMethods.editPeriodCompletion` | ۳۶۵ | **۵۷** |
+| متدهای بزرگ‌تر از بودجهٔ ۱۵۰ (`audit:big-methods`) | ۲۵ | **۲۳** |
+| ثابت/کمکی ماژول‌محلی تازه | ۰ | **۱۵** |
+| سطح عمومی (`audit:surface`) | ۰ گم‌شده · ۰ افزوده · ۰ نقض | همان (بی‌تغییر) |
+| خروجی/رکورد | فاقد گارد | `npm run test:hatchery:body` (۹۶ بررسی · ۲۲ کِیس) |
+
+### ب) گارد قبل از برش — رکورد بایت‌به‌بایت `test:hatchery:body`
+
+- `Frontend/hatchery-completion-body-split-test.mjs`: استاب `window/document/localStorage` +
+  **DOM فیلد‌محور** (هر کِیس مقادیر `ue*`/`cf*` را می‌چیند) + استاب **`Swal.fire`** که `options` را
+  ثبت می‌کند و `didOpen`/`preConfirm` را واقعاً اجرا می‌کند + استاب `$`/`persianDatepicker`
+  (روشن/خاموش در هر کِیس) + **تثبیت ساعت** و قفل `process.env.TZ = "Asia/Tehran"`.
+- ۲۲ کِیس: ۱۴ برای `editPeriodCompletion` (رکورد کامل/قدیمی/چندگله/بدون داده · شش مسیر
+  اعتبارسنجی · ذخیرهٔ موفق/ناموفق/استثنا · کلیک محاسبهٔ مجدد) و ۸ برای `completePeriod`
+  (موفق دو گله · دورهٔ ناموجود · بدون گلهٔ فعال · بدون انتخاب · تاریخ معکوس · ناموفق · استثنا · انصراف).
+- رکورد هر کِیس = JSON (فرم HTML + خروجی `preConfirm` + فراخوانی‌های API + اعلان‌ها +
+  پیام‌های اعتبارسنجی + console) ⇒ `sha256` در `docs/hatchery-completion-body-golden.json`.
+
+### پ) برش‌ها (شش کامیت)
+
+| کامیت | محتوا |
+| --- | --- |
+| `a85fd77` | گارد طلایی + اسنپ‌شات ۲۲ کِیس + `npm run test:hatchery:body` + گام دروازه (تگ `pre-completion-body-split`) |
+| `35deea5` | برش A — دو بلوک `<style>` ثابتِ فرم‌ها → `UE_FORM_STYLE_BLOCK` · `CF_FORM_STYLE_BLOCK` |
+| `3e34e2a` | برش B — قالب ۱۳۸ خطی فرم ویرایش → `buildCompletionEditFormHtml` |
+| `25e1061` | برش C — Swal/payload/ذخیرهٔ ویرایش → سه کمکی (`editPeriodCompletion` از بودجه بیرون آمد) |
+| `bf86a84` | برش D — حل دوره + `flockOptions` + `periodInfo` + قالب اتمام دوره → چهار کمکی |
+| `0372d2b` | برش E — Swal/payload/ذخیرهٔ اتمام دوره → پنج کمکی (`completePeriod` بیرون از بودجه) |
+
+### ت) چهار تلهٔ واقعی که گیت‌ها گرفتند (شفافیت)
+
+1. **مرز «محتوا» و «تگ» در CSS درون‌خطی:** نسخهٔ اول برش A کل `<style>…</style>` را جایگزین
+   می‌کرد ولی ثابت فقط «محتوا» را داشت ⇒ اثبات رفت‌وبرگشت `false` شد؛ با جایگزینی ناحیهٔ درونی
+   (و ثابت‌ماندن تگ‌ها) درست شد.
+2. **تلهٔ سطح سرویس در برش B:** `_ueSlaughterSectionHtml` با `service.…` صدا زده شد و
+   `audit:surface` «گم‌شده → ویژگی ۱» داد (این ابزار ویژگی‌ها را از متن `this.X` می‌خواند).
+   راه‌حل: همان **الگوی wrapper** موج ۳.۲d — `(a, b) => this._ueSlaughterSectionHtml(a, b)`.
+3. **متغیرهای scope متد در برش C:** `slaughterDate`/`slaughterEndDate` که در `preConfirm` اعلان
+   می‌شدند در کمکی payload نبودند ⇒ ۱۸ بررسی گارد قرمز + دو خطای `lint` (`no-undef`).
+4. **return فراموش‌شده در برش E:** کمکی `readSelectedPeriodFlocks` بدون `return` ساخته شد ⇒
+   ۱۷ بررسی گارد قرمز + یک warning؛ با `return` صریح، گارد ۹۶/۹۶ و lint تمیز شد.
+
+هیچ کامیت نیمه‌کاره‌ای ساخته نشد؛ هر برش با «بازسازی معکوس == اصل» و «سطرهای verbatim» اثبات شد.
+
+### ث) شواهد تأیید نهایی (دروازهٔ ۲۲ گامی پس از آخرین کامیت کد)
+
+```text
+lint :: exit=0                    test:weekly:body     :: pass=67    audit:size :: exit=0
+test:cache :: pass=86             test:halls:surface   :: pass=24    audit:dead-exports :: exit=0
+test:denied :: pass=19            test:halls:body      :: pass=136   audit:surface :: exit=0
+test:toast :: pass=9              test:hatchery:body   :: pass=96    audit:big-methods :: exit=0 (۲۳ متد)
+test:weekly :: pass=118           test:customer-fields :: pass=22
+test:weekly:report :: pass=33     test:customer-detail :: pass=60
+test:weekly:groups :: pass=13     test:hatchery-utils  :: pass=28
+test:weekly:history :: pass=9     test:hatchery-surface :: pass=9
+test:weekly:surface :: pass=21    test:dashboard-surface :: pass=11
+```
+
+### ج) یادداشت نگه‌داری و گام بعدی
+
+- **گارد دائمی این موج `npm run test:hatchery:body` است.** اگر رفتار عمداً تغییر کرد، ابتدا
+  `npm run test:hatchery:body -- --snapshot` و بعد توضیح تغییر در پیام کامیت.
+- ⚠️ اسنپ‌شات به locale/ICU/TZ و ساختار DOM محیط Node وابسته است؛ مقایسه فقط در همان محیطی
+  معنا دارد که اسنپ‌شات گرفته شده است.
+- نامزدهای بعدی همین الگو: `buildWeeklyHistoryHTML` (۳۳۶) · `renderWeeks` (۳۰۴) ·
+  `showCreateBookmarkModal` (۲۸۴) · `buildFlockSmsReportHTML` (۲۷۷).
