@@ -308,137 +308,11 @@ export const hatcheryCompletionPeriodMethods = {
         periodInfo,
         flockOptions: buildCompletionFlockOptions(periodFlocks),
       });
-      const result = await Swal.fire({
-        title: "",
-        html: formHtml,
-        showCancelButton: true,
-        confirmButtonText: "🏁 ثبت و پایان دوره",
-        cancelButtonText: "انصراف",
-        confirmButtonColor: "#2c7a6e",
-        cancelButtonColor: "#64748b",
-        width: 650,
-        padding: "20px 24px",
-        didOpen: () => {
-          // تقویم شمسی برای بازه کشتار (شروع و پایان)
-          if (typeof $.fn.persianDatepicker !== "undefined") {
-            ["cfSlaughterDate", "cfSlaughterEndDate"].forEach((inputId) => {
-              const dateInput = document.getElementById(inputId);
-              if (!dateInput) return;
-              try {
-                $(dateInput).persianDatepicker({
-                  format: "YYYY/MM/DD",
-                  autoClose: true,
-                  initialValue: false,
-                  observer: true,
-                  calendar: { persian: { locale: "fa" } },
-                });
-              } catch (e) {
-                console.warn("⚠️ datepicker init error:", e);
-              }
-            });
-          }
-        },
-        preConfirm: () => {
-          const selectedFlocks = Array.from(
-            document.querySelectorAll(".completion-flock-check:checked"),
-          ).map((cb) => parseInt(cb.value));
+      const result = await Swal.fire(
+        createCompletionSwalOptions({ formHtml, periodId }),
+      );
 
-          if (selectedFlocks.length === 0) {
-            Swal.showValidationMessage("حداقل یک گله را انتخاب کنید");
-            return false;
-          }
-
-          const dateVal =
-            document.getElementById("cfSlaughterDate")?.value?.trim() || "";
-          const slaughterDate = dateVal
-            ? convertPersianToGregorian(dateVal)
-            : null;
-          const endDateVal =
-            document.getElementById("cfSlaughterEndDate")?.value?.trim() || "";
-          const slaughterEndDate = endDateVal
-            ? convertPersianToGregorian(endDateVal)
-            : null;
-          if (
-            slaughterDate &&
-            slaughterEndDate &&
-            String(slaughterEndDate) < String(slaughterDate)
-          ) {
-            Swal.showValidationMessage(
-              "تاریخ پایان کشتار نمی‌تواند قبل از تاریخ شروع باشد",
-            );
-            return false;
-          }
-
-          return {
-            period_ids: [periodId],
-            flock_ids: selectedFlocks,
-            shared_data: {
-              completion_date: new Date().toISOString().slice(0, 10),
-              slaughter_date: slaughterDate,
-              slaughter_end_date: slaughterEndDate,
-              slaughterhouse_name:
-                document
-                  .getElementById("cfSlaughterhouseName")
-                  ?.value?.trim() || null,
-              transport_mortality:
-                parseInt(
-                  document.getElementById("cfTransportMortality")?.value,
-                ) || 0,
-              total_sent:
-                parseInt(document.getElementById("cfTotalSent")?.value) || null,
-              total_live_weight:
-                parseFloat(
-                  document.getElementById("cfTotalLiveWeight")?.value,
-                ) || null,
-              farmer_fcr:
-                parseFloat(document.getElementById("cfFarmerFcr")?.value) ||
-                null,
-              farmer_total_meat:
-                parseFloat(
-                  document.getElementById("cfFarmerTotalMeat")?.value,
-                ) || null,
-              farmer_total_feed:
-                parseFloat(
-                  document.getElementById("cfFarmerTotalFeed")?.value,
-                ) || null,
-              farmer_total_weight:
-                parseFloat(
-                  document.getElementById("cfFarmerTotalWeight")?.value,
-                ) || null,
-              completion_type:
-                document.getElementById("cfCompletionType")?.value ||
-                "completed",
-              confirmed_by_customer: !!document.getElementById(
-                "cfConfirmedByCustomer",
-              )?.checked,
-              notes: document.getElementById("cfNotes")?.value?.trim() || null,
-            },
-          };
-        },
-      });
-
-      if (result.isConfirmed && result.value) {
-        notificationService.showLoading("در حال ثبت پایان دوره...");
-        try {
-          const response = await hatcheryApi.completePeriods(result.value);
-          notificationService.hideLoading();
-          if (response.success) {
-            notificationService.success(
-              `✅ ${response.message || "دوره با موفقیت پایان یافت"}`,
-            );
-            await this.loadData();
-          } else {
-            notificationService.error(
-              response.message || "خطا در ثبت پایان دوره",
-            );
-          }
-        } catch (e) {
-          notificationService.hideLoading();
-          console.error("❌ Error completing period:", e);
-          notificationService.error("خطا در ارتباط با سرور");
-        }
-      }
-    } catch (error) {
+      await applyPeriodCompletionResult(result, () => this.loadData());    } catch (error) {
       console.error("❌ Error in completePeriod modal:", error);
       notificationService.error("خطا در نمایش فرم");
     }
@@ -1239,4 +1113,157 @@ const buildPeriodCompletionFormHtml = ({ periodInfo, flockOptions }) => {
           </div>
         </div>
       `;
+};
+
+// ------------------------------------------------------------
+//  کمکی‌های برش E: گزینه‌های Swal + preConfirm + ذخیرهٔ «اتمام دوره»
+//  متن‌ها عیناً منتقل شده‌اند؛ تغییرها:
+//   ۱) بدنهٔ preConfirm به سه کمکی تفکیک شد (خواندن گله‌ها · اعتبارسنجی · payload)
+//      با همان پیام‌ها و همان ترتیب.
+//   ۲) this.loadData به‌شکل wrapper در محل فراخوانی می‌ماند (گارد audit:surface).
+// ------------------------------------------------------------
+const readSelectedPeriodFlocks = () => {
+  const selectedFlocks = Array.from(
+            document.querySelectorAll(".completion-flock-check:checked"),
+          ).map((cb) => parseInt(cb.value));
+  return selectedFlocks;
+};
+
+const validatePeriodCompletionSelection = (selectedFlocks) => {
+  if (selectedFlocks.length === 0) {
+            Swal.showValidationMessage("حداقل یک گله را انتخاب کنید");
+            return false;
+          }
+  return true;
+};
+
+const collectPeriodCompletionPayload = (periodId, selectedFlocks) => {
+          const dateVal =
+            document.getElementById("cfSlaughterDate")?.value?.trim() || "";
+          const slaughterDate = dateVal
+            ? convertPersianToGregorian(dateVal)
+            : null;
+          const endDateVal =
+            document.getElementById("cfSlaughterEndDate")?.value?.trim() || "";
+          const slaughterEndDate = endDateVal
+            ? convertPersianToGregorian(endDateVal)
+            : null;
+          if (
+            slaughterDate &&
+            slaughterEndDate &&
+            String(slaughterEndDate) < String(slaughterDate)
+          ) {
+            Swal.showValidationMessage(
+              "تاریخ پایان کشتار نمی‌تواند قبل از تاریخ شروع باشد",
+            );
+            return false;
+          }
+
+          return {
+            period_ids: [periodId],
+            flock_ids: selectedFlocks,
+            shared_data: {
+              completion_date: new Date().toISOString().slice(0, 10),
+              slaughter_date: slaughterDate,
+              slaughter_end_date: slaughterEndDate,
+              slaughterhouse_name:
+                document
+                  .getElementById("cfSlaughterhouseName")
+                  ?.value?.trim() || null,
+              transport_mortality:
+                parseInt(
+                  document.getElementById("cfTransportMortality")?.value,
+                ) || 0,
+              total_sent:
+                parseInt(document.getElementById("cfTotalSent")?.value) || null,
+              total_live_weight:
+                parseFloat(
+                  document.getElementById("cfTotalLiveWeight")?.value,
+                ) || null,
+              farmer_fcr:
+                parseFloat(document.getElementById("cfFarmerFcr")?.value) ||
+                null,
+              farmer_total_meat:
+                parseFloat(
+                  document.getElementById("cfFarmerTotalMeat")?.value,
+                ) || null,
+              farmer_total_feed:
+                parseFloat(
+                  document.getElementById("cfFarmerTotalFeed")?.value,
+                ) || null,
+              farmer_total_weight:
+                parseFloat(
+                  document.getElementById("cfFarmerTotalWeight")?.value,
+                ) || null,
+              completion_type:
+                document.getElementById("cfCompletionType")?.value ||
+                "completed",
+              confirmed_by_customer: !!document.getElementById(
+                "cfConfirmedByCustomer",
+              )?.checked,
+              notes: document.getElementById("cfNotes")?.value?.trim() || null,
+            },
+          };
+};
+
+const createCompletionSwalOptions = ({ formHtml, periodId }) => ({
+        title: "",
+        html: formHtml,
+        showCancelButton: true,
+        confirmButtonText: "🏁 ثبت و پایان دوره",
+        cancelButtonText: "انصراف",
+        confirmButtonColor: "#2c7a6e",
+        cancelButtonColor: "#64748b",
+        width: 650,
+        padding: "20px 24px",
+        didOpen: () => {
+          // تقویم شمسی برای بازه کشتار (شروع و پایان)
+          if (typeof $.fn.persianDatepicker !== "undefined") {
+            ["cfSlaughterDate", "cfSlaughterEndDate"].forEach((inputId) => {
+              const dateInput = document.getElementById(inputId);
+              if (!dateInput) return;
+              try {
+                $(dateInput).persianDatepicker({
+                  format: "YYYY/MM/DD",
+                  autoClose: true,
+                  initialValue: false,
+                  observer: true,
+                  calendar: { persian: { locale: "fa" } },
+                });
+              } catch (e) {
+                console.warn("⚠️ datepicker init error:", e);
+              }
+            });
+          }
+        },
+        preConfirm: () => {
+          const selectedFlocks = readSelectedPeriodFlocks();
+          if (!validatePeriodCompletionSelection(selectedFlocks)) return false;
+          return collectPeriodCompletionPayload(periodId, selectedFlocks);
+
+        },
+      });
+
+const applyPeriodCompletionResult = async (result, loadData) => {
+      if (result.isConfirmed && result.value) {
+        notificationService.showLoading("در حال ثبت پایان دوره...");
+        try {
+          const response = await hatcheryApi.completePeriods(result.value);
+          notificationService.hideLoading();
+          if (response.success) {
+            notificationService.success(
+              `✅ ${response.message || "دوره با موفقیت پایان یافت"}`,
+            );
+            await loadData();
+          } else {
+            notificationService.error(
+              response.message || "خطا در ثبت پایان دوره",
+            );
+          }
+        } catch (e) {
+          notificationService.hideLoading();
+          console.error("❌ Error completing period:", e);
+          notificationService.error("خطا در ارتباط با سرور");
+        }
+      }
 };
