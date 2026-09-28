@@ -1,7 +1,7 @@
 # نقاط داغ پروژه (Hotspots)
 
 > سند زنده — با اجرای اسکریپت‌های audit به‌رو نگه داشته می‌شود.
-> آخرین به‌روزرسانی: **موج ۳.۲f — برش بدنهٔ دو متد غول خوشهٔ پایان دوره (`completePeriod` و `editPeriodCompletion`؛ ۳۶۵ و ۲۷۸ → ۵۷ و ۲۳ خط) با گارد طلایی تازه؛ شمارش متدهای بزرگ‌تر از بودجه ۲۵ → ۲۳** (ادامهٔ برنچ `chore/wave-3.2c-split-halls`).
+> آخرین به‌روزرسانی: **موج ۳.۲g — برش بدنهٔ متد غول تاریخچهٔ هفتگی `buildWeeklyHistoryHTML` (۳۳۶ → ۱۳۱ خط) با گارد طلایی تازه؛ شمارش متدهای بزرگ‌تر از بودجه ۲۳ → ۲۲** (ادامهٔ برنچ `chore/wave-3.2c-split-halls`).
 > گزارش‌های کامل: `docs/REVIEW-WAVE-3.md` (موج ۳.۲d و ۳.۲c و ۳.۲b و ۳.۲a و ۳.۱) · `docs/REVIEW-WAVE-2.md` (موج ۲) · `docs/REVIEW.md` (موج ۰ و ۱)
 
 ## چطور اندازه‌گیری می‌شود؟
@@ -160,24 +160,32 @@ import می‌کند و همان اعداد اسنپ‌شات را روی نمو
 > دست‌نخورده (`audit:surface`: ۰ گم‌شده · ۰ افزوده · ۰ نقض). شمارش `audit:big-methods` از ۲۵ به
 > **۲۳** رسید.
 
+> 📉 **موج ۳.۲g (برش بدنه، بدون تغییر فایل):** متد غول تاریخچهٔ هفتگی `buildWeeklyHistoryHTML`
+> (۳۳۶ خط) به **۱۳۱** خط رسید. هفت کمکی/ثابت ماژول‌محلی تازه: `resolveHistoryReportContext` ·
+> `fmtCountFa` · `toPersianShortDate` · `HISTORY_REPORT_STYLE_BLOCK` · `resolveHistoryFlockContext` ·
+> `buildHistoryHallHtml` · `buildHistoryFlockSectionHtml`. خروجی HTML بایت‌به‌بایت ثابت است
+> (گارد طلایی `npm run test:weekly:history:body`: ۵۷ بررسی · ۱۲ کِیس · هش `sha256`) و سطح عمومی
+> دست‌نخورده (`audit:surface`: ۰ گم‌شده · ۰ افزوده · ۰ نقض). شمارش `audit:big-methods` از ۲۳ به
+> **۲۲** رسید.
+
 #### بزرگ‌ترین متدهای باقی‌مانده (بودجهٔ ۱۵۰ خط)
 
-۲۳ متد از بودجه بزرگ‌ترند؛ فهرست کامل با `npm run audit:big-methods`. پنج مورد اول:
+۲۲ متد از بودجه بزرگ‌ترند؛ فهرست کامل با `npm run audit:big-methods`. پنج مورد اول:
 
+| خطوط | مکان | نام |
 | خطوط | مکان | نام |
 | خطوط | مکان | نام |
 | --- | --- | --- |
-| ۳۳۶ | `weekly/weekly.report.history.html.js:36` | `weeklyHistoryHtmlMethods.buildWeeklyHistoryHTML` |
 | ۳۰۴ | `weekly/weekly.cards.js:92` | `weeklyCardMethods.renderWeeks` |
 | ۲۸۴ | `dashboard/dashboard.bookmarks.js:119` | `dashboardBookmarkMethods.showCreateBookmarkModal` |
 | ۲۷۷ | `hatchery/hatchery.report.js:579` | `buildFlockSmsReportHTML` |
 | ۲۴۹ | `chart-dashboard/chart-dashboard.renderer.js:8` | `chartDashboardRenderer.renderContainer` |
-برش فایل این دو «غول» را کوچک **نکرد**: `buildWeeklyHistoryHTML` همان ۳۳۶ خط است و فقط خانه‌اش
+| ۲۴۲ | `weekly/weekly.renderer.js:889` | `weeklyRenderer.renderFlockReport` |
 از `weekly.service.js` به `weekly.report.history.html.js` منتقل شد؛ `renderWeeks` (۳۰۴ خط) هم
 برش فایل این دو «غول» را کوچک **نکرد**: `buildWeeklyHistoryHTML` همان ۳۳۶ خط است و فقط خانه‌اش
 از `weekly.service.js` به `weekly.report.history.html.js` منتقل شد؛ `renderWeeks` (۳۰۴ خط) هم
-به `weekly.cards.js` رفت. بزرگ‌ترین متد مخزن اکنون `weeklyHistoryHtmlMethods.buildWeeklyHistoryHTML`
-(۳۳۶ خط) است — دو متد غول خوشهٔ پایان دوره در موج ۳.۲f از فهرست بودجه بیرون رفتند.
+به `weekly.cards.js` رفت. بزرگ‌ترین متد مخزن اکنون `weeklyCardMethods.renderWeeks` (۳۰۴ خط) است —
+سه متد غول هفتگی/پایان دوره در موج‌های ۳.۲e/۳.۲f/۳.۲g از فهرست بودجه بیرون رفتند.
 
 در موج ۳.۲d چهار متد غول خوشهٔ سالن‌ها **برش بدنه** خوردند (نه جابه‌جایی فایل): `generateHTML`
 ۴۵۰ → ۴۶، `renderHallInfo` ۲۵۴ → ۲۰، `saveBasicInfo` ۱۷۷ → ۶۵ و `renderUnitDetailsPanel`

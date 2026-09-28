@@ -1216,3 +1216,76 @@ test:weekly:surface :: pass=21    test:dashboard-surface :: pass=11
   معنا دارد که اسنپ‌شات گرفته شده است.
 - نامزدهای بعدی همین الگو: `buildWeeklyHistoryHTML` (۳۳۶) · `renderWeeks` (۳۰۴) ·
   `showCreateBookmarkModal` (۲۸۴) · `buildFlockSmsReportHTML` (۲۷۷).
+
+## ۱۸) موج ۳.۲g — برش بدنهٔ متد غول تاریخچهٔ هفتگی (`buildWeeklyHistoryHTML`)
+
+> ادامهٔ مستقیم بخش ۱۷ با همان الگو (گارد اول، بعد برش) — این‌بار روی متدی که یک رشتهٔ
+> بزرگ HTML می‌سازد، دوباره «مبنا/چیپ/ماتریس» دارد و به `new Date()` وابسته است.
+
+### الف) هدف و اعداد
+
+| مورد | پیش از موج | پس از موج |
+| --- | --- | --- |
+| `weeklyHistoryHtmlMethods.buildWeeklyHistoryHTML` (`weekly.report.history.html.js:36`) | ۳۳۶ خط (بزرگ‌ترین متد مخزن) | **۱۳۱ خط** |
+| متدهای بزرگ‌تر از بودجهٔ ۱۵۰ (`audit:big-methods`) | ۲۳ | **۲۲** |
+| کمکی/ثابت ماژول‌محلی تازه | ۰ | **۷** |
+| سطح عمومی (`audit:surface`) | ۰ گم‌شده · ۰ افزوده · ۰ نقض | همان (بی‌تغییر) |
+| خروجی HTML | فاقد گارد بایت‌به‌بایت | `npm run test:weekly:history:body` (۵۷ بررسی · ۱۲ کِیس) |
+
+### ب) گارد پیش از برش — `test:weekly:history:body`
+
+- `Frontend/weekly-history-body-split-test.mjs`: هارنس روی `weeklyService` با استاب حداقلی مرورگر
+  (هم‌سان با `weekly-history-render-test.mjs`) + **تثبیت ساعت** (`Date` استاب) + قفل
+  `process.env.TZ = "Asia/Tehran"` — چون متد `new Date()` و `Intl.DateTimeFormat("fa-IR")`
+  (تاریخ/ساعت شمسی) می‌سازد؛ خودآزمون «دو اجرای متوالی هش یکسان» همین را اثبات می‌کند.
+- ۱۲ کِیس: حالت پایه · کاربر لاگین‌شده · انتخاب هفته + گروه · گلهٔ بدون انتخاب · ترتیب سالن‌ها ·
+  دو گله · رکورد حداقلی/تهی · بلوک خالی · مشتری ناقص · همهٔ گروه‌ها صریح · انتخاب مشترک + سفارشی ·
+  دو گله با انتخاب مجزا ⇒ اسنپ‌شات `docs/weekly-history-body-golden.json` (sha256 + bytes کل HTML).
+
+### پ) برش‌ها (سه کامیت)
+
+| کامیت | محتوا |
+| --- | --- |
+| `ed823fc` | گارد طلایی + اسنپ‌شات ۱۲ کِیس + `npm run test:weekly:history:body` + گام دروازه (تگ `pre-history-body-split`) |
+| `88b40e7` | برش A — مقدمه (۹۰ خط) → `resolveHistoryReportContext` + `fmtCountFa` + `toPersianShortDate` + `HISTORY_REPORT_STYLE_BLOCK` |
+| `0fc2e34` | برش B — حلقهٔ گله/سالن (۱۶۳ → ۴۳ خط) → `resolveHistoryFlockContext` · `buildHistoryHallHtml` · `buildHistoryFlockSectionHtml` |
+
+### ت) تله‌های واقعی که گیت‌ها گرفتند (شفافیت)
+
+1. **ناحیهٔ جاافتاده:** بلوک `weekSelectionSummary`/`weekSelectionNote` از بازهٔ انتقال برش A بیرون
+   مانده بود ⇒ `ReferenceError` در گارد ⇒ بازاجرا با سه‌ناحیه‌ای‌کردن مقدمه.
+2. **آفست‌های بی‌اعتبار پس از تغییر نام:** `fmtCount`→`fmtCountFa` و `toPersianShort`→`toPersianShortDate`
+   **طول متن** را عوض می‌کنند ⇒ آفست‌های خطی محاسبه‌شده روی متن اصلی غلط شدند؛ اثباتِ خودِ اسکریپت
+   («بازسازی معکوس == اصل») آن را پیش از نوشتن فایل گرفت.
+3. **متغیر بلااستفاده در destructuring** (`weekSelectionSummary`) ⇒ warning از lint ⇒ حذف شد.
+4. **برش ناحیهٔ callback** یک خط جابه‌جا (۱۱۷..۱۸۳ در برابر ۱۱۸..۱۸۲) ⇒ assert پایان ناحیه آن را گرفت.
+5. **`{ html: ` جاافتاده در `return` قالب سالن** ⇒ خطای نحوی (پارسر lint) و توقف گارد.
+6. **رشتهٔ نام گلهٔ حذف‌شده از متن اصلی (با `b.`)** ساخته می‌شد ⇒ `ReferenceError` ⇒ اعمال همان تغییر نام.
+
+هیچ کامیت نیمه‌کاره‌ای ساخته نشد؛ هر برش با «بازسازی معکوس == اصل» + قطعات کلیدی + گارد ۵۷/۵۷ اثبات شد.
+
+### ث) شواهد تأیید نهایی (دروازهٔ ۲۳ گامی)
+
+```text
+lint :: exit=0                    test:weekly:history:body :: pass=57    audit:size :: exit=0
+test:cache :: pass=86             test:weekly:surface  :: pass=21        audit:dead-exports :: exit=0
+test:denied :: pass=19            test:weekly:body     :: pass=67        audit:surface :: exit=0
+test:toast :: pass=9              test:halls:surface   :: pass=24        audit:big-methods :: exit=0 (۲۲ متد)
+test:weekly :: pass=118           test:halls:body      :: pass=136
+test:weekly:report :: pass=33     test:hatchery:body   :: pass=96
+test:weekly:groups :: pass=13     test:customer-fields :: pass=22
+test:weekly:history :: pass=9     test:customer-detail :: pass=60
+                                  test:hatchery-utils  :: pass=28
+                                  test:hatchery-surface :: pass=9
+                                  test:dashboard-surface :: pass=11
+```
+
+### ج) یادداشت نگه‌داری و گام بعدی
+
+- **گارد دائمی این موج `npm run test:weekly:history:body` است.** اگر رفتار عمداً تغییر کرد، ابتدا
+  `npm run test:weekly:history:body -- --snapshot` و بعد توضیح تغییر در پیام کامیت.
+- ⚠️ اسنپ‌شات به locale/ICU/TZ محیط Node وابسته است؛ مقایسه فقط در همان محیطی معنا دارد که
+  اسنپ‌شات گرفته شده است.
+- نامزدهای بعدی همین الگو: `weeklyCardMethods.renderWeeks` (۳۰۴) ·
+  `dashboardBookmarkMethods.showCreateBookmarkModal` (۲۸۴) · `buildFlockSmsReportHTML` (۲۷۷) ·
+  `chartDashboardRenderer.renderContainer` (۲۴۹) · `weeklyRenderer.renderFlockReport` (۲۴۲).
