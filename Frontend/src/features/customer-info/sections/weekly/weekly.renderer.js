@@ -775,18 +775,6 @@ export const weeklyRenderer = {
       0,
     );
 
-    const toPersian = (date) => {
-      if (!date) return "-";
-      try {
-        return new Intl.DateTimeFormat("fa-IR", {
-          year: "numeric",
-          month: "2-digit",
-          day: "2-digit",
-        }).format(new Date(date));
-      } catch {
-        return "-";
-      }
-    };
 
     // بخش‌های هر سالن بر اساس کلید گله جمع می‌شوند تا زیر جدول «کل گله» بچینند
     const hallSections = new Map();
@@ -843,8 +831,8 @@ export const weeklyRenderer = {
                 <tr class="${week.existsInDb ? "has-data" : "week-missing"}">
                     <td>${i + 1}</td>
                     <td>هفته ${week.week_number}</td>
-                    <td>${toPersian(week.week_start_date)}</td>
-                    <td>${toPersian(week.week_end_date)}</td>
+                    <td>${toPersianDate(week.week_start_date)}</td>
+                    <td>${toPersianDate(week.week_end_date)}</td>
                     <td>${week.flock_age_days}</td>
                     <td>${week.daily_feed_intake || "-"}</td>
                     <td class="${week.weekly_feed_intake ? "highlight" : ""}">${week.weekly_feed_intake || "-"}</td>
@@ -875,7 +863,7 @@ export const weeklyRenderer = {
                         <div>
                             <div class="flock-title">🐔 گله ${flock.flock_number}</div>
                             <div style="font-size: 13px; color: #64748b;">
-                                ${flock.hall_name} | ${flock.breed_name || "-"} | ${toPersian(flock.placement_date)}
+                                ${flock.hall_name} | ${flock.breed_name || "-"} | ${toPersianDate(flock.placement_date)}
                             </div>
                         </div>
                         <div class="flock-meta">
@@ -1008,7 +996,7 @@ export const weeklyRenderer = {
                         <div>
                             <div class="flock-title">🐔 گله ${group.flockNumber ?? "—"} — کل ${group.halls.length} سالن</div>
                             <div style="font-size: 13px; color: #64748b;">
-                                ${hallNames || "-"} | ${group.breed_name || "-"} | ${toPersian(group.placement_date)}
+                                ${hallNames || "-"} | ${group.breed_name || "-"} | ${toPersianDate(group.placement_date)}
                             </div>
                         </div>
                         <div class="flock-meta">
@@ -1529,3 +1517,20 @@ console.log("✅ WeeklyRenderer loaded");
                         </table>
                         </div>`;
     };
+
+// ------------------------------------------------------------
+//  کمکی برش B1: تاریخ شمسی گزارش (پیش‌تر closure داخل متد بود)
+//  بدنه عیناً منتقل شد؛ فقط نام به toPersianDate تغییر کرد.
+// ------------------------------------------------------------
+const toPersianDate = (date) => {
+      if (!date) return "-";
+      try {
+        return new Intl.DateTimeFormat("fa-IR", {
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+        }).format(new Date(date));
+      } catch {
+        return "-";
+      }
+};
