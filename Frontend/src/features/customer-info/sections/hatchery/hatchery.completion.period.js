@@ -295,139 +295,19 @@ export const hatcheryCompletionPeriodMethods = {
 
   async completePeriod(periodId) {
     try {
-      // پیدا کردن دوره
-      const period = this.periods.find((p) => p.id === periodId);
-      if (!period) {
-        notificationService.error("دوره یافت نشد");
-        return;
-      }
-
-      // گله‌های فعال این دوره
-      const periodFlocks = this.flocks.filter(
-        (f) => f.period_id === periodId && f.is_active === true,
+      const resolved = resolvePeriodForCompletion(
+        this.periods,
+        this.flocks,
+        periodId,
       );
+      if (!resolved) return;
+      const { period, periodFlocks } = resolved;
 
-      if (periodFlocks.length === 0) {
-        notificationService.warning("این دوره گله فعالی ندارد");
-        return;
-      }
-
-      const flockOptions = periodFlocks
-        .map(
-          (f) =>
-            `<label style="display:flex; align-items:center; gap:8px; padding:6px 10px; background:#f8fafc; border-radius:8px; cursor:pointer; font-size:12.5px;">
-              <input type="checkbox" class="completion-flock-check" value="${f.id}" checked>
-              گله ${f.flock_number} - ${f.total_chicks_count?.toLocaleString() || "-"} قطعه
-            </label>`,
-        )
-        .join("");
-
-      const periodInfo = `
-        <div style="background:linear-gradient(135deg,#2c7a6e,#035552); color:#fff; border-radius:12px; padding:14px 16px; margin-bottom:16px; display:flex; align-items:center; gap:12px;">
-          <div style="width:42px; height:42px; border-radius:50%; background:rgba(255,255,255,0.2); display:flex; align-items:center; justify-content:center; font-size:20px;">
-            <i class="fas fa-flag-checkered"></i>
-          </div>
-          <div>
-            <div style="font-size:15px; font-weight:800;">اتمام دوره ${period.period_number || ""} - ${period.period_name || ""}</div>
-            <div style="font-size:11px; opacity:0.85;">${periodFlocks.length} گله فعال | تعداد کل: ${periodFlocks.reduce((s, f) => s + (f.total_chicks_count || 0), 0).toLocaleString()} قطعه</div>
-          </div>
-        </div>
-      `;
-
-      const formHtml = `
-        ${periodInfo}
-        <div style="text-align:right; font-family:'Vazir';">
-          <style>${CF_FORM_STYLE_BLOCK}</style>
-
-          <!-- انتخاب گله‌ها -->
-          <div class="cf-section">
-            <div class="cf-section-title"><i class="fas fa-egg"></i> انتخاب گله‌ها</div>
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; max-height:130px; overflow-y:auto;">
-              ${flockOptions}
-            </div>
-          </div>
-
-          <!-- اطلاعات کشتارگاه -->
-          <div class="cf-section">
-            <div class="cf-section-title"><i class="fas fa-industry"></i> اطلاعات کشتارگاه</div>
-            <div class="cf-3col">
-              <div>
-                <label class="cf-label">تاریخ شروع کشتار</label>
-                <input type="text" id="cfSlaughterDate" class="cf-field" placeholder="۱۴۰۴/۰۱/۰۱">
-              </div>
-              <div>
-                <label class="cf-label">تاریخ پایان کشتار</label>
-                <input type="text" id="cfSlaughterEndDate" class="cf-field" placeholder="۱۴۰۴/۰۱/۰۱">
-              </div>
-              <div>
-                <label class="cf-label">نام کشتارگاه</label>
-                <input type="text" id="cfSlaughterhouseName" class="cf-field" placeholder="نام کشتارگاه...">
-              </div>
-            </div>
-            <div class="cf-3col" style="margin-top:8px;">
-              <div>
-                <label class="cf-label">تلفات حمل</label>
-                <input type="number" id="cfTransportMortality" class="cf-field" placeholder="0" value="0" min="0">
-              </div>
-              <div>
-                <label class="cf-label">تعداد ارسالی به کشتارگاه</label>
-                <input type="number" id="cfTotalSent" class="cf-field" placeholder="تعداد...">
-              </div>
-              <div>
-                <label class="cf-label">وزن کل زنده (کیلوگرم)</label>
-                <input type="number" step="0.01" id="cfTotalLiveWeight" class="cf-field" placeholder="0">
-              </div>
-            </div>
-          </div>
-
-          <!-- اطلاعات اعلامی مرغدار -->
-          <div class="cf-section">
-            <div class="cf-section-title"><i class="fas fa-user-tie"></i> اطلاعات اعلامی مرغدار</div>
-            <div class="cf-2col">
-              <div>
-                <label class="cf-label">FCR اعلامی مرغدار</label>
-                <input type="number" step="0.01" id="cfFarmerFcr" class="cf-field" placeholder="مثال: 1.85">
-              </div>
-              <div>
-                <label class="cf-label">کل گوشت (کیلوگرم)</label>
-                <input type="number" step="0.01" id="cfFarmerTotalMeat" class="cf-field" placeholder="0">
-              </div>
-              <div>
-                <label class="cf-label">کل خوراک (کیلوگرم)</label>
-                <input type="number" step="0.01" id="cfFarmerTotalFeed" class="cf-field" placeholder="0">
-              </div>
-              <div>
-                <label class="cf-label">وزن کل (کیلوگرم)</label>
-                <input type="number" step="0.01" id="cfFarmerTotalWeight" class="cf-field" placeholder="0">
-              </div>
-            </div>
-          </div>
-
-          <!-- تنظیمات -->
-          <div class="cf-section">
-            <div class="cf-section-title"><i class="fas fa-cogs"></i> تنظیمات پایان دوره</div>
-            <div class="cf-2col">
-              <div>
-                <label class="cf-label">نوع پایان</label>
-                <select id="cfCompletionType" class="cf-field">
-                  <option value="completed">تکمیل</option>
-                  <option value="culled">حذف</option>
-                  <option value="emergency">اضطراری</option>
-                </select>
-              </div>
-              <div style="display:flex; align-items:center; gap:8px; margin-top:20px;">
-                <input type="checkbox" id="cfConfirmedByCustomer" style="width:16px;height:16px;">
-                <label for="cfConfirmedByCustomer" class="cf-label" style="margin:0;">تأیید صحت اطلاعات توسط مرغدار</label>
-              </div>
-            </div>
-            <div style="margin-top:8px;">
-              <label class="cf-label">توضیحات</label>
-              <textarea id="cfNotes" class="cf-field" rows="2" placeholder="توضیحات تکمیلی..."></textarea>
-            </div>
-          </div>
-        </div>
-      `;
-
+      const periodInfo = buildPeriodCompletionInfoHtml(period, periodFlocks);
+      const formHtml = buildPeriodCompletionFormHtml({
+        periodInfo,
+        flockOptions: buildCompletionFlockOptions(periodFlocks),
+      });
       const result = await Swal.fire({
         title: "",
         html: formHtml,
@@ -1209,4 +1089,154 @@ const applyCompletionEditResult = async (result, loadData) => {
           notificationService.error("خطا در ارتباط با سرور");
         }
       }
+};
+
+// ------------------------------------------------------------
+//  کمکی‌های برش D: حل دوره/گله‌های فعال و قالب فرم «اتمام دوره»
+//  متن هر ناحیه عیناً (verbatim) منتقل شده است؛ تنها تغییرها:
+//   ۱) this.periods/this.flocks به‌شکل آرگومان صریح پاس داده می‌شوند
+//      (ارجاع‌های this در متد می‌مانند — گارد audit:surface).
+//   ۲) «return;» گاردها به «return null» و سطر اول هر قالب به return
+//      تبدیل شده تا مقدار رشته‌ها بایت‌به‌بایت همان قبلی بماند.
+// ------------------------------------------------------------
+const resolvePeriodForCompletion = (periods, flocks, periodId) => {
+      // پیدا کردن دوره
+      const period = periods.find((p) => p.id === periodId);
+      if (!period) {
+        notificationService.error("دوره یافت نشد");
+        return null;
+      }
+
+      // گله‌های فعال این دوره
+      const periodFlocks = flocks.filter(
+        (f) => f.period_id === periodId && f.is_active === true,
+      );
+
+      if (periodFlocks.length === 0) {
+        notificationService.warning("این دوره گله فعالی ندارد");
+        return null;
+      }
+  return { period, periodFlocks };
+};
+
+const buildCompletionFlockOptions = (periodFlocks) => {
+      return periodFlocks
+        .map(
+          (f) =>
+            `<label style="display:flex; align-items:center; gap:8px; padding:6px 10px; background:#f8fafc; border-radius:8px; cursor:pointer; font-size:12.5px;">
+              <input type="checkbox" class="completion-flock-check" value="${f.id}" checked>
+              گله ${f.flock_number} - ${f.total_chicks_count?.toLocaleString() || "-"} قطعه
+            </label>`,
+        )
+        .join("");
+};
+
+const buildPeriodCompletionInfoHtml = (period, periodFlocks) => {
+      return `
+        <div style="background:linear-gradient(135deg,#2c7a6e,#035552); color:#fff; border-radius:12px; padding:14px 16px; margin-bottom:16px; display:flex; align-items:center; gap:12px;">
+          <div style="width:42px; height:42px; border-radius:50%; background:rgba(255,255,255,0.2); display:flex; align-items:center; justify-content:center; font-size:20px;">
+            <i class="fas fa-flag-checkered"></i>
+          </div>
+          <div>
+            <div style="font-size:15px; font-weight:800;">اتمام دوره ${period.period_number || ""} - ${period.period_name || ""}</div>
+            <div style="font-size:11px; opacity:0.85;">${periodFlocks.length} گله فعال | تعداد کل: ${periodFlocks.reduce((s, f) => s + (f.total_chicks_count || 0), 0).toLocaleString()} قطعه</div>
+          </div>
+        </div>
+      `;
+};
+
+const buildPeriodCompletionFormHtml = ({ periodInfo, flockOptions }) => {
+      return `
+        ${periodInfo}
+        <div style="text-align:right; font-family:'Vazir';">
+          <style>${CF_FORM_STYLE_BLOCK}</style>
+
+          <!-- انتخاب گله‌ها -->
+          <div class="cf-section">
+            <div class="cf-section-title"><i class="fas fa-egg"></i> انتخاب گله‌ها</div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; max-height:130px; overflow-y:auto;">
+              ${flockOptions}
+            </div>
+          </div>
+
+          <!-- اطلاعات کشتارگاه -->
+          <div class="cf-section">
+            <div class="cf-section-title"><i class="fas fa-industry"></i> اطلاعات کشتارگاه</div>
+            <div class="cf-3col">
+              <div>
+                <label class="cf-label">تاریخ شروع کشتار</label>
+                <input type="text" id="cfSlaughterDate" class="cf-field" placeholder="۱۴۰۴/۰۱/۰۱">
+              </div>
+              <div>
+                <label class="cf-label">تاریخ پایان کشتار</label>
+                <input type="text" id="cfSlaughterEndDate" class="cf-field" placeholder="۱۴۰۴/۰۱/۰۱">
+              </div>
+              <div>
+                <label class="cf-label">نام کشتارگاه</label>
+                <input type="text" id="cfSlaughterhouseName" class="cf-field" placeholder="نام کشتارگاه...">
+              </div>
+            </div>
+            <div class="cf-3col" style="margin-top:8px;">
+              <div>
+                <label class="cf-label">تلفات حمل</label>
+                <input type="number" id="cfTransportMortality" class="cf-field" placeholder="0" value="0" min="0">
+              </div>
+              <div>
+                <label class="cf-label">تعداد ارسالی به کشتارگاه</label>
+                <input type="number" id="cfTotalSent" class="cf-field" placeholder="تعداد...">
+              </div>
+              <div>
+                <label class="cf-label">وزن کل زنده (کیلوگرم)</label>
+                <input type="number" step="0.01" id="cfTotalLiveWeight" class="cf-field" placeholder="0">
+              </div>
+            </div>
+          </div>
+
+          <!-- اطلاعات اعلامی مرغدار -->
+          <div class="cf-section">
+            <div class="cf-section-title"><i class="fas fa-user-tie"></i> اطلاعات اعلامی مرغدار</div>
+            <div class="cf-2col">
+              <div>
+                <label class="cf-label">FCR اعلامی مرغدار</label>
+                <input type="number" step="0.01" id="cfFarmerFcr" class="cf-field" placeholder="مثال: 1.85">
+              </div>
+              <div>
+                <label class="cf-label">کل گوشت (کیلوگرم)</label>
+                <input type="number" step="0.01" id="cfFarmerTotalMeat" class="cf-field" placeholder="0">
+              </div>
+              <div>
+                <label class="cf-label">کل خوراک (کیلوگرم)</label>
+                <input type="number" step="0.01" id="cfFarmerTotalFeed" class="cf-field" placeholder="0">
+              </div>
+              <div>
+                <label class="cf-label">وزن کل (کیلوگرم)</label>
+                <input type="number" step="0.01" id="cfFarmerTotalWeight" class="cf-field" placeholder="0">
+              </div>
+            </div>
+          </div>
+
+          <!-- تنظیمات -->
+          <div class="cf-section">
+            <div class="cf-section-title"><i class="fas fa-cogs"></i> تنظیمات پایان دوره</div>
+            <div class="cf-2col">
+              <div>
+                <label class="cf-label">نوع پایان</label>
+                <select id="cfCompletionType" class="cf-field">
+                  <option value="completed">تکمیل</option>
+                  <option value="culled">حذف</option>
+                  <option value="emergency">اضطراری</option>
+                </select>
+              </div>
+              <div style="display:flex; align-items:center; gap:8px; margin-top:20px;">
+                <input type="checkbox" id="cfConfirmedByCustomer" style="width:16px;height:16px;">
+                <label for="cfConfirmedByCustomer" class="cf-label" style="margin:0;">تأیید صحت اطلاعات توسط مرغدار</label>
+              </div>
+            </div>
+            <div style="margin-top:8px;">
+              <label class="cf-label">توضیحات</label>
+              <textarea id="cfNotes" class="cf-field" rows="2" placeholder="توضیحات تکمیلی..."></textarea>
+            </div>
+          </div>
+        </div>
+      `;
 };
