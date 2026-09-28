@@ -169,38 +169,7 @@ export const dashboardBookmarkMethods = {
             popup: "bm-swal-popup",
           },
           didOpen: () => initBookmarkModalFields(),
-          preConfirm: () => {
-            const title = document
-              .getElementById("bookmarkTitle")
-              ?.value?.trim();
-            const customerId =
-              document.getElementById("bookmarkCustomer")?.value;
-            if (!title) {
-              Swal.showValidationMessage("لطفاً عنوان بوکمارک را وارد کنید");
-              return false;
-            }
-            if (!customerId) {
-              Swal.showValidationMessage("لطفاً یک مشتری را انتخاب کنید");
-              return false;
-            }
-            // تبدیل تاریخ شمسی انتخاب‌شده به میلادی برای ذخیره در دیتابیس
-            const dueDateValue =
-              document.getElementById("bookmarkDueDate")?.value?.trim() || "";
-            const dueDateGregorian = dueDateValue
-              ? convertPersianToGregorian(dueDateValue)
-              : null;
-            return {
-              title: title,
-              type:
-                document.getElementById("bookmarkType")?.value || "bookmark",
-              customer_id: customerId,
-              priority:
-                document.getElementById("bookmarkPriority")?.value || "medium",
-              due_date: dueDateGregorian,
-              description:
-                document.getElementById("bookmarkDescription")?.value || "",
-            };
-          },
+          preConfirm: () => collectBookmarkModalPayload(),
         }).then(async (result) => {
           if (result.isConfirmed && result.value) {
             const data = result.value;
@@ -608,4 +577,42 @@ const initBookmarkModalFields = () => {
     }
     dueDateInput.setAttribute("data-datepicker-initialized", "true");
   }
+};
+
+// ------------------------------------------------------------
+//  کمکی برش C موج ۳.۲i: جمع‌آوری و اعتبارسنجی مقادیر مودال بوکمارک
+//  (همان بدنهٔ preConfirm؛ خروجی: payload یا false برای توقف تأیید).
+//  یک سطح کم‌تورفتگی؛ هیچ رشتهٔ چندسطری در این بلوک نیست.
+// ------------------------------------------------------------
+const collectBookmarkModalPayload = () => {
+  const title = document
+    .getElementById("bookmarkTitle")
+    ?.value?.trim();
+  const customerId =
+    document.getElementById("bookmarkCustomer")?.value;
+  if (!title) {
+    Swal.showValidationMessage("لطفاً عنوان بوکمارک را وارد کنید");
+    return false;
+  }
+  if (!customerId) {
+    Swal.showValidationMessage("لطفاً یک مشتری را انتخاب کنید");
+    return false;
+  }
+  // تبدیل تاریخ شمسی انتخاب‌شده به میلادی برای ذخیره در دیتابیس
+  const dueDateValue =
+    document.getElementById("bookmarkDueDate")?.value?.trim() || "";
+  const dueDateGregorian = dueDateValue
+    ? convertPersianToGregorian(dueDateValue)
+    : null;
+  return {
+    title: title,
+    type:
+      document.getElementById("bookmarkType")?.value || "bookmark",
+    customer_id: customerId,
+    priority:
+      document.getElementById("bookmarkPriority")?.value || "medium",
+    due_date: dueDateGregorian,
+    description:
+      document.getElementById("bookmarkDescription")?.value || "",
+  };
 };
