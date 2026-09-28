@@ -809,132 +809,17 @@ export const weeklyRenderer = {
 
     // ===== سرصفحه + خلاصه + جدول تجمعی «کل گله» (فقط گله‌های چندسالنه) =====
 
-    const renderGroupSection = (group, aggregate) => {
-      const stats = aggregate.statistics || {};
-      // هشدار در سطح «کل گله»: هفته‌ای که هیچ سالنی ثبت نکرده یا بعضی سالن‌ها ناقص‌اند
-      const groupAuditFull = mergeAudits(
-        (group.halls || []).map((hall) => auditOfFlock(hall)),
-      );
-
-      // ✅ انتخاب هفته‌ها در سطح «کل گله» = اجتماع انتخاب سالن‌ها
-      const timelinesByKey = {};
-      (group.halls || []).forEach((hall) => {
-        timelinesByKey[flockWeeksKey(hall)] = buildWeekTimeline(hall.weeks || []);
-      });
-      const groupWeekNumbers = options?.weekSelection
-        ? unionWeekSelection(
-            options.weekSelection,
-            (group.halls || []).map((hall) => flockWeeksKey(hall)),
-            timelinesByKey,
-          )
-        : null;
-      if (Array.isArray(groupWeekNumbers) && groupWeekNumbers.length === 0) {
-        excludedFlockNames.push(`گله ${group.flockNumber ?? "-"} (کل گله)`);
-        return "";
-      }
-      const groupAudit = Array.isArray(groupWeekNumbers)
-        ? scopeAuditToWeeks(groupAuditFull, groupWeekNumbers)
-        : groupAuditFull;
-
-      // چیپ «مبنای پایان» فقط وقتی همهٔ سالن‌ها یک مبنا دارند (یا خلاصهٔ متفاوت)
-      const hallTimelines = (group.halls || [])
-        .map((hall) => hall.timeline)
-        .filter(Boolean);
-      const sameEndWeek =
-        hallTimelines.length > 0 &&
-        hallTimelines.every(
-          (timeline) => timeline.endWeek === hallTimelines[0].endWeek,
-        );
-      const groupTimelineChip = sameEndWeek
-        ? timelineChip(hallTimelines[0])
-        : hallTimelines.length
-          ? '<span class="basis-chip" title="مبنای شمارش هفته‌های مورد انتظار">⚓ مبنای پایان: بر اساس پایان دورهٔ هر سالن</span>'
-          : "";
-
-      const hallNames = (group.halls || [])
-        .map((h) => h.hall_name || `سالن ${h.hall_id}`)
-        .join("، ");
-      const fcrText =
-        stats.fcr !== null && stats.fcr !== undefined ? fmtNum(stats.fcr, 3) : "-";
-
-      return `
-                <div class="flock-section flock-group-section">
-                    <div class="flock-header">
-                        <div>
-                            <div class="flock-title">🐔 گله ${group.flockNumber ?? "—"} — کل ${group.halls.length} سالن</div>
-                            <div style="font-size: 13px; color: #64748b;">
-                                ${hallNames || "-"} | ${group.breed_name || "-"} | ${toPersianDate(group.placement_date)}
-                            </div>
-                        </div>
-                        <div class="flock-meta">
-                            <span>🧮 ${fmtNum(group.total_chicks_count, 0)} قطعه</span>
-                            <span>📊 ${stats.weekCount || 0} از ${groupAudit.total || stats.weekCount || 0} هفته ثبت‌شده</span>
-                            ${renderGapBadge(groupAudit)}
-                            ${groupTimelineChip}
-                            ${weekRangeChip(
-                              groupWeekNumbers,
-                              Object.values(timelinesByKey).flat().map((week) => week.weekNumber),
-                            )}
-                            <span class="status-badge ${group.isActive ? "status-active" : "status-inactive"}">
-                                ${group.isActive ? "فعال" : "غیرفعال"}
-                            </span>
-                        </div>
-                    </div>
-
-                    <div class="flock-summary-strip">
-                        <span><strong>تلفات کل گله:</strong> ${fmtNum(stats.totalMortality, 0)} قطعه</span>
-                        <span><strong>جمعیت مانده:</strong> ${fmtNum(stats.finalMetrics?.birdsEndOfWeek, 0)} قطعه</span>
-                        <span><strong>زنده‌مانی:</strong> ${fmtPct(stats.finalMetrics?.cumulativeSurvivalPercent)}</span>
-                        <span><strong>وزن کل گله:</strong> ${fmtNum(stats.finalMetrics?.totalLiveWeight, 1)} کیلوگرم</span>
-                        <span><strong>کل خوراک:</strong> ${fmtNum(stats.totalFeed, 1)} کیلوگرم</span>
-                        <span><strong>🐔 ضریب تبدیل:</strong> ${fcrText}</span>
-                        <span><strong>هفته‌های تکمیل شده:</strong> ${stats.weekCount || 0}</span>
-                    </div>
-
-                    ${renderWeekGapsAlert(groupAudit, "کل گله")}
-
-                    ${buildMetricsTableHtml(
-                      aggregate.savedWeeks,
-                      "📈 شاخص‌های عملکردی هفتگی — کل گله",
-                      selected,
-                      groupAudit,
-                      groupWeekNumbers,
-                    )}
-                </div>
-            `;
-    };
-
-    // ترتیب نهایی: برای هر گلهٔ چندسالنه اول جدول «کل گله»، بعد بخش‌های تفکیک سالن‌ها
-    const renderUnits =
-      groups && groups.length
-        ? groups.map((group) => ({ group, halls: group.halls || [] }))
-        : orderedFlocks.map((flock) => ({ group: null, halls: [flock] }));
-
-    const renderedKeys = new Set();
-    let flocksHTML = "";
-    renderUnits.forEach((unit) => {
-      const aggregate = unit.group?.aggregate;
-      if (unit.group && aggregate && unit.halls.length > 1) {
-        flocksHTML += renderGroupSection(unit.group, aggregate);
-      }
-      // کلیدهای همین واحد یک‌بار پردازش می‌شوند تا بخش‌ها تکراری نشوند
-      const unitKeys = new Set(unit.halls.map((flock) => flockGroupKey(flock)));
-      unitKeys.forEach((key) => {
-        renderedKeys.add(key);
-        (hallSections.get(key) || []).forEach((html) => {
-          flocksHTML += html;
-        });
-      });
+    // بدنهٔ این بخش در دو کمکی ماژول‌محلی است: buildGroupSectionHtml (بخش کل گله) و
+    // mergeReportSections (ترتیب نهایی واحدها + سالن‌های بیرون گروه).
+    const merged = mergeReportSections({
+      orderedFlocks,
+      hallSections,
+      groups,
+      selected,
+      options,
     });
-
-    // اگر سالنی خارج از گروه‌ها مانده باشد، در پایان نمایش داده می‌شود
-    orderedFlocks.forEach((flock) => {
-      const key = flockGroupKey(flock);
-      if (renderedKeys.has(key)) return;
-      (hallSections.get(key) || []).forEach((html) => {
-        flocksHTML += html;
-      });
-    });
+    merged.excludedNames.forEach((name) => excludedFlockNames.push(name));
+    const flocksHTML = merged.html;
 
     // ===== یادداشت شاخص‌های انتخابی + محدودهٔ هفته‌ها + خلاصهٔ هشدارها =====
     const weekSelectionSummary = options?.weekSelection
@@ -1580,3 +1465,156 @@ const buildFlockSectionHtml = ({
                     }
                 </div>
             `;
+
+// ============================================================
+//  کمکی‌های برش C: بخش «کل گله» و مونتاژ نهایی renderFullReport
+//  حلقهٔ مونتاژ عیناً منتقل شد؛ تنها تغییر: بخش «کل گله» به‌جای push مستقیم
+//  روی آرایهٔ متد، { html, excludedName } برمی‌گرداند و متد آن را push می‌کند.
+//  ⚠️ تورفتگی قالب verbatim حفظ شده (فاصله‌های داخل template بخشی از خروجی‌اند).
+// ============================================================
+const buildGroupSectionHtml = (group, aggregate, { selected, options }) => {
+      const stats = aggregate.statistics || {};
+      // هشدار در سطح «کل گله»: هفته‌ای که هیچ سالنی ثبت نکرده یا بعضی سالن‌ها ناقص‌اند
+      const groupAuditFull = mergeAudits(
+        (group.halls || []).map((hall) => auditOfFlock(hall)),
+      );
+
+      // ✅ انتخاب هفته‌ها در سطح «کل گله» = اجتماع انتخاب سالن‌ها
+      const timelinesByKey = {};
+      (group.halls || []).forEach((hall) => {
+        timelinesByKey[flockWeeksKey(hall)] = buildWeekTimeline(hall.weeks || []);
+      });
+      const groupWeekNumbers = options?.weekSelection
+        ? unionWeekSelection(
+            options.weekSelection,
+            (group.halls || []).map((hall) => flockWeeksKey(hall)),
+            timelinesByKey,
+          )
+        : null;
+      if (Array.isArray(groupWeekNumbers) && groupWeekNumbers.length === 0) {
+        return {
+          html: "",
+          excludedName: `گله ${group.flockNumber ?? "-"} (کل گله)`,
+        };
+      }
+      const groupAudit = Array.isArray(groupWeekNumbers)
+        ? scopeAuditToWeeks(groupAuditFull, groupWeekNumbers)
+        : groupAuditFull;
+
+      // چیپ «مبنای پایان» فقط وقتی همهٔ سالن‌ها یک مبنا دارند (یا خلاصهٔ متفاوت)
+      const hallTimelines = (group.halls || [])
+        .map((hall) => hall.timeline)
+        .filter(Boolean);
+      const sameEndWeek =
+        hallTimelines.length > 0 &&
+        hallTimelines.every(
+          (timeline) => timeline.endWeek === hallTimelines[0].endWeek,
+        );
+      const groupTimelineChip = sameEndWeek
+        ? timelineChip(hallTimelines[0])
+        : hallTimelines.length
+          ? '<span class="basis-chip" title="مبنای شمارش هفته‌های مورد انتظار">⚓ مبنای پایان: بر اساس پایان دورهٔ هر سالن</span>'
+          : "";
+
+      const hallNames = (group.halls || [])
+        .map((h) => h.hall_name || `سالن ${h.hall_id}`)
+        .join("، ");
+      const fcrText =
+        stats.fcr !== null && stats.fcr !== undefined ? fmtNum(stats.fcr, 3) : "-";
+
+  return {
+    html: `
+                <div class="flock-section flock-group-section">
+                    <div class="flock-header">
+                        <div>
+                            <div class="flock-title">🐔 گله ${group.flockNumber ?? "—"} — کل ${group.halls.length} سالن</div>
+                            <div style="font-size: 13px; color: #64748b;">
+                                ${hallNames || "-"} | ${group.breed_name || "-"} | ${toPersianDate(group.placement_date)}
+                            </div>
+                        </div>
+                        <div class="flock-meta">
+                            <span>🧮 ${fmtNum(group.total_chicks_count, 0)} قطعه</span>
+                            <span>📊 ${stats.weekCount || 0} از ${groupAudit.total || stats.weekCount || 0} هفته ثبت‌شده</span>
+                            ${renderGapBadge(groupAudit)}
+                            ${groupTimelineChip}
+                            ${weekRangeChip(
+                              groupWeekNumbers,
+                              Object.values(timelinesByKey).flat().map((week) => week.weekNumber),
+                            )}
+                            <span class="status-badge ${group.isActive ? "status-active" : "status-inactive"}">
+                                ${group.isActive ? "فعال" : "غیرفعال"}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="flock-summary-strip">
+                        <span><strong>تلفات کل گله:</strong> ${fmtNum(stats.totalMortality, 0)} قطعه</span>
+                        <span><strong>جمعیت مانده:</strong> ${fmtNum(stats.finalMetrics?.birdsEndOfWeek, 0)} قطعه</span>
+                        <span><strong>زنده‌مانی:</strong> ${fmtPct(stats.finalMetrics?.cumulativeSurvivalPercent)}</span>
+                        <span><strong>وزن کل گله:</strong> ${fmtNum(stats.finalMetrics?.totalLiveWeight, 1)} کیلوگرم</span>
+                        <span><strong>کل خوراک:</strong> ${fmtNum(stats.totalFeed, 1)} کیلوگرم</span>
+                        <span><strong>🐔 ضریب تبدیل:</strong> ${fcrText}</span>
+                        <span><strong>هفته‌های تکمیل شده:</strong> ${stats.weekCount || 0}</span>
+                    </div>
+
+                    ${renderWeekGapsAlert(groupAudit, "کل گله")}
+
+                    ${buildMetricsTableHtml(
+                      aggregate.savedWeeks,
+                      "📈 شاخص‌های عملکردی هفتگی — کل گله",
+                      selected,
+                      groupAudit,
+                      groupWeekNumbers,
+                    )}
+                </div>
+            `,
+    excludedName: null,
+  };
+};
+
+const mergeReportSections = ({
+  orderedFlocks,
+  hallSections,
+  groups,
+  selected,
+  options,
+}) => {
+  const excludedNames = [];
+    // ترتیب نهایی: برای هر گلهٔ چندسالنه اول جدول «کل گله»، بعد بخش‌های تفکیک سالن‌ها
+    const renderUnits =
+      groups && groups.length
+        ? groups.map((group) => ({ group, halls: group.halls || [] }))
+        : orderedFlocks.map((flock) => ({ group: null, halls: [flock] }));
+
+    const renderedKeys = new Set();
+    let flocksHTML = "";
+    renderUnits.forEach((unit) => {
+      const aggregate = unit.group?.aggregate;
+      if (unit.group && aggregate && unit.halls.length > 1) {
+        const section = buildGroupSectionHtml(unit.group, aggregate, {
+          selected,
+          options,
+        });
+        if (section.excludedName) excludedNames.push(section.excludedName);
+        flocksHTML += section.html;
+      }
+      // کلیدهای همین واحد یک‌بار پردازش می‌شوند تا بخش‌ها تکراری نشوند
+      const unitKeys = new Set(unit.halls.map((flock) => flockGroupKey(flock)));
+      unitKeys.forEach((key) => {
+        renderedKeys.add(key);
+        (hallSections.get(key) || []).forEach((html) => {
+          flocksHTML += html;
+        });
+      });
+    });
+
+    // اگر سالنی خارج از گروه‌ها مانده باشد، در پایان نمایش داده می‌شود
+    orderedFlocks.forEach((flock) => {
+      const key = flockGroupKey(flock);
+      if (renderedKeys.has(key)) return;
+      (hallSections.get(key) || []).forEach((html) => {
+        flocksHTML += html;
+      });
+    });
+  return { html: flocksHTML, excludedNames };
+};
