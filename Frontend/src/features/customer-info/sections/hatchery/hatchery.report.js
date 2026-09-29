@@ -693,7 +693,80 @@ class HatcheryReport {
       esc, dateParts, getDeliveryText, getSenderName, statusText,
     });
 
-    return `
+    return buildFlockSmsReportDocument({
+      title, persianDate, customer, flock, unitName, hallNames,
+      logs, rows, reporterName, roleText, reportDate, reportTime, countBy,
+    });
+  }
+
+  async generateAndPrint(mode = "active") {
+    try {
+      await this.init();
+      const reportData = await this.generateFullReport(mode);
+      const html = this.generateHTML(reportData);
+      const printWindow = window.open("", "_blank", "width=1100,height=800");
+      if (!printWindow) {
+        notificationService.warning("لطفاً باز شدن پنجره popup را مجاز کنید");
+        return;
+      }
+      // ✅ پاک‌سازی خروجی گزارش (جلوگیری از اجرای اسکریپت تزریق‌شده از دیتابیس)
+      printWindow.document.write(sanitizeHtmlDocument(html));
+      printWindow.document.close();
+    } catch (error) {
+      console.error("❌ Error generating chick report:", error);
+      notificationService.error("خطا در تولید گزارش: " + error.message);
+    }
+  }
+
+  async generateHistoryAndPrint() {
+    await this.generateAndPrint("history");
+  }
+}
+
+// کمکی ماژول‌محلی (موج ۳.۲j) — ردیف‌های جدول گزارش پیامک گله.
+// ⚠️ قالب رشته‌ای داخل این تابع عیناً از بدنهٔ متد منتقل شده است؛ هرگونه
+// تغییر تورفتگی/فاصلهٔ داخل قالب، بایت خروجی HTML را عوض می‌کند.
+const buildFlockSmsReportRows = (logs, helpers) => {
+  const { esc, dateParts, getDeliveryText, getSenderName, statusText } = helpers;
+    const rows =
+      logs && logs.length
+        ? logs
+            .map((r, i) => {
+              const sent = dateParts(r.sent_at || r.created_at);
+              const delivered = dateParts(r.delivered_at);
+              const scope = r.scope === "hall" ? "hall" : "flock";
+              const status = ["pending", "sent", "delivered", "failed"].includes(
+                r.status,
+              )
+                ? r.status
+                : "pending";
+              return `
+            <tr>
+              <td class="sms-idx">${i + 1}</td>
+              <td class="sms-msg">${esc(r.message || "—")}</td>
+              <td class="sms-scope"><span class="sms-chip chip-${scope}">${scope === "hall" ? "سالن" : "کل گله"}</span></td>
+              <td class="sms-target">${esc(r.targetLabel || r.target_title || "—")}</td>
+              <td class="sms-role">${esc(r.roleLabel || "—")}</td>
+              <td class="sms-date"><span class="dt-d">${sent.d}</span><span class="dt-t">${sent.t}</span></td>
+              <td class="sms-date"><span class="dt-d">${delivered.d}</span><span class="dt-t">${delivered.t}</span></td>
+              <td class="sms-delivery">${esc(getDeliveryText(r.delivery_state))}</td>
+              <td class="sms-status"><span class="status-chip status-${status}">${esc(statusText(status))}</span></td>
+              <td class="sms-sender">${esc(getSenderName(r.sender))}</td>
+            </tr>`;
+            })
+            .join("")
+        : '<tr><td colspan="10" class="sms-empty">پیامکی برای این گله ثبت نشده است</td></tr>';
+  return rows;
+};
+// کمکی ماژول‌محلی (موج ۳.۲j) — سند کامل HTML گزارش پیامک گله.
+// ⚠️ قالب زیر بایت‌به‌بایت از بدنهٔ متد منتقل شده است؛ فاصله‌های داخل backtick
+// بخشی از خروجی چاپ‌اند و هرگونه dedent، بایت HTML را عوض می‌کند.
+const buildFlockSmsReportDocument = (params) => {
+  const {
+    title, persianDate, customer, flock, unitName, hallNames,
+    logs, rows, reporterName, roleText, reportDate, reportTime, countBy,
+  } = params;
+  return `
       <!DOCTYPE html>
       <html lang="fa" dir="rtl">
       <head>
@@ -827,65 +900,5 @@ class HatcheryReport {
       </body>
       </html>
     `;
-  }
-
-  async generateAndPrint(mode = "active") {
-    try {
-      await this.init();
-      const reportData = await this.generateFullReport(mode);
-      const html = this.generateHTML(reportData);
-      const printWindow = window.open("", "_blank", "width=1100,height=800");
-      if (!printWindow) {
-        notificationService.warning("لطفاً باز شدن پنجره popup را مجاز کنید");
-        return;
-      }
-      // ✅ پاک‌سازی خروجی گزارش (جلوگیری از اجرای اسکریپت تزریق‌شده از دیتابیس)
-      printWindow.document.write(sanitizeHtmlDocument(html));
-      printWindow.document.close();
-    } catch (error) {
-      console.error("❌ Error generating chick report:", error);
-      notificationService.error("خطا در تولید گزارش: " + error.message);
-    }
-  }
-
-  async generateHistoryAndPrint() {
-    await this.generateAndPrint("history");
-  }
-}
-
-// کمکی ماژول‌محلی (موج ۳.۲j) — ردیف‌های جدول گزارش پیامک گله.
-// ⚠️ قالب رشته‌ای داخل این تابع عیناً از بدنهٔ متد منتقل شده است؛ هرگونه
-// تغییر تورفتگی/فاصلهٔ داخل قالب، بایت خروجی HTML را عوض می‌کند.
-const buildFlockSmsReportRows = (logs, helpers) => {
-  const { esc, dateParts, getDeliveryText, getSenderName, statusText } = helpers;
-    const rows =
-      logs && logs.length
-        ? logs
-            .map((r, i) => {
-              const sent = dateParts(r.sent_at || r.created_at);
-              const delivered = dateParts(r.delivered_at);
-              const scope = r.scope === "hall" ? "hall" : "flock";
-              const status = ["pending", "sent", "delivered", "failed"].includes(
-                r.status,
-              )
-                ? r.status
-                : "pending";
-              return `
-            <tr>
-              <td class="sms-idx">${i + 1}</td>
-              <td class="sms-msg">${esc(r.message || "—")}</td>
-              <td class="sms-scope"><span class="sms-chip chip-${scope}">${scope === "hall" ? "سالن" : "کل گله"}</span></td>
-              <td class="sms-target">${esc(r.targetLabel || r.target_title || "—")}</td>
-              <td class="sms-role">${esc(r.roleLabel || "—")}</td>
-              <td class="sms-date"><span class="dt-d">${sent.d}</span><span class="dt-t">${sent.t}</span></td>
-              <td class="sms-date"><span class="dt-d">${delivered.d}</span><span class="dt-t">${delivered.t}</span></td>
-              <td class="sms-delivery">${esc(getDeliveryText(r.delivery_state))}</td>
-              <td class="sms-status"><span class="status-chip status-${status}">${esc(statusText(status))}</span></td>
-              <td class="sms-sender">${esc(getSenderName(r.sender))}</td>
-            </tr>`;
-            })
-            .join("")
-        : '<tr><td colspan="10" class="sms-empty">پیامکی برای این گله ثبت نشده است</td></tr>';
-  return rows;
 };
 export const hatcheryReport = new HatcheryReport();
