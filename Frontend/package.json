@@ -26,6 +26,7 @@
     "test:hatchery-surface": "node hatchery-service-surface-test.mjs",
     "test:dashboard-surface": "node dashboard-service-surface-test.mjs",
     "test:dashboard:bookmarks:body": "node dashboard-bookmarks-body-split-test.mjs",
+    "test:hatchery:sms-body": "node hatchery-sms-body-split-test.mjs",
     "audit:size": "node scripts/audit-size.mjs",
     "audit:dead-exports": "node scripts/audit-dead-exports.mjs",
     "audit:surface": "node scripts/audit-service-surface.mjs",
