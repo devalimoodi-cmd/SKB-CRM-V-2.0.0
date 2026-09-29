@@ -1592,3 +1592,96 @@ audit:size               :: hatchery.report.js ۴۰.۵KB → ۴۲.۲KB (فقط �
 - نامزدهای بعدی: `chartDashboardRenderer.renderContainer` (۲۴۹) · `weeklyRenderer.renderFlockReport` (۲۴۲) ·
   `dashboardSmsMethods.refreshSmsStatus` (۲۳۹) · `renderAllCharts` (۲۲۳) · `dashboardService.setupCharts` (۲۲۳).
 
+---
+
+## ۲۲) موج ۳.۲k — برش بدنهٔ متد غول نمودارهای تحلیلی (`renderContainer`)
+
+### الف) هدف و اعداد
+
+`chartDashboardRenderer.renderContainer` در `chart-dashboard.renderer.js:8` با **۲۴۹ خط**
+بزرگ‌ترین متد باقی‌ماندهٔ مخزن بود: تنها وابستگی‌اش `document.querySelector(".skb-charts-container")`
+و نوشتن `innerHTML` است (بدون `Date`/`Intl`/شبکه/`await`) و هیچ تستی این خوشه را نمی‌پوشاند.
+
+| سنجه | پیش | پس |
+| --- | --- | --- |
+| `renderContainer` | ۲۴۹ خط | **۳۱ خط** (−۸۸٪) |
+| خطوط/بایت منتقل‌شده | — | ۷ + ۲۸ + ۱۸۷ = **۲۲۲ خط** (۳۱۹ + ۱۲۸۷ + ۱۴۶۰۶ = **۱۶۲۱۲ بایت**) |
+| کمکی‌های ماژول‌محلی تازه | — | ۳ (`buildChartsEmptyStateHtml` · `buildFlockChecksHtml` · `buildChartsContainerHtml`) |
+| `audit:big-methods` | ۱۹ متد | **۱۸ متد** (صدر: `weeklyRenderer.renderFlockReport` ۲۴۲) |
+| `chart-dashboard.renderer.js` | 22.8KB / ۳۵۲ خط | 24.6KB / ۳۷۵ خط |
+
+### ب) گارد پیش از برش — `test:chart-dashboard:body`
+
+پیش از هر تغییر، گارد طلایی بایت‌به‌بایت نوشته شد (کامیت `6fd5606`، تگ `pre-charts-body-split`):
+
+- `Frontend/chart-dashboard-body-split-test.mjs` با **۲۵ کِیس** و **۱۲۳ بررسی**، اسنپ‌شات `docs/chart-dashboard-body-golden.json` (هش `sha256`).
+- چون متد چیزی برنمی‌گرداند و کانتینر را جهش می‌دهد، هارنس یک **کانتینر جعلی** می‌سازد
+  (`document.querySelector` → عنصر با `innerHTML`) و بایت‌های نوشته‌شده را قفل می‌کند.
+- رکورد هر کِیس: `{ containerFound, selectorQueries, lastSelector, getElementByIdCalls,
+  createdElements, returnedUndefined, thrown, html, htmlBytes }`.
+- ۲۵ کِیس: نمای گلهٔ پایه · کانتینر غایب (early-return) · گلهٔ تهی/`null` (حالت خالی) ·
+  نمای سالن (گروه چندعضوی/تک‌عضوی/عضو گم‌شده/بدون گروه) · `viewMode` نامعتبر · سه چیدمان +
+  مقدار نامعتبر (`passthrough`) · چهار حالت `mainIndicator` · سه حالت بنر/یادداشت گله‌های گذشته ·
+  `weekCount` ۱۶/`undefined` · بدون انتخاب · شناسهٔ عددی و تکراری · `_uid` غایب ·
+  برچسب سفارشی چیپ · `options` حذف‌شده (پیش‌فرض) · `selectedFlockIds` غایب (`TypeError` مرزی).
+
+**✅ مزیت ویژهٔ این گارد:** خروجی متد هیچ وابستگی‌ای به ساعت/locale/ICU ندارد و خودِ تست هم
+این ادعا را روی **متن منبع متد** بررسی می‌کند (`new Date(` و `Intl.` ممنوع)، پس این اسنپ‌شات
+«قابل‌حمل‌تر» از اسنپ‌شات‌های موج‌های قبل است (فقط به بایت‌های قالب و سبک EOL فایل وابسته است).
+
+**⚠️ یک ناسازگاری رفتاری که همین گارد لو داد (مستند شد، تغییر داده نشد):**
+مقدار چک‌باکس چیپ از `u._uid || u.flock.id` می‌آید ولی وضعیت `checked` از `isChecked(u._uid)`
+خوانده می‌شود؛ یعنی واحدِ بدون `_uid` حتی وقتی `flock.id` او در `selectedFlockIds` باشد
+تیک نمی‌خورد (و برعکس، انتخابِ مقدارِ `undefined` ⇒ `String(undefined) === "undefined"`
+تیک می‌خورد). هر دو سو در کِیس‌های `C21`/`C25` قفل شده‌اند تا اصلاحِ احتمالی آینده
+آگاهانه باشد (برش بدنه، تغییر رفتار نیست).
+
+### پ) سه برش (سه کامیت اتمی)
+
+| برش | ناحیه | کمکی | اعداد |
+| --- | --- | --- | --- |
+| A | `container.innerHTML` با قالب حالت خالی (خطوط ۱۳..۱۹) | `buildChartsEmptyStateHtml()` | ۷ → ۱ خط · ۳۱۹ بایت |
+| B | `let flockChecks … else { … }` (خطوط ۴۰..۶۷) | `buildFlockChecksHtml({ viewMode, groupMeta, hallFlocks, chip, flocks })` | ۲۸ → ۱ خط · ۱۲۸۷ بایت |
+| C | `container.innerHTML` با قالب `analysis-module` (خطوط ۶۹..۲۵۵) | `buildChartsContainerHtml({ renderer, weekCount, flockChecks, viewMode, layoutMode, options })` | ۱۸۷ → ۱ خط · ۱۴۶۰۶ بایت |
+
+- هر سه ناحیه **بایت‌به‌بایت** منتقل شدند (صفر dedent؛ در برش B حتی تورفتگی کد هم دست نخورد
+  چون داخلش قالب‌های رشته‌ای چندخطی وجود دارد).
+- تنها تغییر «درون کدِ درون‌یابی»: `${this.renderSimpleCard(` و `${this.renderMiniTabsCard(`
+  به `${renderer.renderSimpleCard(` و `${renderer.renderMiniTabsCard(` (جمعاً ۷ مورد)،
+  و `this` به‌صورت `renderer: this` پاس می‌شود تا معنای `this` متد حفظ شود.
+- **برش C برای بودجه الزامی بود** (برخلاف موج ۳.۲j): A+B فقط ۲۴۹ → ۲۱۵ می‌کرد؛ با C به ۳۱ رسید.
+- اثبات هر برش: «لنگر یکتا» + «ناحیه بایت‌به‌بایت در فایل تازه» + «**اثبات بازگشتی**: حذف کمکی و
+  بازگرداندن فراخوانی به متن اصلی = فایل اصلی» + «کاهش طول متد» + «EOL دست‌نخورده».
+
+### ت) تله‌های واقعی که گیت‌ها گرفتند (شفافیت)
+
+1. **`this.` فقط در دو جا نیست:** قالب، `this.checked` را داخل بایت‌های HTML دارد
+   (`onchange="…this.checked"`)؛ assert «صفر `this.`» غلط بود ⇒ سنجش به «صفر `${this.`» +
+   «`count(this.) == قبل − ۷`» تغییر کرد (تلهٔ «assert سراسری» موج ۳.۲j، این بار روی بایت‌های رشته).
+2. **انکرهای من چند جا اشتباه بودند و گارد همه را گرفت:** شکست بین‌خطی در چیپ‌ها
+   (`value="u1" checked` و `onchange` در دو خط)، `data-layout`/`data-ind` که در **دکمه‌های
+   ثابت** هم هستند (نه فقط کانتینر/تب فعال)، و `analysis-tab active` که کارت‌های «تبی» هم دارند.
+   درس: انکرها باید «ویژه» باشند، نه «کوتاه».
+3. **یک نویسهٔ زائد در فهرست انکرها** (خطای تایپی من) باعث خطای نحوی شد و بلافاصله در اجرا
+   دیده شد؛ پیش از کامیت پاک شد.
+4. **ناسازگاری `_uid`/`checked`** (§ب) که فقط با کِیس «شناسهٔ عددی برای واحدِ بدون `_uid`»
+   دیده شد — نمونهٔ خوبی از این‌که گارد، ابزار کشف هم هست.
+
+### ث) شواهد تأیید
+
+```text
+test:chart-dashboard:body  :: ۱۲۳ بررسی · ۲۵ کِیس · pass=۱۲۳ fail=0  (پس از هر سه برش)
+audit:surface              :: ۰ گم‌شده · ۰ افزوده · ۰ نقض
+audit:big-methods          :: ۱۸ متد (پیش از موج: ۱۹) · متد هدف ۲۴۹ → ۳۱ خط
+chart-dashboard.renderer.js:: 22.8KB → 24.6KB
+```
+
+### ج) یادداشت نگه‌داری و گام بعدی
+
+- **گارد دائمی این موج `npm run test:chart-dashboard:body` است** و به گام ۲۷ دروازه اضافه شد.
+  بازتولید اسنپ‌شات: `npm run test:chart-dashboard:body -- --snapshot`.
+- نکتهٔ نگه‌داری: اگر روزی کسی `buildChartsContainerHtml` را جدا import کند، وابستگی‌اش به
+  `renderer` (برای دو کارت‌ساز) عمدی است؛ `this` را نشکنید.
+- نامزدهای بعدی: `weeklyRenderer.renderFlockReport` (۲۴۲) · `dashboardSmsMethods.refreshSmsStatus` (۲۳۹) ·
+  `renderAllCharts` (۲۲۳) · `dashboardService.setupCharts` (۲۲۳) · `visitReportRenderer.renderReportModal` (۲۱۵).
+

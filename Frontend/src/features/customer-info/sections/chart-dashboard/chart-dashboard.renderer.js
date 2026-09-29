@@ -1,6 +1,10 @@
 // ================================================================
 // chart-dashboard.renderer.js
 // رندر ماژول نمودارهای تحلیلی داینامیک (تب داشبورد اطلاعات مشتری)
+// موج ۳.۲k — برش بدنهٔ `renderContainer` (۲۴۹ → ۳۱ خط): قالب حالت خالی، سازندهٔ چیپ‌های
+// گله/سالن و قالب کامل کانتینر به سه کمکی ماژول‌محلی رفتند (`buildChartsEmptyStateHtml` ·
+// `buildFlockChecksHtml` · `buildChartsContainerHtml`)؛ خروجی بایت‌به‌بایت ثابت است
+// (گارد `npm run test:chart-dashboard:body` · ۱۲۳ بررسی · ۲۵ کِیس).
 // ================================================================
 
 export const chartDashboardRenderer = {
