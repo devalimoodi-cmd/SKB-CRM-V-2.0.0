@@ -94,3 +94,10 @@ structure.txt
 
 # ==== backups ====
 backups/
+
+# ==== gate logs (tools/gate.ps1 · tools/gate.mjs) ====
+.gate-logs/
+
+# ==== transient agent helper scripts ====
+.cline-tmp-*
+

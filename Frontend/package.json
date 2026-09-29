@@ -5,6 +5,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
+    "gate": "node ../tools/gate.mjs",
     "lint": "eslint src",
     "test:cache": "node frontend-server-test.mjs",
     "test:denied": "node permission-denied-test.mjs",
