@@ -813,57 +813,10 @@ export const dashboardSmsMethods = {
       // ۴. نمایش مودال با وضعیت‌های جدید
       if (openModal && typeof Swal !== "undefined") {
         const rows = buildSmsStatusRowsHtml(records, { service: this });
-        const deliveredCount = records.filter(
-          (r) => r.status === "delivered" || r.delivery_state === 1,
-        ).length;
-        const failedCount = records.filter(
-          (r) => r.status === "failed" || r.delivery_state === 6,
-        ).length;
-        const pendingCount = records.filter(
-          (r) => r.status === "pending" || !r.status || !r.delivery_state,
-        ).length;
-
         Swal.fire({
           icon: "info",
           title: "📱 بروزرسانی وضعیت پیامک‌ها",
-          html: `
-            <div style="direction:rtl; text-align:right; font-family:'Vazir';">
-              <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:12px;">
-                <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; padding:8px; text-align:center;">
-                  <div style="font-size:18px; font-weight:700; color:#16a34a;">${deliveredCount}</div>
-                  <div style="font-size:10px; color:#94a3b8;">✅ تحویل شده</div>
-                </div>
-                <div style="background:#fef2f2; border:1px solid #fecaca; border-radius:8px; padding:8px; text-align:center;">
-                  <div style="font-size:18px; font-weight:700; color:#dc2626;">${failedCount}</div>
-                  <div style="font-size:10px; color:#94a3b8;">❌ ناموفق</div>
-                </div>
-                <div style="background:#fffbeb; border:1px solid #fde68a; border-radius:8px; padding:8px; text-align:center;">
-                  <div style="font-size:18px; font-weight:700; color:#d97706;">${pendingCount}</div>
-                  <div style="font-size:10px; color:#94a3b8;">⏳ در انتظار</div>
-                </div>
-              </div>
-              <div style="overflow-x:auto; max-height:300px; overflow-y:auto;">
-                <table style="width:100%; border-collapse:collapse; font-size:12px;">
-                  <thead>
-                    <tr style="background:#f8fafc; position:sticky; top:0;">
-                      <th style="padding:8px; border-bottom:2px solid #eef2f6;">ردیف</th>
-                      <th style="padding:8px; border-bottom:2px solid #eef2f6;">متن پیام</th>
-                      <th style="padding:8px; border-bottom:2px solid #eef2f6;">گیرنده</th>
-                      <th style="padding:8px; border-bottom:2px solid #eef2f6;">تاریخ و زمان ارسال</th>
-                      <th style="padding:8px; border-bottom:2px solid #eef2f6;">وضعیت تحویل</th>
-                      <th style="padding:8px; border-bottom:2px solid #eef2f6;">تاریخ و زمان تحویل</th>
-                      <th style="padding:8px; border-bottom:2px solid #eef2f6;">وضعیت</th>
-                      <th style="padding:8px; border-bottom:2px solid #eef2f6;">فرستنده</th>
-                    </tr>
-                  </thead>
-                  <tbody>${rows}</tbody>
-                </table>
-              </div>
-              <p style="font-size:11px; color:#94a3b8; margin-top:10px; text-align:center;">
-                ${totalChecked} پیامک بررسی شد ${updatedCount > 0 ? ` | ${updatedCount} پیامک به‌روزرسانی شد` : ""}
-              </p>
-            </div>
-          `,
+          html: buildSmsStatusModalHtml({ records, rows, totalChecked, updatedCount }),
           confirmButtonText: "باشه",
           confirmButtonColor: "#2c7a6e",
           width: 1120,
@@ -995,5 +948,59 @@ const buildSmsStatusRowsHtml = (records, { service }) => {
           .join("");
 
   return rows;
+};
+
+// کمکی ماژول‌محلی (موج ۳.۲m) — قالب html مودال وضعیت پیامک + شمارنده‌های خلاصه.
+// ⚠️ متن زیر بایت‌به‌بایت از بدنهٔ `refreshSmsStatus` منتقل شده است؛ فاصله‌های داخل
+// backtick بخشی از خروجی مودال‌اند و dedent ممنوع است.
+const buildSmsStatusModalHtml = ({ records, rows, totalChecked, updatedCount }) => {
+        const deliveredCount = records.filter(
+          (r) => r.status === "delivered" || r.delivery_state === 1,
+        ).length;
+        const failedCount = records.filter(
+          (r) => r.status === "failed" || r.delivery_state === 6,
+        ).length;
+        const pendingCount = records.filter(
+          (r) => r.status === "pending" || !r.status || !r.delivery_state,
+        ).length;
+
+  return `
+            <div style="direction:rtl; text-align:right; font-family:'Vazir';">
+              <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:12px;">
+                <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; padding:8px; text-align:center;">
+                  <div style="font-size:18px; font-weight:700; color:#16a34a;">${deliveredCount}</div>
+                  <div style="font-size:10px; color:#94a3b8;">✅ تحویل شده</div>
+                </div>
+                <div style="background:#fef2f2; border:1px solid #fecaca; border-radius:8px; padding:8px; text-align:center;">
+                  <div style="font-size:18px; font-weight:700; color:#dc2626;">${failedCount}</div>
+                  <div style="font-size:10px; color:#94a3b8;">❌ ناموفق</div>
+                </div>
+                <div style="background:#fffbeb; border:1px solid #fde68a; border-radius:8px; padding:8px; text-align:center;">
+                  <div style="font-size:18px; font-weight:700; color:#d97706;">${pendingCount}</div>
+                  <div style="font-size:10px; color:#94a3b8;">⏳ در انتظار</div>
+                </div>
+              </div>
+              <div style="overflow-x:auto; max-height:300px; overflow-y:auto;">
+                <table style="width:100%; border-collapse:collapse; font-size:12px;">
+                  <thead>
+                    <tr style="background:#f8fafc; position:sticky; top:0;">
+                      <th style="padding:8px; border-bottom:2px solid #eef2f6;">ردیف</th>
+                      <th style="padding:8px; border-bottom:2px solid #eef2f6;">متن پیام</th>
+                      <th style="padding:8px; border-bottom:2px solid #eef2f6;">گیرنده</th>
+                      <th style="padding:8px; border-bottom:2px solid #eef2f6;">تاریخ و زمان ارسال</th>
+                      <th style="padding:8px; border-bottom:2px solid #eef2f6;">وضعیت تحویل</th>
+                      <th style="padding:8px; border-bottom:2px solid #eef2f6;">تاریخ و زمان تحویل</th>
+                      <th style="padding:8px; border-bottom:2px solid #eef2f6;">وضعیت</th>
+                      <th style="padding:8px; border-bottom:2px solid #eef2f6;">فرستنده</th>
+                    </tr>
+                  </thead>
+                  <tbody>${rows}</tbody>
+                </table>
+              </div>
+              <p style="font-size:11px; color:#94a3b8; margin-top:10px; text-align:center;">
+                ${totalChecked} پیامک بررسی شد ${updatedCount > 0 ? ` | ${updatedCount} پیامک به‌روزرسانی شد` : ""}
+              </p>
+            </div>
+          `;
 };
 
