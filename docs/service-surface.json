@@ -1087,77 +1087,7 @@
       "classes": {
         "HallsService": {
           "methods": [
-            "activateTab",
-            "addSystemItemRow",
-            "addUnitEditExpertRow",
-            "addUnitExpertRow",
-            "applyDefaultExpertSelection",
-            "autoGenerateHallName",
-            "autoPopulateHallNumber",
-            "calculateArea",
-            "cancelEditHall",
-            "checkActivePeriod",
-            "closeUnitEdit",
-            "collectSystemItems",
-            "collectUnitExperts",
-            "constructor",
-            "createSysRowHtml",
-            "deleteHall",
-            "deleteUnit",
-            "editHall",
-            "expandUnitCard",
-            "fmtCap",
-            "getDictionaries",
-            "getHalls",
-            "getPeriodInfo",
-            "getPeriods",
-            "hideLegacySystemFields",
-            "init",
-            "loadData",
-            "loadDictionaries",
-            "loadHalls",
-            "loadPhysicalInfo",
-            "loadSystemInfo",
-            "loadTabData",
-            "loadUnitDetails",
-            "loadUnits",
-            "loadWaterFeedInfo",
-            "lockBasicHallNumberField",
-            "openUnitEdit",
-            "populateHallNumberInAllDropdowns",
-            "refresh",
-            "refreshAllDropdowns",
-            "refreshUnitCapacityBadge",
-            "removeSystemItemRow",
-            "removeUnitEditExpertRow",
-            "removeUnitExpertRow",
-            "renderHallsList",
-            "renderSystemItemsEditor",
-            "renderUnitDetailsPanel",
-            "resetTab",
-            "resetUnitExpertRows",
-            "restoreTabButtonsToDefault",
-            "saveBasicInfo",
-            "savePhysicalInfo",
-            "saveSystemsInfo",
-            "saveUnitInfo",
-            "saveWaterFeedInfo",
-            "setEditModeBanner",
-            "setupEditModeButtonsForAllTabs",
-            "setupEditModeUI",
-            "setupEvents",
-            "setupSaveButtons",
-            "setupTabs",
-            "sysCatMeta",
-            "sysOptionsHtml",
-            "toggleHallCard",
-            "toggleHallStatus",
-            "toggleUnitCard",
-            "toggleUnitStatus",
-            "updateCategoryTotals",
-            "updateFilteredHallDropdown",
-            "updateHallsDropdowns",
-            "updateUnitInfo"
+            "constructor"
           ],
           "properties": [
             "_capOverflowDebounce",
@@ -1186,7 +1116,6 @@
             "halls",
             "hideLegacySystemFields",
             "initialized",
-            "loadCities",
             "loadData",
             "loadDictionaries",
             "loadHalls",
@@ -1225,9 +1154,101 @@
             "value",
             "waterFeedPeriodId"
           ],
-          "mixins": {}
+          "mixins": {
+            "src/features/customer-info/sections/hall-management/halls.basic.js": [
+              "applyDefaultExpertSelection",
+              "autoGenerateHallName",
+              "autoPopulateHallNumber",
+              "fmtCap",
+              "getDictionaries",
+              "hideLegacySystemFields",
+              "lockBasicHallNumberField",
+              "refreshUnitCapacityBadge",
+              "saveBasicInfo"
+            ],
+            "src/features/customer-info/sections/hall-management/halls.core.js": [
+              "getHalls",
+              "getPeriods",
+              "init",
+              "loadData",
+              "loadDictionaries",
+              "loadHalls",
+              "loadUnits",
+              "refresh",
+              "refreshAllDropdowns"
+            ],
+            "src/features/customer-info/sections/hall-management/halls.edit-mode.js": [
+              "cancelEditHall",
+              "editHall",
+              "populateHallNumberInAllDropdowns",
+              "restoreTabButtonsToDefault",
+              "setEditModeBanner",
+              "setupEditModeButtonsForAllTabs",
+              "setupEditModeUI"
+            ],
+            "src/features/customer-info/sections/hall-management/halls.forms.js": [
+              "collectSystemItems",
+              "loadWaterFeedInfo",
+              "savePhysicalInfo",
+              "saveSystemsInfo",
+              "saveWaterFeedInfo",
+              "setupSaveButtons"
+            ],
+            "src/features/customer-info/sections/hall-management/halls.list.js": [
+              "expandUnitCard",
+              "getPeriodInfo",
+              "renderHallsList",
+              "toggleHallCard",
+              "toggleHallStatus",
+              "toggleUnitCard",
+              "toggleUnitStatus",
+              "updateFilteredHallDropdown",
+              "updateHallsDropdowns"
+            ],
+            "src/features/customer-info/sections/hall-management/halls.systems.js": [
+              "addSystemItemRow",
+              "createSysRowHtml",
+              "loadSystemInfo",
+              "removeSystemItemRow",
+              "renderSystemItemsEditor",
+              "sysCatMeta",
+              "sysOptionsHtml",
+              "updateCategoryTotals"
+            ],
+            "src/features/customer-info/sections/hall-management/halls.tabs.js": [
+              "activateTab",
+              "checkActivePeriod",
+              "loadTabData",
+              "resetTab",
+              "setupEvents",
+              "setupTabs"
+            ],
+            "src/features/customer-info/sections/hall-management/halls.units.js": [
+              "addUnitEditExpertRow",
+              "addUnitExpertRow",
+              "calculateArea",
+              "closeUnitEdit",
+              "collectUnitExperts",
+              "deleteHall",
+              "deleteUnit",
+              "loadPhysicalInfo",
+              "loadUnitDetails",
+              "openUnitEdit",
+              "removeUnitEditExpertRow",
+              "removeUnitExpertRow",
+              "renderUnitDetailsPanel",
+              "resetUnitExpertRows",
+              "saveUnitInfo",
+              "updateUnitInfo"
+            ]
+          }
         }
       },
+      "windowGlobals": []
+    },
+    "src/features/customer-info/sections/hall-management/halls.window-glue.js": {
+      "instances": {},
+      "classes": {},
       "windowGlobals": [
         "HallsService",
         "addSystemItemRow",
@@ -1702,6 +1723,13 @@
         "weeklyRenderer"
       ]
     },
+    "src/features/customer-info/sections/weekly/weekly.report.history.html.js": {
+      "instances": {},
+      "classes": {},
+      "windowGlobals": [
+        "onload"
+      ]
+    },
     "src/features/customer-info/sections/weekly/weekly.service.js": {
       "instances": {
         "weeklyService": "WeeklyService"
@@ -1709,55 +1737,7 @@
       "classes": {
         "WeeklyService": {
           "methods": [
-            "buildFlockReportData",
-            "buildWeeklyHistoryHTML",
-            "calculateAge",
-            "calculateWeeks",
-            "closeAllWeeks",
-            "constructor",
-            "dailyGainStatusText",
-            "deleteWeek",
-            "fcrStatusText",
-            "gainStatusText",
-            "generateFlockReport",
-            "generateFullReport",
-            "generateWeeklyHistoryReport",
-            "getWeeksForFlock",
-            "groupFlockCards",
-            "handleFeedAutoCalc",
-            "init",
-            "loadData",
-            "loadDictionaries",
-            "loadFlocks",
-            "loadFlocksFilter",
-            "loadHalls",
-            "loadSavedReportGroups",
-            "loadSavedWeekRule",
-            "loadStandardsForFlock",
-            "loadUnits",
-            "mergeWeeks",
-            "openAllWeeks",
-            "openReportWindow",
-            "pickHistoryFlocks",
-            "pickReportGroups",
-            "pickReportWeeksPerFlock",
-            "refresh",
-            "renderFlocks",
-            "renderWeeks",
-            "resetCache",
-            "resetWeekForm",
-            "saveReportGroups",
-            "saveWeek",
-            "saveWeekRule",
-            "setupEvents",
-            "setupFilters",
-            "showMoreWeeks",
-            "toggleFlock",
-            "toggleFlockGroup",
-            "toggleWeek",
-            "updateAllWeekCards",
-            "updateWeekCards",
-            "weightStatusText"
+            "constructor"
           ],
           "properties": [
             "MAX_DEFAULT_WEEKS",
@@ -1814,9 +1794,79 @@
             "weeksShown",
             "weightStatusText"
           ],
-          "mixins": {}
+          "mixins": {
+            "src/features/customer-info/sections/weekly/weekly.cards.js": [
+              "calculateWeeks",
+              "dailyGainStatusText",
+              "fcrStatusText",
+              "gainStatusText",
+              "handleFeedAutoCalc",
+              "mergeWeeks",
+              "renderWeeks",
+              "updateAllWeekCards",
+              "updateWeekCards",
+              "weightStatusText"
+            ],
+            "src/features/customer-info/sections/weekly/weekly.flocks.js": [
+              "closeAllWeeks",
+              "getWeeksForFlock",
+              "groupFlockCards",
+              "loadFlocksFilter",
+              "loadStandardsForFlock",
+              "openAllWeeks",
+              "renderFlocks",
+              "setupEvents",
+              "setupFilters",
+              "showMoreWeeks",
+              "toggleFlock",
+              "toggleFlockGroup",
+              "toggleWeek"
+            ],
+            "src/features/customer-info/sections/weekly/weekly.form.js": [
+              "deleteWeek",
+              "resetWeekForm",
+              "saveWeek"
+            ],
+            "src/features/customer-info/sections/weekly/weekly.loading.js": [
+              "init",
+              "loadData",
+              "loadDictionaries",
+              "loadFlocks",
+              "loadHalls",
+              "loadUnits",
+              "refresh",
+              "resetCache"
+            ],
+            "src/features/customer-info/sections/weekly/weekly.report.full.js": [
+              "buildFlockReportData",
+              "generateFlockReport",
+              "generateFullReport",
+              "openReportWindow"
+            ],
+            "src/features/customer-info/sections/weekly/weekly.report.history.html.js": [
+              "buildWeeklyHistoryHTML",
+              "calculateAge"
+            ],
+            "src/features/customer-info/sections/weekly/weekly.report.history.js": [
+              "generateWeeklyHistoryReport",
+              "pickHistoryFlocks"
+            ],
+            "src/features/customer-info/sections/weekly/weekly.report.pickers.js": [
+              "loadSavedReportGroups",
+              "loadSavedWeekRule",
+              "pickReportGroups",
+              "pickReportWeeksPerFlock",
+              "saveReportGroups",
+              "saveWeekRule"
+            ]
+          }
         }
       },
+      "windowGlobals": []
+    },
+    "src/features/customer-info/sections/weekly/weekly.window-glue.js": {
+      "instances": {},
+      "classes": {},
       "windowGlobals": [
         "WeeklyService",
         "closeAllWeeks",
@@ -1824,7 +1874,6 @@
         "generateFlockReport",
         "generateFullWeeklyReport",
         "generateWeeklyHistoryReport",
-        "onload",
         "openAllWeeks",
         "refreshWeeksDisplay",
         "resetWeekForm",
