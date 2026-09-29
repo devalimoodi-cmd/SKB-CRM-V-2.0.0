@@ -1859,3 +1859,105 @@ audit:size                     :: dashboard.sms.js 42.1KB → 44.2KB
 - نامزدهای بعدی: `renderAllCharts` (۲۲۳) · `dashboardService.setupCharts` (۲۲۳) · `visitReportRenderer.renderReportModal` (۲۱۵) ·
   `hatcheryService.saveFlock` (۲۱۰) · `hatcheryCompletionFlockMethods._collectCompletionSave` (۲۰۳).
 
+---
+
+## ۲۵) موج ۳.۲n — برش بدنهٔ متد غول رندر همهٔ نمودارها (`renderAllCharts`)
+
+### الف) هدف و اعداد
+
+`chartDashboardService.renderAllCharts` در `chart-dashboard.service.js:1385` با **۲۲۳ خط**
+بزرگ‌ترین متد باقی‌ماندهٔ مخزن بود. این متد برخلاف برش‌های قبلی «قالب‌محور» نیست، بلکه
+**پیکربندی‌محور** است: یک پیشانی کوتاه، یک فراخوانی سنگین `renderChart("mainChart", …)` با
+گزینه‌های ۶۶ خطی (سه callback درون‌خطی)، هفت فراخوانی دیگر برای نمودارهای ثانویه و در پایان
+`renderMainSeriesControls()`. وابستگی‌اش ۱۰ متد سرویس و ۶ ویژگی است و هیچ گارد بدنه‌ای نداشت.
+
+| سنجه | پیش | پس |
+| --- | --- | --- |
+| `renderAllCharts` | ۲۲۳ خط | **۱۲۸ خط** (−۴۳٪) |
+| خطوط/بایت منتقل‌شده | — | ۶۶ + ۲۸ = **۹۴ خط** (۲۶۱۶ + ۱۰۵۹ = **۳۶۷۵ بایت**) |
+| کمکی‌های ماژول‌محلی تازه | — | ۲ (`buildMainChartOptions` · `buildFcrChartOptions`) |
+| `audit:big-methods` | ۱۶ متد | **۱۵ متد** (صدر: `dashboardService.setupCharts` ۲۲۳) |
+| `chart-dashboard.service.js` | 71.4KB / ۲۱۶۸ خط | 74.8KB / ۲۱۸۳ خط |
+
+### ب) گارد پیش از برش — `test:chart-dashboard:all:body` (گارد نسل جدید)
+
+پیش از هر تغییر، گارد طلایی نوشته شد (کامیت `6344539`، تگ `pre-all-charts-body-split`):
+
+- `Frontend/chart-dashboard-all-body-split-test.mjs` با **۲۰ کِیس** و **۸۵ بررسی**، اسنپ‌شات `docs/chart-dashboard-all-body-golden.json` (هش `sha256`).
+- **روش تازه:** به‌جای استاب Chart.js، یک **`this` جعلی** ساخته می‌شود (همان ۱۰ متد به‌صورت stub
+  ثبت‌کننده + ۶ ویژگی) و متد با `chartDashboardService.renderAllCharts.call(service)` اجرا می‌شود؛
+  تنها `document.getElementById` استاب می‌شود (عنوان + نوع نمودار).
+- رکورد هر کِیس: آرگومان‌های هر **۸ فراخوانی `renderChart`** (شناسه، برچسب دیتاست‌ها، برچسب
+  هفته‌ها، `yLabel`، `type`، گزینه‌ها) + **ترتیب فراخوانی‌ها** + فراخوانی‌های سازندهٔ دیتاست‌ها
+  (`buildFlockDatasets`/`buildCompareDatasets`/`buildBreedStdDatasets`/`withCompare`/`_buildFcrDatasets`)
+  + `flockLabel`ها + تعداد `renderMainSeriesControls`.
+- **نکتهٔ کلیدی:** callbackهای درون‌خطی (`tooltip.callbacks.title/label/afterBody` و
+  `datalabels.formatter`) **واقعاً اجرا می‌شوند** (با ورودی مصنوعی: `dataIndex` هفتهٔ ۱ و ۲،
+  `raw` عددی/`null`/`undefined`) و خروجی‌شان در رکورد می‌آید؛ وگرنه برشِ «گزینه‌ها» بخش
+  عمده‌ای از منطق متد را بی‌پوشش می‌گذاشت.
+- ۲۰ کِیس: سه شاخص اصلی · شاخص نامعتبر (خطای مرزی) · `showStandards` روشن/خاموش ·
+  `showDataLabels` روشن/خاموش · نوع نمودار `line`/`bar`/غایب · عنوان موجود/غایب ·
+  `mortalityMode`/`survivalMode` · گلهٔ خالی · دو گله در خطوط استاندارد · گلهٔ بدون سری ·
+  استاندارد `null`/صفر/مقدار نال · برچسب مقدار عددی/نال/undefined · عنوان تولتیپ با/بدون آیتم ·
+  تعداد دیتاست‌های مقایسه/نژاد · برچسب‌های سفارشی هفته.
+
+**🔎 یک ناسازگاری پنهان واقعی که همین گارد کشف کرد (اصلاح نشد، مستند شد):**
+در `MAIN_INDICATORS`, شاخص `dailyGain` مقدار `key: "dailyGainGrams"` دارد، ولی متد بازهٔ
+استاندارد را با شرط‌های `main.key === "weightGain"` و `main.key === "dailyGain"` انتخاب می‌کند؛
+پس برای شاخص «نرخ رشد روزانه» **هیچ‌کدام از دو شرط برقرار نمی‌شود** و بازهٔ استاندارد به شاخهٔ
+پیش‌فرض (`stdMin`/`stdMax`) می‌افتد. کِیس `N3` این رفتار را قفل کرده تا اصلاح احتمالی آینده
+آگاهانه باشد (برش بدنه، تغییر رفتار نیست).
+
+### پ) دو برش (دو کامیت اتمی)
+
+| برش | ناحیه | کمکی | اعداد |
+| --- | --- | --- | --- |
+| A | گزینه‌های نمودار اصلی: `tooltipUnit` + `tooltip.callbacks` + `datalabels` | `buildMainChartOptions({ service, main })` | ۶۶ → ۱ خط · ۲۶۱۶ بایت |
+| B | گزینه‌های نمودار FCR: `tooltip.callbacks` با خطوط استاندارد نژاد | `buildFcrChartOptions({ service })` | ۲۸ → ۱ خط · ۱۰۵۹ بایت |
+
+- هر دو ناحیه **بایت‌به‌بایت** منتقل شدند (صفر dedent). `this` درون کدِ callbackها به
+  `service` نگاشت شد و `service: this` از متد پاس می‌آید (رفتارخنثی و حفظ `this`).
+- هفت فراخوانی دیگر `renderChart` **دست‌نخورده** ماندند: این کمپین «جابه‌جایی کد» می‌کند، نه
+  «بازنویسی ساختاری» (تبدیل آن‌ها به آرایهٔ داده‌ای، حتی با خروجی یکسان، خارج از قاعده است).
+- اثبات هر برش: «ناحیه بایت‌به‌بایت در فایل تازه» + «**اثبات بازگشتی**» + «ناوردایی تعداد
+  `toLocaleString("fa-IR")`» + «کاهش طول متد» + «EOL دست‌نخورده».
+
+### ت) تله‌های واقعی (شفافیت)
+
+1. **SyntaxError هنگام برش A:** کمکی به‌شکل `const buildMainOptions = ({ service, main }) => {`
+   ساخته شده بود؛ `{` به‌عنوان **بدنهٔ بلوکی** تفسیر می‌شود، نه شیء ⇒ `Unexpected token ':'`
+   در بارگذاری ماژول. فایل با `git checkout` برگشت و کمکی با پرانتز (`=> (` … `)`) ساخته شد و
+   این نکته در سرصفحهٔ همان کمکی کامنت شد.
+2. **تشخیص «آکولاد بستنِ گزینه‌ها»:** الگوی «اولین `},` با هر تورفتگی» آکولادِ **درونی**
+   (`callbacks`) را می‌گرفت ⇒ ناحیه ناقص شد و assert «۳ قالب‌بندی فارسی» آن را گرفت. اصلاح:
+   مقایسهٔ خط با «تورفتگی دقیق خط باز» (`openIndent + "},"`).
+3. **سه انتظار غلط در هارنس (بی‌اثر بر کد):** `withCompare` روی **۶** نمودار صدا زده می‌شود نه ۴؛
+   `afterBody` با `dataIndex=1` هفتهٔ ۲ است (که در فیکسچر پایه `stdWeight` نال دارد ⇒ صفر خط)
+   پس برای شاخهٔ «خط تولید می‌شود» یک فراخوانی `dataIndex=0` هم اضافه شد؛ و برچسب گله‌ها باید
+   «یکتا» سنجیده شود (چون هم نمودار اصلی و هم FCR آن را صدا می‌زنند).
+4. **دوباره‌جایگزینی در مستندات:** پس از درج «۲۲۳ → ۱۲۸» در سرصفحه و بند ۱۰، اسکریپت به‌روزرسانی
+   «اشاره‌های دیگر» همان خط‌ها را دوباره عوض کرد («۲۲۳ → ۱۲۸ → ۱۲۸»)؛ با یک اسکریپت ترمیمی
+   پاک شد. درس: الگوهای «جست‌وجو و جایگزین» در مستندات باید **پس از** درج‌های هدف اجرا شوند یا
+   لنگرشان به شکل «عدد + واحد» باشد.
+
+### ث) شواهد تأیید
+
+```text
+test:chart-dashboard:all:body :: ۸۵ بررسی · ۲۰ کِیس · pass=۸۵ fail=0  (پس از هر دو برش)
+audit:surface              :: ۰ گم‌شده · ۰ افزوده · ۰ نقض
+audit:big-methods          :: ۱۵ متد (پیش از موج: ۱۶) · متد هدف ۲۲۳ → ۱۲۸ خط
+audit:size                 :: chart-dashboard.service.js 71.4KB → 74.8KB
+```
+
+### ج) یادداشت نگه‌داری و گام بعدی
+
+- **گارد دائمی این موج `npm run test:chart-dashboard:all:body` است** و به گام ۳۰ دروازه اضافه شد.
+  بازتولید اسنپ‌شات: `npm run test:chart-dashboard:all:body -- --snapshot`.
+  ⚠️ خروجی callbackها با `toLocaleString("fa-IR")` ساخته می‌شود ⇒ به locale/ICU وابسته است.
+- الگوی تکرارشوندهٔ مهم این موج برای موج‌های بعد: **اگر برش، «شیء گزینه‌ها»ی یک تابع را جابه‌جا
+  می‌کند، گارد باید callbackهای درونش را اجرا کند**؛ در غیر این‌صورت فقط «شکل» قفل می‌شود، نه منطق.
+- ناسازگاری `dailyGain` (بند «ب») یک باگ واقعی و کم‌اثر است: هر وقت تصمیم گرفتید اصلاح شود،
+  ابتدا کِیس `N3` را آگاهانه به‌روزرسانی کنید (`-- --snapshot`) و در پیام کامیت توضیح دهید.
+- نامزدهای بعدی: `dashboardService.setupCharts` (۲۲۳) · `visitReportRenderer.renderReportModal` (۲۱۵) ·
+  `hatcheryService.saveFlock` (۲۱۰) · `hatcheryCompletionFlockMethods._collectCompletionSave` (۲۰۳) · `headerBookmarkMethods.viewBookmarkDetail` (۲۰۱).
+
