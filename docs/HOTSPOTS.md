@@ -1,7 +1,7 @@
 # نقاط داغ پروژه (Hotspots)
 
 > سند زنده — با اجرای اسکریپت‌های audit به‌رو نگه داشته می‌شود.
-> آخرین به‌روزرسانی: **موج ۳.۲k — برش بدنهٔ متد غول نمودارهای تحلیلی (`chartDashboardRenderer.renderContainer` ۲۴۹ → ۳۱ خط) با گارد طلایی تازهٔ `test:chart-dashboard:body` (۱۲۳ بررسی · ۲۵ کِیس)؛ شمارش متدهای بزرگ‌تر از بودجه ۱۹ → ۱۸** (ادامهٔ برنچ `chore/wave-3.2c-split-halls`).
+> آخرین به‌روزرسانی: **موج ۳.۲l (فاز ۰ — گارد تازهٔ `test:weekly:flock-report:body` روی `weeklyRenderer.renderFlockReport`)** · پیش از آن: **موج ۳.۲k — برش بدنهٔ متد غول نمودارهای تحلیلی (`chartDashboardRenderer.renderContainer` ۲۴۹ → ۳۱ خط) با گارد طلایی تازهٔ `test:chart-dashboard:body` (۱۲۳ بررسی · ۲۵ کِیس)؛ شمارش متدهای بزرگ‌تر از بودجه ۱۹ → ۱۸** (ادامهٔ برنچ `chore/wave-3.2c-split-halls`).
 > گزارش‌های کامل: `docs/REVIEW-WAVE-3.md` (موج ۳.۲d و ۳.۲c و ۳.۲b و ۳.۲a و ۳.۱) · `docs/REVIEW-WAVE-2.md` (موج ۲) · `docs/REVIEW.md` (موج ۰ و ۱)
 
 ## چطور اندازه‌گیری می‌شود؟
@@ -25,6 +25,7 @@ npm run test:weekly:cards:body  # گارد طلایی بایت‌به‌بایت
 npm run test:dashboard:bookmarks:body # گارد طلایی بایت‌به‌بایت بدنهٔ متد غول بوکمارک‌های داشبورد (۲۰ کِیس)
 npm run test:hatchery:sms-body # گارد طلایی بایت‌به‌بایت بدنهٔ متد غول گزارش پیامک گله (۲۲ کِیس)
 npm run test:chart-dashboard:body # گارد طلایی بایت‌به‌بایت بدنهٔ متد غول نمودارهای تحلیلی (۲۵ کِیس)
+npm run test:weekly:flock-report:body # گارد طلایی بایت‌به‌بایت بدنهٔ متد غول گزارش اختصاصی گله (۲۴ کِیس)
 
 # Backend
 cd Backend
