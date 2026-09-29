@@ -1423,73 +1423,7 @@ class ChartDashboardService {
       labels,
       main.yLabel,
       chartType,
-      {
-        tooltipUnit: ` ${main.unit}`,
-        tooltip: {
-          mode: "index",
-          intersect: false,
-          callbacks: {
-            title: (items) =>
-              items && items.length
-                ? `هفته ${Number(items[0].dataIndex + 1).toLocaleString("fa-IR")}`
-                : "",
-            label: (ctx) => {
-              const val = ctx.raw;
-              if (val === null || val === undefined)
-                return `${ctx.dataset.label}: —`;
-              return `${ctx.dataset.label}: ${Number(val).toLocaleString("fa-IR", {
-                maximumFractionDigits: main.decimals,
-              })} ${main.unit}`;
-            },
-            afterBody: (items) => {
-              if (!items || !items.length) return [];
-              if (!this.showStandards) return [];
-              const weekNo = items[0].dataIndex + 1;
-              const lines = [];
-              this.getSelectedFlocks().forEach((f) => {
-                const s = (f.series || []).find((x) => x.week === weekNo);
-                if (!s) return;
-                const stdVal = s[main.stdKey];
-                if (stdVal === null || stdVal === undefined) return;
-                const actual = s[main.key];
-                let dev = "";
-                if (actual !== null && actual !== undefined && stdVal !== 0) {
-                  const diff = ((actual - stdVal) / stdVal) * 100;
-                  dev = ` (${diff >= 0 ? "+" : ""}${Number(diff).toLocaleString("fa-IR", {
-                    maximumFractionDigits: 1,
-                  })}٪)`;
-                }
-                lines.push(
-                  `استاندارد ${this.flockLabel(f)}: ${Number(stdVal).toLocaleString("fa-IR", {
-                    maximumFractionDigits: main.decimals,
-                  })} ${main.unit}${dev}`,
-                );
-              });
-              return lines;
-            },
-          },
-        },
-        datalabels: this.showDataLabels
-          ? {
-              display: true,
-              color: this.labelStyle.valueColor,
-              font: {
-                family: "Vazir",
-                size: this.labelStyle.valueSize,
-                weight: "bold",
-              },
-              anchor: "end",
-              align: "top",
-              formatter: (value) =>
-                value === null || value === undefined
-                  ? ""
-                  : Number(value).toLocaleString("fa-IR", {
-                      maximumFractionDigits: main.decimals,
-                    }),
-            }
-          : {},
-      },
-    );
+      buildMainChartOptions({ service: this, main }),    );
 
     // نمودارهای جداگانه
     this.renderChart(
@@ -2165,3 +2099,77 @@ if (typeof window !== "undefined") {
   window.openAllAccordion = () => {};
   window.closeAllAccordion = () => {};
 }
+// کمکی ماژول‌محلی (موج ۳.۲n) — گزینه‌های نمودار اصلی (تولتیپ + برچسب‌های داده).
+// ⚠️ متن زیر بایت‌به‌بایت از بدنهٔ `renderAllCharts` منتقل شده است؛ قالب‌های رشته‌ای
+// داخل callbackها هستند و dedent ممنوع است. `service` پاس داده می‌شود چون callbackها
+// `showStandards`/`getSelectedFlocks`/`flockLabel` سرویس را مصرف می‌کنند.
+// ⚠️ پرانتز بعد از `=>` لازم است وگرنه `{` به‌عنوان بدنهٔ بلوکی تفسیر می‌شود.
+const buildMainChartOptions = ({ service, main }) => (
+      {
+        tooltipUnit: ` ${main.unit}`,
+        tooltip: {
+          mode: "index",
+          intersect: false,
+          callbacks: {
+            title: (items) =>
+              items && items.length
+                ? `هفته ${Number(items[0].dataIndex + 1).toLocaleString("fa-IR")}`
+                : "",
+            label: (ctx) => {
+              const val = ctx.raw;
+              if (val === null || val === undefined)
+                return `${ctx.dataset.label}: —`;
+              return `${ctx.dataset.label}: ${Number(val).toLocaleString("fa-IR", {
+                maximumFractionDigits: main.decimals,
+              })} ${main.unit}`;
+            },
+            afterBody: (items) => {
+              if (!items || !items.length) return [];
+              if (!service.showStandards) return [];
+              const weekNo = items[0].dataIndex + 1;
+              const lines = [];
+              service.getSelectedFlocks().forEach((f) => {
+                const s = (f.series || []).find((x) => x.week === weekNo);
+                if (!s) return;
+                const stdVal = s[main.stdKey];
+                if (stdVal === null || stdVal === undefined) return;
+                const actual = s[main.key];
+                let dev = "";
+                if (actual !== null && actual !== undefined && stdVal !== 0) {
+                  const diff = ((actual - stdVal) / stdVal) * 100;
+                  dev = ` (${diff >= 0 ? "+" : ""}${Number(diff).toLocaleString("fa-IR", {
+                    maximumFractionDigits: 1,
+                  })}٪)`;
+                }
+                lines.push(
+                  `استاندارد ${service.flockLabel(f)}: ${Number(stdVal).toLocaleString("fa-IR", {
+                    maximumFractionDigits: main.decimals,
+                  })} ${main.unit}${dev}`,
+                );
+              });
+              return lines;
+            },
+          },
+        },
+        datalabels: service.showDataLabels
+          ? {
+              display: true,
+              color: service.labelStyle.valueColor,
+              font: {
+                family: "Vazir",
+                size: service.labelStyle.valueSize,
+                weight: "bold",
+              },
+              anchor: "end",
+              align: "top",
+              formatter: (value) =>
+                value === null || value === undefined
+                  ? ""
+                  : Number(value).toLocaleString("fa-IR", {
+                      maximumFractionDigits: main.decimals,
+                    }),
+            }
+          : {},
+      }
+);
+
