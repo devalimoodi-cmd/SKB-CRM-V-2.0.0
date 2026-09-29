@@ -31,34 +31,7 @@ export const chartDashboardRenderer = {
               ${u._chipLabel || `گله ${u.flock.flockNumber}`}
             </label>`;
 
-    let flockChecks = "";
-    if (viewMode === "hall") {
-      flockChecks = groupMeta
-        .map((g) => {
-          const members = (g.members || []).map((m) =>
-            hallFlocks.find((h) => h._uid === m._uid),
-          );
-          const memberChips = members.filter(Boolean).map(chip).join("");
-          if ((g.members || []).length > 1) {
-            return `
-            <div class="analysis-group-block">
-              <div class="analysis-group-head">
-                <i class="fas fa-layer-group"></i> گله ${g.flockNumber}
-                <span class="analysis-group-count">${g.members.length} سالن</span>
-                <button type="button" class="analysis-btn-mini"
-                  onclick="chartDashboardService.selectGroupMembers('${g._groupKey}', true)">همه</button>
-                <button type="button" class="analysis-btn-mini"
-                  onclick="chartDashboardService.selectGroupMembers('${g._groupKey}', false)">هیچ</button>
-              </div>
-              <div class="analysis-flock-list">${memberChips}</div>
-            </div>`;
-          }
-          return `<div class="analysis-group-block analysis-group-single">${memberChips}</div>`;
-        })
-        .join("");
-    } else {
-      flockChecks = flocks.map(chip).join("");
-    }
+    const flockChecks = buildFlockChecksHtml({ viewMode, groupMeta, hallFlocks, chip, flocks });
 
     container.innerHTML = `
             <div class="analysis-module">
@@ -353,4 +326,39 @@ const buildChartsEmptyStateHtml = () => `
                     <p>برای مشاهده نمودارها، ابتدا یک گله ثبت کنید</p>
                 </div>
             `;
+
+// کمکی ماژول‌محلی (موج ۳.۲k) — چیپ‌های انتخاب گله/سالن (نمای گله یا گروه‌های سالن).
+// ⚠️ ناحیهٔ زیر بایت‌به‌بایت از بدنهٔ متد منتقل شده است؛ قالب‌های رشته‌ای چندخطی
+// داخلش هستند و dedent، بایت خروجی HTML را عوض می‌کند.
+const buildFlockChecksHtml = ({ viewMode, groupMeta, hallFlocks, chip, flocks }) => {
+let flockChecks = "";
+    if (viewMode === "hall") {
+      flockChecks = groupMeta
+        .map((g) => {
+          const members = (g.members || []).map((m) =>
+            hallFlocks.find((h) => h._uid === m._uid),
+          );
+          const memberChips = members.filter(Boolean).map(chip).join("");
+          if ((g.members || []).length > 1) {
+            return `
+            <div class="analysis-group-block">
+              <div class="analysis-group-head">
+                <i class="fas fa-layer-group"></i> گله ${g.flockNumber}
+                <span class="analysis-group-count">${g.members.length} سالن</span>
+                <button type="button" class="analysis-btn-mini"
+                  onclick="chartDashboardService.selectGroupMembers('${g._groupKey}', true)">همه</button>
+                <button type="button" class="analysis-btn-mini"
+                  onclick="chartDashboardService.selectGroupMembers('${g._groupKey}', false)">هیچ</button>
+              </div>
+              <div class="analysis-flock-list">${memberChips}</div>
+            </div>`;
+          }
+          return `<div class="analysis-group-block analysis-group-single">${memberChips}</div>`;
+        })
+        .join("");
+    } else {
+      flockChecks = flocks.map(chip).join("");
+    }
+  return flockChecks;
+};
 
