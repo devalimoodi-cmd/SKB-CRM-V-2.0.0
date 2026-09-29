@@ -1454,35 +1454,7 @@ class ChartDashboardService {
       labels,
       "FCR",
       "line",
-      {
-        tooltip: {
-          mode: "index",
-          intersect: false,
-          callbacks: {
-            title: (items) =>
-              items && items.length
-                ? `هفته ${Number(items[0].dataIndex + 1).toLocaleString("fa-IR")}`
-                : "",
-            afterBody: (items) => {
-              if (!items || !items.length) return [];
-              if (!this.showStandards) return [];
-              const weekNo = items[0].dataIndex + 1;
-              const lines = [];
-              this.getSelectedFlocks().forEach((f) => {
-                const s = (f.series || []).find((x) => x.week === weekNo);
-                if (!s || s.stdFcr === null || s.stdFcr === undefined) return;
-                lines.push(
-                  `FCR استاندارد ${this.flockLabel(f)}: ${Number(s.stdFcr).toLocaleString("fa-IR", {
-                    maximumFractionDigits: 3,
-                  })}`,
-                );
-              });
-              return lines;
-            },
-          },
-        },
-      },
-    );
+      buildFcrChartOptions({ service: this }),    );
     this.renderChart(
       "mortalityCountChart",
       this.withCompare(
@@ -2170,6 +2142,41 @@ const buildMainChartOptions = ({ service, main }) => (
                     }),
             }
           : {},
+      }
+);
+
+// کمکی ماژول‌محلی (موج ۳.۲n) — گزینه‌های نمودار FCR (تولتیپ با خطوط استاندارد نژاد).
+// ⚠️ متن زیر بایت‌به‌بایت از بدنهٔ `renderAllCharts` منتقل شده است و dedent ممنوع است.
+// `service` پاس داده می‌شود چون callbackها `showStandards`/`getSelectedFlocks`/`flockLabel`
+// را مصرف می‌کنند.
+const buildFcrChartOptions = ({ service }) => (
+      {
+        tooltip: {
+          mode: "index",
+          intersect: false,
+          callbacks: {
+            title: (items) =>
+              items && items.length
+                ? `هفته ${Number(items[0].dataIndex + 1).toLocaleString("fa-IR")}`
+                : "",
+            afterBody: (items) => {
+              if (!items || !items.length) return [];
+              if (!service.showStandards) return [];
+              const weekNo = items[0].dataIndex + 1;
+              const lines = [];
+              service.getSelectedFlocks().forEach((f) => {
+                const s = (f.series || []).find((x) => x.week === weekNo);
+                if (!s || s.stdFcr === null || s.stdFcr === undefined) return;
+                lines.push(
+                  `FCR استاندارد ${service.flockLabel(f)}: ${Number(s.stdFcr).toLocaleString("fa-IR", {
+                    maximumFractionDigits: 3,
+                  })}`,
+                );
+              });
+              return lines;
+            },
+          },
+        },
       }
 );
 
