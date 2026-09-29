@@ -196,14 +196,12 @@ import می‌کند و همان اعداد اسنپ‌شات را روی نمو
 ۲۰ متد از بودجه بزرگ‌ترند؛ فهرست کامل با `npm run audit:big-methods`. پنج مورد اول:
 
 | خطوط | مکان | نام |
-| خطوط | مکان | نام |
-| خطوط | مکان | نام |
 | --- | --- | --- |
-| ۲۳۹ | `dashboard/dashboard.sms.js:750` | `dashboardSmsMethods.refreshSmsStatus` |
-| ۲۲۳ | `chart-dashboard/chart-dashboard.service.js:1385` | `renderAllCharts` |
 | ۲۷۷ | `hatchery/hatchery.report.js:579` | `buildFlockSmsReportHTML` |
 | ۲۴۹ | `chart-dashboard/chart-dashboard.renderer.js:8` | `chartDashboardRenderer.renderContainer` |
 | ۲۴۲ | `weekly/weekly.renderer.js:889` | `weeklyRenderer.renderFlockReport` |
+| ۲۳۹ | `dashboard/dashboard.sms.js:750` | `dashboardSmsMethods.refreshSmsStatus` |
+| ۲۲۳ | `chart-dashboard/chart-dashboard.service.js:1385` | `renderAllCharts` |
 از `weekly.service.js` به `weekly.report.history.html.js` منتقل شد؛ `renderWeeks` (۳۰۴ خط) هم
 برش فایل این دو «غول» را کوچک **نکرد**: `buildWeeklyHistoryHTML` همان ۳۳۶ خط است و فقط خانه‌اش
 از `weekly.service.js` به `weekly.report.history.html.js` منتقل شد؛ `renderWeeks` (۳۰۴ خط) هم
@@ -223,7 +221,8 @@ import می‌کند و همان اعداد اسنپ‌شات را روی نمو
 بعدی روی `buildWeeklyHistoryHTML` (موج ۳.۲g) · `weeklyCardMethods.renderWeeks` (موج ۳.۲h) و
 `dashboardBookmarkMethods.showCreateBookmarkModal` (موج ۳.۲i) هم اجرا شد و هر چهار مورد از فهرست
 بودجه بیرون رفتند. نامزدهای باقی‌مانده: `buildFlockSmsReportHTML` (۲۷۷) ·
-`chartDashboardRenderer.renderContainer` (۲۴۹) · `weeklyRenderer.renderFlockReport` (۲۴۲).
+`chartDashboardRenderer.renderContainer` (۲۴۹) · `weeklyRenderer.renderFlockReport` (۲۴۲) ·
+`dashboardSmsMethods.refreshSmsStatus` (۲۳۹).
 شرح: `docs/REVIEW-WAVE-3.md` بخش ۱۶ و ۱۸ و ۱۹ و ۲۰.
 
 #### فایل‌های js بی‌ارجاع (نه `import`، نه `<script src>`)
@@ -305,6 +304,7 @@ import می‌کند و همان اعداد اسنپ‌شات را روی نمو
     `test:dashboard:bookmarks:body`. نامزدهای باقی‌مانده با `npm run audit:big-methods`:
     `buildFlockSmsReportHTML` (۲۷۷) · `chartDashboardRenderer.renderContainer` (۲۴۹) ·
     `weeklyRenderer.renderFlockReport` (۲۴۲).
+    `dashboardSmsMethods.refreshSmsStatus` (۲۳۹).
 
 ## قواعد نگه‌داری
 
