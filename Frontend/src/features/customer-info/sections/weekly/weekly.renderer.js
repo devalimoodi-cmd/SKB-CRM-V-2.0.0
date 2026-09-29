@@ -28,6 +28,12 @@ import {
 } from "./weekly.report.weeks.js";
 
 // ================================================================
+// ================================================================
+// موج ۳.۲l — برش بدنهٔ `renderFlockReport` (۲۴۲ → ۹۹ خط): سه ناحیه به کمکی‌های
+// ماژول‌محلی رفتند (`buildWeekDetailsTableHtml` · `buildFlockWeekBlocksHtml` ·
+// `buildFlockReportHtml`) و `isPartialWeek` عمداً در متد ماند (سه مصرف در قالب
+// بلوک‌های هفتگی) و به‌عنوان پارامتر پاس داده می‌شود.
+// ================================================================
 // توابع کمکی گزارش
 // ================================================================
 
@@ -972,161 +978,19 @@ export const weeklyRenderer = {
       audit.statuses?.[week.week_number] === WEEK_STATUS.PARTIAL;
 
     // جفتهای «برچسب/مقدار» جدول جزئیات هر هفته بر اساس گروههای انتخابی کاربر
-    const detailPairs = (week) => {
-      const pairs = [];
-      if (isGroupSelected(selected, "population")) {
-        pairs.push(["تلفات", `${week.weekly_mortality || 0} قطعه`]);
-      }
-      if (isGroupSelected(selected, "weight")) {
-        pairs.push(["وزن", `${week.weekly_weight || "-"} kg`]);
-      }
-      if (isGroupSelected(selected, "feed")) {
-        pairs.push(["خوراک روزانه", `${week.daily_feed_intake || "-"} kg`]);
-        pairs.push(["خوراک هفتگی", `${week.weekly_feed_intake || "-"} kg`]);
-      }
-      if (isGroupSelected(selected, "details")) {
-        pairs.push(["خاموشی", `${week.blackout_hours || 0} ساعت`]);
-        pairs.push(["بیماری‌ها", week.diseases?.join("، ") || "-"]);
-        pairs.push(["واکسن‌ها", week.vaccines?.join("، ") || "-"]);
-        pairs.push(["داروها", week.medicines?.join("، ") || "-"]);
-        pairs.push(["نوع خوراک", week.feedTypes?.join("، ") || "-"]);
-        pairs.push(["پیشنهادات", week.suggestions?.join("، ") || "-"]);
-        pairs.push(["توضیحات", week.additional_notes || "-"]);
-      }
-      return pairs;
-    };
-
-    const renderWeekDetailsTable = (week) => {
-      const pairs = detailPairs(week);
-      if (pairs.length === 0) return "";
-      const rows = [];
-      for (let i = 0; i < pairs.length; i += 2) {
-        rows.push(
-          `<tr>${pairs
-            .slice(i, i + 2)
-            .map(([label, value]) => `<th>${label}</th><td>${value}</td>`)
-            .join("")}</tr>`,
-        );
-      }
-      return `<table class="detail-list"><tbody>${rows.join("")}</tbody></table>`;
-    };
-
-    const weekBlocks = visibleSavedWeeks
-      .map(
-        (week) => `
-        <div class="week-report-block${isPartialWeek(week) ? " week-partial" : ""}">
-            <div class="week-report-head">
-                <span class="wr-week">هفته ${week.week_number}${isPartialWeek(week) ? " ⚠️" : ""}</span>
-                <span class="wr-meta">📅 ${toPersian(week.week_start_date)} تا ${toPersian(week.week_end_date)} | سن: ${week.flock_age_days} روز${isPartialWeek(week) ? " | ⚠️ وزن یا خوراک این هفته ثبت نشده است" : ""}</span>
-            </div>
-            ${renderWeekMetricsCards(week.metrics, selected)}
-            ${renderWeekDetailsTable(week)}
-        </div>
-    `,
-      )
-      .join("");
-
-    // هفته‌های بدون ثبت هم به‌صورت بلوک هشدار در گزارش درج می‌شوند
-    const missingBlocks = visibleMissingWeeks
-      .map(
-        (week) => `
-        <div class="week-report-block week-missing">
-            <div class="week-report-head">
-                <span class="wr-week">هفته ${week.week_number} ❌</span>
-                <span class="wr-meta">📅 ${toPersian(week.week_start_date)} تا ${toPersian(week.week_end_date)} | اطلاعات این هفته ثبت نشده است</span>
-            </div>
-        </div>`,
-      )
-      .join("");
-
+    const { weekBlocks, missingBlocks } = buildFlockWeekBlocksHtml({
+      visibleSavedWeeks, visibleMissingWeeks, toPersian, selected, isPartialWeek,
+    });
     const weekScopeNote = Array.isArray(weekNumbers)
       ? ` · 🎯 ${weekSelectionLabel(weekNumbers, timelineNumbers, toFa)}`
       : "";
     const groupsNoteHtml = `<div class="report-groups-note">🧾 شاخص‌های این گزارش: <strong>${selectedGroupsLabel(selected)}</strong>${weekScopeNote}</div>`;
 
-    return `
-            <!DOCTYPE html>
-            <html dir="rtl">
-            <head>
-                <meta charset="UTF-8">
-                <title>گزارش اختصاصی سالن ${flock.flock_number}</title>
-                <style>${REPORT_STYLES}</style>
-            </head>
-            <body>
-                <div class="report-header">
-                    <img class="report-logo" src="/assets/images/skb-logo.png" alt="لوگوی شرکت" onerror="this.style.display='none'">
-                    <h1>🐔 گزارش اختصاصی سالن ${flock.flock_number}</h1>
-                    <div class="sub">سامانه اطلاعات، خدمات و ارتباطات با مشتریان (سِکاد)</div>
-                    <div class="report-info">📅 تاریخ تهیه: ${now} - ساعت: ${nowTime}</div>
-                </div>
-
-                <div class="summary-stats">
-                    <div class="summary-stat"><div class="stat-number">${fmtNum(flock.total_chicks_count, 0)}</div><div class="stat-label">جوجه‌ریزی اولیه</div></div>
-                    <div class="summary-stat"><div class="stat-number">${fmtNum(m.birdsEndOfWeek, 0)}</div><div class="stat-label">جمعیت مانده</div></div>
-                    <div class="summary-stat"><div class="stat-number">${fmtPct(m.cumulativeSurvivalPercent)}</div><div class="stat-label">زنده‌مانی</div></div>
-                    <div class="summary-stat"><div class="stat-number">${fmtNum(m.totalLiveWeight, 1)}</div><div class="stat-label">وزن کل گله (kg)</div></div>
-                    <div class="summary-stat"><div class="stat-number">${fmtNum(m.fcr, 3)}</div><div class="stat-label">FCR</div></div>
-                    <div class="summary-stat"><div class="stat-number">${fmtNum(m.cumulativeFeed, 1)}</div><div class="stat-label">دان کل (kg)</div></div>
-                </div>
-
-                ${groupsNoteHtml}
-
-                <div class="customer-info">
-                    <h3>👤 اطلاعات مشتری</h3>
-                    <div class="customer-grid">
-                        <div class="customer-item"><span class="label">نام و نام خانوادگی</span><span class="value">${customer.full_name || "-"}</span></div>
-                        <div class="customer-item"><span class="label">نام مجموعه</span><span class="value">${customer.collection_name || "-"}</span></div>
-                        <div class="customer-item"><span class="label">نام فارم</span><span class="value">${customer.farm_name || "-"}</span></div>
-                        <div class="customer-item"><span class="label">تلفن</span><span class="value">${customer.mobile_number || "-"}</span></div>
-                    </div>
-                </div>
-
-                <div class="flock-section">
-                    <div class="flock-header">
-                        <div>
-                            <div class="flock-title">🐔 گله ${flock.flock_number}</div>
-                            <div style="font-size: 13px; color: #64748b;">
-                                ${flock.hall_name} | ${flock.breed_name || "-"} | جوجه‌ریزی: ${toPersian(flock.placement_date)} | سن: ${ageInDays} روز
-                            </div>
-                        </div>
-                        <div class="flock-meta">
-                            <span>🧮 ${fmtNum(flock.total_chicks_count, 0)} قطعه</span>
-                            <span>📊 ${savedWeeks.length} هفته ثبت‌شده</span>
-                            ${timelineChip(flock.timeline)}
-                            ${weekRangeChip(weekNumbers, timelineNumbers)}
-                            <span class="status-badge ${flock.is_active ? "status-active" : "status-inactive"}">${flock.is_active ? "فعال" : "غیرفعال"}</span>
-                        </div>
-                    </div>
-
-                    ${renderWeekGapsAlert(audit)}
-                    ${outsideIssuesNote(outsideIssues)}
-
-                    <div class="flock-summary-strip">
-                        <span><strong>تلفات کل:</strong> ${stats.totalMortality} قطعه</span>
-                        <span><strong>جمعیت مانده:</strong> ${fmtNum(m.birdsEndOfWeek, 0)} قطعه</span>
-                        <span><strong>زنده‌مانی:</strong> ${fmtPct(m.cumulativeSurvivalPercent)}</span>
-                        <span><strong>تلفات کل ٪:</strong> ${fmtPct(m.totalMortalityPercent)}</span>
-                        <span><strong>وزن کل گله:</strong> ${fmtNum(m.totalLiveWeight, 1)} kg</span>
-                        <span><strong>دان کل:</strong> ${fmtNum(m.cumulativeFeed, 1)} kg</span>
-                        <span><strong>FCR:</strong> ${fmtNum(m.fcr, 3)}</span>
-                    </div>
-                </div>
-
-                ${
-                  weekBlocks || missingBlocks
-                    ? `${weekBlocks}${missingBlocks}`
-                    : Array.isArray(weekNumbers) && weekNumbers.length === 0
-                      ? '<div style="text-align:center; padding:40px; background:#fff; border-radius:10px; color:#94a3b8;">هیچ هفته‌ای برای این گزارش انتخاب نشده است</div>'
-                      : '<div style="text-align:center; padding:40px; background:#fff; border-radius:10px; color:#94a3b8;">هیچ هفته‌ای برای این گله ثبت نشده است</div>'
-                }
-
-                <div class="report-footer">
-                    <div class="report-by">📌 دریافت گزارش توسط: <strong>${userName}</strong> (${roleText}) | تاریخ: <strong>${now}</strong> | ساعت: <strong>${nowTime}</strong></div>
-                    <p style="margin-top: 10px;">این گزارش توسط سامانه مدیریت اطلاعات، خدمات و ارتباطات با مشتریان (سِکاد) تولید شده است.</p>
-                </div>
-            </body>
-            </html>
-        `;
+    return buildFlockReportHtml({
+      flock, customer, stats, m, now, nowTime,
+      userName, roleText, ageInDays, savedWeeks, weekNumbers, timelineNumbers,
+      audit, outsideIssues, weekBlocks, missingBlocks, groupsNoteHtml, toPersian,
+    });
   },
 };
 
@@ -1663,3 +1527,175 @@ const buildGapsSummaryHtml = (orderedFlocks) => {
       : "";
   return { flocksWithGaps, html: gapsSummaryHtml };
 };
+// کمکی ماژول‌محلی (موج ۳.۲l) — جدول جزئیات یک هفتهٔ گزارش اختصاصی گله.
+// ⚠️ کد زیر بایت‌به‌بایت از بدنهٔ `renderFlockReport` منتقل شده است (دو closure
+// تودرتو)؛ `isPartialWeek` از متد پاس داده می‌شود چون قالب بلوک‌های هفتگی هم
+// همان را مصرف می‌کند و نباید از متد بیرون برود.
+const buildWeekDetailsTableHtml = (week, { selected, isPartialWeek }) => {
+    const detailPairs = (week) => {
+      const pairs = [];
+      if (isGroupSelected(selected, "population")) {
+        pairs.push(["تلفات", `${week.weekly_mortality || 0} قطعه`]);
+      }
+      if (isGroupSelected(selected, "weight")) {
+        pairs.push(["وزن", `${week.weekly_weight || "-"} kg`]);
+      }
+      if (isGroupSelected(selected, "feed")) {
+        pairs.push(["خوراک روزانه", `${week.daily_feed_intake || "-"} kg`]);
+        pairs.push(["خوراک هفتگی", `${week.weekly_feed_intake || "-"} kg`]);
+      }
+      if (isGroupSelected(selected, "details")) {
+        pairs.push(["خاموشی", `${week.blackout_hours || 0} ساعت`]);
+        pairs.push(["بیماری‌ها", week.diseases?.join("، ") || "-"]);
+        pairs.push(["واکسن‌ها", week.vaccines?.join("، ") || "-"]);
+        pairs.push(["داروها", week.medicines?.join("، ") || "-"]);
+        pairs.push(["نوع خوراک", week.feedTypes?.join("، ") || "-"]);
+        pairs.push(["پیشنهادات", week.suggestions?.join("، ") || "-"]);
+        pairs.push(["توضیحات", week.additional_notes || "-"]);
+      }
+      return pairs;
+    };
+
+    const renderWeekDetailsTable = (week) => {
+      const pairs = detailPairs(week);
+      if (pairs.length === 0) return "";
+      const rows = [];
+      for (let i = 0; i < pairs.length; i += 2) {
+        rows.push(
+          `<tr>${pairs
+            .slice(i, i + 2)
+            .map(([label, value]) => `<th>${label}</th><td>${value}</td>`)
+            .join("")}</tr>`,
+        );
+      }
+      return `<table class="detail-list"><tbody>${rows.join("")}</tbody></table>`;
+    };
+
+  return renderWeekDetailsTable(week);
+};
+
+// کمکی ماژول‌محلی (موج ۳.۲l) — بلوک‌های هفتگی گزارش اختصاصی گله (ثبت‌شده + بدون‌ثبت).
+// ⚠️ ناحیهٔ زیر بایت‌به‌بایت از بدنهٔ `renderFlockReport` منتقل شده است؛ دو قالب
+// چندخطی داخلش هست و dedent، بایت خروجی HTML را عوض می‌کند.
+const buildFlockWeekBlocksHtml = ({
+  visibleSavedWeeks, visibleMissingWeeks, toPersian, selected, isPartialWeek,
+}) => {
+    const weekBlocks = visibleSavedWeeks
+      .map(
+        (week) => `
+        <div class="week-report-block${isPartialWeek(week) ? " week-partial" : ""}">
+            <div class="week-report-head">
+                <span class="wr-week">هفته ${week.week_number}${isPartialWeek(week) ? " ⚠️" : ""}</span>
+                <span class="wr-meta">📅 ${toPersian(week.week_start_date)} تا ${toPersian(week.week_end_date)} | سن: ${week.flock_age_days} روز${isPartialWeek(week) ? " | ⚠️ وزن یا خوراک این هفته ثبت نشده است" : ""}</span>
+            </div>
+            ${renderWeekMetricsCards(week.metrics, selected)}
+            ${buildWeekDetailsTableHtml(week, { selected, isPartialWeek })}
+        </div>
+    `,
+      )
+      .join("");
+
+    // هفته‌های بدون ثبت هم به‌صورت بلوک هشدار در گزارش درج می‌شوند
+    const missingBlocks = visibleMissingWeeks
+      .map(
+        (week) => `
+        <div class="week-report-block week-missing">
+            <div class="week-report-head">
+                <span class="wr-week">هفته ${week.week_number} ❌</span>
+                <span class="wr-meta">📅 ${toPersian(week.week_start_date)} تا ${toPersian(week.week_end_date)} | اطلاعات این هفته ثبت نشده است</span>
+            </div>
+        </div>`,
+      )
+      .join("");
+  return { weekBlocks, missingBlocks };
+};
+
+// کمکی ماژول‌محلی (موج ۳.۲l) — سند کامل HTML گزارش اختصاصی گله.
+// ⚠️ قالب زیر بایت‌به‌بایت از بدنهٔ `renderFlockReport` منتقل شده است؛ فاصله‌های
+// داخل backtick بخشی از خروجی چاپ‌اند و هرگونه dedent، بایت‌ها را عوض می‌کند.
+const buildFlockReportHtml = ({
+  flock, customer, stats, m, now, nowTime, userName, roleText, ageInDays, savedWeeks, weekNumbers, timelineNumbers, audit, outsideIssues, weekBlocks, missingBlocks, groupsNoteHtml, toPersian,
+}) => `
+            <!DOCTYPE html>
+            <html dir="rtl">
+            <head>
+                <meta charset="UTF-8">
+                <title>گزارش اختصاصی سالن ${flock.flock_number}</title>
+                <style>${REPORT_STYLES}</style>
+            </head>
+            <body>
+                <div class="report-header">
+                    <img class="report-logo" src="/assets/images/skb-logo.png" alt="لوگوی شرکت" onerror="this.style.display='none'">
+                    <h1>🐔 گزارش اختصاصی سالن ${flock.flock_number}</h1>
+                    <div class="sub">سامانه اطلاعات، خدمات و ارتباطات با مشتریان (سِکاد)</div>
+                    <div class="report-info">📅 تاریخ تهیه: ${now} - ساعت: ${nowTime}</div>
+                </div>
+
+                <div class="summary-stats">
+                    <div class="summary-stat"><div class="stat-number">${fmtNum(flock.total_chicks_count, 0)}</div><div class="stat-label">جوجه‌ریزی اولیه</div></div>
+                    <div class="summary-stat"><div class="stat-number">${fmtNum(m.birdsEndOfWeek, 0)}</div><div class="stat-label">جمعیت مانده</div></div>
+                    <div class="summary-stat"><div class="stat-number">${fmtPct(m.cumulativeSurvivalPercent)}</div><div class="stat-label">زنده‌مانی</div></div>
+                    <div class="summary-stat"><div class="stat-number">${fmtNum(m.totalLiveWeight, 1)}</div><div class="stat-label">وزن کل گله (kg)</div></div>
+                    <div class="summary-stat"><div class="stat-number">${fmtNum(m.fcr, 3)}</div><div class="stat-label">FCR</div></div>
+                    <div class="summary-stat"><div class="stat-number">${fmtNum(m.cumulativeFeed, 1)}</div><div class="stat-label">دان کل (kg)</div></div>
+                </div>
+
+                ${groupsNoteHtml}
+
+                <div class="customer-info">
+                    <h3>👤 اطلاعات مشتری</h3>
+                    <div class="customer-grid">
+                        <div class="customer-item"><span class="label">نام و نام خانوادگی</span><span class="value">${customer.full_name || "-"}</span></div>
+                        <div class="customer-item"><span class="label">نام مجموعه</span><span class="value">${customer.collection_name || "-"}</span></div>
+                        <div class="customer-item"><span class="label">نام فارم</span><span class="value">${customer.farm_name || "-"}</span></div>
+                        <div class="customer-item"><span class="label">تلفن</span><span class="value">${customer.mobile_number || "-"}</span></div>
+                    </div>
+                </div>
+
+                <div class="flock-section">
+                    <div class="flock-header">
+                        <div>
+                            <div class="flock-title">🐔 گله ${flock.flock_number}</div>
+                            <div style="font-size: 13px; color: #64748b;">
+                                ${flock.hall_name} | ${flock.breed_name || "-"} | جوجه‌ریزی: ${toPersian(flock.placement_date)} | سن: ${ageInDays} روز
+                            </div>
+                        </div>
+                        <div class="flock-meta">
+                            <span>🧮 ${fmtNum(flock.total_chicks_count, 0)} قطعه</span>
+                            <span>📊 ${savedWeeks.length} هفته ثبت‌شده</span>
+                            ${timelineChip(flock.timeline)}
+                            ${weekRangeChip(weekNumbers, timelineNumbers)}
+                            <span class="status-badge ${flock.is_active ? "status-active" : "status-inactive"}">${flock.is_active ? "فعال" : "غیرفعال"}</span>
+                        </div>
+                    </div>
+
+                    ${renderWeekGapsAlert(audit)}
+                    ${outsideIssuesNote(outsideIssues)}
+
+                    <div class="flock-summary-strip">
+                        <span><strong>تلفات کل:</strong> ${stats.totalMortality} قطعه</span>
+                        <span><strong>جمعیت مانده:</strong> ${fmtNum(m.birdsEndOfWeek, 0)} قطعه</span>
+                        <span><strong>زنده‌مانی:</strong> ${fmtPct(m.cumulativeSurvivalPercent)}</span>
+                        <span><strong>تلفات کل ٪:</strong> ${fmtPct(m.totalMortalityPercent)}</span>
+                        <span><strong>وزن کل گله:</strong> ${fmtNum(m.totalLiveWeight, 1)} kg</span>
+                        <span><strong>دان کل:</strong> ${fmtNum(m.cumulativeFeed, 1)} kg</span>
+                        <span><strong>FCR:</strong> ${fmtNum(m.fcr, 3)}</span>
+                    </div>
+                </div>
+
+                ${
+                  weekBlocks || missingBlocks
+                    ? `${weekBlocks}${missingBlocks}`
+                    : Array.isArray(weekNumbers) && weekNumbers.length === 0
+                      ? '<div style="text-align:center; padding:40px; background:#fff; border-radius:10px; color:#94a3b8;">هیچ هفته‌ای برای این گزارش انتخاب نشده است</div>'
+                      : '<div style="text-align:center; padding:40px; background:#fff; border-radius:10px; color:#94a3b8;">هیچ هفته‌ای برای این گله ثبت نشده است</div>'
+                }
+
+                <div class="report-footer">
+                    <div class="report-by">📌 دریافت گزارش توسط: <strong>${userName}</strong> (${roleText}) | تاریخ: <strong>${now}</strong> | ساعت: <strong>${nowTime}</strong></div>
+                    <p style="margin-top: 10px;">این گزارش توسط سامانه مدیریت اطلاعات، خدمات و ارتباطات با مشتریان (سِکاد) تولید شده است.</p>
+                </div>
+            </body>
+            </html>
+        `;
+

@@ -694,6 +694,10 @@ SKB-CRM.IR`,
     return map[status] || map.pending;
   }
 
+  // موج ۳.۲o — برش بدنهٔ `setupCharts` (۲۲۳ → ۵۷ خط): پلاگین درون‌خطی مقدارنما و سه
+  // پیکربندی نمودار به چهار کمکی ماژول‌محلی رفتند (`buildValueLabelPlugin` ·
+  // `buildWeightingChartConfig` · `buildLossChartConfig` · `buildFeedChartConfig`)؛
+  // خروجی بایت‌به‌بایت ثابت است (گارد `npm run test:dashboard:setup-charts:body`).
   // ===== نمودارها =====
 
   // ساخت نمودارها با داده خالی (بدون داده فیک)
@@ -712,43 +716,7 @@ SKB-CRM.IR`,
     this.resetChartStats();
 
     // پلاگین داخلی «نمایش مقادیر» (بدون وابستگی به chartjs-plugin-datalabels)
-    this._valueLabelPlugin = {
-      id: "dashValueLabels",
-      afterDatasetsDraw(chart) {
-        if (!chart._dashShowValues) return;
-        const chartArea = chart.chartArea;
-        if (!chartArea) return;
-        const ctx = chart.ctx;
-        ctx.save();
-        chart.data.datasets.forEach((dataset, di) => {
-          if (dataset.hidden) return;
-          const meta = chart.getDatasetMeta(di);
-          if (!meta || !meta.data) return;
-          const color = dataset.borderColor || dataset.backgroundColor || "#475569";
-          ctx.font = "700 10px Vazir, sans-serif";
-          ctx.fillStyle = color;
-          ctx.textAlign = "center";
-          const frac = typeof chart._dashFrac === "number" ? chart._dashFrac : 0;
-          (dataset.data || []).forEach((value, idx) => {
-            if (value === null || value === undefined || Number.isNaN(Number(value))) {
-              return;
-            }
-            const el = meta.data[idx];
-            if (!el || typeof el.x !== "number") return;
-            const text = Number(value).toLocaleString("fa-IR", {
-              maximumFractionDigits: frac,
-            });
-            const isBar = chart.config && chart.config.type === "bar";
-            const cx = isBar ? el.x + (el.width || 0) / 2 : el.x;
-            let y = isBar ? el.y - 5 : el.y - 11;
-            if (y < chartArea.top + 4) y = chartArea.top + 4;
-            ctx.fillText(text, cx, y);
-          });
-        });
-        ctx.restore();
-      },
-    };
-
+    this._valueLabelPlugin = buildValueLabelPlugin();
     // نمودار وزن‌گیری
     const weightCtx = document
       .getElementById("weightingCanvas")
@@ -760,51 +728,7 @@ SKB-CRM.IR`,
     if (weightCtx) {
       this.chartInstances.weighting = new Chart(
         weightCtx,
-        {
-          type: "line",
-          data: {
-            labels: [],
-            datasets: [
-              {
-                label: "وزن (کیلوگرم)",
-                data: [],
-                borderColor: "#4a90e2",
-                backgroundColor: "rgba(74, 144, 226, 0.1)",
-                fill: true,
-                tension: 0.4,
-                pointRadius: 4,
-                pointHitRadius: 14,
-              },
-            ],
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            interaction: { mode: "index", axis: "x", intersect: false },
-            hover: { mode: "index", axis: "x", intersect: false },
-            plugins: {
-              legend: { display: true, labels: { color: "#475569", font: { family: "Vazir", size: 11 } } },
-              tooltip: {
-                enabled: true,
-                intersect: false,
-                mode: "index",
-                position: "nearest",
-                rtl: true,
-                titleAlign: "right",
-                bodyAlign: "right",
-                footerAlign: "right",
-                backgroundColor: "rgba(15,23,42,0.92)",
-                titleFont: { family: "Vazir", size: 12 },
-                bodyFont: { family: "Vazir", size: 11 },
-                padding: 10,
-                cornerRadius: 8,
-              },
-              datalabels: { display: false },
-            },
-            scales: { y: { beginAtZero: true } },
-          },
-        },
-        [this._valueLabelPlugin],
+        buildWeightingChartConfig(),        [this._valueLabelPlugin],
       );
     }
 
@@ -813,48 +737,7 @@ SKB-CRM.IR`,
     if (lossCtx) {
       this.chartInstances.loss = new Chart(
         lossCtx,
-        {
-          type: "bar",
-          data: {
-            labels: [],
-            datasets: [
-              {
-                label: "تلفات",
-                data: [],
-                backgroundColor: "#ef4444",
-                hoverBackgroundColor: "#b91c1c",
-                borderRadius: 4,
-              },
-            ],
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            interaction: { mode: "index", axis: "x", intersect: false },
-            hover: { mode: "index", axis: "x", intersect: false },
-            plugins: {
-              legend: { display: false },
-              tooltip: {
-                enabled: true,
-                intersect: false,
-                mode: "index",
-                position: "nearest",
-                rtl: true,
-                titleAlign: "right",
-                bodyAlign: "right",
-                footerAlign: "right",
-                backgroundColor: "rgba(15,23,42,0.92)",
-                titleFont: { family: "Vazir", size: 12 },
-                bodyFont: { family: "Vazir", size: 11 },
-                padding: 10,
-                cornerRadius: 8,
-              },
-              datalabels: { display: false },
-            },
-            scales: { y: { beginAtZero: true } },
-          },
-        },
-        [this._valueLabelPlugin],
+        buildLossChartConfig(),        [this._valueLabelPlugin],
       );
     }
 
@@ -863,51 +746,7 @@ SKB-CRM.IR`,
     if (feedCtx) {
       this.chartInstances.feed = new Chart(
         feedCtx,
-        {
-          type: "line",
-          data: {
-            labels: [],
-            datasets: [
-              {
-                label: "خوراک (کیلوگرم)",
-                data: [],
-                borderColor: "#10b981",
-                backgroundColor: "rgba(16, 185, 129, 0.1)",
-                fill: true,
-                tension: 0.4,
-                pointRadius: 4,
-                pointHitRadius: 14,
-              },
-            ],
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            interaction: { mode: "index", axis: "x", intersect: false },
-            hover: { mode: "index", axis: "x", intersect: false },
-            plugins: {
-              legend: { display: false },
-              tooltip: {
-                enabled: true,
-                intersect: false,
-                mode: "index",
-                position: "nearest",
-                rtl: true,
-                titleAlign: "right",
-                bodyAlign: "right",
-                footerAlign: "right",
-                backgroundColor: "rgba(15,23,42,0.92)",
-                titleFont: { family: "Vazir", size: 12 },
-                bodyFont: { family: "Vazir", size: 11 },
-                padding: 10,
-                cornerRadius: 8,
-              },
-              datalabels: { display: false },
-            },
-            scales: { y: { beginAtZero: true } },
-          },
-        },
-        [this._valueLabelPlugin],
+        buildFeedChartConfig(),        [this._valueLabelPlugin],
       );
     }
 
@@ -2408,3 +2247,189 @@ export const dashboardService = new DashboardService();
 
 // ===== چسب پنجره (window.*) — منتقل‌شده به dashboard.window-glue.js (موج ۳.۲) =====
 registerDashboardWindowGlue({ dashboardService, DashboardService });
+// کمکی ماژول‌محلی (موج ۳.۲o) — پلاگین Chart.js برای نمایش مقدارها روی نمودارهای داشبورد.
+// ⚠️ متن زیر بایت‌به‌بایت از بدنهٔ `setupCharts` منتقل شده است؛ متن فارسی داخلی و
+// dedent ممنوع است.
+// ⚠️ پرانتز بعد از `=>` لازم است وگرنه `{` به‌عنوان بدنهٔ بلوکی تفسیر می‌شود (درس ۳.۲n).
+const buildValueLabelPlugin = () => (
+{
+      id: "dashValueLabels",
+      afterDatasetsDraw(chart) {
+        if (!chart._dashShowValues) return;
+        const chartArea = chart.chartArea;
+        if (!chartArea) return;
+        const ctx = chart.ctx;
+        ctx.save();
+        chart.data.datasets.forEach((dataset, di) => {
+          if (dataset.hidden) return;
+          const meta = chart.getDatasetMeta(di);
+          if (!meta || !meta.data) return;
+          const color = dataset.borderColor || dataset.backgroundColor || "#475569";
+          ctx.font = "700 10px Vazir, sans-serif";
+          ctx.fillStyle = color;
+          ctx.textAlign = "center";
+          const frac = typeof chart._dashFrac === "number" ? chart._dashFrac : 0;
+          (dataset.data || []).forEach((value, idx) => {
+            if (value === null || value === undefined || Number.isNaN(Number(value))) {
+              return;
+            }
+            const el = meta.data[idx];
+            if (!el || typeof el.x !== "number") return;
+            const text = Number(value).toLocaleString("fa-IR", {
+              maximumFractionDigits: frac,
+            });
+            const isBar = chart.config && chart.config.type === "bar";
+            const cx = isBar ? el.x + (el.width || 0) / 2 : el.x;
+            let y = isBar ? el.y - 5 : el.y - 11;
+            if (y < chartArea.top + 4) y = chartArea.top + 4;
+            ctx.fillText(text, cx, y);
+          });
+        });
+        ctx.restore();
+      },
+    }
+);
+
+// کمکی ماژول‌محلی (موج ۳.۲o) — پیکربندی نمودار وزن‌گیری (دادهٔ خالی).
+// ⚠️ متن زیر بایت‌به‌بایت از بدنهٔ `setupCharts` منتقل شده است (صفر dedent).
+const buildWeightingChartConfig = () => (
+        {
+          type: "line",
+          data: {
+            labels: [],
+            datasets: [
+              {
+                label: "وزن (کیلوگرم)",
+                data: [],
+                borderColor: "#4a90e2",
+                backgroundColor: "rgba(74, 144, 226, 0.1)",
+                fill: true,
+                tension: 0.4,
+                pointRadius: 4,
+                pointHitRadius: 14,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: "index", axis: "x", intersect: false },
+            hover: { mode: "index", axis: "x", intersect: false },
+            plugins: {
+              legend: { display: true, labels: { color: "#475569", font: { family: "Vazir", size: 11 } } },
+              tooltip: {
+                enabled: true,
+                intersect: false,
+                mode: "index",
+                position: "nearest",
+                rtl: true,
+                titleAlign: "right",
+                bodyAlign: "right",
+                footerAlign: "right",
+                backgroundColor: "rgba(15,23,42,0.92)",
+                titleFont: { family: "Vazir", size: 12 },
+                bodyFont: { family: "Vazir", size: 11 },
+                padding: 10,
+                cornerRadius: 8,
+              },
+              datalabels: { display: false },
+            },
+            scales: { y: { beginAtZero: true } },
+          },
+        }
+);
+
+// کمکی ماژول‌محلی (موج ۳.۲o) — پیکربندی نمودار تلفات (دادهٔ خالی).
+// ⚠️ متن زیر بایت‌به‌بایت از بدنهٔ `setupCharts` منتقل شده است (صفر dedent).
+const buildLossChartConfig = () => (
+        {
+          type: "bar",
+          data: {
+            labels: [],
+            datasets: [
+              {
+                label: "تلفات",
+                data: [],
+                backgroundColor: "#ef4444",
+                hoverBackgroundColor: "#b91c1c",
+                borderRadius: 4,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: "index", axis: "x", intersect: false },
+            hover: { mode: "index", axis: "x", intersect: false },
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                enabled: true,
+                intersect: false,
+                mode: "index",
+                position: "nearest",
+                rtl: true,
+                titleAlign: "right",
+                bodyAlign: "right",
+                footerAlign: "right",
+                backgroundColor: "rgba(15,23,42,0.92)",
+                titleFont: { family: "Vazir", size: 12 },
+                bodyFont: { family: "Vazir", size: 11 },
+                padding: 10,
+                cornerRadius: 8,
+              },
+              datalabels: { display: false },
+            },
+            scales: { y: { beginAtZero: true } },
+          },
+        }
+);
+
+// کمکی ماژول‌محلی (موج ۳.۲o) — پیکربندی نمودار مصرف خوراک (دادهٔ خالی).
+// ⚠️ متن زیر بایت‌به‌بایت از بدنهٔ `setupCharts` منتقل شده است (صفر dedent).
+const buildFeedChartConfig = () => (
+        {
+          type: "line",
+          data: {
+            labels: [],
+            datasets: [
+              {
+                label: "خوراک (کیلوگرم)",
+                data: [],
+                borderColor: "#10b981",
+                backgroundColor: "rgba(16, 185, 129, 0.1)",
+                fill: true,
+                tension: 0.4,
+                pointRadius: 4,
+                pointHitRadius: 14,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: "index", axis: "x", intersect: false },
+            hover: { mode: "index", axis: "x", intersect: false },
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                enabled: true,
+                intersect: false,
+                mode: "index",
+                position: "nearest",
+                rtl: true,
+                titleAlign: "right",
+                bodyAlign: "right",
+                footerAlign: "right",
+                backgroundColor: "rgba(15,23,42,0.92)",
+                titleFont: { family: "Vazir", size: 12 },
+                bodyFont: { family: "Vazir", size: 11 },
+                padding: 10,
+                cornerRadius: 8,
+              },
+              datalabels: { display: false },
+            },
+            scales: { y: { beginAtZero: true } },
+          },
+        }
+);

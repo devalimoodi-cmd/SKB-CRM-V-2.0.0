@@ -1,0 +1,99 @@
+{
+  "note": "اسنپ‌شات رکورد ساختاری متد غول بروزرسانی وضعیت پیامک (dashboardSmsMethods.refreshSmsStatus)، گرفته‌شده پیش از موج برش بدنه (۳.۲m). هر کِیس = رکورد JSON شامل فراخوانی‌های API (با آرگومان‌ها)، گزینه‌های Swal.fire (با html قالب ~۴۴ خطی)، اعلان‌ها، وضعیت لودر و فراخوانی‌های میزبان سرویس. بازتولید: npm run test:dashboard:sms-status:body -- --snapshot",
+  "node": "v24.13.0",
+  "locale": "en-US",
+  "timeZone": "Asia/Tehran",
+  "frozenClockUtc": "2026-06-15T06:30:00.000Z",
+  "source": "HEAD پیش از برش بدنه — git tag pre-sms-status-body-split",
+  "note2": "خروجی به locale/ICU و منطقهٔ زمانی محیط Node وابسته است (کلوژر formatDateTime از Intl fa-IR استفاده می‌کند)؛ هارنس ساعت را تثبیت و TZ را روی Asia/Tehran قفل می‌کند.",
+  "cases": {
+    "M1.مودال-پایه-با-سه-پیامک": {
+      "bytes": 10118,
+      "sha256": "6ab2d944187bbe7a6f2c961985bb83db965a1c895c65df55c5d8e677e5a5d044"
+    },
+    "M2.بی‌صدا-بدون-مودال": {
+      "bytes": 550,
+      "sha256": "9658e3425d43cc731d0a60ece9331d816031dcdd1cf9567a76a67ba08e931024"
+    },
+    "M3.هیچ-پیامکی-برای-بروزرسانی-نیست": {
+      "bytes": 934,
+      "sha256": "43e2bc7abf26267e2f3edcf4ddd12328564c39f08b883148c5978172d4f91ea1"
+    },
+    "M4.خطای-بروزرسانی-سمت-سرور": {
+      "bytes": 5923,
+      "sha256": "c5c67a2da58561db4db21c0c9d8e955c232b16b31a7b6e322c7978ebf31d890f"
+    },
+    "M5.خطای-واکشی-تاریخچه": {
+      "bytes": 3894,
+      "sha256": "ce6cbe6c61e1aa05b9ef213b87b5ce8840664e8ad579c963e47e7a0342ba69b1"
+    },
+    "M6.history-success-false": {
+      "bytes": 3829,
+      "sha256": "61f4bd7aad3b430eed69add7d10c6c3fe52ebdf5c33b5006331bad73696d72e2"
+    },
+    "M7.data-آرایهٔ-مستقیم": {
+      "bytes": 5944,
+      "sha256": "d9ef19019c4c6614ef5bff612bebae99df8514f274f9329955dd7bc28dec851d"
+    },
+    "M8.Swal-غایب": {
+      "bytes": 936,
+      "sha256": "f5961a8d9fefc5d48b44f14e192a557d40567b33063fa7023b1b18928033ae40"
+    },
+    "M9.لودر-نشان-داده-نشده": {
+      "bytes": 5944,
+      "sha256": "926eed0336b19ea91aaa5d3e0aed7899dfd523b3d573f12f999cf4f8273604df"
+    },
+    "M10.وضعیت‌های-تحویل-مرزی": {
+      "bytes": 20550,
+      "sha256": "537aa2dd57d84b7cbab323ccabfdaa7ec3f5cda463d2e9490aaf7ecd6000c8df"
+    },
+    "M11.وضعیت-ناشناخته-در-ردیف": {
+      "bytes": 5910,
+      "sha256": "bb5a8e405e8fdbc45875419c8b032bd540c0b1bcd9d3130d62d55de2c1854088"
+    },
+    "M12.دامنهٔ-سالن-و-گله": {
+      "bytes": 8031,
+      "sha256": "5da9fc3cfab968e2397067f4d37cddf4d5f2ce6a3f37e331c5b6494ee5fd3395"
+    },
+    "M13.شمارهٔ-گله-و-هفته-تودرتو": {
+      "bytes": 7943,
+      "sha256": "065e41ea60c983433ba820c50fffb2e3db0751b9f1cde2ef573963df3bbc0fcf"
+    },
+    "M14.تاریخ‌های-نامعتبر": {
+      "bytes": 5916,
+      "sha256": "2ccb373854bf93e1504fd6e61ce5b677bc8c09e5cced040b6cdd3358cb460763"
+    },
+    "M15.پیام-خالی-و-برچسپ‌های-جایگزین": {
+      "bytes": 5912,
+      "sha256": "d410e6e5c418f1cd62fdd20139ad47622223d5937400ada531f865c56a608d87"
+    },
+    "M16.شمارنده‌های-خلاصه": {
+      "bytes": 12141,
+      "sha256": "9129dc3ce5190bd853f740ac4e955f6e7d61077233a9d3f81bf641deb723a23b"
+    },
+    "M17.فرستنده‌های-مختلف": {
+      "bytes": 10113,
+      "sha256": "0d037e1fbdb5fda20ce4649a411a53d832b8bed84fcb0f3e201f008ea74509b8"
+    },
+    "M18.خطای-میزبان-مسیر-catch": {
+      "bytes": 954,
+      "sha256": "9d81b3a1eb542798fb15eb42f5dabebb461ba9612c7d58f8aa08ed5c33d86c42"
+    },
+    "M19.حالت-بی‌صدا-با-خطای-refresh": {
+      "bytes": 703,
+      "sha256": "1707d9a97c318b0f41c3e53df6a151ad89d4d769d021641b2b4be81602eaa54b"
+    },
+    "M20.openModal-پیش‌فرض": {
+      "bytes": 5948,
+      "sha256": "d285dbcf717bc289ae0da377a4b4c05370492ffad1e4d28bbdc342ff23142d96"
+    },
+    "M21.delivery_state-خالی-رشته‌ای": {
+      "bytes": 8014,
+      "sha256": "1b49f9c153d9af29820b780208b59b27f5ebc36435af601e47c2c2022bf5ebbc"
+    },
+    "M22.بدون-هیچ-آرگومانی-خطای-مرزی": {
+      "bytes": 948,
+      "sha256": "780b3a1dc4e3492d425adfcfcde51309947f6e9fd1285f098327844cb06ce743"
+    }
+  }
+}

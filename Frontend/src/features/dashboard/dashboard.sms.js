@@ -6,7 +6,11 @@
 // متن متدها کلمه‌به‌کلمه منتقل شده است؛ تنها تفاوت با مبدأ «ویرگول پایان متد» است
 // که برای اعتبار نحو object literal لازم است (گیت ۲۷ برگشت‌پذیری بایت‌به‌بایت را اثبات می‌کند).
 // ترکیب: Object.assign(DashboardService.prototype, dashboardSmsMethods) در dashboard.service.js
-// حجم: 10 متد / 974 خط
+// موج ۳.۲m — برش بدنهٔ `refreshSmsStatus` (۲۳۹ → ۸۸ خط): کلوژرهای تاریخ/تحویل/فرستنده +
+// ردیف‌های مودال و شمارنده‌ها + قالب `html` به دو کمکی ماژول‌محلی رفتند
+// (`buildSmsStatusRowsHtml` · `buildSmsStatusModalHtml`)؛ `Swal.fire` و `return`های
+// زودهنگام در متد ماندند. گارد: `npm run test:dashboard:sms-status:body` (۱۱۰ بررسی).
+// حجم: 10 متد + 2 کمکی ماژول‌محلی / 990 خط
 // ============================================================
 import { dashboardApi } from "./dashboard.api.js";
 import { apiService } from "../../core/services/api.service.js";
@@ -812,6 +816,37 @@ export const dashboardSmsMethods = {
 
       // ۴. نمایش مودال با وضعیت‌های جدید
       if (openModal && typeof Swal !== "undefined") {
+        const rows = buildSmsStatusRowsHtml(records, { service: this });
+        Swal.fire({
+          icon: "info",
+          title: "📱 بروزرسانی وضعیت پیامک‌ها",
+          html: buildSmsStatusModalHtml({ records, rows, totalChecked, updatedCount }),
+          confirmButtonText: "باشه",
+          confirmButtonColor: "#2c7a6e",
+          width: 1120,
+        });
+      }
+
+      if (openModal) {
+        notificationService.success(
+          updateRes?.success
+            ? `✅ وضعیت ${totalChecked} پیامک بررسی و در دیتابیس ذخیره شد`
+            : "✅ وضعیت پیامک‌ها بروزرسانی شد",
+        );
+      }
+    } catch (error) {
+      if (loaderShown) this.closeSmsLoader();
+      console.error("❌ Error refreshing SMS status:", error);
+      notificationService.error("خطا در بروزرسانی");
+    }
+  },
+
+};
+// کمکی ماژول‌محلی (موج ۳.۲m) — ردیف‌های جدول مودال وضعیت پیامک.
+// ⚠️ کد زیر بایت‌به‌بایت از بدنهٔ `refreshSmsStatus` منتقل شده است (سه closure درونش
+// ادغام شده‌اند)؛ قالب چندخطی ردیف‌ها داخلش است و هرگونه dedent بایت‌ها را عوض می‌کند.
+// `service` پاس داده می‌شود چون متد `getSmsStatusInfo` سرویس را صدا می‌زند.
+const buildSmsStatusRowsHtml = (records, { service }) => {
         const formatDateTime = (dateStr) => {
           if (!dateStr) return "-";
           try {
@@ -908,7 +943,7 @@ export const dashboardSmsMethods = {
                       : r.status === "sent"
                         ? "#2563eb"
                         : "#d97706"
-                };">${this.getSmsStatusInfo(r.status || "pending").text}</span>
+                };">${service.getSmsStatusInfo(r.status || "pending").text}</span>
               </td>
               <td style="padding:8px; border-bottom:1px solid #f1f5f9; text-align:center; font-size:11px; color:#475569;">${getSenderName(r.sender)}</td>
             </tr>
@@ -916,6 +951,13 @@ export const dashboardSmsMethods = {
           )
           .join("");
 
+  return rows;
+};
+
+// کمکی ماژول‌محلی (موج ۳.۲m) — قالب html مودال وضعیت پیامک + شمارنده‌های خلاصه.
+// ⚠️ متن زیر بایت‌به‌بایت از بدنهٔ `refreshSmsStatus` منتقل شده است؛ فاصله‌های داخل
+// backtick بخشی از خروجی مودال‌اند و dedent ممنوع است.
+const buildSmsStatusModalHtml = ({ records, rows, totalChecked, updatedCount }) => {
         const deliveredCount = records.filter(
           (r) => r.status === "delivered" || r.delivery_state === 1,
         ).length;
@@ -926,10 +968,7 @@ export const dashboardSmsMethods = {
           (r) => r.status === "pending" || !r.status || !r.delivery_state,
         ).length;
 
-        Swal.fire({
-          icon: "info",
-          title: "📱 بروزرسانی وضعیت پیامک‌ها",
-          html: `
+  return `
             <div style="direction:rtl; text-align:right; font-family:'Vazir';">
               <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:12px;">
                 <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; padding:8px; text-align:center;">
@@ -966,25 +1005,6 @@ export const dashboardSmsMethods = {
                 ${totalChecked} پیامک بررسی شد ${updatedCount > 0 ? ` | ${updatedCount} پیامک به‌روزرسانی شد` : ""}
               </p>
             </div>
-          `,
-          confirmButtonText: "باشه",
-          confirmButtonColor: "#2c7a6e",
-          width: 1120,
-        });
-      }
-
-      if (openModal) {
-        notificationService.success(
-          updateRes?.success
-            ? `✅ وضعیت ${totalChecked} پیامک بررسی و در دیتابیس ذخیره شد`
-            : "✅ وضعیت پیامک‌ها بروزرسانی شد",
-        );
-      }
-    } catch (error) {
-      if (loaderShown) this.closeSmsLoader();
-      console.error("❌ Error refreshing SMS status:", error);
-      notificationService.error("خطا در بروزرسانی");
-    }
-  },
-
+          `;
 };
+

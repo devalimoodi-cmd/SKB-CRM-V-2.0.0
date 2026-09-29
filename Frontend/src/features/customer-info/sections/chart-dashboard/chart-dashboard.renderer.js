@@ -1,6 +1,10 @@
 // ================================================================
 // chart-dashboard.renderer.js
 // رندر ماژول نمودارهای تحلیلی داینامیک (تب داشبورد اطلاعات مشتری)
+// موج ۳.۲k — برش بدنهٔ `renderContainer` (۲۴۹ → ۳۱ خط): قالب حالت خالی، سازندهٔ چیپ‌های
+// گله/سالن و قالب کامل کانتینر به سه کمکی ماژول‌محلی رفتند (`buildChartsEmptyStateHtml` ·
+// `buildFlockChecksHtml` · `buildChartsContainerHtml`)؛ خروجی بایت‌به‌بایت ثابت است
+// (گارد `npm run test:chart-dashboard:body` · ۱۲۳ بررسی · ۲۵ کِیس).
 // ================================================================
 
 export const chartDashboardRenderer = {
@@ -10,13 +14,7 @@ export const chartDashboardRenderer = {
     if (!container) return;
 
     if (!flocks || flocks.length === 0) {
-      container.innerHTML = `
-                <div class="charts-empty-state">
-                    <i class="fas fa-chart-bar"></i>
-                    <h4>هیچ گله فعالی وجود ندارد</h4>
-                    <p>برای مشاهده نمودارها، ابتدا یک گله ثبت کنید</p>
-                </div>
-            `;
+      container.innerHTML = buildChartsEmptyStateHtml();
       return;
     }
 
@@ -37,7 +35,123 @@ export const chartDashboardRenderer = {
               ${u._chipLabel || `گله ${u.flock.flockNumber}`}
             </label>`;
 
-    let flockChecks = "";
+    const flockChecks = buildFlockChecksHtml({ viewMode, groupMeta, hallFlocks, chip, flocks });
+
+    container.innerHTML = buildChartsContainerHtml({
+  renderer: this, weekCount, flockChecks, viewMode, layoutMode, options,
+});
+  },
+
+  renderSeriesControls(items) {
+    const container = document.getElementById("mainSeriesControls");
+    if (!container) return;
+
+    if (!items || items.length === 0) {
+      container.innerHTML = "";
+      return;
+    }
+
+    container.innerHTML = `
+            <div class="series-controls-title"><i class="fas fa-sliders"></i> نمایش و تنظیم سری‌ها</div>
+            <div class="series-controls-list">
+                ${items
+                  .map(
+                    (it) => `
+                    <div class="series-control-row">
+                        <input type="checkbox" class="series-visible" ${it.visible ? "checked" : ""}
+                               onchange="chartDashboardService.toggleSeries('${it.key}', this.checked)">
+                        <span class="series-color-dot" style="background:${it.color}"></span>
+                        <input type="color" class="series-color" value="${it.color}"
+                               onchange="chartDashboardService.setSeriesColor('${it.key}', this.value)">
+                        <select class="series-linetype" onchange="chartDashboardService.setSeriesLineType('${it.key}', this.value)">
+                            <option value="solid" ${it.lineType === "solid" ? "selected" : ""}>توپر</option>
+                            <option value="dashed" ${it.lineType === "dashed" ? "selected" : ""}>خط‌چین</option>
+                            <option value="dotted" ${it.lineType === "dotted" ? "selected" : ""}>نقطه‌چین</option>
+                        </select>
+                        <span class="series-label">${it.label}</span>
+                        ${it.key && String(it.key).indexOf("cmp:") === 0
+                          ? `<button type="button" class="series-remove-btn" title="حذف سری مقایسه"
+                               onclick="chartDashboardService.removeCompareSeries('${it.key.slice(4, -7)}')">&times;</button>`
+                          : it.key && String(it.key).indexOf("breedStd:") === 0
+                            ? `<button type="button" class="series-remove-btn" title="حذف استاندارد نژاد"
+                                 onclick="chartDashboardService.removeBreedStdSeries('${it.key.slice(9, -7)}')">&times;</button>`
+                          : ""}
+                    </div>
+                `,
+                  )
+                  .join("")}
+            </div>
+        `;
+  },
+
+  renderSimpleCard(canvasId, icon, title) {
+    return `
+            <div class="analysis-chart-card">
+                <div class="analysis-chart-header">
+                    <h3 class="analysis-chart-title"><i class="fas ${icon}"></i> ${title}</h3>
+                    <div class="analysis-chart-actions">
+                        <button class="analysis-action-btn" onclick="chartDashboardService.downloadChart('${canvasId}','png')" title="دانلود PNG"><i class="fas fa-download"></i></button>
+                        <button class="analysis-action-btn" onclick="chartDashboardService.resetZoom('${canvasId}')" title="ریست زوم"><i class="fas fa-search-minus"></i></button>
+                        <button class="analysis-action-btn analysis-cmp-btn" onclick="chartDashboardService.openChartComparePicker()"
+                                title="مقایسه با گله/سالن سایر مشتریان"><i class="fas fa-people-arrows"></i></button>
+                    </div>
+                </div>
+                <div class="analysis-chart-body">
+                    <div class="analysis-legend-side" id="${canvasId}Legend"></div>
+                    <div class="analysis-chart-wrapper small">
+                        <canvas id="${canvasId}"></canvas>
+                    </div>
+                </div>
+            </div>
+        `;
+  },
+
+  renderMiniTabsCard(canvasId, icon, title, modes, setterFn) {
+    return `
+            <div class="analysis-chart-card">
+                <div class="analysis-chart-header">
+                    <h3 class="analysis-chart-title"><i class="fas ${icon}"></i> ${title}</h3>
+                    <div class="analysis-chart-actions">
+                        <button class="analysis-action-btn" onclick="chartDashboardService.downloadChart('${canvasId}','png')" title="دانلود PNG"><i class="fas fa-download"></i></button>
+                        <button class="analysis-action-btn" onclick="chartDashboardService.resetZoom('${canvasId}')" title="ریست زوم"><i class="fas fa-search-minus"></i></button>
+                        <button class="analysis-action-btn analysis-cmp-btn" onclick="chartDashboardService.openChartComparePicker()"
+                                title="مقایسه با گله/سالن سایر مشتریان"><i class="fas fa-people-arrows"></i></button>
+                    </div>
+                </div>
+                <div class="analysis-indicator-tabs mini" id="${canvasId}Tabs">
+                    ${modes
+                      .map(
+                        (m) =>
+                          `<button class="analysis-tab ${m.active ? "active" : ""}" data-mode="${m.mode}" onclick="${setterFn}('${m.mode}')">${m.label}</button>`,
+                      )
+                      .join("")}
+                </div>
+                <div class="analysis-chart-body">
+                    <div class="analysis-legend-side" id="${canvasId}Legend"></div>
+                    <div class="analysis-chart-wrapper small">
+                        <canvas id="${canvasId}"></canvas>
+                    </div>
+                </div>
+            </div>
+        `;
+  },
+};
+// کمکی ماژول‌محلی (موج ۳.۲k) — حالت خالیِ نمودارها وقتی گلهٔ فعالی نیست.
+// ⚠️ قالب زیر بایت‌به‌بایت از بدنهٔ متد منتقل شده است؛ فاصله‌های داخل backtick
+// بخشی از خروجی HTML هستند و هرگونه dedent، بایت‌ها را عوض می‌کند.
+const buildChartsEmptyStateHtml = () => `
+                <div class="charts-empty-state">
+                    <i class="fas fa-chart-bar"></i>
+                    <h4>هیچ گله فعالی وجود ندارد</h4>
+                    <p>برای مشاهده نمودارها، ابتدا یک گله ثبت کنید</p>
+                </div>
+            `;
+
+// کمکی ماژول‌محلی (موج ۳.۲k) — چیپ‌های انتخاب گله/سالن (نمای گله یا گروه‌های سالن).
+// ⚠️ ناحیهٔ زیر بایت‌به‌بایت از بدنهٔ متد منتقل شده است؛ قالب‌های رشته‌ای چندخطی
+// داخلش هستند و dedent، بایت خروجی HTML را عوض می‌کند.
+const buildFlockChecksHtml = ({ viewMode, groupMeta, hallFlocks, chip, flocks }) => {
+let flockChecks = "";
     if (viewMode === "hall") {
       flockChecks = groupMeta
         .map((g) => {
@@ -65,8 +179,16 @@ export const chartDashboardRenderer = {
     } else {
       flockChecks = flocks.map(chip).join("");
     }
+  return flockChecks;
+};
 
-    container.innerHTML = `
+// کمکی ماژول‌محلی (موج ۳.۲k) — قالب کامل بخش نمودارها (نوار کنترل + کارت‌های نمودار).
+// ⚠️ قالب زیر بایت‌به‌بایت از بدنهٔ متد منتقل شده است؛ فاصله‌های داخل backtick بخشی
+// از خروجی HTML هستند و dedent ممنوع است. دو کارت‌ساز از طریق `renderer` صدا زده
+// می‌شوند تا `this` متد (و امکان بازنویسی در آینده) حفظ شود.
+const buildChartsContainerHtml = ({
+  renderer, weekCount, flockChecks, viewMode, layoutMode, options,
+}) => `
             <div class="analysis-module">
 
                 <!-- ===== نمایش گله‌های گذشته (تاگل + بنر هشدار) ===== -->
@@ -210,18 +332,18 @@ export const chartDashboardRenderer = {
 
                 <!-- ===== نمودارهای جداگانه ===== -->
                 <div class="analysis-chart-grid">
-                    ${this.renderSimpleCard(
+                    ${renderer.renderSimpleCard(
                       "totalWeightGainChart",
                       "fa-arrow-trend-up",
                       "افزایش وزن کل گله (هفتگی)",
                     )}
-                    ${this.renderSimpleCard(
+                    ${renderer.renderSimpleCard(
                       "totalLiveWeightChart",
                       "fa-weight-hanging",
                       "وزن زنده کل گله (هفتگی)",
                     )}
-                    ${this.renderSimpleCard("fcrChart", "fa-utensils", "ضریب تبدیل هفتگی (FCR)")}
-                    ${this.renderMiniTabsCard(
+                    ${renderer.renderSimpleCard("fcrChart", "fa-utensils", "ضریب تبدیل هفتگی (FCR)")}
+                    ${renderer.renderMiniTabsCard(
                       "mortalityPctChart",
                       "fa-skull",
                       "درصد تلفات",
@@ -231,12 +353,12 @@ export const chartDashboardRenderer = {
                       ],
                       "chartDashboardService.setMortalityMode",
                     )}
-                    ${this.renderSimpleCard(
+                    ${renderer.renderSimpleCard(
                       "mortalityCountChart",
                       "fa-calculator",
                       "تلفات (قطعه) هفته به هفته",
                     )}
-                    ${this.renderMiniTabsCard(
+                    ${renderer.renderMiniTabsCard(
                       "survivalPctChart",
                       "fa-heart-pulse",
                       "درصد زنده مانی",
@@ -246,106 +368,11 @@ export const chartDashboardRenderer = {
                       ],
                       "chartDashboardService.setSurvivalMode",
                     )}
-                    ${this.renderSimpleCard("blackoutChart", "fa-moon", "میزان خاموشی (ساعت)")}
+                    ${renderer.renderSimpleCard("blackoutChart", "fa-moon", "میزان خاموشی (ساعت)")}
                 </div>
 
                 </div>
 
             </div>
         `;
-  },
 
-  renderSeriesControls(items) {
-    const container = document.getElementById("mainSeriesControls");
-    if (!container) return;
-
-    if (!items || items.length === 0) {
-      container.innerHTML = "";
-      return;
-    }
-
-    container.innerHTML = `
-            <div class="series-controls-title"><i class="fas fa-sliders"></i> نمایش و تنظیم سری‌ها</div>
-            <div class="series-controls-list">
-                ${items
-                  .map(
-                    (it) => `
-                    <div class="series-control-row">
-                        <input type="checkbox" class="series-visible" ${it.visible ? "checked" : ""}
-                               onchange="chartDashboardService.toggleSeries('${it.key}', this.checked)">
-                        <span class="series-color-dot" style="background:${it.color}"></span>
-                        <input type="color" class="series-color" value="${it.color}"
-                               onchange="chartDashboardService.setSeriesColor('${it.key}', this.value)">
-                        <select class="series-linetype" onchange="chartDashboardService.setSeriesLineType('${it.key}', this.value)">
-                            <option value="solid" ${it.lineType === "solid" ? "selected" : ""}>توپر</option>
-                            <option value="dashed" ${it.lineType === "dashed" ? "selected" : ""}>خط‌چین</option>
-                            <option value="dotted" ${it.lineType === "dotted" ? "selected" : ""}>نقطه‌چین</option>
-                        </select>
-                        <span class="series-label">${it.label}</span>
-                        ${it.key && String(it.key).indexOf("cmp:") === 0
-                          ? `<button type="button" class="series-remove-btn" title="حذف سری مقایسه"
-                               onclick="chartDashboardService.removeCompareSeries('${it.key.slice(4, -7)}')">&times;</button>`
-                          : it.key && String(it.key).indexOf("breedStd:") === 0
-                            ? `<button type="button" class="series-remove-btn" title="حذف استاندارد نژاد"
-                                 onclick="chartDashboardService.removeBreedStdSeries('${it.key.slice(9, -7)}')">&times;</button>`
-                          : ""}
-                    </div>
-                `,
-                  )
-                  .join("")}
-            </div>
-        `;
-  },
-
-  renderSimpleCard(canvasId, icon, title) {
-    return `
-            <div class="analysis-chart-card">
-                <div class="analysis-chart-header">
-                    <h3 class="analysis-chart-title"><i class="fas ${icon}"></i> ${title}</h3>
-                    <div class="analysis-chart-actions">
-                        <button class="analysis-action-btn" onclick="chartDashboardService.downloadChart('${canvasId}','png')" title="دانلود PNG"><i class="fas fa-download"></i></button>
-                        <button class="analysis-action-btn" onclick="chartDashboardService.resetZoom('${canvasId}')" title="ریست زوم"><i class="fas fa-search-minus"></i></button>
-                        <button class="analysis-action-btn analysis-cmp-btn" onclick="chartDashboardService.openChartComparePicker()"
-                                title="مقایسه با گله/سالن سایر مشتریان"><i class="fas fa-people-arrows"></i></button>
-                    </div>
-                </div>
-                <div class="analysis-chart-body">
-                    <div class="analysis-legend-side" id="${canvasId}Legend"></div>
-                    <div class="analysis-chart-wrapper small">
-                        <canvas id="${canvasId}"></canvas>
-                    </div>
-                </div>
-            </div>
-        `;
-  },
-
-  renderMiniTabsCard(canvasId, icon, title, modes, setterFn) {
-    return `
-            <div class="analysis-chart-card">
-                <div class="analysis-chart-header">
-                    <h3 class="analysis-chart-title"><i class="fas ${icon}"></i> ${title}</h3>
-                    <div class="analysis-chart-actions">
-                        <button class="analysis-action-btn" onclick="chartDashboardService.downloadChart('${canvasId}','png')" title="دانلود PNG"><i class="fas fa-download"></i></button>
-                        <button class="analysis-action-btn" onclick="chartDashboardService.resetZoom('${canvasId}')" title="ریست زوم"><i class="fas fa-search-minus"></i></button>
-                        <button class="analysis-action-btn analysis-cmp-btn" onclick="chartDashboardService.openChartComparePicker()"
-                                title="مقایسه با گله/سالن سایر مشتریان"><i class="fas fa-people-arrows"></i></button>
-                    </div>
-                </div>
-                <div class="analysis-indicator-tabs mini" id="${canvasId}Tabs">
-                    ${modes
-                      .map(
-                        (m) =>
-                          `<button class="analysis-tab ${m.active ? "active" : ""}" data-mode="${m.mode}" onclick="${setterFn}('${m.mode}')">${m.label}</button>`,
-                      )
-                      .join("")}
-                </div>
-                <div class="analysis-chart-body">
-                    <div class="analysis-legend-side" id="${canvasId}Legend"></div>
-                    <div class="analysis-chart-wrapper small">
-                        <canvas id="${canvasId}"></canvas>
-                    </div>
-                </div>
-            </div>
-        `;
-  },
-};

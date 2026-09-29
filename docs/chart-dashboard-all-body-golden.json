@@ -1,0 +1,90 @@
+{
+  "note": "اسنپ‌شات رکورد ساختاری متد غول رندر همهٔ نمودارها (chartDashboardService.renderAllCharts)، گرفته‌شده پیش از موج برش بدنه (۳.۲n). هر کِیس = رکورد JSON شامل آرگومان‌های هر ۸ فراخوانی renderChart (به‌همراه ترتیب)، گزینه‌ها با **خروجی واقعی callbackها** (title/label/afterBody/formatter)، فراخوانی‌های سازندهٔ دیتاست‌ها و برچسب گله‌ها. بازتولید: npm run test:chart-dashboard:all:body -- --snapshot",
+  "node": "v24.13.0",
+  "locale": "en-US",
+  "timeZone": "Asia/Tehran",
+  "source": "HEAD پیش از برش بدنه — git tag pre-all-charts-body-split",
+  "note2": "خروجی callbackها از toLocaleString(\"fa-IR\") استفاده می‌کند و به locale/ICU وابسته است؛ هارنس ساعت را تثبیت نمی‌کند چون متد هیچ Date ندارد، ولی TZ محیط باید ثابت بماند.",
+  "cases": {
+    "N1.شاخص-وزن-پایه": {
+      "bytes": 7833,
+      "sha256": "d4cadc88e0b37abad7fcd6923d3c4965e5c958f45dd6c6e6f3a67c237d5b4c10"
+    },
+    "N2.شاخص-افزایش-وزن": {
+      "bytes": 8023,
+      "sha256": "359005a605a7f30edb3937b51f3c81861aecd88389345648100b276b9854e7da"
+    },
+    "N3.شاخص-نرخ-رشد-روزانه-رفتار-واقعی": {
+      "bytes": 7997,
+      "sha256": "c772e93d7df4ccc208fed7d3d380d266334d64af605b51d616d63e9c73ca0482"
+    },
+    "N4.شاخص-نامعتبر-خطای-مرزی": {
+      "bytes": 436,
+      "sha256": "cfeecb09e47f7d1cc6ed67e23497a6843bc65512f0f777a951a76d2ff3af53e0"
+    },
+    "N5.استانداردها-خاموش": {
+      "bytes": 7523,
+      "sha256": "c09288eb1f83e29fafcdbb88e3d0f8904ce145825dc40ff82dfc9a94e0b4f551"
+    },
+    "N6.برچسب‌های-داده-خاموش": {
+      "bytes": 7731,
+      "sha256": "e582178ba9d858b98924cda04034056d48c08c119af40a912733697dc75f8bfb"
+    },
+    "N7.نوع-نمودار-bar": {
+      "bytes": 7832,
+      "sha256": "b4b90dcf770f9d11b10d5eda493f39a5419e258222878483fd90c8e5037660b6"
+    },
+    "N8.عنصر-نوع-نمودار-غایب": {
+      "bytes": 7833,
+      "sha256": "d4cadc88e0b37abad7fcd6923d3c4965e5c958f45dd6c6e6f3a67c237d5b4c10"
+    },
+    "N9.عنصر-عنوان-غایب": {
+      "bytes": 7791,
+      "sha256": "16cf7f07c3b0ee5d2d44296202971c297dbd565dfa22dc2c3ae1229d36ebe4eb"
+    },
+    "N10.حالت-تلفات-کل": {
+      "bytes": 7829,
+      "sha256": "f4d45dd74773d5c35592b59875e5946b65b7a7c5e859f8d261bfab44ef1dddef"
+    },
+    "N11.حالت-زنده‌مانی-هفتگی": {
+      "bytes": 7817,
+      "sha256": "3c6803f65625428577120cf1bace6ea350259ccbba164e261199770ee93be7b8"
+    },
+    "N12.بدون-گلهٔ-انتخاب‌شده": {
+      "bytes": 7523,
+      "sha256": "cd0a6f6a8084ab620c2d68ddd1645f4e8a8e1480bb0b99b520f2c02e28d5b6a6"
+    },
+    "N13.استاندارد-با-دو-گله": {
+      "bytes": 7833,
+      "sha256": "d4cadc88e0b37abad7fcd6923d3c4965e5c958f45dd6c6e6f3a67c237d5b4c10"
+    },
+    "N14.گلهٔ-بدون-سری": {
+      "bytes": 7523,
+      "sha256": "b7b013821cbd29fdb38c4fa42eadddce06130c79aa1a8d8cc5180b7edf165784"
+    },
+    "N15.مقدار-استاندارد-نال-در-هفتهٔ-دوم": {
+      "bytes": 7833,
+      "sha256": "d4cadc88e0b37abad7fcd6923d3c4965e5c958f45dd6c6e6f3a67c237d5b4c10"
+    },
+    "N16.استاندارد-صفر-و-مقدار-نال": {
+      "bytes": 7672,
+      "sha256": "72ddbd58f2070ae11f22ab8e6f721036ca6235c2bb1515ed43674167eb5926a2"
+    },
+    "N17.برچسب-مقدار-عددی-و-نال": {
+      "bytes": 7833,
+      "sha256": "d4cadc88e0b37abad7fcd6923d3c4965e5c958f45dd6c6e6f3a67c237d5b4c10"
+    },
+    "N18.عنوان-تولتیپ-با-آیتم-و-خالی": {
+      "bytes": 7833,
+      "sha256": "d4cadc88e0b37abad7fcd6923d3c4965e5c958f45dd6c6e6f3a67c237d5b4c10"
+    },
+    "N19.تعداد-دیتاست‌ها-و-مقایسه": {
+      "bytes": 7843,
+      "sha256": "88d731f1129ec5c849297584a197e22cf82d5aaa6100c24e1067dc05bc3581d4"
+    },
+    "N20.برچسب‌های-سفارشی-هفته": {
+      "bytes": 8065,
+      "sha256": "bc227e24fb5628076c61537da6a083d60cd47f319da06e3eaffa5e2df490972a"
+    }
+  }
+}

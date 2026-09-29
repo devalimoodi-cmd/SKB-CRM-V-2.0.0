@@ -1,0 +1,107 @@
+{
+  "note": "اسنپ‌شات رکورد ساختاری متد غول گزارش اختصاصی گله (weeklyRenderer.renderFlockReport)، گرفته‌شده پیش از موج برش بدنه (۳.۲l). هر کِیس = رکورد JSON شامل سند HTML کامل ({ html, thrown, htmlBytes, consoleErrors, consoleWarns }). بازتولید: npm run test:weekly:flock-report:body -- --snapshot",
+  "node": "v24.13.0",
+  "locale": "en-US",
+  "timeZone": "Asia/Tehran",
+  "frozenClockUtc": "2026-06-15T06:30:00.000Z",
+  "source": "HEAD پیش از برش بدنه — git tag pre-flock-report-body-split",
+  "note2": "خروجی به locale/ICU و منطقهٔ زمانی محیط Node وابسته است (تاریخ و ساعت شمسی + ارقام فارسی در تمام سند)؛ هارنس ساعت را تثبیت و TZ را روی Asia/Tehran قفل می‌کند، پس مقایسه فقط در همان محیطی معنا دارد که اسنپ‌شات گرفته شده است.",
+  "cases": {
+    "F1.گزارش-پایه-دو-هفته": {
+      "bytes": 29136,
+      "sha256": "b3e5162d011c1624664826344acdb194605c8db7d234af00d0a0e5a3968f31bc"
+    },
+    "F2.بدون-savedWeeks-و-بدون-بلوک": {
+      "bytes": 18112,
+      "sha256": "bdf1bcb1e0f6dc54321a60cf6f85c1b8059f81e8f95b18134bac59f023fd6555"
+    },
+    "F3.گلهٔ-بدون-هیچ-هفته": {
+      "bytes": 17940,
+      "sha256": "0ce3049478fc0579d15c39e4d4707bdc3d93f5ea1b5352e1d1d54a65e07ceedf"
+    },
+    "F4.انتخاب-خالی-MANUAL": {
+      "bytes": 18324,
+      "sha256": "60fc4b89ed6c3902e3fdfbf3ac57418e34dd19dbb01ffc2fdbcfa7e6be49307d"
+    },
+    "F5.انتخاب-فقط-هفتهٔ-۲": {
+      "bytes": 23761,
+      "sha256": "24c0f367cd2e13560f1c3b478799cdefd90a4bcfe8bbfb84d9437ec612a9a2f4"
+    },
+    "F6.هفتهٔ-بدون-ثبت-بلوک-هشدار": {
+      "bytes": 23890,
+      "sha256": "cfdc77d5ac1a3b6eea4f00cbfd8c0bb17917e1a45bb9b74f1fb99ea9f994db3f"
+    },
+    "F7.هفتهٔ-ناقص-PARTIAL": {
+      "bytes": 29227,
+      "sha256": "7b07df6db1b6b0e5c32c5dc5761593f91cde795ea41adc77faa95c09fe43a3d3"
+    },
+    "F8.گروهٔ-جمعیت-فقط": {
+      "bytes": 21577,
+      "sha256": "1dca3592ffc9a156882e9d42225001c171abd288bf4a64a52abd4e3e1c72f066"
+    },
+    "F9.گروهٔ-خوراک-فقط": {
+      "bytes": 21302,
+      "sha256": "ec1efa1ea1c9486b6cc7995c5cf4af7b0783d234e5d52631bb0133e37fc4c05c"
+    },
+    "F10.گروهٔ-جزئیات-فقط": {
+      "bytes": 19599,
+      "sha256": "5753f1770e6f1f34b4c408dfa47b9ed2d13ddc4facbf3cd830f171d9d0c30744"
+    },
+    "F11.گروه‌های-آرایهٔ-خالی-رفتار-واقعی": {
+      "bytes": 29136,
+      "sha256": "b3e5162d011c1624664826344acdb194605c8db7d234af00d0a0e5a3968f31bc"
+    },
+    "F12.همهٔ-گروه‌ها-صریح": {
+      "bytes": 27964,
+      "sha256": "6aae03592cbd11b771cdd2f37af3bcbb279c6114fe54c7855f5d4e6e74aa25a0"
+    },
+    "F13.options-حذف‌شده": {
+      "bytes": 29136,
+      "sha256": "b3e5162d011c1624664826344acdb194605c8db7d234af00d0a0e5a3968f31bc"
+    },
+    "F14.کاربر-نام-و-فامیل-نقش-میانی": {
+      "bytes": 29147,
+      "sha256": "98163586d57cf147aa940650c8a79476b4306fadff757b740579fa87eaaf50fc"
+    },
+    "F15.کاربر-یوزرنیم-نقش-ناشناس": {
+      "bytes": 29121,
+      "sha256": "d3692f6f36ed3a510fc51c44a2b2b70af8fb3874b8dd05458894c3f07adcfabc"
+    },
+    "F16.بدون-کاربر": {
+      "bytes": 29142,
+      "sha256": "da2ad2b3232a8f1654784d614e3f3aa04cc84b60d21d828650dd663410e6675b"
+    },
+    "F17.statistics-غایب-شاخص‌ها-خط‌تیره": {
+      "bytes": 29055,
+      "sha256": "fbf1e2602c568480f2d2908c11e7fc1834e6e3410f3933cd25f4604bcb995827"
+    },
+    "F18.بدون-timeline": {
+      "bytes": 28964,
+      "sha256": "3e3a693ea244a5c90fdb702ce17ff6f8e625d0b1ad01507a73e505204b561546"
+    },
+    "F19.بدون-تاریخ-جوجه‌ریزی": {
+      "bytes": 29118,
+      "sha256": "c8b9d1157952c24c2d443e6ac4587f61452532bebb14918aa9cc2ef008093591"
+    },
+    "F20.تاریخ-هفتهٔ-نامعتبر-شاخهٔ-catch": {
+      "bytes": 23503,
+      "sha256": "eed2aff621828c31d727e16fb6492782d727ba418d8009a2606d1f510dfebcf2"
+    },
+    "F21.گلهٔ-غیرفعال": {
+      "bytes": 29144,
+      "sha256": "8c41d0c25aa11a610f3c844cd1293a6fec822722a7ededeb261ddb808785f0d2"
+    },
+    "F22.بدون-نژاد-برچسب-خط-تیره": {
+      "bytes": 29124,
+      "sha256": "d21a181426190247d27785ca596637a23b868f72bf7d63b6475de41aff2b1fa8"
+    },
+    "F23.مشتری-null-خطای-مرزی": {
+      "bytes": 157,
+      "sha256": "722bf57a1d89fa3727d0e99adedd2961ffb196c12507443dd4751359dc35f529"
+    },
+    "F24.شمارهٔ-هفته-رشته‌ای": {
+      "bytes": 23537,
+      "sha256": "bd38a676fcbef352bfefe41f31400dd4a9a9e0ca3758ccbadfe69973ad79c059"
+    }
+  }
+}
