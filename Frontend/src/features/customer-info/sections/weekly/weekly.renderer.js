@@ -972,34 +972,9 @@ export const weeklyRenderer = {
       audit.statuses?.[week.week_number] === WEEK_STATUS.PARTIAL;
 
     // جفتهای «برچسب/مقدار» جدول جزئیات هر هفته بر اساس گروههای انتخابی کاربر
-    const weekBlocks = visibleSavedWeeks
-      .map(
-        (week) => `
-        <div class="week-report-block${isPartialWeek(week) ? " week-partial" : ""}">
-            <div class="week-report-head">
-                <span class="wr-week">هفته ${week.week_number}${isPartialWeek(week) ? " ⚠️" : ""}</span>
-                <span class="wr-meta">📅 ${toPersian(week.week_start_date)} تا ${toPersian(week.week_end_date)} | سن: ${week.flock_age_days} روز${isPartialWeek(week) ? " | ⚠️ وزن یا خوراک این هفته ثبت نشده است" : ""}</span>
-            </div>
-            ${renderWeekMetricsCards(week.metrics, selected)}
-            ${buildWeekDetailsTableHtml(week, { selected, isPartialWeek })}
-        </div>
-    `,
-      )
-      .join("");
-
-    // هفته‌های بدون ثبت هم به‌صورت بلوک هشدار در گزارش درج می‌شوند
-    const missingBlocks = visibleMissingWeeks
-      .map(
-        (week) => `
-        <div class="week-report-block week-missing">
-            <div class="week-report-head">
-                <span class="wr-week">هفته ${week.week_number} ❌</span>
-                <span class="wr-meta">📅 ${toPersian(week.week_start_date)} تا ${toPersian(week.week_end_date)} | اطلاعات این هفته ثبت نشده است</span>
-            </div>
-        </div>`,
-      )
-      .join("");
-
+    const { weekBlocks, missingBlocks } = buildFlockWeekBlocksHtml({
+      visibleSavedWeeks, visibleMissingWeeks, toPersian, selected, isPartialWeek,
+    });
     const weekScopeNote = Array.isArray(weekNumbers)
       ? ` · 🎯 ${weekSelectionLabel(weekNumbers, timelineNumbers, toFa)}`
       : "";
@@ -1669,5 +1644,41 @@ const buildWeekDetailsTableHtml = (week, { selected, isPartialWeek }) => {
     };
 
   return renderWeekDetailsTable(week);
+};
+
+// کمکی ماژول‌محلی (موج ۳.۲l) — بلوک‌های هفتگی گزارش اختصاصی گله (ثبت‌شده + بدون‌ثبت).
+// ⚠️ ناحیهٔ زیر بایت‌به‌بایت از بدنهٔ `renderFlockReport` منتقل شده است؛ دو قالب
+// چندخطی داخلش هست و dedent، بایت خروجی HTML را عوض می‌کند.
+const buildFlockWeekBlocksHtml = ({
+  visibleSavedWeeks, visibleMissingWeeks, toPersian, selected, isPartialWeek,
+}) => {
+    const weekBlocks = visibleSavedWeeks
+      .map(
+        (week) => `
+        <div class="week-report-block${isPartialWeek(week) ? " week-partial" : ""}">
+            <div class="week-report-head">
+                <span class="wr-week">هفته ${week.week_number}${isPartialWeek(week) ? " ⚠️" : ""}</span>
+                <span class="wr-meta">📅 ${toPersian(week.week_start_date)} تا ${toPersian(week.week_end_date)} | سن: ${week.flock_age_days} روز${isPartialWeek(week) ? " | ⚠️ وزن یا خوراک این هفته ثبت نشده است" : ""}</span>
+            </div>
+            ${renderWeekMetricsCards(week.metrics, selected)}
+            ${buildWeekDetailsTableHtml(week, { selected, isPartialWeek })}
+        </div>
+    `,
+      )
+      .join("");
+
+    // هفته‌های بدون ثبت هم به‌صورت بلوک هشدار در گزارش درج می‌شوند
+    const missingBlocks = visibleMissingWeeks
+      .map(
+        (week) => `
+        <div class="week-report-block week-missing">
+            <div class="week-report-head">
+                <span class="wr-week">هفته ${week.week_number} ❌</span>
+                <span class="wr-meta">📅 ${toPersian(week.week_start_date)} تا ${toPersian(week.week_end_date)} | اطلاعات این هفته ثبت نشده است</span>
+            </div>
+        </div>`,
+      )
+      .join("");
+  return { weekBlocks, missingBlocks };
 };
 
