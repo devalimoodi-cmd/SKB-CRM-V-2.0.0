@@ -972,45 +972,6 @@ export const weeklyRenderer = {
       audit.statuses?.[week.week_number] === WEEK_STATUS.PARTIAL;
 
     // جفتهای «برچسب/مقدار» جدول جزئیات هر هفته بر اساس گروههای انتخابی کاربر
-    const detailPairs = (week) => {
-      const pairs = [];
-      if (isGroupSelected(selected, "population")) {
-        pairs.push(["تلفات", `${week.weekly_mortality || 0} قطعه`]);
-      }
-      if (isGroupSelected(selected, "weight")) {
-        pairs.push(["وزن", `${week.weekly_weight || "-"} kg`]);
-      }
-      if (isGroupSelected(selected, "feed")) {
-        pairs.push(["خوراک روزانه", `${week.daily_feed_intake || "-"} kg`]);
-        pairs.push(["خوراک هفتگی", `${week.weekly_feed_intake || "-"} kg`]);
-      }
-      if (isGroupSelected(selected, "details")) {
-        pairs.push(["خاموشی", `${week.blackout_hours || 0} ساعت`]);
-        pairs.push(["بیماری‌ها", week.diseases?.join("، ") || "-"]);
-        pairs.push(["واکسن‌ها", week.vaccines?.join("، ") || "-"]);
-        pairs.push(["داروها", week.medicines?.join("، ") || "-"]);
-        pairs.push(["نوع خوراک", week.feedTypes?.join("، ") || "-"]);
-        pairs.push(["پیشنهادات", week.suggestions?.join("، ") || "-"]);
-        pairs.push(["توضیحات", week.additional_notes || "-"]);
-      }
-      return pairs;
-    };
-
-    const renderWeekDetailsTable = (week) => {
-      const pairs = detailPairs(week);
-      if (pairs.length === 0) return "";
-      const rows = [];
-      for (let i = 0; i < pairs.length; i += 2) {
-        rows.push(
-          `<tr>${pairs
-            .slice(i, i + 2)
-            .map(([label, value]) => `<th>${label}</th><td>${value}</td>`)
-            .join("")}</tr>`,
-        );
-      }
-      return `<table class="detail-list"><tbody>${rows.join("")}</tbody></table>`;
-    };
-
     const weekBlocks = visibleSavedWeeks
       .map(
         (week) => `
@@ -1020,7 +981,7 @@ export const weeklyRenderer = {
                 <span class="wr-meta">📅 ${toPersian(week.week_start_date)} تا ${toPersian(week.week_end_date)} | سن: ${week.flock_age_days} روز${isPartialWeek(week) ? " | ⚠️ وزن یا خوراک این هفته ثبت نشده است" : ""}</span>
             </div>
             ${renderWeekMetricsCards(week.metrics, selected)}
-            ${renderWeekDetailsTable(week)}
+            ${buildWeekDetailsTableHtml(week, { selected, isPartialWeek })}
         </div>
     `,
       )
@@ -1663,3 +1624,50 @@ const buildGapsSummaryHtml = (orderedFlocks) => {
       : "";
   return { flocksWithGaps, html: gapsSummaryHtml };
 };
+// کمکی ماژول‌محلی (موج ۳.۲l) — جدول جزئیات یک هفتهٔ گزارش اختصاصی گله.
+// ⚠️ کد زیر بایت‌به‌بایت از بدنهٔ `renderFlockReport` منتقل شده است (دو closure
+// تودرتو)؛ `isPartialWeek` از متد پاس داده می‌شود چون قالب بلوک‌های هفتگی هم
+// همان را مصرف می‌کند و نباید از متد بیرون برود.
+const buildWeekDetailsTableHtml = (week, { selected, isPartialWeek }) => {
+    const detailPairs = (week) => {
+      const pairs = [];
+      if (isGroupSelected(selected, "population")) {
+        pairs.push(["تلفات", `${week.weekly_mortality || 0} قطعه`]);
+      }
+      if (isGroupSelected(selected, "weight")) {
+        pairs.push(["وزن", `${week.weekly_weight || "-"} kg`]);
+      }
+      if (isGroupSelected(selected, "feed")) {
+        pairs.push(["خوراک روزانه", `${week.daily_feed_intake || "-"} kg`]);
+        pairs.push(["خوراک هفتگی", `${week.weekly_feed_intake || "-"} kg`]);
+      }
+      if (isGroupSelected(selected, "details")) {
+        pairs.push(["خاموشی", `${week.blackout_hours || 0} ساعت`]);
+        pairs.push(["بیماری‌ها", week.diseases?.join("، ") || "-"]);
+        pairs.push(["واکسن‌ها", week.vaccines?.join("، ") || "-"]);
+        pairs.push(["داروها", week.medicines?.join("، ") || "-"]);
+        pairs.push(["نوع خوراک", week.feedTypes?.join("، ") || "-"]);
+        pairs.push(["پیشنهادات", week.suggestions?.join("، ") || "-"]);
+        pairs.push(["توضیحات", week.additional_notes || "-"]);
+      }
+      return pairs;
+    };
+
+    const renderWeekDetailsTable = (week) => {
+      const pairs = detailPairs(week);
+      if (pairs.length === 0) return "";
+      const rows = [];
+      for (let i = 0; i < pairs.length; i += 2) {
+        rows.push(
+          `<tr>${pairs
+            .slice(i, i + 2)
+            .map(([label, value]) => `<th>${label}</th><td>${value}</td>`)
+            .join("")}</tr>`,
+        );
+      }
+      return `<table class="detail-list"><tbody>${rows.join("")}</tbody></table>`;
+    };
+
+  return renderWeekDetailsTable(week);
+};
+
