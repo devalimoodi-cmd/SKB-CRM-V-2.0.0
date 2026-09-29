@@ -279,83 +279,149 @@ export const hallsRenderer = {
   },
 
   renderHallInfo(hall, dictionaries) {
-    const getDictName = (id, dict) => {
-      if (!id) return "-";
-      const item = dict.find((d) => d.id == id);
-      return item ? item.name : "-";
-    };
-
     const _periodName = hall.periodInfo?.period_name || "-";
-    const floorType = getDictName(
-      hall.physicalInfo?.floor_type_id,
-      dictionaries.floorTypes,
-    );
-    const hallType = getDictName(hall.hall_type_id, dictionaries.hallTypes);
-
-    // نام کارشناس از دیکشنری
-    const getExpertName = (id) => {
-      if (!id) return "-";
-      const expert = dictionaries.experts?.find((e) => e.id == id);
-      if (!expert) return "-";
-      return (
-        expert.name ||
-        `${expert.first_name || ""} ${expert.last_name || ""}`.trim() ||
-        expert.username ||
-        "-"
-      );
-    };
-    const expertName = getExpertName(hall.service_expert_id);
-
-    // نام‌های واقعی سیستم‌ها از دیکشنری
-    const heatingName = hall.systemInfo?.heating_system_id
-      ? getDictName(
-          hall.systemInfo.heating_system_id,
-          dictionaries.heatingSystems || [],
-        )
-      : hall.systemInfo?.heating_system_name || "-";
-    const coolingName = hall.systemInfo?.cooling_system_id
-      ? getDictName(
-          hall.systemInfo.cooling_system_id,
-          dictionaries.coolingSystems || [],
-        )
-      : hall.systemInfo?.cooling_system_name || "-";
-    const ventilationName = hall.systemInfo?.ventilation_system_id
-      ? getDictName(
-          hall.systemInfo.ventilation_system_id,
-          dictionaries.ventilationTypes || [],
-        )
-      : hall.systemInfo?.ventilation_system_name || "-";
-    const waterInletName = hall.systemInfo?.water_inlet_system_id
-      ? getDictName(
-          hall.systemInfo.water_inlet_system_id,
-          dictionaries.waterInletTypes || [],
-        )
-      : hall.systemInfo?.water_inlet_system_name || "-";
-    const lightingName = hall.systemInfo?.lighting_system_id
-      ? getDictName(
-          hall.systemInfo.lighting_system_id,
-          dictionaries.lightingSystems || [],
-        )
-      : hall.systemInfo?.lighting_system_name || "-";
-
-    // نام‌های واقعی آبخوری و دانخوری
-    const watererName = hall.waterFeedInfo?.waterer_type_id
-      ? getDictName(
-          hall.waterFeedInfo.waterer_type_id,
-          dictionaries.watererTypes || [],
-        )
-      : hall.waterFeedInfo?.waterer_type_name || "-";
-    const feederName = hall.waterFeedInfo?.feeder_type_id
-      ? getDictName(
-          hall.waterFeedInfo.feeder_type_id,
-          dictionaries.feederTypes || [],
-        )
-      : hall.waterFeedInfo?.feeder_type_name || "-";
+    const names = resolveHallDetailNames(hall, dictionaries);
 
     return `
             <div class="hall-detail-grid">
               <!-- اطلاعات پایه -->
-              <div class="info-section">
+              ${buildHallBasicSection(hall, names)}
+
+
+              <!-- اطلاعات فیزیکی -->
+              ${buildHallPhysicalSection(hall, names)}
+
+              <!-- اطلاعات سیستم‌ها -->
+              ${buildHallSystemsSection(hall, names)}
+
+              <!-- اطلاعات آبخوری و دانخوری -->
+              ${buildHallWaterFeedSection(hall, names)}
+            </div>
+        `;
+  },
+
+  renderHallActions(hallId) {
+    return `
+            <div class="hall-actions">
+                <button class="btn-edit-hall" onclick="window.editHall(${hallId})">
+                    <i class="fas fa-edit"></i> ویرایش سالن
+                </button>
+                <button class="btn-delete-hall" onclick="window.deleteHallRecord(${hallId})">
+                    <i class="fas fa-trash-alt"></i> حذف سالن
+                </button>
+            </div>
+        `;
+  },
+
+  getPeriodStatusText(status) {
+    const map = {
+      pending: "در انتظار جوجه",
+      active: "فعال",
+      completed: "تکمیل شده",
+      cancelled: "لغو شده",
+    };
+    return map[status] || status;
+  },
+};
+
+// ============================================================
+//  توابع کمکی ماژول‌محلی renderHallInfo (موج ۳.۲d — برش بدنه)
+//  این کدها پیش‌تر داخل بدنهٔ متد بودند؛ بیرون کشیده شدند تا متد فقط
+//  ساختار سطح‌بالا را نشان دهد. خروجی HTML بایت‌به‌بایت همان قبلی است
+//  (گارد: npm run test:halls:body).
+// ============================================================
+
+function resolveHallDetailNames(hall, dictionaries) {
+  const getDictName = (id, dict) => {
+    if (!id) return "-";
+    const item = dict.find((d) => d.id == id);
+    return item ? item.name : "-";
+  };
+
+  const floorType = getDictName(
+    hall.physicalInfo?.floor_type_id,
+    dictionaries.floorTypes,
+  );
+  const hallType = getDictName(hall.hall_type_id, dictionaries.hallTypes);
+
+  // نام کارشناس از دیکشنری
+  const getExpertName = (id) => {
+    if (!id) return "-";
+    const expert = dictionaries.experts?.find((e) => e.id == id);
+    if (!expert) return "-";
+    return (
+      expert.name ||
+      `${expert.first_name || ""} ${expert.last_name || ""}`.trim() ||
+      expert.username ||
+      "-"
+    );
+  };
+  const expertName = getExpertName(hall.service_expert_id);
+
+  // نام‌های واقعی سیستم‌ها از دیکشنری
+  const heatingName = hall.systemInfo?.heating_system_id
+    ? getDictName(
+        hall.systemInfo.heating_system_id,
+        dictionaries.heatingSystems || [],
+      )
+    : hall.systemInfo?.heating_system_name || "-";
+  const coolingName = hall.systemInfo?.cooling_system_id
+    ? getDictName(
+        hall.systemInfo.cooling_system_id,
+        dictionaries.coolingSystems || [],
+      )
+    : hall.systemInfo?.cooling_system_name || "-";
+  const ventilationName = hall.systemInfo?.ventilation_system_id
+    ? getDictName(
+        hall.systemInfo.ventilation_system_id,
+        dictionaries.ventilationTypes || [],
+      )
+    : hall.systemInfo?.ventilation_system_name || "-";
+  const waterInletName = hall.systemInfo?.water_inlet_system_id
+    ? getDictName(
+        hall.systemInfo.water_inlet_system_id,
+        dictionaries.waterInletTypes || [],
+      )
+    : hall.systemInfo?.water_inlet_system_name || "-";
+  const lightingName = hall.systemInfo?.lighting_system_id
+    ? getDictName(
+        hall.systemInfo.lighting_system_id,
+        dictionaries.lightingSystems || [],
+      )
+    : hall.systemInfo?.lighting_system_name || "-";
+
+  // نام‌های واقعی آبخوری و دانخوری
+  const watererName = hall.waterFeedInfo?.waterer_type_id
+    ? getDictName(
+        hall.waterFeedInfo.waterer_type_id,
+        dictionaries.watererTypes || [],
+      )
+    : hall.waterFeedInfo?.waterer_type_name || "-";
+  const feederName = hall.waterFeedInfo?.feeder_type_id
+    ? getDictName(
+        hall.waterFeedInfo.feeder_type_id,
+        dictionaries.feederTypes || [],
+      )
+    : hall.waterFeedInfo?.feeder_type_name || "-";
+
+  return {
+    floorType,
+    hallType,
+    expertName,
+    heatingName,
+    coolingName,
+    ventilationName,
+    waterInletName,
+    lightingName,
+    watererName,
+    feederName,
+  };
+}
+
+function buildHallBasicSection(hall, names) {
+  const { hallType, expertName } = names;
+
+  return `<div class="info-section">
                   <div class="info-section-title">
                       <i class="fas fa-info-circle"></i> اطلاعات پایه
                   </div>
@@ -389,13 +455,14 @@ export const hallsRenderer = {
                           <span class="value"><strong>${expertName}</strong></span>
                       </div>
                   </div>
-              </div>
+              </div>`;
+}
 
+function buildHallPhysicalSection(hall, names) {
+  const { floorType } = names;
 
-              <!-- اطلاعات فیزیکی -->
-              ${
-                hall.physicalInfo
-                  ? `
+  return hall.physicalInfo
+    ? `
               <div class="info-section">
                   <div class="info-section-title">
                       <i class="fas fa-ruler-combined"></i> ابعاد و کفپوش
@@ -431,13 +498,14 @@ export const hallsRenderer = {
                       }
                   </div>
               </div>`
-                  : ""
-              }
+    : "";
+}
 
-              <!-- اطلاعات سیستم‌ها -->
-              ${
-                hall.systemInfo
-                  ? `
+function buildHallSystemsSection(hall, names) {
+  const { heatingName, coolingName, ventilationName, waterInletName, lightingName } = names;
+
+  return hall.systemInfo
+    ? `
               <div class="info-section">
                   <div class="info-section-title">
                       <i class="fas fa-microchip"></i> سیستم‌ها
@@ -485,13 +553,14 @@ export const hallsRenderer = {
                       }
                   </div>
               </div>`
-                  : ""
-              }
+    : "";
+}
 
-              <!-- اطلاعات آبخوری و دانخوری -->
-              ${
-                hall.waterFeedInfo
-                  ? `
+function buildHallWaterFeedSection(hall, names) {
+  const { watererName, feederName } = names;
+
+  return hall.waterFeedInfo
+    ? `
               <div class="info-section">
                   <div class="info-section-title">
                       <i class="fas fa-tint"></i> آبخوری و دانخوری
@@ -527,32 +596,5 @@ export const hallsRenderer = {
                       }
                   </div>
               </div>`
-                  : ""
-              }
-            </div>
-        `;
-  },
-
-  renderHallActions(hallId) {
-    return `
-            <div class="hall-actions">
-                <button class="btn-edit-hall" onclick="window.editHall(${hallId})">
-                    <i class="fas fa-edit"></i> ویرایش سالن
-                </button>
-                <button class="btn-delete-hall" onclick="window.deleteHallRecord(${hallId})">
-                    <i class="fas fa-trash-alt"></i> حذف سالن
-                </button>
-            </div>
-        `;
-  },
-
-  getPeriodStatusText(status) {
-    const map = {
-      pending: "در انتظار جوجه",
-      active: "فعال",
-      completed: "تکمیل شده",
-      cancelled: "لغو شده",
-    };
-    return map[status] || status;
-  },
-};
+    : "";
+}

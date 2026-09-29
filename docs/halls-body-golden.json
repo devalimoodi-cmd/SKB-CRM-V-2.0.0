@@ -1,0 +1,77 @@
+{
+  "note": "اسنپ‌شات خروجی چهار متد خوشهٔ سالن‌ها، گرفته‌شده پیش از موج برش بدنه (۳.۲d). هر کِیس = خروجی کامل متد (یا رکورد فراخوانی‌ها برای saveBasicInfo). بازتولید: npm run test:halls:body -- --snapshot",
+  "node": "v24.13.0",
+  "locale": "en-US",
+  "source": "HEAD پیش از برش بدنه — git tag pre-body-split",
+  "note2": "برخی خروجی‌ها به locale پیش‌فرض Node و نسخهٔ ICU وابسته‌اند (ارقام فارسی/جداکنندهٔ هزارگان)؛ پس مقایسه روی همان محیطی معنا دارد که اسنپ‌شات گرفته شده است.",
+  "cases": {
+    "A1.generateHTML-گزارش-کامل": {
+      "bytes": 20689,
+      "sha256": "0c2bc45d01feaec7c8a3b739514125c32ca01354386d0ce93288ddfcc8f6260e"
+    },
+    "A2.generateHTML-حالت-خالی": {
+      "bytes": 9460,
+      "sha256": "55cb9e4dc516ab972dbb736639db75aa98dce74f94bbebe35d60d1a9559d0736"
+    },
+    "A3.generateHTML-کاربر-ناشناس": {
+      "bytes": 11357,
+      "sha256": "693b2a73b4cbb15cf6e2897ff2c84163587254b5f12b0d6dae3daf7e92f5dae2"
+    },
+    "A4.generateHTML-مشتری-ناقص": {
+      "bytes": 15450,
+      "sha256": "a97c3a5e503701089ff58a2da28419a13e929d553095d5a463c928bcc9b41f62"
+    },
+    "B1.renderHallInfo-سالن-کامل": {
+      "bytes": 7690,
+      "sha256": "85e523bad7e26dc22aff8238dcf80e0b105fe6de0a1363f79d5e3cf17789d789"
+    },
+    "B2.renderHallInfo-سالن-مینیمال": {
+      "bytes": 2130,
+      "sha256": "092651564f3fcdb093fb4139b81ea6f1a037442d4315e409737e5682c6fc0e8d"
+    },
+    "B3.renderHallInfo-سقوط-نام‌ها": {
+      "bytes": 9915,
+      "sha256": "35aaa7a35550d8f20e960d8d23b651300f1c5e15fd04991a65889d9212d07d5d"
+    },
+    "D1.renderUnitDetailsPanel-واحد-کامل": {
+      "bytes": 8757,
+      "sha256": "243a787e36c374602f4926060a20486c1247cd8183641b956b4b8911cef8effa"
+    },
+    "D2.renderUnitDetailsPanel-ظرفیت-صفر": {
+      "bytes": 6597,
+      "sha256": "9d2a0011b41ad62946097d1345be452ab67342e82521ada9c576fc6e18cb6ab2"
+    },
+    "D3.renderUnitDetailsPanel-مازاد": {
+      "bytes": 6665,
+      "sha256": "b3c93c3bbaa2ef2496814df49ff150049ff8969d5eae913112c703f392cadc0c"
+    },
+    "D4.renderUnitDetailsPanel-ورودی-null": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "C1.saveBasicInfo-ثبت-سالن-جدید": {
+      "bytes": 1033,
+      "sha256": "ae3c233d54d8b7794f61ac4da4eed1f2f8db3b5a238cb0c66cf389df50502358"
+    },
+    "C2.saveBasicInfo-ویرایش-موفق": {
+      "bytes": 1865,
+      "sha256": "089e050c9ad6f78fc7d3e6fd17d09a16efb1bbefaf87e73a629a7fff1de35b64"
+    },
+    "C3.saveBasicInfo-خطای-اعتبارسنجی": {
+      "bytes": 822,
+      "sha256": "a525cfd03b0cfa8c3725c7aa0b38d69414ab7dd3d17330d6bf3f3efe3797b118"
+    },
+    "C4.saveBasicInfo-پاسخ-ناموفق": {
+      "bytes": 922,
+      "sha256": "f0e2db1ebbbec5d13da334de65575a9ced1acdf7bd1eea54c4db9def84132992"
+    },
+    "C5.saveBasicInfo-استثنا": {
+      "bytes": 1016,
+      "sha256": "7f94e3f6e9c65297410083457a514635b2dc7cf0cf0b4f6579cebff353710108"
+    },
+    "C6.saveBasicInfo-دکمه-غیرفعال": {
+      "bytes": 430,
+      "sha256": "700da0e3465e6b3c6cb3b305977343d099529ab0cd628bb3a15df7e5f55a4513"
+    }
+  }
+}

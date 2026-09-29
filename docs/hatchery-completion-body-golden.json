@@ -1,0 +1,99 @@
+{
+  "note": "اسنپ‌شات رکورد ساختاری دو متد غول خوشهٔ پایان دوره (completePeriod و editPeriodCompletion)، گرفته‌شده پیش از موج برش بدنه (۳.۲f). هر کِیس = رکورد JSON شامل فرم HTML (Swal)، خروجی preConfirm، فراخوانی‌های API، اعلان‌ها، پیام‌های اعتبارسنجی و console. بازتولید: npm run test:hatchery:body -- --snapshot",
+  "node": "v24.13.0",
+  "locale": "en-US",
+  "timeZone": "Asia/Tehran",
+  "frozenClockUtc": "2026-06-15T06:30:00.000Z",
+  "source": "HEAD پیش از برش بدنه — git tag pre-completion-body-split",
+  "note2": "خروجی به locale/ICU و منطقهٔ زمانی محیط Node وابسته است (ارقام/تاریخ شمسی در فرم و اعلان‌ها)؛ هارنس ساعت را تثبیت و TZ را روی Asia/Tehran قفل می‌کند، پس مقایسه در همان محیطی معنا دارد که اسنپ‌شات گرفته شده است.",
+  "cases": {
+    "E1.editPeriodCompletion-رکورد-کامل-ذخیرهٔ-موفق": {
+      "bytes": 18179,
+      "sha256": "546b2d904b2b3a0104c1cd1ca79a5c115b1c60922b9053e46a53d8b6b69aac98"
+    },
+    "E2.editPeriodCompletion-رکورد-قدیمی-انصراف": {
+      "bytes": 15180,
+      "sha256": "4dc9642a43dcf572db4e2658c7536b464c7f3341d0a8fb2b751a68231c325a33"
+    },
+    "E3.editPeriodCompletion-چندگله-اولی-پیش‌فرض": {
+      "bytes": 19430,
+      "sha256": "c4034f637ef3c51d6c7d372b1fd6d71e10eb64b870bf4c36e8a4d7117a8c7f64"
+    },
+    "E4.editPeriodCompletion-بدون-داده": {
+      "bytes": 493,
+      "sha256": "5660d833ad736a65c41c5c09c44828d193febfcf982165ddb4d44bf7d788fa4a"
+    },
+    "E5.editPeriodCompletion-پاسخ-ناموفق-واکشی": {
+      "bytes": 496,
+      "sha256": "2d60773ee6d34698837032008f5c44ca3e9ae9b823a228d2c8190c2e2b4ea571"
+    },
+    "E6.editPeriodCompletion-بدون-شناسه": {
+      "bytes": 15383,
+      "sha256": "b7173ee08953c7cf03d79e47545f62712658462861088a1d1e89001855a87513"
+    },
+    "E7.editPeriodCompletion-پایان-قبل-از-شروع": {
+      "bytes": 15430,
+      "sha256": "e8ea9a8824e5d200cb1a0f306ded753993733e4f048b7fb25135eb5b4cfdaa9e"
+    },
+    "E8.editPeriodCompletion-روش-بازه-بدون-تاریخ": {
+      "bytes": 15390,
+      "sha256": "904bdcdffd58d5ed0ef2e7161de57f2d235e91739584502349b2059270e68d7b"
+    },
+    "E9.editPeriodCompletion-روش-مستقیم-سن-صفر": {
+      "bytes": 15393,
+      "sha256": "ebcd5188401e8178ee7f7320cab78cffc746a2a656e0e0a79ef396137be1e13c"
+    },
+    "E10.editPeriodCompletion-روش-چندمرحله‌ای-بدون-ارسال": {
+      "bytes": 15454,
+      "sha256": "e223cefbe071bad44c997efd67f47fb8347b3f08ebc087ce94ff99c86bf6a572"
+    },
+    "E11.editPeriodCompletion-روش-چندمرحله‌ای-با-دو-ارسال": {
+      "bytes": 18677,
+      "sha256": "c362b862d49c4b1b0164bbe1892e79d174efaca8b3f45d4c9d16858f6f680725"
+    },
+    "E12.editPeriodCompletion-ذخیره-ناموفق": {
+      "bytes": 18175,
+      "sha256": "0dc8b2d76e8a887e4b8c4f82817b9983ec6acebaad5fc33fe5f356dfcd14dc34"
+    },
+    "E13.editPeriodCompletion-استثنا-در-ذخیره": {
+      "bytes": 18213,
+      "sha256": "ef8c2a6ed8e6ca5cf74166f7dfcee0aa58df1eb791bc93218ff883a75afa34f6"
+    },
+    "E14.editPeriodCompletion-کلیک-محاسبهٔ-مجدد": {
+      "bytes": 18598,
+      "sha256": "1bfa9aa72124849e71c84f87469999697a18da8e2ebff255600d0c2f6d19ac65"
+    },
+    "C1.completePeriod-ذخیرهٔ-موفق-دو-گله": {
+      "bytes": 9727,
+      "sha256": "a45e201331fad71490250a2bb4c221c53cf8bf66db71e3dcca7a8176a4ad4c08"
+    },
+    "C2.completePeriod-دوره-ناموجود": {
+      "bytes": 285,
+      "sha256": "f9ffbb192e80f2c88ad217005164633ad9b6f5a7878199c75f30fef4512ad71d"
+    },
+    "C3.completePeriod-بدون-گلهٔ-فعال": {
+      "bytes": 307,
+      "sha256": "15ca79189d56bfef1ca6d83ab038f5407563ea2d9a6484549a3ebc116032291e"
+    },
+    "C4.completePeriod-بدون-انتخاب-گله": {
+      "bytes": 7817,
+      "sha256": "14233d876f76e34cec31d94bd0aa38c1f62362fb943e287d584fa716ad1ddeb8"
+    },
+    "C5.completePeriod-پایان-قبل-از-شروع": {
+      "bytes": 7861,
+      "sha256": "912e09f2ac338630c23cef438632a411371afc5e7a87f4102cf5d46bb44ce8c2"
+    },
+    "C6.completePeriod-ذخیره-ناموفق": {
+      "bytes": 9708,
+      "sha256": "1bba872ff39ddad89978c14c0f1d022dc13a7fabe06775236fdc7317647b9a02"
+    },
+    "C7.completePeriod-استثنا-در-ذخیره": {
+      "bytes": 9744,
+      "sha256": "2e38060fa1667f77974d4120b4a17229ae422717076a41c886cfc850b89136af"
+    },
+    "C8.completePeriod-انصراف": {
+      "bytes": 7757,
+      "sha256": "381d6846cc792e5e47842b7c806c6e3f8134d79a989d1050e1ef09722bb6e9fa"
+    }
+  }
+}

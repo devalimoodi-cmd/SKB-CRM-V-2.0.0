@@ -235,99 +235,25 @@ export const hallsBasicMethods = {
   async saveBasicInfo() {
     const saveBtn = document.querySelector("#basicTab .btn-primary");
     if (!saveBtn || saveBtn.disabled) return;
-    const originalText = saveBtn.innerHTML;
-    saveBtn.disabled = true;
-    saveBtn.innerHTML =
-      '<i class="fas fa-spinner fa-spin"></i> در حال ذخیره...';
+    const originalText = markBasicSaveBusy(saveBtn);
 
     const hallId = this.editingHallId;
 
     // ===== جمع‌آوری داده‌های همه تب‌ها =====
-    const basicData = {
-      customer_id: parseInt(this.customerId),
-      unit_id: parseInt(document.getElementById("UnitNumber")?.value),
-      hall_name: document.getElementById("hallName")?.value,
-      hall_number: document.getElementById("hallNumber")?.value || null,
-      nominal_capacity: document.getElementById("capacity")?.value || null,
-      altitude_above_sea: document.getElementById("altitude")?.value || null,
-      hall_type_id: document.getElementById("hallType")?.value || null,
-      construction_year: document.getElementById("buildYear")?.value || null,
-      service_expert_id: document.getElementById("expert")?.value || null,
-      operator_name: document.getElementById("operator")?.value || null,
-    };
-
-    const physicalData = {
-      length: document.getElementById("length")?.value || null,
-      width: document.getElementById("width")?.value || null,
-      height: document.getElementById("height")?.value || null,
-      area: document.getElementById("area")?.value || null,
-      floor_type_id: document.getElementById("floorMaterial")?.value || null,
-      notes:
-        document.getElementById("Hall-Physical-Description")?.value || null,
-    };
-
-    const autoFood = document.querySelector('input[name="autoFood"]:checked');
-    const systemsData = {
-      fan_count: document.getElementById("fanCount")?.value || null,
-      fan_size: document.getElementById("fanSize")?.value || null,
-      fan_capacity: document.getElementById("fanCapacity")?.value || null,
-      heater_count: document.getElementById("heaterCount")?.value || null,
-      heating_system_id: document.getElementById("heatingType")?.value || null,
-      cooling_system_id: document.getElementById("coolingType")?.value || null,
-      ventilation_system_id:
-        document.getElementById("ventilationType")?.value || null,
-      water_inlet_system_id:
-        document.getElementById("sanitarySystem")?.value || null,
-      lighting_system_id:
-        document.getElementById("lighthingSystem")?.value || null,
-      notes: document.getElementById("Hall-System-Description")?.value || null,
-    };
-
-    const waterFeedData = {
-      waterer_type_id: document.getElementById("waterType")?.value || null,
-      feeder_type_id: document.getElementById("foodType")?.value || null,
-      water_lines_count: document.getElementById("waterLines")?.value || null,
-      feed_lines_count: document.getElementById("foodLines")?.value || null,
-      auto_feed_system: autoFood ? autoFood.value === "دارد" : false,
-      notes:
-        document.getElementById("Hall-water-feed-Description")?.value || null,
-    };
+    const { basicData, physicalData, systemsData, waterFeedData } =
+      readBasicInfoFormPayload(this.customerId);
 
     // ===== اعتبارسنجی همه داده‌ها =====
-    const allErrors = [...hallsValidation.validateHall(basicData)];
-
-    // اگر در حالت ویرایش هستیم، اعتبارسنجی تب‌های دیگه فقط اگر فیلدی پر شده باشه
-    if (hallId) {
-      if (physicalData.length || physicalData.width || physicalData.height) {
-        allErrors.push(
-          ...hallsValidation.validatePhysicalInfo({
-            hall_id: hallId,
-            ...physicalData,
-          }),
-        );
-      }
-      if (systemsData.fan_count || systemsData.heating_system_id) {
-        allErrors.push(
-          ...hallsValidation.validateSystemInfo({
-            hall_id: hallId,
-            ...systemsData,
-          }),
-        );
-      }
-      if (waterFeedData.waterer_type_id || waterFeedData.feeder_type_id) {
-        allErrors.push(
-          ...hallsValidation.validateWaterFeedInfo({
-            hall_id: hallId,
-            ...waterFeedData,
-          }),
-        );
-      }
-    }
-
+    const allErrors = collectBasicInfoErrors({
+      hallId,
+      basicData,
+      physicalData,
+      systemsData,
+      waterFeedData,
+    });
     if (allErrors.length > 0) {
       notificationService.showValidationErrors(allErrors);
-      saveBtn.disabled = false;
-      saveBtn.innerHTML = originalText;
+      restoreBasicSaveButton(saveBtn, originalText);
       return;
     }
 
@@ -338,58 +264,22 @@ export const hallsBasicMethods = {
       if (hallId) {
         // ✅ حالت ویرایش - فقط اطلاعات پایه
         const response = await hallsApi.updateHall(hallId, basicData);
-        saveBtn.disabled = false;
-        saveBtn.innerHTML = originalText;
+        restoreBasicSaveButton(saveBtn, originalText);
 
         if (response.success) {
-          const summaryItems = [
-            basicData.hall_name ? `نام سالن: ${basicData.hall_name}` : null,
-            basicData.hall_number
-              ? `شماره سالن: ${basicData.hall_number}`
-              : null,
-            basicData.nominal_capacity
-              ? `ظرفیت: ${parseInt(basicData.nominal_capacity).toLocaleString()} قطعه`
-              : null,
-            basicData.altitude_above_sea
-              ? `ارتفاع: ${basicData.altitude_above_sea} متر`
-              : null,
-          ].filter(Boolean);
+          const summaryItems = buildBasicUpdateSummaryItems(basicData);
 
-          if (typeof Swal !== "undefined") {
-            Swal.fire({
-              icon: "success",
-              title: "✅ اطلاعات پایه بروزرسانی شد",
-              html: `<div style="text-align:right; font-family:Vazir; direction:rtl;"><ul style="list-style:none; padding:0; margin:0;">${summaryItems.map((item) => `<li style="padding:3px 8px; background:#f8fafc; margin:3px 0; border-radius:4px; font-size:12px;">✅ ${item}</li>`).join("")}</ul></div>`,
-              confirmButtonText: "باشه",
-              confirmButtonColor: "#2c7a6e",
-            });
-          } else {
-            notificationService.success(
-              "✅ اطلاعات پایه با موفقیت بروزرسانی شد",
-            );
-          }
+          showBasicUpdateSuccess(summaryItems);
 
           // بستن حالت ویرایش
-          this.editingHallId = null;
-          this.setEditModeBanner(false);
-          this.restoreTabButtonsToDefault();
-          const cancelBtnB = document.getElementById("cancelEditHall");
-          if (cancelBtnB) cancelBtnB.style.display = "none";
-          saveBtn.innerHTML = '<i class="fas fa-save"></i> ذخیره اطلاعات پایه';
-          saveBtn.style.background = "";
-          saveBtn.dataset.mode = "";
-
-          await this.loadData();
-          this.resetTab("basicTab");
-          this.refreshAllDropdowns();
+          await exitBasicEditMode(this, saveBtn);
         } else {
           notificationService.error(response.message || "خطا در بروزرسانی");
         }
       } else {
         // حالت ثبت سالن جدید
         const response = await hallsApi.createHall(basicData);
-        saveBtn.disabled = false;
-        saveBtn.innerHTML = originalText;
+        restoreBasicSaveButton(saveBtn, originalText);
 
         if (response.success) {
           notificationService.success(
@@ -404,8 +294,7 @@ export const hallsBasicMethods = {
       }
     } catch (error) {
       console.error("❌ Error saving hall:", error);
-      saveBtn.disabled = false;
-      saveBtn.innerHTML = originalText;
+      restoreBasicSaveButton(saveBtn, originalText);
       notificationService.error(error.message);
     }
   },
@@ -414,3 +303,163 @@ export const hallsBasicMethods = {
   },
 
 };
+
+// ============================================================
+//  توابع کمکی ماژول‌محلی saveBasicInfo (موج ۳.۲d — برش بدنه)
+//  این کدها پیش‌تر داخل بدنهٔ متد بودند؛ بیرون کشیده شدند بدون هیچ
+//  تغییر رفتاری یا ترتیبی. توابعی که سرویس را لازم دارند آن را پارامتر
+//  می‌گیرند (`service`) تا ماژول‌محلی بمانند (بدون this).
+// ============================================================
+
+function markBasicSaveBusy(saveBtn) {
+  const originalText = saveBtn.innerHTML;
+  saveBtn.disabled = true;
+  saveBtn.innerHTML =
+    '<i class="fas fa-spinner fa-spin"></i> در حال ذخیره...';
+  return originalText;
+}
+
+function restoreBasicSaveButton(saveBtn, originalText) {
+  saveBtn.disabled = false;
+  saveBtn.innerHTML = originalText;
+}
+
+function readBasicInfoFormPayload(customerId) {
+  const basicData = {
+    customer_id: parseInt(customerId),
+    unit_id: parseInt(document.getElementById("UnitNumber")?.value),
+    hall_name: document.getElementById("hallName")?.value,
+    hall_number: document.getElementById("hallNumber")?.value || null,
+    nominal_capacity: document.getElementById("capacity")?.value || null,
+    altitude_above_sea: document.getElementById("altitude")?.value || null,
+    hall_type_id: document.getElementById("hallType")?.value || null,
+    construction_year: document.getElementById("buildYear")?.value || null,
+    service_expert_id: document.getElementById("expert")?.value || null,
+    operator_name: document.getElementById("operator")?.value || null,
+  };
+
+  const physicalData = {
+    length: document.getElementById("length")?.value || null,
+    width: document.getElementById("width")?.value || null,
+    height: document.getElementById("height")?.value || null,
+    area: document.getElementById("area")?.value || null,
+    floor_type_id: document.getElementById("floorMaterial")?.value || null,
+    notes:
+      document.getElementById("Hall-Physical-Description")?.value || null,
+  };
+
+  const autoFood = document.querySelector('input[name="autoFood"]:checked');
+  const systemsData = {
+    fan_count: document.getElementById("fanCount")?.value || null,
+    fan_size: document.getElementById("fanSize")?.value || null,
+    fan_capacity: document.getElementById("fanCapacity")?.value || null,
+    heater_count: document.getElementById("heaterCount")?.value || null,
+    heating_system_id: document.getElementById("heatingType")?.value || null,
+    cooling_system_id: document.getElementById("coolingType")?.value || null,
+    ventilation_system_id:
+      document.getElementById("ventilationType")?.value || null,
+    water_inlet_system_id:
+      document.getElementById("sanitarySystem")?.value || null,
+    lighting_system_id:
+      document.getElementById("lighthingSystem")?.value || null,
+    notes: document.getElementById("Hall-System-Description")?.value || null,
+  };
+
+  const waterFeedData = {
+    waterer_type_id: document.getElementById("waterType")?.value || null,
+    feeder_type_id: document.getElementById("foodType")?.value || null,
+    water_lines_count: document.getElementById("waterLines")?.value || null,
+    feed_lines_count: document.getElementById("foodLines")?.value || null,
+    auto_feed_system: autoFood ? autoFood.value === "دارد" : false,
+    notes:
+      document.getElementById("Hall-water-feed-Description")?.value || null,
+  };
+  return { basicData, physicalData, systemsData, waterFeedData };
+}
+
+function collectBasicInfoErrors({
+  hallId,
+  basicData,
+  physicalData,
+  systemsData,
+  waterFeedData,
+}) {
+  const allErrors = [...hallsValidation.validateHall(basicData)];
+
+  // اگر در حالت ویرایش هستیم، اعتبارسنجی تب‌های دیگه فقط اگر فیلدی پر شده باشه
+  if (hallId) {
+    if (physicalData.length || physicalData.width || physicalData.height) {
+      allErrors.push(
+        ...hallsValidation.validatePhysicalInfo({
+          hall_id: hallId,
+          ...physicalData,
+        }),
+      );
+    }
+    if (systemsData.fan_count || systemsData.heating_system_id) {
+      allErrors.push(
+        ...hallsValidation.validateSystemInfo({
+          hall_id: hallId,
+          ...systemsData,
+        }),
+      );
+    }
+    if (waterFeedData.waterer_type_id || waterFeedData.feeder_type_id) {
+      allErrors.push(
+        ...hallsValidation.validateWaterFeedInfo({
+          hall_id: hallId,
+          ...waterFeedData,
+        }),
+      );
+    }
+  }
+
+  return allErrors;
+}
+
+function buildBasicUpdateSummaryItems(basicData) {
+  const summaryItems = [
+    basicData.hall_name ? `نام سالن: ${basicData.hall_name}` : null,
+    basicData.hall_number
+      ? `شماره سالن: ${basicData.hall_number}`
+      : null,
+    basicData.nominal_capacity
+      ? `ظرفیت: ${parseInt(basicData.nominal_capacity).toLocaleString()} قطعه`
+      : null,
+    basicData.altitude_above_sea
+      ? `ارتفاع: ${basicData.altitude_above_sea} متر`
+      : null,
+  ].filter(Boolean);
+  return summaryItems;
+}
+
+function showBasicUpdateSuccess(summaryItems) {
+  if (typeof Swal !== "undefined") {
+    Swal.fire({
+      icon: "success",
+      title: "✅ اطلاعات پایه بروزرسانی شد",
+      html: `<div style="text-align:right; font-family:Vazir; direction:rtl;"><ul style="list-style:none; padding:0; margin:0;">${summaryItems.map((item) => `<li style="padding:3px 8px; background:#f8fafc; margin:3px 0; border-radius:4px; font-size:12px;">✅ ${item}</li>`).join("")}</ul></div>`,
+      confirmButtonText: "باشه",
+      confirmButtonColor: "#2c7a6e",
+    });
+  } else {
+    notificationService.success(
+      "✅ اطلاعات پایه با موفقیت بروزرسانی شد",
+    );
+  }
+}
+
+async function exitBasicEditMode(service, saveBtn) {
+  service.editingHallId = null;
+  service.setEditModeBanner(false);
+  service.restoreTabButtonsToDefault();
+  const cancelBtnB = document.getElementById("cancelEditHall");
+  if (cancelBtnB) cancelBtnB.style.display = "none";
+  saveBtn.innerHTML = '<i class="fas fa-save"></i> ذخیره اطلاعات پایه';
+  saveBtn.style.background = "";
+  saveBtn.dataset.mode = "";
+
+  await service.loadData();
+  service.resetTab("basicTab");
+  service.refreshAllDropdowns();
+}

@@ -899,3 +899,696 @@ registerHallsWindowGlue({ hallsService, HallsService });
      `halls.renderer.js:281 renderHallInfo` ۲۵۴ خط · `halls.basic.js:235 saveBasicInfo` ۱۷۷ خط ·
      `halls.units.js:292 renderUnitDetailsPanel` ۱۶۵ خط — نیازمند تست رفتاری اختصاصی، مثل چهار
      تست رفتاری موجود هفتگی.
+
+## ۱۵) موج ۳.۲d — برش بدنهٔ چهار متد غول خوشهٔ سالن‌ها (بدون تغییر یک بایت خروجی)
+
+> این موج ادامهٔ مستقیم بخش ۱۴ است. بخش ۱۴ «فایل» چاق را شکست؛ این موج سراغ چیزی رفت که با
+> شکستن فایل کوچک **نمی‌شود**: بدنهٔ چهار متد غول که پس از ۳.۲c در فایل‌های مستقل خوشهٔ سالن‌ها
+> باقی مانده بودند. تفاوت صریح با موج‌های ۳.۲a/۳.۲b/۳.۲c: **هیچ فایلی جابه‌جا نمی‌شود، هیچ عضوی
+> از سطح عمومی عوض نمی‌شود و هیچ بایتی از خروجی HTML تغییر نمی‌کند.**
+
+### الف) قیدها (چرا این موج ریسک‌دار بود)
+
+| قید | چرا | اثبات |
+| --- | --- | --- |
+| سطح عمومی ثابت | چهار متد از مسیر `window.hallsService` و `onclick`های HTML رندرشده صدا زده می‌شوند | `npm run test:halls:surface` (۷۱ عضو `prototype` · ۳۳ نام `window.*` · ۱۷ ویژگی نمونه) + `npm run audit:surface` (۰ گم‌شده · ۰ افزوده · ۰ نقض) |
+| خروجی بایت‌به‌بایت ثابت | بدنهٔ هر چهار متد HTML می‌سازد؛ «فاصلهٔ اضافه» یعنی تغییر DOM | گارد طلایی `npm run test:halls:body` (۱۳۶ بررسی · ۱۷ کِیس · هش `sha256` خروجی) |
+| بدون عضو جدید در ماژول | توابع کمکی باید «ماژول‌محلی» بمانند، نه سطح تازه | بازبینی اسکریپت برش (شمارش نام‌های کمکی) + `audit:size` و `audit:dead-exports` |
+
+سه نکتهٔ فنی که مسیر این موج را تعیین کرد:
+
+1. **`audit:surface` فقط `this.X` داخل بدنهٔ کلاس را می‌خواند.** پس هر ارجاعی که از بدنهٔ متد
+   بیرون می‌رود باید یا پارامتر بگیرد (`service`) یا داخل همان ماژول بماند — وگرنه «عضو فانتوم»
+   یا «نقض قرارداد» گزارش می‌شود.
+2. **تورفتگی template-literal بخشی از خروجی است.** برای HTML، جای‌گذاری توابع کمکی فقط وقتی
+   بایت‌به‌بایت امن است که «تورفتگی خط اسلات + مقدار برگشتی» دقیقاً همان بایت‌های قبلی باشد
+   (بند د، مورد ۱).
+3. **`halls.renderer.js` و `halls.basic.js` و `halls.units.js` در `docs/service-surface.json`
+   نیستند** (فقط فهرست متدهای mixin آن‌ها آنجا آمده)، پس محدودیت اصلی این موج «سطح زمان اجرا»
+   است، نه اسنپ‌شات استاتیک.
+
+### ب) گارد پیش از برش — هارنس طلایی `test:halls:body`
+
+پیش از هر تغییر، خروجی «زمان اجرا»ی هر چهار متد با استاب حداقلی مرورگر در Node گرفته و
+**پیش از برش** به اسنپ‌شات طلایی تبدیل شد (`docs/halls-body-golden.json`، تگ `pre-body-split`):
+
+- ۱۷ کِیس: `A1..A4` گزارش کامل/خالی/کاربر ناشناس/مشتری ناقص · `B1..B3` سالن کامل/مینیمال/سقوط
+  نام‌ها · `C1..C6` ثبت جدید/ویرایش موفق/خطای اعتبارسنجی/پاسخ ناموفق/استثنا/دکمهٔ غیرفعال ·
+  `D1..D4` واحد کامل/ظرفیت صفر/مازاد/ورودی `null`.
+- سنجش دو لایه است: «انکر»های رفتاری (زیررشته‌های کلیدی) + برابری `sha256` خروجی کامل.
+- `saveBasicInfo` به‌جای رشتهٔ HTML، «رکورد فراخوانی‌ها» را می‌سنجد (payloadهای `updateHall`/
+  `createHall`، فراخوانی‌های اعتبارسنجی، اعلان‌ها، `Swal`، وضعیت دکمهٔ ذخیره).
+- گارد عمداً «رفتار فعلی» را قفل می‌کند، حتی جاهایی که مشکوک است (مثل «undefined» وقتی آیتم
+  دیکشنری بی‌نام است) — چون هدف این موج اثبات «عدم تغییر» است، نه اصلاح رفتار.
+- سخت‌سازی پس از کامیت اول (`c16baf0`): `normalizeNewlines` برای پایان خط، چون مخزن
+  `core.autocrlf=true` دارد ولی blobها LF هستند.
+
+### ج) پارتیشن برش‌ها (هر برش = یک کامیت)
+
+| # | متد | فایل | قبل → بعد | توابع کمکی ماژول‌محلی |
+| --- | --- | --- | --- | --- |
+| A | `generateHTML` | `halls.report.js` | ۴۵۰ → ۴۶ | `resolveReportContext`, `buildUnitSectionsHtml`, `computeReportTotals`, `buildCustomerInfoHtml`, `buildSummaryStatsHtml`, `buildReportFooterHtml` + ثابت `REPORT_STYLE_BLOCK` |
+| B | `renderHallInfo` | `halls.renderer.js` | ۲۵۴ → ۲۰ | `resolveHallDetailNames`, `buildHallBasicSection`, `buildHallPhysicalSection`, `buildHallSystemsSection`, `buildHallWaterFeedSection` |
+| C | `saveBasicInfo` | `halls.basic.js` | ۱۷۷ → ۶۵ | `markBasicSaveBusy`, `restoreBasicSaveButton`, `readBasicInfoFormPayload`, `collectBasicInfoErrors`, `buildBasicUpdateSummaryItems`, `showBasicUpdateSuccess`, `exitBasicEditMode` |
+| D | `renderUnitDetailsPanel` | `halls.units.js` | ۱۶۵ → ۲۲ | `computeUnitCapacityView`, `buildUnitExpertChips`, `buildUnitDetailsViewHtml`, `buildUnitEditFormHtml` |
+
+روی‌هم: **۲۲ تابع کمکی + یک ثابت ماژول‌محلی**، همه در انتهای همان فایل و بدون هیچ `export` تازه.
+
+
+### د) تکنیک‌های برش (و چرا هر کدام لازم بود)
+
+1. **ساخت اسلات با آفست دقیق، نه بازتایپ.** بدنهٔ هر تابع کمکی از خودِ فایل با آفست دقیق بریده
+   می‌شود. دو حالت امتحان‌شده:
+   - **مقدار با خط اول بی‌فاصله (برش B):** ۱۴ فاصلهٔ خط اول از بدنه برداشته می‌شود و همان ۱۴
+     فاصله در خط `${…}` متد تأمین می‌شود ⇒ `concat` بایت‌به‌بایت برابر اصل.
+   - **مقدار با خط اول ۸-فاصله (برش D):** فقط ۸ فاصلهٔ خط اول بلوک برداشته می‌شود (بقیهٔ خطوط
+     دست‌نخورده‌اند، چون template تودرتو هم داخلشان است) و خط اسلات همان ۸ فاصله را دارد.
+2. **شرط محافظ هم «بخشی از بدنه» است.** در برش B نسخهٔ اول فقط template درونی منتقل شد و شرط
+   `hall.physicalInfo ? … : ""` جا ماند ⇒ گارد طلایی در همان اجرا FAIL داد
+   (`TypeError: Cannot read properties of undefined (reading 'length')`). اصلاح شد و در کامیت
+   نهایی صفر بایت تفاوت ماند.
+3. **`return` زودهنگام داخل helper معنا ندارد.** در برش C، شرط «خطای اعتبارسنجی» نمی‌تواند داخل
+   تابع برود؛ پس `collectBasicInfoErrors` فقط آرایهٔ خطا را برمی‌گرداند و نمایش خطا + `return` در
+   متد ماند (ترتیب عیناً حفظ شد).
+4. **یکسان‌سازی تکرارها «با شمارش» انجام شد.** چهار نقطهٔ بازگردانی دکمهٔ ذخیره در برش C دو سطح
+   تورفتگی مختلف داشتند (۶ و ۸ فاصله) ⇒ دو الگوی جدا با شمارش دقیق (۲+۲). اگر یک الگو با
+   `expected=4` نوشته می‌شد، اسکریپت با خطای صریح متوقف می‌شد — و شد.
+5. **گارد «یکتایی نشانگر» دو بار نجات داد.** نشانگر یکتا *پیش از برش* ممکن است پس از برش‌های
+   قبلی دیگر یکتا نباشد؛ در برش C نشانگر پایانی `          }` و در برش D نشانگر `        </div>`
+   تکراری بودند و به نشانگر چندخطی گسترده شدند. در هر دو مورد اسکریپت **پیش از نوشتن فایل**
+   متوقف شد (نوشتن فقط در انتهای اسکریپت انجام می‌شود).
+6. **نرمال‌سازی تورفتگی فقط برای کد JS.** توابع ساخته‌شده از کد ۱۰-فاصله‌ای با یک مرحلهٔ
+   `shiftLeft(…, 6)` به کنوانسیون ۲ فاصله برگشتند؛ اما روی بلوک‌های HTML **هیچ** نرمال‌سازی
+   اعمال نشد (فاصلهٔ HTML یعنی خروجی).
+7. **CRLF هم باید یکدست شود.** فایل‌های این خوشه با `core.autocrlf=true` ممکن است روی دیسک CRLF
+   باشند؛ هر اسکریپت برش اول LF می‌کند (blob مخزن LF است)، بعد برش می‌زند و گارد هم پیش از هش
+   `normalizeNewlines` می‌کند.
+
+### ه) تغییرات فایل‌ها (شش کامیت)
+
+| کامیت | محتوا |
+| --- | --- |
+| `343c02a` | گارد طلایی `Frontend/halls-body-split-test.mjs` + اسنپ‌شات `docs/halls-body-golden.json` (۱۷ کِیس) + ثبت `npm run test:halls:body` در `Frontend/package.json` |
+| `c16baf0` | مقاوم‌سازی گارد در برابر تفاوت پایان خط (`normalizeNewlines`) |
+| `2a657c6` | برش A — بدنهٔ `generateHTML` → ۶ تابع + ثابت `REPORT_STYLE_BLOCK` |
+| `046f57d` | برش B — بدنهٔ `renderHallInfo` → ۵ تابع (`resolveHallDetailNames` + چهار `buildHall*Section`) |
+| `65e9564` | برش C — بدنهٔ `saveBasicInfo` → ۷ تابع (شامل دو تابع وضعیت دکمهٔ ذخیره) |
+| `c7747f1` | برش D — بدنهٔ `renderUnitDetailsPanel` → ۴ تابع |
+
+هیچ فایل دیگری تغییر نکرد: نه `halls.service.js`، نه چسب پنجره، نه `docs/service-surface.json`.
+
+کامیت‌های مستندات این موج جدای از این شش‌تایند: `21efcfe` (همین گزارش + به‌روزرسانی `HOTSPOTS.md`،
+شامل اصلاح عیب پایان‌خط همان فایل) و یک کامیت پیگیری «تکمیل پیگیری» (همین بند مبنای شمارش + ردیف
+گارد طلایی در فهرست فرمان‌های `HOTSPOTS.md`). برنچ با تگ `post-body-split` بسته می‌شود — تگ روی
+آخرین کامیت موج (مستندات) می‌نشیند، نه روی کامیت کد.
+
+### و) نتیجهٔ عددی
+
+| سنجه | پیش از موج ۳.۲d | پس از موج ۳.۲d |
+| --- | --- | --- |
+| متدهای بزرگ‌تر از بودجهٔ ۱۵۰ خط (`audit:big-methods`) | ۳۰ | **۲۶** |
+| `generateHTML` / `renderHallInfo` / `saveBasicInfo` / `renderUnitDetailsPanel` | ۴۵۰ / ۲۵۴ / ۱۷۷ / ۱۶۵ | **۴۶ / ۲۰ / ۶۵ / ۲۲** |
+| توابع کمکی ماژول‌محلی تازه | ۰ | **۲۲ تابع + ۱ ثابت** |
+| سطح عمومی خوشه (`test:halls:surface`) | ۷۱ عضو · ۳۳ نام · ۱۷ ویژگی | همان (بدون تغییر) |
+| گارد بایت‌به‌بایت بدنهٔ متدها | وجود نداشت | ۱۳۶ بررسی · ۱۷ کِیس |
+
+> مبنای شمارش اعداد ستون «پیش از موج»: خروجی خودِ `npm run audit:big-methods` است (شامل خط امضا).
+> در پیام کامیت‌های B/C/D عدد «پیش» با مبنای «ناحیهٔ بدنهٔ جدا‌شده» نوشته شد که یک خط کمتر می‌دهد
+> (`۲۵۳` / `۱۷۶` / `۱۶۴`). اعداد «پس از موج» در هر دو مبنا یکی است (`۴۶ / ۲۰ / ۶۵ / ۲۲`) و با
+> شمارش مستقیم روی دیسک هم تأیید شد.
+
+### ز) شواهد تأیید نهایی (اجرای واقعی روی همین برنچ)
+
+دروازهٔ کامل پس از آخرین کامیت — ۲۰ گام، همه `exit=0` و `fail=0`:
+
+```text
+lint :: exit=0                    test:halls:surface    :: pass=24    audit:size :: exit=0
+test:cache :: pass=86             test:halls:body       :: pass=136   audit:dead-exports :: exit=0
+test:denied :: pass=19            test:customer-fields  :: pass=22    audit:surface :: exit=0
+test:toast :: pass=9              test:customer-detail  :: pass=60    audit:big-methods :: exit=0
+test:weekly :: pass=118           test:hatchery-utils   :: pass=28
+test:weekly:report :: pass=33     test:hatchery-surface :: pass=9
+test:weekly:groups :: pass=13     test:dashboard-surface :: pass=11
+test:weekly:history :: pass=9
+test:weekly:surface :: pass=21
+```
+
+نکات شفافیت:
+
+- گارد طلایی در برش B **یک رگرسیون واقعی گرفت** (حذف شرط محافظ) و همان اجرا FAIL داد؛ بدون این
+  گارد، شاخهٔ «نبود داده» هر سه بخش رندر را می‌شکست.
+- در برش‌های C و D، دو خطای اسکریپت (شمارش رخداد ۴ در برابر ۲ · نشانگر پایان تکراری) پیش از
+  نوشتن فایل متوقف شدند؛ هیچ کامیت نیمه‌کاره ساخته نشد.
+- شبه‌ویژگی موجود (`this.value` دورن‌خطی در HTML فرم ویرایش واحد) عمداً دست‌نخورده ماند؛ گارد زمان
+  اجرا آن را به‌عنوان «شبه‌ویژگی DOM» می‌شناسد.
+
+### ح) یادداشت نگه‌داری و گام بعدی
+
+- **گارد دائمی این موج `npm run test:halls:body` است.** اگر روزی رفتار خروجی عمداً تغییر کرد،
+  ابتدا `npm run test:halls:body -- --snapshot` و بعد توضیح تغییر در پیام کامیت (مثل موج ۳.۲c).
+- **الگوی «برش بدنه» اکنون آماده است:** اسکریپت برش با نشانگرهای خط‌محور + گارد طلایی پیش از برش
+  + گارد یکتایی نشانگر + نرمال‌سازی LF. بهترین نامزدهای بعدی: `weeklyRenderer.renderFullReport`
+  (۵۲۴ خط)، `hatcheryCompletionPeriodMethods.editPeriodCompletion` (۳۶۵ خط) و
+  `weeklyHistoryHtmlMethods.buildWeeklyHistoryHTML` (۳۳۶ خط).
+- ابزارهای موقت این موج (اسکریپت‌های `CUT_*.mjs` و تحلیل‌گرها) در پوشهٔ `.git/` ماندند؛ **بخشی از
+  درخت کاری نیستند** (نه کامیت می‌شوند، نه `git status` را آلوده می‌کنند).
+
+## ۱۶) موج ۳.۲e — برش بدنهٔ بزرگ‌ترین متد مخزن: `weeklyRenderer.renderFullReport`
+
+> ادامهٔ مستقیم بخش ۱۵ با همان الگو (گارد اول، بعد برش)، این‌بار روی متدی که چهار closure
+> تودرتو دارد و به «ساعت سیستم» وابسته است.
+
+### الف) هدف و معیار موفقیت
+
+| مورد | پیش از موج | پس از موج |
+| --- | --- | --- |
+| `weeklyRenderer.renderFullReport` (`weekly.renderer.js:746`) | ۵۲۴ خط (بزرگ‌ترین متد مخزن) | **۱۳۹ خط** |
+| متدهای بزرگ‌تر از بودجهٔ ۱۵۰ خط (`audit:big-methods`) | ۲۶ | **۲۵** |
+| توابع کمکی ماژول‌محلی تازه | ۰ | **۱۰** |
+| سطح عمومی (`audit:surface`) | ۰ گم‌شده · ۰ افزوده · ۰ نقض | همان (بی‌تغییر) |
+| خروجی HTML | فاقد گارد بایت‌به‌بایت | گارد `npm run test:weekly:body` (۶۷ بررسی · ۱۲ کِیس) |
+
+### ب) گارد پیش از برش — هارنس طلایی `test:weekly:body`
+
+- `Frontend/weekly-body-split-test.mjs` با استاب حداقلی مرورگر (هم‌سان با
+  `weekly-report-render-smoke.mjs` موجود) و ⚠️ **تثبیت ساعت**: کلاس `Date` استاب می‌شود و
+  `process.env.TZ` روی `Asia/Tehran` قفل می‌گردد — چون متد `now`/`nowTime` را از
+  `new Date().toLocaleDateString/TimeString("fa-IR")` می‌سازد و بدون تثبیت، هیچ اسنپ‌شاتی
+  پایدار نیست. خودآزمون «دو اجرای متوالی کِیس اصلی هش یکسان می‌دهند» همین را اثبات می‌کند.
+- ۱۲ کِیس از فیکسچرهای موجود چهار تست هفتگی: گزارش کامل دو سالن + جدول «کل گله» · بدون
+  آرگومان گروه · گپ و هفتهٔ ناقص · فقط وزن · همهٔ گروه‌ها صریح · بازهٔ هفته · گلهٔ بدون هفتهٔ
+  انتخابی · انتخاب هرگله · ترتیب معکوس سالن‌ها · حالت خالی · کاربر ناشناس · مشتری ناقص.
+- اسنپ‌شات `docs/weekly-body-golden.json` (sha256 + bytes هر کِیس) پیش از برش، با تگ
+  `pre-weekly-body-split`. وابستگی locale/ICU/TZ در `note2` سند ثبت شده است.
+
+### پ) برش‌ها (شش کامیت)
+
+| کامیت | محتوا |
+| --- | --- |
+| `becb797` | گارد طلایی `weekly-body-split-test.mjs` + اسنپ‌شات (۱۲ کِیس) + ثبت `npm run test:weekly:body` (تگ `pre-weekly-body-split`) |
+| `08acd97` | برش A — `renderMetricsTable` → `buildMetricsTableHtml` (۸۰ خط) |
+| `1def99b` | برش B1 — `toPersian` → `toPersianDate` (۱۲ خط) |
+| `dce26bf` | برش B2 — حلقهٔ هر گله (۱۵۲ → ۱۹ خط) → `resolveFlockReportContext` · `buildWeekDetailRows` · `buildFlockSectionHtml` |
+| `26ba07a` | برش C — بخش «کل گله» + مونتاژ (۱۲۸ → ۱۳ خط) → `buildGroupSectionHtml` · `mergeReportSections` |
+| `cfc8007` | برش D — مقدمه (۳۰ → ۱۲) و یادداشت‌های پای گزارش (۳۳ → ۸) → `resolveReportContext` · `buildGroupsNoteHtml` · `buildGapsSummaryHtml` |
+
+هیچ فایل دیگری تغییر نکرد: نه `weekly.service.js`، نه چسب پنجره، نه `docs/service-surface.json`.
+
+### ت) درس تازهٔ این موج: «dedent ممنوع» (وقتی خط اسلات وجود ندارد)
+
+در موج ۳.۲d (برش بدنهٔ خوشهٔ سالن‌ها) هر بلوک در «خط اسلات» با تورفتگی بیشتر می‌نشست و همان
+فاصله‌ها را برمی‌گرداند؛ پس `dedent` بی‌خطر بود. اینجا کل یک تابع منتقل می‌شود و فاصله‌های
+داخل رشته‌های template **بخشی از خروجی HTML**اند: انتقال با `dedent 4`، ۱۰ بررسی گارد را
+قرمز کرد (کاهش ۹۶ تا ۳۳۶ بایت در خروجی کِیس‌ها). قاعدهٔ ثابت‌شده: **انتقال verbatim بدون
+dedent**؛ و همین هشدار در سرصفحهٔ بخش کمکی فایل ثبت شد.
+
+### ث) تله‌هایی که گیت‌های خودِ اسکریپت گرفتند (شفافیت)
+
+1. برش A (dedent) → ۱۰ بررسی گارد قرمز ⇒ بازگردانی از بکاپ و انتقال verbatim.
+2. برش B1: بررسی «یکتایی» بدنهٔ منتقل‌شده بی‌معنا بود (همان بدنه در متد `renderFlockReport` هم
+   هست) ⇒ با «تغییر نسبی شمارش» جایگزین شد؛ همچنین شمارش صداکننده‌ها ۴ بود نه ۳.
+3. برش C: (الف) نشانگر مقایسهٔ payload با خط `html: ""` شاخهٔ حذف هم تطبیق می‌کرد ⇒ نشانگر
+   یکتا شد. (ب) خط `      }` بستن شرط در جایگزینی جا افتاد ⇒ خطای نحوی؛ گارد ساختاری پیش از
+   نوشتن فایل آن را گرفت.
+4. برش D: خط اعلان `const selected = normalizeGroups(...)` (خط ۷۴۷) از بازهٔ انتقال جا افتاد ⇒
+   `ReferenceError: selected is not defined` در گارد زمان اجرا؛ اصلاح و بازاجرا.
+
+هیچ کامیت نیمه‌کاره‌ای ساخته نشد و همهٔ برش‌ها با «بازسازی معکوس == اصل» بایت‌به‌بایت اثبات شدند.
+
+### ج) شواهد تأیید نهایی (دروازهٔ ۲۱ گامی پس از آخرین کامیت)
+
+```text
+lint :: exit=0                    test:weekly:surface   :: pass=21    audit:size :: exit=0
+test:cache :: pass=86             test:weekly:body      :: pass=67    audit:dead-exports :: exit=0
+test:denied :: pass=19            test:halls:surface    :: pass=24    audit:surface :: exit=0
+test:toast :: pass=9              test:halls:body       :: pass=136   audit:big-methods :: exit=0
+test:weekly :: pass=118           test:customer-fields  :: pass=22
+test:weekly:report :: pass=33     test:customer-detail  :: pass=60
+test:weekly:groups :: pass=13     test:hatchery-utils   :: pass=28
+test:weekly:history :: pass=9     test:hatchery-surface :: pass=9
+                                  test:dashboard-surface :: pass=11
+```
+
+### ح) یادداشت نگه‌داری و گام بعدی
+
+- **گارد دائمی این موج `npm run test:weekly:body` است.** اگر رفتار خروجی عمداً تغییر کرد،
+  ابتدا `npm run test:weekly:body -- --snapshot` و بعد توضیح تغییر در پیام کامیت.
+- ⚠️ اسنپ‌شات این گارد به locale/ICU و منطقهٔ زمانی محیط Node وابسته است (تاریخ شمسی و ارقام
+  فارسی)، پس مقایسه فقط در همان محیطی معنا دارد که اسنپ‌شات گرفته شده است.
+- نامزدهای بعدی همین الگو: `hatcheryCompletionPeriodMethods.editPeriodCompletion` (۳۶۵ خط)،
+  `weeklyHistoryHtmlMethods.buildWeeklyHistoryHTML` (۳۳۶) و `weeklyCardMethods.renderWeeks` (۳۰۴).
+- ابزارهای این موج (اسکریپت‌های `CUT_W*.mjs` و `DOCS_WE.mjs`) در پوشهٔ `.git/` ماندند و بخشی از
+  درخت کاری نیستند.
+
+## ۱۷) موج ۳.۲f — برش بدنهٔ دو متد غول خوشهٔ پایان دوره (`completePeriod` + `editPeriodCompletion`)
+
+> ادامهٔ مستقیم بخش ۱۶ با همان الگو (گارد اول، بعد برش)، این‌بار روی متدهایی که به Swal،
+> `document`، jQuery و دو API وابسته‌اند و «رکورد ساختاری» می‌سازند (نه یک رشتهٔ ساده).
+
+### الف) هدف و اعداد
+
+| متد | پیش | پس |
+| --- | --- | --- |
+| `hatcheryCompletionPeriodMethods.completePeriod` | ۲۷۸ | **۲۳** |
+| `hatcheryCompletionPeriodMethods.editPeriodCompletion` | ۳۶۵ | **۵۷** |
+| متدهای بزرگ‌تر از بودجهٔ ۱۵۰ (`audit:big-methods`) | ۲۵ | **۲۳** |
+| ثابت/کمکی ماژول‌محلی تازه | ۰ | **۱۵** |
+| سطح عمومی (`audit:surface`) | ۰ گم‌شده · ۰ افزوده · ۰ نقض | همان (بی‌تغییر) |
+| خروجی/رکورد | فاقد گارد | `npm run test:hatchery:body` (۹۶ بررسی · ۲۲ کِیس) |
+
+### ب) گارد قبل از برش — رکورد بایت‌به‌بایت `test:hatchery:body`
+
+- `Frontend/hatchery-completion-body-split-test.mjs`: استاب `window/document/localStorage` +
+  **DOM فیلد‌محور** (هر کِیس مقادیر `ue*`/`cf*` را می‌چیند) + استاب **`Swal.fire`** که `options` را
+  ثبت می‌کند و `didOpen`/`preConfirm` را واقعاً اجرا می‌کند + استاب `$`/`persianDatepicker`
+  (روشن/خاموش در هر کِیس) + **تثبیت ساعت** و قفل `process.env.TZ = "Asia/Tehran"`.
+- ۲۲ کِیس: ۱۴ برای `editPeriodCompletion` (رکورد کامل/قدیمی/چندگله/بدون داده · شش مسیر
+  اعتبارسنجی · ذخیرهٔ موفق/ناموفق/استثنا · کلیک محاسبهٔ مجدد) و ۸ برای `completePeriod`
+  (موفق دو گله · دورهٔ ناموجود · بدون گلهٔ فعال · بدون انتخاب · تاریخ معکوس · ناموفق · استثنا · انصراف).
+- رکورد هر کِیس = JSON (فرم HTML + خروجی `preConfirm` + فراخوانی‌های API + اعلان‌ها +
+  پیام‌های اعتبارسنجی + console) ⇒ `sha256` در `docs/hatchery-completion-body-golden.json`.
+
+### پ) برش‌ها (شش کامیت)
+
+| کامیت | محتوا |
+| --- | --- |
+| `a85fd77` | گارد طلایی + اسنپ‌شات ۲۲ کِیس + `npm run test:hatchery:body` + گام دروازه (تگ `pre-completion-body-split`) |
+| `35deea5` | برش A — دو بلوک `<style>` ثابتِ فرم‌ها → `UE_FORM_STYLE_BLOCK` · `CF_FORM_STYLE_BLOCK` |
+| `3e34e2a` | برش B — قالب ۱۳۸ خطی فرم ویرایش → `buildCompletionEditFormHtml` |
+| `25e1061` | برش C — Swal/payload/ذخیرهٔ ویرایش → سه کمکی (`editPeriodCompletion` از بودجه بیرون آمد) |
+| `bf86a84` | برش D — حل دوره + `flockOptions` + `periodInfo` + قالب اتمام دوره → چهار کمکی |
+| `0372d2b` | برش E — Swal/payload/ذخیرهٔ اتمام دوره → پنج کمکی (`completePeriod` بیرون از بودجه) |
+
+### ت) چهار تلهٔ واقعی که گیت‌ها گرفتند (شفافیت)
+
+1. **مرز «محتوا» و «تگ» در CSS درون‌خطی:** نسخهٔ اول برش A کل `<style>…</style>` را جایگزین
+   می‌کرد ولی ثابت فقط «محتوا» را داشت ⇒ اثبات رفت‌وبرگشت `false` شد؛ با جایگزینی ناحیهٔ درونی
+   (و ثابت‌ماندن تگ‌ها) درست شد.
+2. **تلهٔ سطح سرویس در برش B:** `_ueSlaughterSectionHtml` با `service.…` صدا زده شد و
+   `audit:surface` «گم‌شده → ویژگی ۱» داد (این ابزار ویژگی‌ها را از متن `this.X` می‌خواند).
+   راه‌حل: همان **الگوی wrapper** موج ۳.۲d — `(a, b) => this._ueSlaughterSectionHtml(a, b)`.
+3. **متغیرهای scope متد در برش C:** `slaughterDate`/`slaughterEndDate` که در `preConfirm` اعلان
+   می‌شدند در کمکی payload نبودند ⇒ ۱۸ بررسی گارد قرمز + دو خطای `lint` (`no-undef`).
+4. **return فراموش‌شده در برش E:** کمکی `readSelectedPeriodFlocks` بدون `return` ساخته شد ⇒
+   ۱۷ بررسی گارد قرمز + یک warning؛ با `return` صریح، گارد ۹۶/۹۶ و lint تمیز شد.
+
+هیچ کامیت نیمه‌کاره‌ای ساخته نشد؛ هر برش با «بازسازی معکوس == اصل» و «سطرهای verbatim» اثبات شد.
+
+### ث) شواهد تأیید نهایی (دروازهٔ ۲۲ گامی پس از آخرین کامیت کد)
+
+```text
+lint :: exit=0                    test:weekly:body     :: pass=67    audit:size :: exit=0
+test:cache :: pass=86             test:halls:surface   :: pass=24    audit:dead-exports :: exit=0
+test:denied :: pass=19            test:halls:body      :: pass=136   audit:surface :: exit=0
+test:toast :: pass=9              test:hatchery:body   :: pass=96    audit:big-methods :: exit=0 (۲۳ متد)
+test:weekly :: pass=118           test:customer-fields :: pass=22
+test:weekly:report :: pass=33     test:customer-detail :: pass=60
+test:weekly:groups :: pass=13     test:hatchery-utils  :: pass=28
+test:weekly:history :: pass=9     test:hatchery-surface :: pass=9
+test:weekly:surface :: pass=21    test:dashboard-surface :: pass=11
+```
+
+### ج) یادداشت نگه‌داری و گام بعدی
+
+- **گارد دائمی این موج `npm run test:hatchery:body` است.** اگر رفتار عمداً تغییر کرد، ابتدا
+  `npm run test:hatchery:body -- --snapshot` و بعد توضیح تغییر در پیام کامیت.
+- ⚠️ اسنپ‌شات به locale/ICU/TZ و ساختار DOM محیط Node وابسته است؛ مقایسه فقط در همان محیطی
+  معنا دارد که اسنپ‌شات گرفته شده است.
+- نامزدهای بعدی همین الگو: `buildWeeklyHistoryHTML` (۳۳۶) · `renderWeeks` (۳۰۴) ·
+  `showCreateBookmarkModal` (۲۸۴) · `buildFlockSmsReportHTML` (۲۷۷).
+
+## ۱۸) موج ۳.۲g — برش بدنهٔ متد غول تاریخچهٔ هفتگی (`buildWeeklyHistoryHTML`)
+
+> ادامهٔ مستقیم بخش ۱۷ با همان الگو (گارد اول، بعد برش) — این‌بار روی متدی که یک رشتهٔ
+> بزرگ HTML می‌سازد، دوباره «مبنا/چیپ/ماتریس» دارد و به `new Date()` وابسته است.
+
+### الف) هدف و اعداد
+
+| مورد | پیش از موج | پس از موج |
+| --- | --- | --- |
+| `weeklyHistoryHtmlMethods.buildWeeklyHistoryHTML` (`weekly.report.history.html.js:36`) | ۳۳۶ خط (بزرگ‌ترین متد مخزن) | **۱۳۱ خط** |
+| متدهای بزرگ‌تر از بودجهٔ ۱۵۰ (`audit:big-methods`) | ۲۳ | **۲۲** |
+| کمکی/ثابت ماژول‌محلی تازه | ۰ | **۷** |
+| سطح عمومی (`audit:surface`) | ۰ گم‌شده · ۰ افزوده · ۰ نقض | همان (بی‌تغییر) |
+| خروجی HTML | فاقد گارد بایت‌به‌بایت | `npm run test:weekly:history:body` (۵۷ بررسی · ۱۲ کِیس) |
+
+### ب) گارد پیش از برش — `test:weekly:history:body`
+
+- `Frontend/weekly-history-body-split-test.mjs`: هارنس روی `weeklyService` با استاب حداقلی مرورگر
+  (هم‌سان با `weekly-history-render-test.mjs`) + **تثبیت ساعت** (`Date` استاب) + قفل
+  `process.env.TZ = "Asia/Tehran"` — چون متد `new Date()` و `Intl.DateTimeFormat("fa-IR")`
+  (تاریخ/ساعت شمسی) می‌سازد؛ خودآزمون «دو اجرای متوالی هش یکسان» همین را اثبات می‌کند.
+- ۱۲ کِیس: حالت پایه · کاربر لاگین‌شده · انتخاب هفته + گروه · گلهٔ بدون انتخاب · ترتیب سالن‌ها ·
+  دو گله · رکورد حداقلی/تهی · بلوک خالی · مشتری ناقص · همهٔ گروه‌ها صریح · انتخاب مشترک + سفارشی ·
+  دو گله با انتخاب مجزا ⇒ اسنپ‌شات `docs/weekly-history-body-golden.json` (sha256 + bytes کل HTML).
+
+### پ) برش‌ها (سه کامیت)
+
+| کامیت | محتوا |
+| --- | --- |
+| `ed823fc` | گارد طلایی + اسنپ‌شات ۱۲ کِیس + `npm run test:weekly:history:body` + گام دروازه (تگ `pre-history-body-split`) |
+| `88b40e7` | برش A — مقدمه (۹۰ خط) → `resolveHistoryReportContext` + `fmtCountFa` + `toPersianShortDate` + `HISTORY_REPORT_STYLE_BLOCK` |
+| `0fc2e34` | برش B — حلقهٔ گله/سالن (۱۶۳ → ۴۳ خط) → `resolveHistoryFlockContext` · `buildHistoryHallHtml` · `buildHistoryFlockSectionHtml` |
+
+### ت) تله‌های واقعی که گیت‌ها گرفتند (شفافیت)
+
+1. **ناحیهٔ جاافتاده:** بلوک `weekSelectionSummary`/`weekSelectionNote` از بازهٔ انتقال برش A بیرون
+   مانده بود ⇒ `ReferenceError` در گارد ⇒ بازاجرا با سه‌ناحیه‌ای‌کردن مقدمه.
+2. **آفست‌های بی‌اعتبار پس از تغییر نام:** `fmtCount`→`fmtCountFa` و `toPersianShort`→`toPersianShortDate`
+   **طول متن** را عوض می‌کنند ⇒ آفست‌های خطی محاسبه‌شده روی متن اصلی غلط شدند؛ اثباتِ خودِ اسکریپت
+   («بازسازی معکوس == اصل») آن را پیش از نوشتن فایل گرفت.
+3. **متغیر بلااستفاده در destructuring** (`weekSelectionSummary`) ⇒ warning از lint ⇒ حذف شد.
+4. **برش ناحیهٔ callback** یک خط جابه‌جا (۱۱۷..۱۸۳ در برابر ۱۱۸..۱۸۲) ⇒ assert پایان ناحیه آن را گرفت.
+5. **`{ html: ` جاافتاده در `return` قالب سالن** ⇒ خطای نحوی (پارسر lint) و توقف گارد.
+6. **رشتهٔ نام گلهٔ حذف‌شده از متن اصلی (با `b.`)** ساخته می‌شد ⇒ `ReferenceError` ⇒ اعمال همان تغییر نام.
+
+هیچ کامیت نیمه‌کاره‌ای ساخته نشد؛ هر برش با «بازسازی معکوس == اصل» + قطعات کلیدی + گارد ۵۷/۵۷ اثبات شد.
+
+### ث) شواهد تأیید نهایی (دروازهٔ ۲۳ گامی)
+
+```text
+lint :: exit=0                    test:weekly:history:body :: pass=57    audit:size :: exit=0
+test:cache :: pass=86             test:weekly:surface  :: pass=21        audit:dead-exports :: exit=0
+test:denied :: pass=19            test:weekly:body     :: pass=67        audit:surface :: exit=0
+test:toast :: pass=9              test:halls:surface   :: pass=24        audit:big-methods :: exit=0 (۲۲ متد)
+test:weekly :: pass=118           test:halls:body      :: pass=136
+test:weekly:report :: pass=33     test:hatchery:body   :: pass=96
+test:weekly:groups :: pass=13     test:customer-fields :: pass=22
+test:weekly:history :: pass=9     test:customer-detail :: pass=60
+                                  test:hatchery-utils  :: pass=28
+                                  test:hatchery-surface :: pass=9
+                                  test:dashboard-surface :: pass=11
+```
+
+### ج) یادداشت نگه‌داری و گام بعدی
+
+- **گارد دائمی این موج `npm run test:weekly:history:body` است.** اگر رفتار عمداً تغییر کرد، ابتدا
+  `npm run test:weekly:history:body -- --snapshot` و بعد توضیح تغییر در پیام کامیت.
+- ⚠️ اسنپ‌شات به locale/ICU/TZ محیط Node وابسته است؛ مقایسه فقط در همان محیطی معنا دارد که
+  اسنپ‌شات گرفته شده است.
+- نامزدهای بعدی همین الگو: `weeklyCardMethods.renderWeeks` (۳۰۴) ·
+  `dashboardBookmarkMethods.showCreateBookmarkModal` (۲۸۴) · `buildFlockSmsReportHTML` (۲۷۷) ·
+  `chartDashboardRenderer.renderContainer` (۲۴۹) · `weeklyRenderer.renderFlockReport` (۲۴۲).
+
+---
+
+## ۱۹) موج ۳.۲h — برش بدنهٔ متد غول کارت‌های هفتگی (`weeklyCardMethods.renderWeeks`)
+
+### الف) هدف و اعداد
+
+`weeklyCardMethods.renderWeeks` در `weekly.cards.js:92` با **۳۰۴ خط** بزرگ‌ترین متد مخزن بود و
+عضو خوشهٔ «کارت‌های هفتگی» محسوب می‌شد. ساختار داخلی‌اش یک ویژگی کم‌نظیر داشت: به‌جای آنکه قالب هر
+هفته را مستقیماً در حلقه بسازد، سازندهٔ آیتم را در `this._weekItemBuilders[flockId]` ذخیره می‌کرد
+تا `showMoreWeeks` هم بتواند از همان استفاده کند — یعنی ~۲۷۳ خط از بدنهٔ متد «در سکوت» زندگی
+می‌کرد و هر گاردی که فقط `return` متد را می‌دید، بخش عمدهٔ رفتار را پوشش نمی‌داد.
+
+| سنجه | پیش | پس |
+| --- | --- | --- |
+| `renderWeeks` | ۳۰۴ خط | **۳۰ خط** (−۹۰٪) |
+| خطوط جابه‌جاشده به کمکی | — | ۲۷۳ خط / ۲۰٬۸۷۲ بایت |
+| توابع کمکی ماژول‌محلی تازه | — | ۱ (`buildWeekAccordionItemHtml`) |
+| `audit:big-methods` | ۲۲ متد | **۲۱ متد** (بزرگ‌ترین: `showCreateBookmarkModal` ۲۸۴) |
+| `weekly.cards.js` | ۳۴.۵KB / ۶۷۷ خط | ۳۵.۲KB / ۶۸۵ خط |
+
+### ب) گارد پیش از برش — `test:weekly:cards:body`
+
+پیش از هر تغییر، گارد طلایی بایت‌به‌بایت نوشته شد (کامیت `d864d8e`، تگ `pre-cards-body-split`):
+
+- `Frontend/weekly-cards-body-split-test.mjs` با **۸ کِیس** و **۳۷ بررسی**، اسنپ‌شات
+  `docs/weekly-cards-body-golden.json` (هش `sha256`).
+- **کشف کلیدی:** ضبط خروجی فقط با `renderWeeks(...)` کافی نبود (چون قالب آیتم در
+  `_weekItemBuilders` است). هارنس هر کِیس را به‌شکل
+  `{ html, items[], weeksShown, builderStored }` ضبط می‌کند: `html` خروجی متد · `items` با
+  صدا زدن سازندهٔ ذخیره‌شده برای هر هفته (پوشش ~۲۵۰ خط قالب) · `weeksShown` وضعیت بوک‌کیپینگ ·
+  `builderStored` وجود سازنده.
+- محیط قطعی‌سازی‌شده: `Date` فریز روی `2026-06-15T06:30Z` · `TZ=Asia/Tehran` ·
+  استاب `authService.getUserRole`/`getUserId` برای شاخهٔ کارشناس.
+- ۸ کِیس: ۳ هفته (نقش admin) · «نمایش بیشتر» (۱۲ هفته در برابر پیش‌فرض ۱۰) · صفر هفته · نقش
+  کارشناس · ثبت‌شده روی یک هفته (`data-selected`) · پیش‌فرض ۳ · مقادیر خالی · دو گلهٔ همزمان
+  (اثبات جدایی وضعیت `weeksShown`/`_weekItemBuilders` بین گله‌ها).
+
+### پ) برش A (یک کامیت اتمی)
+
+- کل بدنهٔ سازنده (خطوط ۱۰۴..۳۷۶) به کمکی ماژول‌محلی زیر منتقل شد:
+  `const buildWeekAccordionItemHtml = (flockId, week) => { … };`
+  با **پارامترهای صریح** و بدون هیچ ارجاعی به `this` (پیش‌بررسی اسکریپت: اگر `this.` پیدا
+  می‌شد، برش متوقف می‌شد).
+- در متد فقط پوسته‌ای دو خطی ماند:
+  `this._weekItemBuilders[flockId] = (week) => buildWeekAccordionItemHtml(flockId, week);`
+  ⇒ ارجاع‌های `this._weekItemBuilders` (خط ۱۰۲ برای مقداردهی اولیه + پوسته + `.map(...)` در
+  حلقهٔ رندر) عیناً در متد باقی ماندند و `audit:surface` صفر/صفر/صفر ماند.
+- **قاعدهٔ verbatim:** متن قالب با تورفتگی اصلی (۶ فاصله) و بدون هیچ dedent منتقل شد؛ فاصله‌های
+  داخل template literal بخشی از خروجی HTML‌اند و کوتاه‌کردنشان گارد بایت‌به‌بایت را می‌شکست.
+- اثبات اسکریپت برش: «جایگزینی پوستهٔ جدید با ناحیهٔ اصلی، متن فایل را بایت‌به‌بایت بازمی‌سازد»
+  ✓ · «بدنهٔ قالب در متن کمکی verbatim حاضر است» ✓ · «دقیقاً یک اعلان و یک فراخوانی» ✓ ·
+  «شمارش `this._weekItemBuilders` در متد = ۴» ✓ · «فایل بدون CR» ✓.
+- چون متد با ۳۰ خط از بودجهٔ ۱۵۰ بیرون رفت، برش B (جدا کردن سر/دم متد) لازم نشد.
+
+### ت) تله‌های واقعی که گیت‌ها گرفتند (شفافیت)
+
+1. **شمارش ارجاع‌ها:** اسکریپت انتظار ۳ ارجاع `this._weekItemBuilders` در متد داشت (مقداردهی
+   اولیه + پوسته + حلقه)، اما خط ۱۰۲ دو ارجاع در **یک خط** دارد
+   (`this._weekItemBuilders = this._weekItemBuilders || {};`) ⇒ واقعیت ۴ بود. assert پیش از
+   نوشتن فایل متوقف شد (به‌جای کامیت خراب) و انتظار اصلاح شد.
+2. **هاردکد نکردن نتیجهٔ «قبل»:** همان درس موج ۳.۲g — آفست‌ها روی متنِ پس از «جایگزینی‌های
+   هم‌زمان» محاسبه می‌شوند؛ اینجا چون هیچ تغییر نامی نداشتیم، ناحیهٔ انتقال تک‌تکه و مستقل بود و
+   همین تله تکرار نشد.
+
+### ث) شواهد تأیید نهایی (دروازهٔ ۲۴ گامی — اولین موج با گارد `test:weekly:cards:body`)
+
+```text
+lint :: exit=0                    test:weekly:history:body :: pass=57   audit:size :: exit=0
+test:cache :: pass=86             test:weekly:cards:body   :: pass=37   audit:dead-exports :: exit=0
+test:denied :: pass=19            test:weekly:surface      :: pass=21   audit:surface :: exit=0
+test:toast :: pass=9              test:weekly:body         :: pass=67   audit:big-methods :: exit=0 (۲۱ متد)
+test:weekly :: pass=118           test:halls:surface       :: pass=24
+test:weekly:report :: pass=33     test:halls:body          :: pass=136
+test:weekly:groups :: pass=13     test:hatchery:body       :: pass=96
+test:weekly:history :: pass=9     test:customer-fields     :: pass=22
+                                  test:customer-detail     :: pass=60
+                                  test:hatchery-utils      :: pass=28
+                                  test:hatchery-surface    :: pass=9
+                                  test:dashboard-surface   :: pass=11
+```
+
+`audit:surface` در این موج ۰ گم‌شده · ۰ افزوده · ۰ نقض داد. رویداد ضبط گارد
+`{ html, items[], weeksShown, builderStored }` تنها رویداد گارد مخزن است که خروجی یک **کلوژر
+ذخیره‌شده روی نمونه** را هم بایت‌به‌بایت قفل می‌کند.
+
+### ج) یادداشت نگه‌داری و گام بعدی
+
+- **گارد دائمی این موج `npm run test:weekly:cards:body` است.** اگر رفتار عمداً تغییر کرد، ابتدا
+  `npm run test:weekly:cards:body -- --snapshot` و بعد توضیح تغییر در پیام کامیت.
+- ⚠️ مثل گاردهای قبلی، اسنپ‌شات به locale/ICU/TZ محیط Node وابسته است؛ مقایسه فقط در همان
+  محیطی معنا دارد که اسنپ‌شات گرفته شده است.
+- نکتهٔ الگو برای برش‌های بعدی: اگر متد «قالب را در نمونه/کلوژر ذخیره» می‌کند، گارد باید **هم
+  خروجی متد و هم خروجی سازندهٔ ذخیره‌شده** را ضبط کند؛ در غیر این صورت بیشترین حجم بدنه
+  پوشش‌داده‌نشده می‌ماند.
+- نامزدهای بعدی: `dashboardBookmarkMethods.showCreateBookmarkModal` (۲۸۴) ·
+  `buildFlockSmsReportHTML` (۲۷۷) · `chartDashboardRenderer.renderContainer` (۲۴۹) ·
+  `weeklyRenderer.renderFlockReport` (۲۴۲).
+
+---
+
+## ۲۰) موج ۳.۲i — برش بدنهٔ متد غول بوکمارک‌های داشبورد (`showCreateBookmarkModal`)
+
+### الف) هدف و اعداد
+
+`dashboardBookmarkMethods.showCreateBookmarkModal` در `dashboard.bookmarks.js:119` با **۲۸۴ خط**
+بزرگ‌ترین متد باقی‌ماندهٔ مخزن بود — و «غول پنهان» نامیده می‌شود چون هیچ تستی آن را مستقیم صدا
+نمی‌زد (تنها از `dashboard.window-glue.js` با نام `window.showCreateBookmarkModal`) و حجمش در سه
+ناحیهٔ داخلی پخش شده بود: قالب `html` مودال، بدنهٔ `didOpen` و بدنهٔ `preConfirm`.
+
+| سنجه | پیش | پس |
+| --- | --- | --- |
+| `showCreateBookmarkModal` | ۲۸۴ خط | **۹۸ خط** (−۶۵٪) |
+| خطوط منتقل‌شده به کمکی‌ها | — | ۱۰۸ + ۵۳ + ۳۰ = **۱۹۱ خط** |
+| توابع کمکی ماژول‌محلی تازه | — | ۳ (`buildBookmarkModalHtml` · `initBookmarkModalFields` · `collectBookmarkModalPayload`) |
+| `audit:big-methods` | ۲۱ متد | **۲۰ متد** (بزرگ‌ترین: `buildFlockSmsReportHTML` ۲۷۷) |
+| `dashboard.bookmarks.js` | ۵۸۶ خط / ۲۹.۲KB | ۶۲۱ خط / ۳۱.۴KB |
+
+### ب) گارد پیش از برش — `test:dashboard:bookmarks:body`
+
+پیش از هر تغییر، گارد طلایی بایت‌به‌بایت نوشته شد (کامیت `7866d66`، تگ `pre-bookmarks-body-split`):
+
+- `Frontend/dashboard-bookmarks-body-split-test.mjs` با **۲۰ کِیس** و **۹۳ بررسی**، اسنپ‌شات
+  `docs/dashboard-bookmarks-body-golden.json` (هش `sha256`).
+- متد روی یک میزبان جعلی صدا زده می‌شود (`{ bookmarks, loadBookmarks, renderBookmarks }`) با
+  استاب‌های `document` (عناصر جعلی با `value`/`dataset`/`classList`/`hasAttribute`/هندلرها) ·
+  `Swal` (ضبط `fire` + صدا زدن `didOpen`/`preConfirm` + `showValidationMessage`) · `$` (تقویم شمسی
+  با/بدون/پرتاب‌خطا) · پچ `apiService.get/put/post` و `notificationService.error/success`.
+- رکورد هر کِیس:
+  `{ swalCalls[], validation[], priority, datepicker, calls{get,put,post,loadBookmarks,renderBookmarks}, notifications[], console[], thrown }`
+  — قالب ۱۰۸ خطی داخل `swalCalls[0].html` است، پس بدون ضبط آن بخش عمدهٔ متد بی‌پوشش می‌ماند.
+- ۲۰ کِیس: ایجاد · ویرایش · شناسهٔ ناموجود · مشتریان ناموفق/پرتاب/بدون‌کلید (`TypeError` شاخهٔ
+  catch بیرونی!) · کلیک اولویت · تقویم موجود/غایب/پرتاب/قبلاً‌مقداردهی/انتخاب تاریخ ·
+  اعتبارسنجی بدون عنوان/بدون مشتری · انصراف · ذخیرهٔ ناموفق/پرتاب · `Swal` غایب · تبدیل تاریخ ·
+  مشتری بی‌نام.
+
+**دو تلهٔ واقعی همان‌جا که گارد ساخته می‌شد (شفافیت):**
+
+1. **ضبط فقط «آخرین» `Swal.fire`:** در مسیر موفق، متد یک `Swal.fire` دوم (توست «✅ بوکمارک ایجاد شد»)
+   هم صدا می‌زند و رکوردِ تک‌شیئی، قالب اصلی را **با توست جایگزین** می‌کرد (به‌ظاهر «برش خراب است»،
+   در واقع «گارد ناقص است»). راه‌حل: ضبط آرایه‌ای `swalCalls[]`.
+2. **هشدار `MODULE_TYPELESS_PACKAGE_JSON` نود** به‌صورت آسنکرون چاپ می‌شود و در ضبطِ کِیس اول
+   می‌افتاد ⇒ بررسی «دو اجرای متوالی کِیس اول» ناپایدار می‌شد. راه‌حل: یک چرخهٔ انتظار
+   (`await setImmediate`) **پیش از** شروع ضبط تا هشدار بیرون بیاید.
+
+### پ) سه برش (سه کامیت اتمی)
+
+| برش | ناحیه | کمکی | اعداد |
+| --- | --- | --- | --- |
+| A (`89126da`) | `html:` ۱۵۱..۲۵۸ | `buildBookmarkModalHtml({ bookmarkId, bookmark, customerOptions, currentPriority })` | ۱۰۸ → ۶ خط · ۸٬۳۲۵ بایت |
+| B (`56534e7`) | `didOpen` ۱۷۱..۲۲۳ | `initBookmarkModalFields()` | ۵۳ → ۱ خط |
+| C (`e2f9b0a`) | `preConfirm` ۱۷۲..۲۰۳ | `collectBookmarkModalPayload()` | ۳۰ → ۱ خط (۱٬۳۷۲ بایت) |
+
+- در **برش A** قالب با تورفتگی اصلی و **بدون dedent** منتقل شد (فاصله‌های داخل template بخشی از
+  خروجی HTML‌اند) و تک‌تک نام‌های درون‌یابی (`bookmarkId`/`bookmark`/`customerOptions`/
+  `currentPriority`/`convertToPersianDate`) به‌صورت پارامتر صریح به کمکی داده شدند.
+- در **برش B/C** کد معمولی (نه template) است، پس یک سطح کم‌تورفتگی (`dedent 10`) مجاز و
+  رفتارخنثی است؛ اسکریپت پیش از جابه‌جایی، وجود بک‌تیک و کافی‌بودن تورفتگی هر سطر را بررسی می‌کند.
+- اثبات هر برش: «جایگزینی متن جدید با ناحیهٔ اصلی، فایل را بایت‌به‌بایت بازمی‌سازد» + «بدنه در
+  کمکی حاضر است» + «دقیقاً ۱ اعلان + ۱ فراخوانی» + «شمارش `this.` متد تغییر نکرده» + «بدون CR».
+- چون متد با ۹۸ خط از بودجهٔ ۱۵۰ بیرون رفت، برش D (جدا کردن زنجیرهٔ `.then` ذخیره) لازم نشد.
+
+### ت) تله‌های واقعی که گیت‌ها گرفتند (شفافیت)
+
+1. **شمارش سراسری یک نام در فایل گمراه‌کننده است:** assert «۱ ویژگی didOpen» روی کل فایل شکست، چون
+   همان نام در سرصفحهٔ کمکی و در نام فایل/دادهٔ `data-datepicker-initialized` هم هست. راه‌حل: سنجش
+   را به **بدنهٔ متد** محدود کردم (اسکوپ‌کردن assert به ناحیهٔ متد).
+2. **مقایسهٔ `this.` با آفست‌های متنِ *جدید* روی متن *قدیم*:** در نسخهٔ اول برش C، مرزهای متد با
+   آفست‌های پس از ادیت روی متن قبل از ادیت بریده می‌شد ⇒ assert نادرست. راه‌حل: مرزهای نسخهٔ قدیم را
+   مستقل با `indexOf` محاسبه کن (همان درس موج ۳.۲g).
+3. **اجرای «نامرئی» ترمینال:** یک‌بار خروجی اجرای اسکریپت برش به دست نرسید (شل integration) و
+   هم‌زمان برش اعمال شده بود ⇒ اجرای بعدی روی assertهای «قبل از برش» شکست (که خودش نشانهٔ سالم‌بودن
+   گارد بود). هیچ کامیت خرابی ساخته نشد؛ وضعیت فایل با خواندن مستقیم تأیید و برش B کامیت شد.
+4. **برش A همان‌جا کارِ برش B/C را کوچک کرد:** جابه‌جایی قالب، آفست‌های `didOpen`/`preConfirm` را
+   جابه‌جا کرد؛ هر اسکریپت برش روی «وضعیت جاری» assert می‌کند نه روی اعدادِ تاریخی.
+
+### ث) شواهد تأیید نهایی (دروازهٔ ۲۵ گامی)
+
+```text
+lint :: exit=0                     test:weekly:cards:body  :: pass=37   audit:size :: exit=0
+test:cache :: pass=86              test:dashboard:bookmarks:body :: pass=93   audit:dead-exports :: exit=0
+test:denied :: pass=19             test:weekly:surface     :: pass=21   audit:surface :: exit=0 (۰/۰/۰)
+test:toast :: pass=9               test:weekly:body        :: pass=67   audit:big-methods :: exit=0 (۲۰ متد)
+test:weekly :: pass=118            test:halls:surface      :: pass=24
+test:weekly:report :: pass=33      test:halls:body         :: pass=136
+test:weekly:groups :: pass=13      test:hatchery:body      :: pass=96
+test:weekly:history :: pass=9      test:customer-fields    :: pass=22
+test:weekly:history:body :: pass=57  test:customer-detail  :: pass=60
+                                   test:hatchery-utils     :: pass=28
+                                   test:hatchery-surface   :: pass=9
+                                   test:dashboard-surface  :: pass=11
+```
+
+گارد جدید در هر سه برش **۹۳/۹۳** داد (یعنی رکورد ۲۰ کِیس پس از A و B و C بایت‌به‌بایت ثابت ماند)
+و `audit:surface` در تمام موج ۰ گم‌شده · ۰ افزوده · ۰ نقض بود.
+
+### ج) یادداشت نگه‌داری و گام بعدی
+
+- **گارد دائمی این موج `npm run test:dashboard:bookmarks:body` است.** در تغییر عمدی رفتار، ابتدا
+  `npm run test:dashboard:bookmarks:body -- --snapshot` و بعد توضیح در پیام کامیت.
+- ⚠️ اسنپ‌شات به locale/ICU/TZ محیط Node وابسته است (تبدیل تاریخ شمسی در قالب و payload).
+- الگوی تکرارشوندهٔ این خوشه: «قالب/هندلر داخلیِ یک callback بزرگ ⇒ گارد باید همان callback را هم
+  صدا بزند و خروجی‌اش را قفل کند»، وگرنه برش بی‌گارد می‌ماند (درس ۳.۲h و ۳.۲i).
+- نامزدهای بعدی: `buildFlockSmsReportHTML` (۲۷۷) · `chartDashboardRenderer.renderContainer` (۲۴۹) ·
+  `weeklyRenderer.renderFlockReport` (۲۴۲) · `dashboardSmsMethods.refreshSmsStatus` (۲۳۹).
+
+
+
+---
+
+## ۲۱) موج ۳.۲j — برش بدنهٔ متد غول گزارش پیامک گله (`buildFlockSmsReportHTML`)
+
+### الف) هدف و اعداد
+
+`HatcheryReport#buildFlockSmsReportHTML` در `hatchery.report.js:579` با **۲۷۷ خط** بزرگ‌ترین متد
+باقی‌ماندهٔ مخزن بود: یک متد کلاس که کل سند HTML گزارش پیامک‌های گله را می‌سازد، هیچ `this.` در
+بدنه ندارد (تنها `this.buildFlockSmsReportHTML(...)` در `:۵۶۳`) و هیچ تستی آن را مستقیم صدا نمی‌زد.
+حجمش در دو ناحیهٔ «پنهان» بود: سازندهٔ ردیف‌های جدول و قالب کامل سند.
+
+| سنجه | پیش | پس |
+| --- | --- | --- |
+| `buildFlockSmsReportHTML` | ۲۷۷ خط | **۱۲۱ خط** (−۵۶٪) |
+| خطوط/بایت منتقل‌شده | — | ۲۸ + ۱۳۴ = **۱۶۲ خط** (۱۶۲۱ + ۸۷۸۰ = **۱۰۴۰۱ بایت**) |
+| کمکی‌های ماژول‌محلی تازه | — | ۲ (`buildFlockSmsReportRows` · `buildFlockSmsReportDocument`) |
+| `audit:big-methods` | ۲۰ متد | **۱۹ متد** (صدر: `chartDashboardRenderer.renderContainer` ۲۴۹) |
+| `hatchery.report.js` | ۴۰.۵KB / ۸۸۲ خط | ۴۲.۲KB / ۹۰۸ خط |
+
+### ب) گارد پیش از برش — `test:hatchery:sms-body`
+
+پیش از هر تغییر، گارد طلایی بایت‌به‌بایت نوشته شد (کامیت `94a166a`، تگ `pre-hatchery-sms-body-split`):
+
+- `Frontend/hatchery-sms-body-split-test.mjs` با **۲۲ کِیس** و **۸۷ بررسی**، اسنپ‌شات `docs/hatchery-sms-body-golden.json` (هش `sha256`).
+- متد روی نمونهٔ واقعی `hatcheryReport` صدا زده می‌شود با استاب‌های مرورگر (`window`/`document`/`localStorage`) که **پیش از import** ماژول نصب می‌شوند؛ ساعت با `FrozenDate` و TZ با `Asia/Tehran` قفل است.
+- رکورد هر کِیس: `{ method, logsLength, html, thrown, consoleErrors, consoleWarns }` — سند HTML کامل
+NaN
+- ۲۲ کِیس: ورودی‌های پایه · پیامک خالی · `logs` نامعتبر (`TypeError` شاخهٔ بیرونی) · چهار وضعیت
+NaN
+  تاریخ ارسال نامعتبر (شاخهٔ `catch` داخلی) · تاریخ تحویل خالی · اسکیپ `&<>"` در پیام و هدف · فرستندهٔ غایب/
+  بدون‌نام/یوزرنیم · ۶ حالت `localStorage.user` · ۶ نقش · `flock_number` غایب · `unit`/
+  `unit_name` · سالن فقط با `hall_id` · بدون سالن · بدون تاریخ جوجه‌ریزی · `customer=null` · وضعیت ناشناخته.
+
+**نکات دقتِ گارد (شفافیت):**
+
+1. **`persianDate` سراسری تعریف نمی‌شود** و این «قفل» صریحاً بررسی می‌شود؛ در مرورگر این افزونهٔ تقویم
+   سراسری است و `convertToPersianDate` از آن استفاده می‌کند، پس خروجی مرورگر و Node می‌تواند متفاوت باشد
+   (اینجا مسیر fallback یعنی `Intl` قفل شده است).
+2. **ضبط `console.error`/`console.warn`**: متد هیچ‌کدام را صدا نمی‌زند، ولی اگر روزی شاخه‌ای اضافه شود،
+   رکورد بلافاصله قرمز می‌شود (رکورد `"consoleErrors": []` در کِیس‌های تاریخ نامعتبر بررسی می‌شود).
+3. **انکرها ایموجی‌محور نیستند**: در کِیس `delivery_state` از متن‌های «نامشخص»/«لیست سیاه» استفاده شد،
+   چون ایموجی‌های نقشهٔ تحویل (❓/⛔) با تایپ دستی بایت‌به‌بایت تضمین نمی‌شوند؛ سنجش بایتی کارِ اسنپ‌شات است.
+4. **`logs = null` عمداً پرتاب خطا می‌کند** (`logs.length` در بلوک آمار) و این رفتار در رکورد
+   با `"thrown": "TypeError"` قفل شده است — صداکننده همیشه آرایه می‌فرستد، پس این یک «رفتار مرزی مستند» است.
+
+### پ) دو برش (سه کامیت اتمی)
+
+| برش | ناحیه | کمکی | اعداد |
+| --- | --- | --- | --- |
+| A (`ae929a4`) | `const rows = …` (خطوط ۶۹۲..۷۱۹) | `buildFlockSmsReportRows(logs, { esc, dateParts, getDeliveryText, getSenderName, statusText })` | ۲۸ → ۱ خط · ۱۶۲۱ بایت |
+| B (`8cc4e9b`) | `return ``<!DOCTYPE …>` (خطوط ۶۹۶..۸۲۹) | `buildFlockSmsReportDocument({ ۱۳ پارامتر })` | ۱۳۴ → ۱ خط · ۸۷۸۰ بایت (۲۱ درون‌یابی) |
+
+- در هر دو برش انتقال **بایت‌به‌بایت** بود: هیچ `dedent` و هیچ تغییر فاصله‌ای داخل قالب رخ نداد
+  (فاصله‌های داخل backtick بخشی از خروجی چاپ‌اند). فقط کلمهٔ `return` و تورفتگی *بیرون* رشته بازآرایی شد.
+- کمکی‌ها **ماژول‌محلی** هستند (`const` سطح ماژول)، پس `audit:surface` هیچ عضو تازه‌ای در سطح عمومی نمی‌بیند
+  و مرز ماژول دست‌نخورده می‌ماند.
+- اثبات هر برش در خودِ اسکریپت: «لنگر یکتا» + «بلوک/محتوای منتقل‌شده در فایل تازه بایت‌به‌بایت هست» +
+  «**اثبات بازگشتی**: حذف کمکی و برگرداندن فراخوانی به متن اصلی، فایل را بایت‌به‌بایت بازمی‌سازد» +
+  «کاهش طول متد» + «یکتایی EOL و نبود CR مزاحم».
+- برش C (انتقال ۶ کلوژر خالص `esc`/`dateParts`/`getDeliveryText`/`getSenderName`/`statusText`/`countBy`
+  به سطح ماژول و پارامتری‌کردن `countBy(logs, st)`) **انجام نشد**: پس از A+B متد به ۱۲۱ خط رسید و از
+  بودجهٔ ۱۵۰ خطی بیرون رفت؛ همان معیار توقف موج‌های قبلی. در فهرست نامزدهای بعدی ثبت شد.
+
+### ت) تله‌های واقعی که گیت‌ها گرفتند (شفافیت)
+
+1. **assert سراسری «یکتایی `return `` » گمراه‌کننده بود**: این کلاس متدهای غول دیگری هم دارد
+   (`buildFlockHTML` و `generateHTML`) که با تورفتگی ۴ فاصله `return `` دارند ⇒ assert به
+   **بدنهٔ متد** محدود شد (همان درس موج ۳.۲i برای `didOpen`).
+2. **دو assert خودم زیاد سخت‌گیر/نادرست بودند**: سقف «بیش از ۳۰ درون‌یابی» (قالب واقعاً ۲۱ دارد) و «وجود عین دستور `return` اصلی در کمکی» که پس از بازآرایی تورفتگی کلمهٔ `return` (بیرون از رشته)
+   ذاتاً برقرار نیست ⇒ به «محتوای backtick بایت‌به‌بایت» + «شکل خط کمکی» تغییر کرد.
+3. **لنگر متنی فارسی برای ویرایش مستندات شکننده است**: ویرایش بند ۱۰ `HOTSPOTS.md` با تطبیق بلوک متنی
+   شکست خورد (bایت‌های نامرئی مثل ZWNJ) ⇒ همان بلوک با **بازسازی خط‌مبنایی و لنگرهای ASCII** و **تولید ارقام
+   از کد** (`fa()`) نوشته شد؛ این الگو از این پس برای ویرایش مستندات فارسی استفاده می‌شود.
+4. **جدول «۵ مورد اول» `HOTSPOTS.md`** پیش از این موج هم نقص ساختاری داشت (ردیف سرصفحه سه‌بار تکرار شده
+   بود و ترتیب نزولی نبود)؛ در ابتدای موج ۳.۲j اصلاح شد (کامیت `9dcfde0`).
+
+### ث) شواهد تأیید
+
+```text
+test:hatchery:sms-body   :: ۸۷ بررسی · ۲۲ کِیس · pass=۸۷ fail=0  (پس از برش A و B و مستندات)
+audit:surface            :: ۰ گم‌شده · ۰ افزوده · ۰ نقض
+audit:big-methods        :: ۱۹ متد (پیش از موج: ۲۰) · ۲۵۲ → ۱۲۱ خط برای متد هدف
+audit:size               :: hatchery.report.js ۴۰.۵KB → ۴۲.۲KB (فقط بایت‌های پوستهٔ کمکی‌ها؛ قالب جابه‌جا شد، نه تکرار)
+```
+
+### ج) یادداشت نگه‌داری و گام بعدی
+
+- **گارد دائمی این موج `npm run test:hatchery:sms-body` است** و در دروازه به گام ۲۶ اضافه شد.
+  ⚠️ اسنپ‌شات به locale/ICU و TZ محیط Node وابسته است (ارقام فارسی و تاریخ/ساعت شمسی داخل سند) — بازتولید:
+  `npm run test:hatchery:sms-body -- --snapshot`.
+- اگر روزی `persianDate` در محیط تست سراسری شود، رکورد عوض می‌شود؛ هارنس این را با یک بررسی صریح
+  («سراسری تعریف نشده است») گزارش می‌کند تا تغییر بی‌صدا نباشد.
+- نامزدهای بعدی: `chartDashboardRenderer.renderContainer` (۲۴۹) · `weeklyRenderer.renderFlockReport` (۲۴۲) ·
+  `dashboardSmsMethods.refreshSmsStatus` (۲۳۹) · `renderAllCharts` (۲۲۳) · `dashboardService.setupCharts` (۲۲۳).
+
