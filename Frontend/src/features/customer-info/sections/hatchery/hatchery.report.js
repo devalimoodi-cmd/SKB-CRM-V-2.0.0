@@ -689,34 +689,9 @@ class HatcheryReport {
     const countBy = (st) =>
       (logs || []).filter((r) => (r.status || "pending") === st).length;
 
-    const rows =
-      logs && logs.length
-        ? logs
-            .map((r, i) => {
-              const sent = dateParts(r.sent_at || r.created_at);
-              const delivered = dateParts(r.delivered_at);
-              const scope = r.scope === "hall" ? "hall" : "flock";
-              const status = ["pending", "sent", "delivered", "failed"].includes(
-                r.status,
-              )
-                ? r.status
-                : "pending";
-              return `
-            <tr>
-              <td class="sms-idx">${i + 1}</td>
-              <td class="sms-msg">${esc(r.message || "—")}</td>
-              <td class="sms-scope"><span class="sms-chip chip-${scope}">${scope === "hall" ? "سالن" : "کل گله"}</span></td>
-              <td class="sms-target">${esc(r.targetLabel || r.target_title || "—")}</td>
-              <td class="sms-role">${esc(r.roleLabel || "—")}</td>
-              <td class="sms-date"><span class="dt-d">${sent.d}</span><span class="dt-t">${sent.t}</span></td>
-              <td class="sms-date"><span class="dt-d">${delivered.d}</span><span class="dt-t">${delivered.t}</span></td>
-              <td class="sms-delivery">${esc(getDeliveryText(r.delivery_state))}</td>
-              <td class="sms-status"><span class="status-chip status-${status}">${esc(statusText(status))}</span></td>
-              <td class="sms-sender">${esc(getSenderName(r.sender))}</td>
-            </tr>`;
-            })
-            .join("")
-        : '<tr><td colspan="10" class="sms-empty">پیامکی برای این گله ثبت نشده است</td></tr>';
+    const rows = buildFlockSmsReportRows(logs, {
+      esc, dateParts, getDeliveryText, getSenderName, statusText,
+    });
 
     return `
       <!DOCTYPE html>
@@ -878,4 +853,39 @@ class HatcheryReport {
   }
 }
 
+// کمکی ماژول‌محلی (موج ۳.۲j) — ردیف‌های جدول گزارش پیامک گله.
+// ⚠️ قالب رشته‌ای داخل این تابع عیناً از بدنهٔ متد منتقل شده است؛ هرگونه
+// تغییر تورفتگی/فاصلهٔ داخل قالب، بایت خروجی HTML را عوض می‌کند.
+const buildFlockSmsReportRows = (logs, helpers) => {
+  const { esc, dateParts, getDeliveryText, getSenderName, statusText } = helpers;
+    const rows =
+      logs && logs.length
+        ? logs
+            .map((r, i) => {
+              const sent = dateParts(r.sent_at || r.created_at);
+              const delivered = dateParts(r.delivered_at);
+              const scope = r.scope === "hall" ? "hall" : "flock";
+              const status = ["pending", "sent", "delivered", "failed"].includes(
+                r.status,
+              )
+                ? r.status
+                : "pending";
+              return `
+            <tr>
+              <td class="sms-idx">${i + 1}</td>
+              <td class="sms-msg">${esc(r.message || "—")}</td>
+              <td class="sms-scope"><span class="sms-chip chip-${scope}">${scope === "hall" ? "سالن" : "کل گله"}</span></td>
+              <td class="sms-target">${esc(r.targetLabel || r.target_title || "—")}</td>
+              <td class="sms-role">${esc(r.roleLabel || "—")}</td>
+              <td class="sms-date"><span class="dt-d">${sent.d}</span><span class="dt-t">${sent.t}</span></td>
+              <td class="sms-date"><span class="dt-d">${delivered.d}</span><span class="dt-t">${delivered.t}</span></td>
+              <td class="sms-delivery">${esc(getDeliveryText(r.delivery_state))}</td>
+              <td class="sms-status"><span class="status-chip status-${status}">${esc(statusText(status))}</span></td>
+              <td class="sms-sender">${esc(getSenderName(r.sender))}</td>
+            </tr>`;
+            })
+            .join("")
+        : '<tr><td colspan="10" class="sms-empty">پیامکی برای این گله ثبت نشده است</td></tr>';
+  return rows;
+};
 export const hatcheryReport = new HatcheryReport();
