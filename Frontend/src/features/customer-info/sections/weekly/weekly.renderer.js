@@ -980,89 +980,11 @@ export const weeklyRenderer = {
       : "";
     const groupsNoteHtml = `<div class="report-groups-note">🧾 شاخص‌های این گزارش: <strong>${selectedGroupsLabel(selected)}</strong>${weekScopeNote}</div>`;
 
-    return `
-            <!DOCTYPE html>
-            <html dir="rtl">
-            <head>
-                <meta charset="UTF-8">
-                <title>گزارش اختصاصی سالن ${flock.flock_number}</title>
-                <style>${REPORT_STYLES}</style>
-            </head>
-            <body>
-                <div class="report-header">
-                    <img class="report-logo" src="/assets/images/skb-logo.png" alt="لوگوی شرکت" onerror="this.style.display='none'">
-                    <h1>🐔 گزارش اختصاصی سالن ${flock.flock_number}</h1>
-                    <div class="sub">سامانه اطلاعات، خدمات و ارتباطات با مشتریان (سِکاد)</div>
-                    <div class="report-info">📅 تاریخ تهیه: ${now} - ساعت: ${nowTime}</div>
-                </div>
-
-                <div class="summary-stats">
-                    <div class="summary-stat"><div class="stat-number">${fmtNum(flock.total_chicks_count, 0)}</div><div class="stat-label">جوجه‌ریزی اولیه</div></div>
-                    <div class="summary-stat"><div class="stat-number">${fmtNum(m.birdsEndOfWeek, 0)}</div><div class="stat-label">جمعیت مانده</div></div>
-                    <div class="summary-stat"><div class="stat-number">${fmtPct(m.cumulativeSurvivalPercent)}</div><div class="stat-label">زنده‌مانی</div></div>
-                    <div class="summary-stat"><div class="stat-number">${fmtNum(m.totalLiveWeight, 1)}</div><div class="stat-label">وزن کل گله (kg)</div></div>
-                    <div class="summary-stat"><div class="stat-number">${fmtNum(m.fcr, 3)}</div><div class="stat-label">FCR</div></div>
-                    <div class="summary-stat"><div class="stat-number">${fmtNum(m.cumulativeFeed, 1)}</div><div class="stat-label">دان کل (kg)</div></div>
-                </div>
-
-                ${groupsNoteHtml}
-
-                <div class="customer-info">
-                    <h3>👤 اطلاعات مشتری</h3>
-                    <div class="customer-grid">
-                        <div class="customer-item"><span class="label">نام و نام خانوادگی</span><span class="value">${customer.full_name || "-"}</span></div>
-                        <div class="customer-item"><span class="label">نام مجموعه</span><span class="value">${customer.collection_name || "-"}</span></div>
-                        <div class="customer-item"><span class="label">نام فارم</span><span class="value">${customer.farm_name || "-"}</span></div>
-                        <div class="customer-item"><span class="label">تلفن</span><span class="value">${customer.mobile_number || "-"}</span></div>
-                    </div>
-                </div>
-
-                <div class="flock-section">
-                    <div class="flock-header">
-                        <div>
-                            <div class="flock-title">🐔 گله ${flock.flock_number}</div>
-                            <div style="font-size: 13px; color: #64748b;">
-                                ${flock.hall_name} | ${flock.breed_name || "-"} | جوجه‌ریزی: ${toPersian(flock.placement_date)} | سن: ${ageInDays} روز
-                            </div>
-                        </div>
-                        <div class="flock-meta">
-                            <span>🧮 ${fmtNum(flock.total_chicks_count, 0)} قطعه</span>
-                            <span>📊 ${savedWeeks.length} هفته ثبت‌شده</span>
-                            ${timelineChip(flock.timeline)}
-                            ${weekRangeChip(weekNumbers, timelineNumbers)}
-                            <span class="status-badge ${flock.is_active ? "status-active" : "status-inactive"}">${flock.is_active ? "فعال" : "غیرفعال"}</span>
-                        </div>
-                    </div>
-
-                    ${renderWeekGapsAlert(audit)}
-                    ${outsideIssuesNote(outsideIssues)}
-
-                    <div class="flock-summary-strip">
-                        <span><strong>تلفات کل:</strong> ${stats.totalMortality} قطعه</span>
-                        <span><strong>جمعیت مانده:</strong> ${fmtNum(m.birdsEndOfWeek, 0)} قطعه</span>
-                        <span><strong>زنده‌مانی:</strong> ${fmtPct(m.cumulativeSurvivalPercent)}</span>
-                        <span><strong>تلفات کل ٪:</strong> ${fmtPct(m.totalMortalityPercent)}</span>
-                        <span><strong>وزن کل گله:</strong> ${fmtNum(m.totalLiveWeight, 1)} kg</span>
-                        <span><strong>دان کل:</strong> ${fmtNum(m.cumulativeFeed, 1)} kg</span>
-                        <span><strong>FCR:</strong> ${fmtNum(m.fcr, 3)}</span>
-                    </div>
-                </div>
-
-                ${
-                  weekBlocks || missingBlocks
-                    ? `${weekBlocks}${missingBlocks}`
-                    : Array.isArray(weekNumbers) && weekNumbers.length === 0
-                      ? '<div style="text-align:center; padding:40px; background:#fff; border-radius:10px; color:#94a3b8;">هیچ هفته‌ای برای این گزارش انتخاب نشده است</div>'
-                      : '<div style="text-align:center; padding:40px; background:#fff; border-radius:10px; color:#94a3b8;">هیچ هفته‌ای برای این گله ثبت نشده است</div>'
-                }
-
-                <div class="report-footer">
-                    <div class="report-by">📌 دریافت گزارش توسط: <strong>${userName}</strong> (${roleText}) | تاریخ: <strong>${now}</strong> | ساعت: <strong>${nowTime}</strong></div>
-                    <p style="margin-top: 10px;">این گزارش توسط سامانه مدیریت اطلاعات، خدمات و ارتباطات با مشتریان (سِکاد) تولید شده است.</p>
-                </div>
-            </body>
-            </html>
-        `;
+    return buildFlockReportHtml({
+      flock, customer, stats, m, now, nowTime,
+      userName, roleText, ageInDays, savedWeeks, weekNumbers, timelineNumbers,
+      audit, outsideIssues, weekBlocks, missingBlocks, groupsNoteHtml, toPersian,
+    });
   },
 };
 
@@ -1681,4 +1603,93 @@ const buildFlockWeekBlocksHtml = ({
       .join("");
   return { weekBlocks, missingBlocks };
 };
+
+// کمکی ماژول‌محلی (موج ۳.۲l) — سند کامل HTML گزارش اختصاصی گله.
+// ⚠️ قالب زیر بایت‌به‌بایت از بدنهٔ `renderFlockReport` منتقل شده است؛ فاصله‌های
+// داخل backtick بخشی از خروجی چاپ‌اند و هرگونه dedent، بایت‌ها را عوض می‌کند.
+const buildFlockReportHtml = ({
+  flock, customer, stats, m, now, nowTime, userName, roleText, ageInDays, savedWeeks, weekNumbers, timelineNumbers, audit, outsideIssues, weekBlocks, missingBlocks, groupsNoteHtml, toPersian,
+}) => `
+            <!DOCTYPE html>
+            <html dir="rtl">
+            <head>
+                <meta charset="UTF-8">
+                <title>گزارش اختصاصی سالن ${flock.flock_number}</title>
+                <style>${REPORT_STYLES}</style>
+            </head>
+            <body>
+                <div class="report-header">
+                    <img class="report-logo" src="/assets/images/skb-logo.png" alt="لوگوی شرکت" onerror="this.style.display='none'">
+                    <h1>🐔 گزارش اختصاصی سالن ${flock.flock_number}</h1>
+                    <div class="sub">سامانه اطلاعات، خدمات و ارتباطات با مشتریان (سِکاد)</div>
+                    <div class="report-info">📅 تاریخ تهیه: ${now} - ساعت: ${nowTime}</div>
+                </div>
+
+                <div class="summary-stats">
+                    <div class="summary-stat"><div class="stat-number">${fmtNum(flock.total_chicks_count, 0)}</div><div class="stat-label">جوجه‌ریزی اولیه</div></div>
+                    <div class="summary-stat"><div class="stat-number">${fmtNum(m.birdsEndOfWeek, 0)}</div><div class="stat-label">جمعیت مانده</div></div>
+                    <div class="summary-stat"><div class="stat-number">${fmtPct(m.cumulativeSurvivalPercent)}</div><div class="stat-label">زنده‌مانی</div></div>
+                    <div class="summary-stat"><div class="stat-number">${fmtNum(m.totalLiveWeight, 1)}</div><div class="stat-label">وزن کل گله (kg)</div></div>
+                    <div class="summary-stat"><div class="stat-number">${fmtNum(m.fcr, 3)}</div><div class="stat-label">FCR</div></div>
+                    <div class="summary-stat"><div class="stat-number">${fmtNum(m.cumulativeFeed, 1)}</div><div class="stat-label">دان کل (kg)</div></div>
+                </div>
+
+                ${groupsNoteHtml}
+
+                <div class="customer-info">
+                    <h3>👤 اطلاعات مشتری</h3>
+                    <div class="customer-grid">
+                        <div class="customer-item"><span class="label">نام و نام خانوادگی</span><span class="value">${customer.full_name || "-"}</span></div>
+                        <div class="customer-item"><span class="label">نام مجموعه</span><span class="value">${customer.collection_name || "-"}</span></div>
+                        <div class="customer-item"><span class="label">نام فارم</span><span class="value">${customer.farm_name || "-"}</span></div>
+                        <div class="customer-item"><span class="label">تلفن</span><span class="value">${customer.mobile_number || "-"}</span></div>
+                    </div>
+                </div>
+
+                <div class="flock-section">
+                    <div class="flock-header">
+                        <div>
+                            <div class="flock-title">🐔 گله ${flock.flock_number}</div>
+                            <div style="font-size: 13px; color: #64748b;">
+                                ${flock.hall_name} | ${flock.breed_name || "-"} | جوجه‌ریزی: ${toPersian(flock.placement_date)} | سن: ${ageInDays} روز
+                            </div>
+                        </div>
+                        <div class="flock-meta">
+                            <span>🧮 ${fmtNum(flock.total_chicks_count, 0)} قطعه</span>
+                            <span>📊 ${savedWeeks.length} هفته ثبت‌شده</span>
+                            ${timelineChip(flock.timeline)}
+                            ${weekRangeChip(weekNumbers, timelineNumbers)}
+                            <span class="status-badge ${flock.is_active ? "status-active" : "status-inactive"}">${flock.is_active ? "فعال" : "غیرفعال"}</span>
+                        </div>
+                    </div>
+
+                    ${renderWeekGapsAlert(audit)}
+                    ${outsideIssuesNote(outsideIssues)}
+
+                    <div class="flock-summary-strip">
+                        <span><strong>تلفات کل:</strong> ${stats.totalMortality} قطعه</span>
+                        <span><strong>جمعیت مانده:</strong> ${fmtNum(m.birdsEndOfWeek, 0)} قطعه</span>
+                        <span><strong>زنده‌مانی:</strong> ${fmtPct(m.cumulativeSurvivalPercent)}</span>
+                        <span><strong>تلفات کل ٪:</strong> ${fmtPct(m.totalMortalityPercent)}</span>
+                        <span><strong>وزن کل گله:</strong> ${fmtNum(m.totalLiveWeight, 1)} kg</span>
+                        <span><strong>دان کل:</strong> ${fmtNum(m.cumulativeFeed, 1)} kg</span>
+                        <span><strong>FCR:</strong> ${fmtNum(m.fcr, 3)}</span>
+                    </div>
+                </div>
+
+                ${
+                  weekBlocks || missingBlocks
+                    ? `${weekBlocks}${missingBlocks}`
+                    : Array.isArray(weekNumbers) && weekNumbers.length === 0
+                      ? '<div style="text-align:center; padding:40px; background:#fff; border-radius:10px; color:#94a3b8;">هیچ هفته‌ای برای این گزارش انتخاب نشده است</div>'
+                      : '<div style="text-align:center; padding:40px; background:#fff; border-radius:10px; color:#94a3b8;">هیچ هفته‌ای برای این گله ثبت نشده است</div>'
+                }
+
+                <div class="report-footer">
+                    <div class="report-by">📌 دریافت گزارش توسط: <strong>${userName}</strong> (${roleText}) | تاریخ: <strong>${now}</strong> | ساعت: <strong>${nowTime}</strong></div>
+                    <p style="margin-top: 10px;">این گزارش توسط سامانه مدیریت اطلاعات، خدمات و ارتباطات با مشتریان (سِکاد) تولید شده است.</p>
+                </div>
+            </body>
+            </html>
+        `;
 
