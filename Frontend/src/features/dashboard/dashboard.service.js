@@ -724,51 +724,7 @@ SKB-CRM.IR`,
     if (weightCtx) {
       this.chartInstances.weighting = new Chart(
         weightCtx,
-        {
-          type: "line",
-          data: {
-            labels: [],
-            datasets: [
-              {
-                label: "وزن (کیلوگرم)",
-                data: [],
-                borderColor: "#4a90e2",
-                backgroundColor: "rgba(74, 144, 226, 0.1)",
-                fill: true,
-                tension: 0.4,
-                pointRadius: 4,
-                pointHitRadius: 14,
-              },
-            ],
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            interaction: { mode: "index", axis: "x", intersect: false },
-            hover: { mode: "index", axis: "x", intersect: false },
-            plugins: {
-              legend: { display: true, labels: { color: "#475569", font: { family: "Vazir", size: 11 } } },
-              tooltip: {
-                enabled: true,
-                intersect: false,
-                mode: "index",
-                position: "nearest",
-                rtl: true,
-                titleAlign: "right",
-                bodyAlign: "right",
-                footerAlign: "right",
-                backgroundColor: "rgba(15,23,42,0.92)",
-                titleFont: { family: "Vazir", size: 12 },
-                bodyFont: { family: "Vazir", size: 11 },
-                padding: 10,
-                cornerRadius: 8,
-              },
-              datalabels: { display: false },
-            },
-            scales: { y: { beginAtZero: true } },
-          },
-        },
-        [this._valueLabelPlugin],
+        buildWeightingChartConfig(),        [this._valueLabelPlugin],
       );
     }
 
@@ -777,48 +733,7 @@ SKB-CRM.IR`,
     if (lossCtx) {
       this.chartInstances.loss = new Chart(
         lossCtx,
-        {
-          type: "bar",
-          data: {
-            labels: [],
-            datasets: [
-              {
-                label: "تلفات",
-                data: [],
-                backgroundColor: "#ef4444",
-                hoverBackgroundColor: "#b91c1c",
-                borderRadius: 4,
-              },
-            ],
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            interaction: { mode: "index", axis: "x", intersect: false },
-            hover: { mode: "index", axis: "x", intersect: false },
-            plugins: {
-              legend: { display: false },
-              tooltip: {
-                enabled: true,
-                intersect: false,
-                mode: "index",
-                position: "nearest",
-                rtl: true,
-                titleAlign: "right",
-                bodyAlign: "right",
-                footerAlign: "right",
-                backgroundColor: "rgba(15,23,42,0.92)",
-                titleFont: { family: "Vazir", size: 12 },
-                bodyFont: { family: "Vazir", size: 11 },
-                padding: 10,
-                cornerRadius: 8,
-              },
-              datalabels: { display: false },
-            },
-            scales: { y: { beginAtZero: true } },
-          },
-        },
-        [this._valueLabelPlugin],
+        buildLossChartConfig(),        [this._valueLabelPlugin],
       );
     }
 
@@ -827,51 +742,7 @@ SKB-CRM.IR`,
     if (feedCtx) {
       this.chartInstances.feed = new Chart(
         feedCtx,
-        {
-          type: "line",
-          data: {
-            labels: [],
-            datasets: [
-              {
-                label: "خوراک (کیلوگرم)",
-                data: [],
-                borderColor: "#10b981",
-                backgroundColor: "rgba(16, 185, 129, 0.1)",
-                fill: true,
-                tension: 0.4,
-                pointRadius: 4,
-                pointHitRadius: 14,
-              },
-            ],
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            interaction: { mode: "index", axis: "x", intersect: false },
-            hover: { mode: "index", axis: "x", intersect: false },
-            plugins: {
-              legend: { display: false },
-              tooltip: {
-                enabled: true,
-                intersect: false,
-                mode: "index",
-                position: "nearest",
-                rtl: true,
-                titleAlign: "right",
-                bodyAlign: "right",
-                footerAlign: "right",
-                backgroundColor: "rgba(15,23,42,0.92)",
-                titleFont: { family: "Vazir", size: 12 },
-                bodyFont: { family: "Vazir", size: 11 },
-                padding: 10,
-                cornerRadius: 8,
-              },
-              datalabels: { display: false },
-            },
-            scales: { y: { beginAtZero: true } },
-          },
-        },
-        [this._valueLabelPlugin],
+        buildFeedChartConfig(),        [this._valueLabelPlugin],
       );
     }
 
@@ -2415,3 +2286,146 @@ const buildValueLabelPlugin = () => (
     }
 );
 
+// کمکی ماژول‌محلی (موج ۳.۲o) — پیکربندی نمودار وزن‌گیری (دادهٔ خالی).
+// ⚠️ متن زیر بایت‌به‌بایت از بدنهٔ `setupCharts` منتقل شده است (صفر dedent).
+const buildWeightingChartConfig = () => (
+        {
+          type: "line",
+          data: {
+            labels: [],
+            datasets: [
+              {
+                label: "وزن (کیلوگرم)",
+                data: [],
+                borderColor: "#4a90e2",
+                backgroundColor: "rgba(74, 144, 226, 0.1)",
+                fill: true,
+                tension: 0.4,
+                pointRadius: 4,
+                pointHitRadius: 14,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: "index", axis: "x", intersect: false },
+            hover: { mode: "index", axis: "x", intersect: false },
+            plugins: {
+              legend: { display: true, labels: { color: "#475569", font: { family: "Vazir", size: 11 } } },
+              tooltip: {
+                enabled: true,
+                intersect: false,
+                mode: "index",
+                position: "nearest",
+                rtl: true,
+                titleAlign: "right",
+                bodyAlign: "right",
+                footerAlign: "right",
+                backgroundColor: "rgba(15,23,42,0.92)",
+                titleFont: { family: "Vazir", size: 12 },
+                bodyFont: { family: "Vazir", size: 11 },
+                padding: 10,
+                cornerRadius: 8,
+              },
+              datalabels: { display: false },
+            },
+            scales: { y: { beginAtZero: true } },
+          },
+        }
+);
+
+// کمکی ماژول‌محلی (موج ۳.۲o) — پیکربندی نمودار تلفات (دادهٔ خالی).
+// ⚠️ متن زیر بایت‌به‌بایت از بدنهٔ `setupCharts` منتقل شده است (صفر dedent).
+const buildLossChartConfig = () => (
+        {
+          type: "bar",
+          data: {
+            labels: [],
+            datasets: [
+              {
+                label: "تلفات",
+                data: [],
+                backgroundColor: "#ef4444",
+                hoverBackgroundColor: "#b91c1c",
+                borderRadius: 4,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: "index", axis: "x", intersect: false },
+            hover: { mode: "index", axis: "x", intersect: false },
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                enabled: true,
+                intersect: false,
+                mode: "index",
+                position: "nearest",
+                rtl: true,
+                titleAlign: "right",
+                bodyAlign: "right",
+                footerAlign: "right",
+                backgroundColor: "rgba(15,23,42,0.92)",
+                titleFont: { family: "Vazir", size: 12 },
+                bodyFont: { family: "Vazir", size: 11 },
+                padding: 10,
+                cornerRadius: 8,
+              },
+              datalabels: { display: false },
+            },
+            scales: { y: { beginAtZero: true } },
+          },
+        }
+);
+
+// کمکی ماژول‌محلی (موج ۳.۲o) — پیکربندی نمودار مصرف خوراک (دادهٔ خالی).
+// ⚠️ متن زیر بایت‌به‌بایت از بدنهٔ `setupCharts` منتقل شده است (صفر dedent).
+const buildFeedChartConfig = () => (
+        {
+          type: "line",
+          data: {
+            labels: [],
+            datasets: [
+              {
+                label: "خوراک (کیلوگرم)",
+                data: [],
+                borderColor: "#10b981",
+                backgroundColor: "rgba(16, 185, 129, 0.1)",
+                fill: true,
+                tension: 0.4,
+                pointRadius: 4,
+                pointHitRadius: 14,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: "index", axis: "x", intersect: false },
+            hover: { mode: "index", axis: "x", intersect: false },
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                enabled: true,
+                intersect: false,
+                mode: "index",
+                position: "nearest",
+                rtl: true,
+                titleAlign: "right",
+                bodyAlign: "right",
+                footerAlign: "right",
+                backgroundColor: "rgba(15,23,42,0.92)",
+                titleFont: { family: "Vazir", size: 12 },
+                bodyFont: { family: "Vazir", size: 11 },
+                padding: 10,
+                cornerRadius: 8,
+              },
+              datalabels: { display: false },
+            },
+            scales: { y: { beginAtZero: true } },
+          },
+        }
+);
