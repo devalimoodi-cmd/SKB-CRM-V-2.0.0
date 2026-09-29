@@ -1,0 +1,108 @@
+{
+  "note": "اسنپ‌شات رکورد ساختاری متد غول نمودارهای تحلیلی (chartDashboardRenderer.renderContainer)، گرفته‌شده پیش از موج برش بدنه (۳.۲k). هر کِیس = رکورد JSON شامل HTML نوشته‌شده در کانتینر جعلی ({ html, thrown, containerFound, selectorQueries, returnedUndefined, … }). بازتولید: npm run test:chart-dashboard:body -- --snapshot",
+  "node": "v24.13.0",
+  "note2": "این اسنپ‌شات به ساعت/locale/ICU وابسته نیست (متد هیچ Date/Intl ندارد و این ادعا در تست بررسی می‌شود)؛ تنها به بایت‌های قالب داخل backtick و سبک پایان خط فایل هدف وابسته است.",
+  "source": "HEAD پیش از برش بدنه — git tag pre-charts-body-split",
+  "cases": {
+    "C1.نمای-گله-پایه": {
+      "bytes": 23735,
+      "sha256": "1607ffc90fb5cf350762e5dce6a4f32cf3c1cb6e1c7932ff7431e85fd037ac0d"
+    },
+    "C2.کانتینر-غایب": {
+      "bytes": 281,
+      "sha256": "4ffcd6b3d0525e217431a06625a70af21db521f81776a0934f54e0e0f8d57586"
+    },
+    "C3.بدون-گله-آرایهٔ-خالی": {
+      "bytes": 611,
+      "sha256": "f06c281a4fcef91910e5cecd6bd9cd6e0aa1d8acd733bd0596de98d2527f3791"
+    },
+    "C4.flocks-null-حالت-خالی": {
+      "bytes": 611,
+      "sha256": "f06c281a4fcef91910e5cecd6bd9cd6e0aa1d8acd733bd0596de98d2527f3791"
+    },
+    "C5.نمای-سالن-گروه-چندعضوی": {
+      "bytes": 24839,
+      "sha256": "68666e4af0eb2d0b47f71c974a89e986bafffc46b488fcf15b92f4e4b44eb4c5"
+    },
+    "C6.نمای-سالن-گروه-تک-عضوی": {
+      "bytes": 23495,
+      "sha256": "560a50fb1c6432a6c07648a0a10c0709e36c0b0808151feeb7efd484acfc0190"
+    },
+    "C7.نمای-سالن-عضو-گمشده": {
+      "bytes": 24108,
+      "sha256": "42562fe9406e03dadc5cd97ea0b62ee6359dc37680a95f44ee9ecf4154a92856"
+    },
+    "C8.نمای-سالن-بدون-گروه": {
+      "bytes": 23101,
+      "sha256": "3f269c4fab542792a58d87b1cdec5e8c1bb962ea817dedec00dde54ecc3689b2"
+    },
+    "C9.viewMode-نامعتبر-بازگشت-به-گله": {
+      "bytes": 23728,
+      "sha256": "f9827d3f93610d6665ea10d6589343371efb449cc6aefab68138833a93b0656f"
+    },
+    "C10.چیدمان-duo": {
+      "bytes": 23724,
+      "sha256": "a28454840bdc0fdcd1df0a57394f278c99fdd7cebb1d83b9f6d7181d656ab2a2"
+    },
+    "C11.چیدمان-نامعتبر-passthrough": {
+      "bytes": 23720,
+      "sha256": "3aaa362aacd86cdecb6b01a01ecf8a42ebb70953e3634aebf9b3300803bf648f"
+    },
+    "C12.شاخص-main-gain": {
+      "bytes": 23728,
+      "sha256": "bb57b2f46e02cec3ef8105e0a371bdbbbce6fad0b0f18be636114418f7c72aab"
+    },
+    "C13.شاخص-main-dailyGain": {
+      "bytes": 23728,
+      "sha256": "a5d9c378facd7e167f14b33698983606493ff28bd212d05d90a4f731cbfebfb3"
+    },
+    "C14.شاخص-main-نامعتبر": {
+      "bytes": 23722,
+      "sha256": "9eaf512e76ab18fa40de0cedc0889a9e2492c2b6b7110cbf122507d0b2ca3abd"
+    },
+    "C15.گله‌های-گذشته-یادداشت-انتخاب": {
+      "bytes": 23876,
+      "sha256": "5e8df2bf7ac4566c75c24ef20927305ae95aec10d33e24f80ec303317d28920c"
+    },
+    "C16.گله‌های-گذشته-بدون-گلهٔ-فعال": {
+      "bytes": 23895,
+      "sha256": "b9d21db0d23949349c75aef7ed606f50fcc99a81960490354cd29c20331e26ac"
+    },
+    "C17.بنر-گله‌های-گذشته": {
+      "bytes": 23931,
+      "sha256": "ca748c87b77fb3a5990dcbf0bf260160b0a83e88084e8e32e72493f4c23038de"
+    },
+    "C18.شمار-هفته-۱۶": {
+      "bytes": 23729,
+      "sha256": "d0fd26b72fac5132d4ee686a5d6b0c9131627f53b3f4dd84676b2e0d5d560642"
+    },
+    "C19.شمار-هفته-undefined-مرزی": {
+      "bytes": 23736,
+      "sha256": "df570cd6b0c4a0e3d2195954d9c46f78a285814101cd42b93938a686a437409a"
+    },
+    "C20.بدون-انتخاب": {
+      "bytes": 23728,
+      "sha256": "b68517ac5b06f91b6d4dbe58993817981bd64a170348fd9867c9f2ece02f32e0"
+    },
+    "C21.شناسه-عددی-و-تکراری-و-uid-غایب": {
+      "bytes": 23728,
+      "sha256": "71468944ad6598f965086ff6b8497ba73eb89428706ebdcce32f99d77034f733"
+    },
+    "C25.شناسه-undefined-تیک-واحد-بدون-uid": {
+      "bytes": 23405,
+      "sha256": "e99015c2ef2a0b89bfe8618f6a461b63aaa410a6a543f37c757ebd2f0e3a1c46"
+    },
+    "C22.برچسب-سفارشی-چیپ": {
+      "bytes": 23414,
+      "sha256": "1ae67598b725825eda684ba1ea5d67121558ad9eea0d72059fc51d4b00a3a42b"
+    },
+    "C23.options-حذف‌شده-پیش‌فرض": {
+      "bytes": 23722,
+      "sha256": "f867de6e9c993e21c3b128e1b2e06b245990748c82975d45597799c0548b527f"
+    },
+    "C24.selectedFlockIds-غایب-خطای-مرزی": {
+      "bytes": 292,
+      "sha256": "d2faa05b518c813d063329223da9c49c83eea9f08ade662066d85464a800fe08"
+    }
+  }
+}
