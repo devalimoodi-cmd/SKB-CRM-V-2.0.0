@@ -6,7 +6,11 @@
 // متن متدها کلمه‌به‌کلمه منتقل شده است؛ تنها تفاوت با مبدأ «ویرگول پایان متد» است
 // که برای اعتبار نحو object literal لازم است (گیت ۲۷ برگشت‌پذیری بایت‌به‌بایت را اثبات می‌کند).
 // ترکیب: Object.assign(DashboardService.prototype, dashboardSmsMethods) در dashboard.service.js
-// حجم: 10 متد / 974 خط
+// موج ۳.۲m — برش بدنهٔ `refreshSmsStatus` (۲۳۹ → ۸۸ خط): کلوژرهای تاریخ/تحویل/فرستنده +
+// ردیف‌های مودال و شمارنده‌ها + قالب `html` به دو کمکی ماژول‌محلی رفتند
+// (`buildSmsStatusRowsHtml` · `buildSmsStatusModalHtml`)؛ `Swal.fire` و `return`های
+// زودهنگام در متد ماندند. گارد: `npm run test:dashboard:sms-status:body` (۱۱۰ بررسی).
+// حجم: 10 متد + 2 کمکی ماژول‌محلی / 990 خط
 // ============================================================
 import { dashboardApi } from "./dashboard.api.js";
 import { apiService } from "../../core/services/api.service.js";

@@ -1770,3 +1770,92 @@ audit:size                   :: weekly.renderer.js 80.2KB → 83.9KB
 - نامزدهای بعدی: `dashboardSmsMethods.refreshSmsStatus` (۲۳۹) · `renderAllCharts` (۲۲۳) ·
   `dashboardService.setupCharts` (۲۲۳) · `visitReportRenderer.renderReportModal` (۲۱۵) · `hatcheryService.saveFlock` (۲۱۰).
 
+---
+
+## ۲۴) موج ۳.۲m — برش بدنهٔ متد غول بروزرسانی وضعیت پیامک (`refreshSmsStatus`)
+
+### الف) هدف و اعداد
+
+`dashboardSmsMethods.refreshSmsStatus` در `dashboard.sms.js:750` با **۲۳۹ خط**
+بزرگ‌ترین متد مخزن بود. این متد مخلوط‌کنندهٔ داشبورد است (`Object.assign(DashboardService.prototype, …)`)،
+دو `return` زودهنگام دارد (حالت بی‌صدا و حالت «هیچ پیامکی نیست») و به پنج متد سرویس از طریق
+`this` وابسته است: `showSmsLoader` · `closeSmsLoader` · `loadFlocks` · `refreshAllTaskSmsStatus` ·
+`getSmsStatusInfo`. فقط گارد سطح (`test:dashboard-surface` با ۱۱ بررسی) داشت و بدنه‌اش
+بی‌گارد بود.
+
+| سنجه | پیش | پس |
+| --- | --- | --- |
+| `refreshSmsStatus` | ۲۳۹ خط | **۸۸ خط** (−۶۳٪) |
+| خطوط/بایت منتقل‌شده | — | ۱۰۴ + ۴۸ = **۱۵۲ خط** (۵۱۰۹ + ۲۷۹۵ = **۷۹۰۴ بایت**) |
+| کمکی‌های ماژول‌محلی تازه | — | ۲ (`buildSmsStatusRowsHtml` · `buildSmsStatusModalHtml`) |
+| `audit:big-methods` | ۱۷ متد | **۱۶ متد** (صدر: `renderAllCharts`/`setupCharts` ۲۲۳) |
+| `dashboard.sms.js` | 42.1KB / ۹۹۱ خط | 44.2KB / ۱۰۰۷ خط |
+
+### ب) گارد پیش از برش — `test:dashboard:sms-status:body`
+
+پیش از هر تغییر، گارد طلایی بایت‌به‌بایت نوشته شد (کامیت `304ca80`، تگ `pre-sms-status-body-split`):
+
+- `Frontend/dashboard-sms-status-body-split-test.mjs` با **۲۲ کِیس** و **۱۱۰ بررسی**، اسنپ‌شات `docs/dashboard-sms-status-body-golden.json` (هش `sha256`).
+- هارنس هم‌سبک گارد بوکمارک‌های داشبورد (همان خوشه): `TZ=Asia/Tehran` + `FrozenDate` +
+  استاب `Swal` (ضبط گزینه‌های `fire`) + پچ `dashboardApi.updateSmsStatusForFlock`/`getSmsHistory`
+  (با ثبت آرگومان‌ها) + پچ اعلان‌ها + ضبط `console.error`، و یک **میزبان سرویس جعلی** که پنج
+  فراخوانی `this` را می‌شمارد (`showSmsLoader` می‌تواند falsy برگرداند تا شاخهٔ `if (loaderShown)`
+  هم پوشش داده شود).
+- رکورد هر کِیس: `{ api, swal[], notifications[], loader{shown,closed}, host{loadFlocks,refreshAll,getSmsStatusInfo}, returned, thrown, consoleErrors, bodyKeys }`.
+- ۲۲ کِیس: مودال پایه · حالت بی‌صدا · «هیچ پیامکی نیست» · خطای `updateSmsStatusForFlock` ·
+  خطای `getSmsHistory` · `success:false` · `data` آرایه‌ای · `Swal` غایب · لودر نشان‌داده‌نشده ·
+  هشت حالت `delivery_state` · وضعیت ناشناخته · سالن/گله · قالب تودرتوی گله/هفته · تاریخ نامعتبر ·
+  برچسب‌های جایگزین · شمارنده‌های خلاصه · سه حالت فرستنده · مسیر `catch` (خطای `loadFlocks`) ·
+  خطای `refreshAllTaskSmsStatus` در حالت بی‌صدا · `openModal` پیش‌فرض · `delivery_state` رشته‌ای ·
+  آرگومان‌های `undefined`.
+
+**⚠️ تلهٔ واقعی که گارد گرفت (و درس اصلی این موج):** در نسخهٔ اول برش B، وقتی قالب `html` مودال را
+به کمکی منتقل کردم، متن داخل backtick را تا **ابتدای خطِ بک‌تیک بستن** بریده بودم؛ یعنی
+**۱۰ فاصلهٔ تورفتگیِ انتهایی** که بخشی از رشته است، حذف شده بود. خروجی مودال دقیقاً
+**۱۰ بایت کوچک‌تر** شد و گارد **۱۶ بررسی برابری بایت‌به‌بایت** را قرمز کرد.
+فایل با `git checkout` برگشت، محاسبه با «موقعیت دقیق بک‌تیک بستن» بازنویسی شد و برش دوباره اجرا شد
+(اسکریپت اکنون `content.endsWith(eol + تورفتگی خط بستن)` را هم بررسی می‌کند).
+
+**تلهٔ انکرها (سه مورد):** ① فاصلهٔ دوگانهٔ قالب پاراگراف (`${totalChecked} پیامک بررسی شد  | …`)
+⇒ انکر شکست و به دو انکر جدا تقسیم شد؛ ② شمارندهٔ «در انتظار» در کِیس شمارنده‌ها ۱ بود نه
+۲ (شرط `!r.delivery_state` برای رکوردهای دارای وضعیت برقرار نیست)؛ ③ انکر تاریخ شمسی
+(`۱۴۰۵/`) به ارقام فارسی حساس است ⇒ به یک بررسی زمان‌اجرا با `Intl` (و در نهایت به بررسی
+«تاریخ نامعتبر ⇒ خط تیره») تغییر کرد، چون پوشش شاخهٔ معتبر توسط هشِ کِیس پایه قفل است.
+
+### پ) دو برش (دو کامیت اتمی)
+
+| برش | ناحیه | کمکی | اعداد |
+| --- | --- | --- | --- |
+| A | `formatDateTime` + `getDeliveryText` + `getSenderName` + سازندهٔ `rows` | `buildSmsStatusRowsHtml(records, { service })` | ۱۰۴ → ۱ خط · ۵۱۰۹ بایت |
+| B | سه شمارندهٔ خلاصه + قالب `html` مودال | `buildSmsStatusModalHtml({ records, rows, totalChecked, updatedCount })` | ۴۸ → ۱ خط · ۲۷۹۵ بایت |
+
+- هر دو ناحیه **بایت‌به‌بایت** منتقل شدند (صفر dedent). در برش A، `this.getSmsStatusInfo` به
+  `service.getSmsStatusInfo` نگاشت شد و `service: this` از متد پاس می‌آید (رفتارخنثی و حفظ `this`).
+- در برش B فقط **شمارنده‌ها** و **خط `html:`** عوض شدند؛ بقیهٔ گزینه‌های `Swal.fire`
+  (`icon`/`title`/`confirmButtonText`/`confirmButtonColor`/`width`) بایت‌به‌بایت دست‌نخورده ماندند
+  (اسکریپت این را با «شمارش قبل/بعد یکسان» بررسی می‌کند، چون بعضی گزینه‌ها در متدهای دیگر همین
+  فایل هم تکرار می‌شوند).
+- `Swal.fire` و بررسی `typeof Swal !== "undefined"` عمداً در متد ماندند و **`return`های شاخهٔ
+  بی‌صدا و دروازهٔ خالی جابه‌جا نشدند** (درس موج‌های ۳.۲j/۳.۲l).
+- اثبات هر برش: «ناحیه بایت‌به‌بایت در فایل تازه» + «**اثبات بازگشتی**» + «کاهش طول متد» +
+  «ناوردایی مصرف‌ها» + «EOL دست‌نخورده».
+
+### ت) شواهد تأیید
+
+```text
+test:dashboard:sms-status:body :: ۱۱۰ بررسی · ۲۲ کِیس · pass=۱۱۰ fail=0  (پس از هر دو برش)
+audit:surface                  :: ۰ گم‌شده · ۰ افزوده · ۰ نقض
+audit:big-methods              :: ۱۶ متد (پیش از موج: ۱۷) · متد هدف ۲۳۹ → ۸۸ خط
+audit:size                     :: dashboard.sms.js 42.1KB → 44.2KB
+```
+
+### ج) یادداشت نگه‌داری و گام بعدی
+
+- **گارد دائمی این موج `npm run test:dashboard:sms-status:body` است** و به گام ۲۹ دروازه اضافه شد.
+  بازتولید اسنپ‌شات: `npm run test:dashboard:sms-status:body -- --snapshot`.
+  ⚠️ خروجی به Intl/locale/TZ وابسته است (فرمت تاریخ/ساعت داخل ردیف‌های مودال).
+- درس عملیاتی جدید این موج: **مرزهای «محتوای داخل backtick» را با موقعیت بک‌تیک بستن حساب کن،
+  نه با ابتدای خط**؛ تورفتگیِ قبل از بک‌تیک بستن جزئی از رشته است و حذفش خروجی را بی‌صدا کوچک می‌کند.
+- نامزدهای بعدی: `renderAllCharts` (۲۲۳) · `dashboardService.setupCharts` (۲۲۳) · `visitReportRenderer.renderReportModal` (۲۱۵) ·
+  `hatcheryService.saveFlock` (۲۱۰) · `hatcheryCompletionFlockMethods._collectCompletionSave` (۲۰۳).
+
