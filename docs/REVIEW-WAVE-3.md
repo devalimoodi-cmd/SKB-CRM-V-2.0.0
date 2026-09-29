@@ -1961,3 +1961,98 @@ audit:size                 :: chart-dashboard.service.js 71.4KB → 74.8KB
 - نامزدهای بعدی: `dashboardService.setupCharts` (۲۲۳) · `visitReportRenderer.renderReportModal` (۲۱۵) ·
   `hatcheryService.saveFlock` (۲۱۰) · `hatcheryCompletionFlockMethods._collectCompletionSave` (۲۰۳) · `headerBookmarkMethods.viewBookmarkDetail` (۲۰۱).
 
+---
+
+## ۲۶) موج ۳.۲o — برش بدنهٔ متد غول ساخت نمودارهای داشبورد (`setupCharts`)
+
+### الف) هدف و اعداد
+
+`DashboardService#setupCharts` در `dashboard.service.js:700` با **۲۲۳ خط**
+بزرگ‌ترین متد باقی‌ماندهٔ مخزن بود. ساختارش دو ناحیهٔ کاملاً متفاوت داشت: یک **پلاگین درون‌خطی
+Chart.js** (`_valueLabelPlugin.afterDatasetsDraw` با منطق `fillText`، ارقام فارسی و کلمپ y) و
+سه پیکربندی ~۴۴ خطی برای نمودارهای وزن/تلفات/خوراک. وابستگی‌اش `globalThis.Chart`،
+سه کانواس DOM و شش عضو سرویس (`chartInstances` + پنج متد) است.
+
+| سنجه | پیش | پس |
+| --- | --- | --- |
+| `setupCharts` | ۲۲۳ خط | **۵۷ خط** (−۷۴٪) |
+| خطوط/بایت منتقل‌شده | — | ۳۶ + ۱۲۹ = **۱۶۵ خط** (۱۴۹۳ + ۴۳۹۶ = **۵۸۸۹ بایت**) |
+| کمکی‌های ماژول‌محلی تازه | — | ۴ (`buildValueLabelPlugin` · `buildWeightingChartConfig` · `buildLossChartConfig` · `buildFeedChartConfig`) |
+| `audit:big-methods` | ۱۵ متد | **۱۴ متد** (صدر: `visitReportRenderer.renderReportModal` ۲۱۵) |
+| `dashboard.service.js` | 84.7KB / ۲۴۱۱ خط | 88.6KB / ۲۴۳۲ خط |
+
+### ب) گارد پیش از برش — `test:dashboard:setup-charts:body`
+
+پیش از هر تغییر، گارد طلایی نوشته شد (کامیت `029ff12`، تگ `pre-setup-charts-body-split`):
+
+- `Frontend/dashboard-setup-charts-body-split-test.mjs` با **۱۸ کِیس** و **۷۷ بررسی**، اسنپ‌شات `docs/dashboard-setup-charts-body-golden.json` (هش `sha256`).
+- **روش:** استاب `globalThis.Chart` (ثبت `ctx/config/plugins`) + کانواس جعلی با `getContext("2d")`
+  و ctx ثبت‌کننده (`clearRect/save/restore/font/fillStyle/textAlign/fillText`) + میزبان جعلی سرویس
+  برای پنج متد و `chartInstances`؛ اجرا با `dashboardService.setupCharts.call(service)`.
+- **اجرای واقعی پلاگین:** `afterDatasetsDraw` با نمودار مصنوعی (`chartArea`, `ctx`, `data.datasets`,
+  `_dashShowValues`, `_dashFrac`, `config.type`, `getDatasetMeta`) صدا زده می‌شود و **همهٔ
+  `fillText`ها** در رکورد می‌آیند ⇒ منطق فارسی/کلمپ/شاخهٔ bar قفل می‌شود (ادامهٔ درس ۳.۲n).
+- رکورد هر کِیس: `{ chartCalls[{ctxKey,type,datasetLabels,datasetSummaries,labels,options,pluginIds,ctxCalls}],
+  pluginRuns[{fillTexts,ctxCalls}], followUps, queries, consoleLogs, destroyed, thrown }`.
+- ۱۸ کِیس: پایه · کانواس وزنی/تلفات/خوراک غایب · بدون `getContext` · چارت‌های قبلی
+  (`destroy` + `destroy` پرتاب‌کننده) · مقادیر فالسی در `chartInstances` · پلاگین خاموش ·
+  `chartArea` نال · دیتاست پنهان · `_dashFrac` غیرعدد · نمودار میله‌ای · `meta` نال · `x` غیرعدد ·
+  زنجیرهٔ رنگ پیش‌فرض · پیکربندی‌ها و پس‌رو.
+
+**نکتهٔ پوشش:** رکورد علاوه بر پیکربندی‌ها، خلاصهٔ دیتاست‌ها (`datasetSummaries`: رنگ‌ها، `fill`،
+`tension`، شعاع نقطه، `borderRadius`، طول داده) را هم قفل می‌کند؛ چون `data: []` خالی است، بدون
+این خلاصه تغییر رنگ‌ها تشخیص داده نمی‌شد.
+
+### پ) دو برش (دو کامیت اتمی)
+
+| برش | ناحیه | کمکی | اعداد |
+| --- | --- | --- | --- |
+| A | پلاگین `_valueLabelPlugin` (خطوط ۷۱۵..۷۵۰) | `buildValueLabelPlugin()` | ۳۶ → ۱ خط · ۱۴۹۳ بایت |
+| B | سه پیکربندی نمودار (وزن/تلفات/خوراک) | `buildWeightingChartConfig()` · `buildLossChartConfig()` · `buildFeedChartConfig()` | ۱۲۹ → ۳ خط · ۴۳۹۶ بایت |
+
+- هر دو ناحیه **بایت‌به‌بایت** منتقل شدند (صفر dedent). سه پیکربندی مستقل ماندند و
+  **انتزاعی‌سازی نشدند** (قاعدهٔ «جابه‌جایی کد، نه بازنویسی ساختاری»).
+- `new Chart(ctx, buildXChartConfig(), [this._valueLabelPlugin])` در متد ماند؛ فقط آرگومان
+  پیکربندی به کمکی رفت.
+- اعمال برش B **از آخر به اول** انجام شد تا آفست‌های هر سه ناحیه معتبر بمانند (تلهٔ شناختهٔ
+  «آفست‌های متن جدید روی متن قدیم»).
+- اثبات‌ها: «هر بدنه بایت‌به‌بایت در فایل تازه» + «**اثبات بازگشتی**» + «ناوردایی `new Chart(`،
+  `fill: true`، `toLocaleString("fa-IR")` و سه رنگ کلیدی» + «کاهش طول متد» + «EOL دست‌نخورده».
+
+### ت) تله‌های واقعی (شفافیت)
+
+1. **درج اشتباه بلوک اجرا:** در ساخت گارد، یک ویرایش با `oldText` خالی، بلوک «اجرا + اسنپ‌شات» را
+   به **ابتدای فایل** چسباند (به‌جای انتها) ⇒ با یک اسکریپت کوچک به انتها منتقل شد.
+2. **`console.log` ضبط‌شده:** تابع `check` از `console.log` استفاده می‌کرد که خودِ هارنس آن را
+   برای ضبط پیام‌های متد گرفته بود ⇒ هیچ خط PASS/FAIL چاپ نمی‌شد و شمارش‌ها صفر می‌شد.
+   اصلاح: چاپ با `consoleLog` (نسخهٔ اصلی) — این نکته در خود فایل کامنت شد.
+3. **کلید اشتباه کانواس در استاب:** نگاشت با کلید منطقی (`weighting`) بود ولی متد
+   `getElementById("weightingCanvas")` را می‌پرسد ⇒ صفر نمودار ساخته می‌شد و اولین بررسی کرش
+   کرد؛ نگاشت `CANVAS_IDS` اضافه شد.
+4. **سخت‌سازی هارنس:** اجرای `extraChecks` در `try/catch` پیچیده شد تا خطای خودِ predicate به
+   «FAIL با علت» تبدیل شود، نه کرش کل گارد.
+5. **سه انتظار غلط:** شمارش `fillText` (سه مقدار معتبر در دو دیتاست ⇒ ۳ نه ۲) ·
+   `pluginRuns.length` (پلاگین روی هر سه نمودار اجرا می‌شود ⇒ ۳ اجرا) · و انکر `"data": []`
+   که در رکورد وجود ندارد (به `datasetSummaries`/`dataLength` تغییر کرد).
+6. **«۳» در برابر «ناوردا»:** assert `count(next, "new Chart(") === 3` غلط بود (فایل جاهای دیگری
+   هم `new Chart(` دارد) ⇒ به مقایسهٔ قبل/بعد تغییر کرد (درس موج ۳.۲m).
+
+### ث) شواهد تأیید
+
+```text
+test:dashboard:setup-charts:body :: ۷۷ بررسی · ۱۸ کِیس · pass=۷۷ fail=0  (پس از هر دو برش)
+audit:surface                    :: ۰ گم‌شده · ۰ افزوده · ۰ نقض
+audit:big-methods                :: ۱۴ متد (پیش از موج: ۱۵) · متد هدف ۲۲۳ → ۵۷ خط
+audit:size                       :: dashboard.service.js 84.7KB → 88.6KB
+```
+
+### ج) یادداشت نگه‌داری و گام بعدی
+
+- **گارد دائمی این موج `npm run test:dashboard:setup-charts:body` است** و به گام ۳۱ دروازه اضافه شد.
+  بازتولید اسنپ‌شات: `npm run test:dashboard:setup-charts:body -- --snapshot`.
+  ⚠️ متن پلاگین با `toLocaleString("fa-IR")` ساخته می‌شود ⇒ به locale/ICU وابسته است.
+- الگوی تکرارشوندهٔ این موج: **پیکربندی‌های «داده‌محورِ خالی» را می‌توان با خلاصهٔ دیتاست‌ها قفل
+  کرد**؛ بدون آن، تغییر رنگ/ضخامت در یک پیکربندی منتقل‌شده از چشم گارد می‌افتد.
+- نامزدهای بعدی: `visitReportRenderer.renderReportModal` (۲۱۵) · `hatcheryService.saveFlock` (۲۱۰) ·
+  `hatcheryCompletionFlockMethods._collectCompletionSave` (۲۰۳) · `headerBookmarkMethods.viewBookmarkDetail` (۲۰۱) · `dashboardRenderer.renderFlockCard` (۱۸۱).
+

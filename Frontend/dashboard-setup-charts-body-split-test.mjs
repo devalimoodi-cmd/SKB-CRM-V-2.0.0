@@ -18,6 +18,10 @@
 //      همهٔ `fillText`ها ثبت می‌شوند ⇒ منطق فارسی/کلمپ/شاخهٔ bar قفل می‌شود (درس ۳.۲n).
 //    • اسنپ‌شات طلایی: sha256 رکورد JSON هر کِیس در
 //      docs/dashboard-setup-charts-body-golden.json (پیش از برش) ⇒ هر بایت تغییر، FAIL.
+//  (پس از موج ۳.۲o این متد ۵۷ خط است؛ عدد بالای این بلوک وضعیت «پیش از برش» را ثبت می‌کند.)
+//  ⚠️ درس‌های موج ۳.۲o: ① چاپ نتیجه‌ها باید با consoleLog اصلی باشد (console.log ضبط شده است)؛
+//     ② استاب کانواس باید با شناسهٔ عنصر (weightingCanvas…) کلید بخورد، نه کلید منطقی؛
+//     ③ اجرای extraChecks در try/catch است تا خطای predicate کل گارد را نکشد.
 //  ⚠️ متن پلاگین از `toLocaleString("fa-IR")` استفاده می‌کند (locale/ICU وابسته است).
 //  ⚠️ اگر عمداً رفتار تغییر کرد، اول:
 //     npm run test:dashboard:setup-charts:body -- --snapshot

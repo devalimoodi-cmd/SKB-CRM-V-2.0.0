@@ -694,6 +694,10 @@ SKB-CRM.IR`,
     return map[status] || map.pending;
   }
 
+  // موج ۳.۲o — برش بدنهٔ `setupCharts` (۲۲۳ → ۵۷ خط): پلاگین درون‌خطی مقدارنما و سه
+  // پیکربندی نمودار به چهار کمکی ماژول‌محلی رفتند (`buildValueLabelPlugin` ·
+  // `buildWeightingChartConfig` · `buildLossChartConfig` · `buildFeedChartConfig`)؛
+  // خروجی بایت‌به‌بایت ثابت است (گارد `npm run test:dashboard:setup-charts:body`).
   // ===== نمودارها =====
 
   // ساخت نمودارها با داده خالی (بدون داده فیک)

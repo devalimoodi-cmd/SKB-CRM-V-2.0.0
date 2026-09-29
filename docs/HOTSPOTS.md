@@ -1,7 +1,7 @@
 # نقاط داغ پروژه (Hotspots)
 
 > سند زنده — با اجرای اسکریپت‌های audit به‌رو نگه داشته می‌شود.
-> آخرین به‌روزرسانی: **موج ۳.۲o (فاز ۰ — گارد تازهٔ `test:dashboard:setup-charts:body` روی `DashboardService#setupCharts`؛ این گارد پلاگین درون‌خطی را هم اجرا می‌کند)** · پیش از آن: **موج ۳.۲n — برش بدنهٔ متد غول رندر همهٔ نمودارها (`chartDashboardService.renderAllCharts` ۲۲۳ → ۱۲۸ خط) با گارد طلایی تازهٔ `test:chart-dashboard:all:body` (۸۵ بررسی · ۲۰ کِیس)؛ شمارش متدهای بزرگ‌تر از بودجه ۱۶ → ۱۵** (ادامهٔ برنچ `chore/wave-3.2c-split-halls`).
+> آخرین به‌روزرسانی: **موج ۳.۲o — برش بدنهٔ متد غول ساخت نمودارهای داشبورد (`DashboardService#setupCharts` ۲۲۳ → ۵۷ خط) با گارد طلایی تازهٔ `test:dashboard:setup-charts:body` (۷۷ بررسی · ۱۸ کِیس، شامل اجرای واقعی پلاگین)؛ شمارش متدهای بزرگ‌تر از بودجه ۱۵ → ۱۴** (ادامهٔ برنچ `chore/wave-3.2c-split-halls`).
 > گزارش‌های کامل: `docs/REVIEW-WAVE-3.md` (موج ۳.۲d و ۳.۲c و ۳.۲b و ۳.۲a و ۳.۱) · `docs/REVIEW-WAVE-2.md` (موج ۲) · `docs/REVIEW.md` (موج ۰ و ۱)
 
 ## چطور اندازه‌گیری می‌شود؟
@@ -90,9 +90,9 @@ import می‌کند و همان اعداد اسنپ‌شات را روی نمو
 | --- | --- |
 | 97.2 KB | `src/pages/customer-info.html` |
 | 95.4 KB | `src/features/customer-info/sections/hatchery/hatchery.service.js` |
-| 87.1 KB | `src/features/dashboard/dashboard.service.js` |
+| 88.6 KB | `src/features/dashboard/dashboard.service.js` |
 | 84.5 KB | `src/features/customer-info/sections/weekly/weekly.renderer.js` |
-| 74.8 KB | `src/features/customer-info/sections/chart-dashboard/chart-dashboard.service.js` |
+| 75.3 KB | `src/features/customer-info/sections/chart-dashboard/chart-dashboard.service.js` |
 | 68.2 KB | `src/features/dashboard/dashboard.css` |
 | 54.6 KB | `src/features/customer-info/sections/hatchery/hatchery.completion.period.js` |
 | 54.2 KB | `src/features/customer-info/sections/hatchery/hatchery.completion.flock.js` |
@@ -199,20 +199,20 @@ import می‌کند و همان اعداد اسنپ‌شات را روی نمو
 
 #### بزرگ‌ترین متدهای باقی‌مانده (بودجهٔ ۱۵۰ خط)
 
-۱۵ متد از بودجه بزرگ‌ترند؛ فهرست کامل با `npm run audit:big-methods`. پنج مورد اول:
+۱۴ متد از بودجه بزرگ‌ترند؛ فهرست کامل با `npm run audit:big-methods`. پنج مورد اول:
 
 | خطوط | مکان | نام |
 | --- | --- | --- |
-| ۲۲۳ | `dashboard/dashboard.service.js:700` | `setupCharts` |
 | ۲۱۵ | `visit-report/visit-report.renderer.js:222` | `visitReportRenderer.renderReportModal` |
 | ۲۱۰ | `hatchery/hatchery.service.js:463` | `saveFlock` |
 | ۲۰۳ | `hatchery/hatchery.completion.flock.js:856` | `hatcheryCompletionFlockMethods._collectCompletionSave` |
 | ۲۰۱ | `shared/layouts/Header/header-bookmarks.service.js:144` | `viewBookmarkDetail` |
+| ۱۸۱ | `dashboard/dashboard.renderer.js:615` | `dashboardRenderer.renderFlockCard` |
 برش فایل این دو «غول» را کوچک **نکرد**: `buildWeeklyHistoryHTML` همان ۳۳۶ خط است و فقط خانه‌اش
 از `weekly.service.js` به `weekly.report.history.html.js` منتقل شد؛ `renderWeeks` (۳۰۴ خط) هم
-به `weekly.cards.js` رفت. بزرگ‌ترین متد مخزن پس از موج ۳.۲n اکنون
-`dashboardService.setupCharts` (۲۲۳ خط) است — ده متد غول هفتگی/پایان دوره/داشبورد/جوجه‌ریزی/
-نمودار/گزارش گله/پیامک در موج‌های ۳.۲e…۳.۲n از فهرست بودجه بیرون رفتند.
+به `weekly.cards.js` رفت. بزرگ‌ترین متد مخزن پس از موج ۳.۲o اکنون
+`visitReportRenderer.renderReportModal` (۲۱۵ خط) است — یازده متد غول هفتگی/پایان دوره/داشبورد/
+جوجه‌ریزی/نمودار/گزارش گله/پیامک در موج‌های ۳.۲e…۳.۲o از فهرست بودجه بیرون رفتند.
 
 در موج ۳.۲d چهار متد غول خوشهٔ سالن‌ها **برش بدنه** خوردند (نه جابه‌جایی فایل): `generateHTML`
 ۴۵۰ → ۴۶، `renderHallInfo` ۲۵۴ → ۲۰، `saveBasicInfo` ۱۷۷ → ۶۵ و `renderUnitDetailsPanel`
@@ -284,6 +284,15 @@ import می‌کند و همان اعداد اسنپ‌شات را روی نمو
 برابر `"dailyGainGrams"` است، پس شرط `main.key === "dailyGain"` هرگز برقرار نمی‌شود و بازهٔ
 استاندارد به شاخهٔ پیش‌فرض می‌افتد (مستند شد، اصلاح نشد).
 شرح: `docs/REVIEW-WAVE-3.md` بخش ۲۵.
+در **موج ۳.۲o** متد غول ساخت نمودارهای داشبورد برش خورد: `DashboardService#setupCharts`
+(`dashboard.service.js:700`) از **۲۲۳ به ۵۷ خط** رسید. حجمش در دو ناحیه بود — پلاگین درون‌خطی
+«نمایش مقدارها» (۳۶ خط با منطق `fillText`/ارقام فارسی/کلمپ y) و سه پیکربندی ~۴۴ خطی نمودارهای
+وزن/تلفات/خوراک (جمعاً ۱۲۹ خط) — که با **جابه‌جایی بایت‌به‌بایت** به چهار کمکی ماژول‌محلی رفتند
+(`buildValueLabelPlugin` · `buildWeightingChartConfig` · `buildLossChartConfig` ·
+`buildFeedChartConfig`) با **صفر dedent**. گارد طلایی تازهٔ `npm run test:dashboard:setup-charts:body`
+(۷۷ بررسی · ۱۸ کِیس) پلاگین را **واقعاً اجرا می‌کند** و `fillText`ها را قفل می‌کند ⇒ در هر دو برش
+صفر تغییر بایت، و `audit:surface` همان ۰/۰/۰. شمارش `audit:big-methods` از ۱۵ به **۱۴** رسید.
+شرح: `docs/REVIEW-WAVE-3.md` بخش ۲۶.
 
 #### فایل‌های js بی‌ارجاع (نه `import`، نه `<script src>`)
 
@@ -332,8 +341,9 @@ import می‌کند و همان اعداد اسنپ‌شات را روی نمو
    `saveBasicInfo` ۱۷۷ → ۶۵ (`halls.basic.js`) و `renderUnitDetailsPanel` ۱۶۵ → ۲۲
    (`halls.units.js`) — ۲۲ تابع کمکی ماژول‌محلی، صفر تغییر در سطح عمومی و صفر تغییر بایت در
    خروجی (گارد `npm run test:halls:body`). شرح: `docs/REVIEW-WAVE-3.md` بخش ۱۵.
-   **`chart-dashboard.service.js` (۷۴.۸KB)** هنوز حجیم است، ولی `renderAllCharts` در موج ۳.۲n برش خورد
-   در `chart-dashboard.renderer.js` در موج ۳.۲k برش خورد: ۲۴۹ → ۳۱ خط.)
+   **`chart-dashboard.service.js` (۷۵.۳KB)** هنوز حجیم است؛ بزرگ‌ترین متد باقی‌ماندهٔ آن
+   `renderAllCharts` بود که در موج ۳.۲n برش خورد (۲۲۳ → ۱۲۸ خط) و متد `renderContainer`
+   (رندرر همین دامنه) در موج ۳.۲k برش خورد (۲۴۹ → ۳۱ خط).
 5. **`customer-info.html` (۹۷.۲KB)** — بزرگ‌ترین فایل مخزن پس از موج ۳.۲c؛ صفحهٔ چاق؛ انتقال هندلرهای inline به «چسب پنجره»
    (همان الگوی موج ۲.۱) تا صفحات نازک شوند.
 6. **۷۱ export بی‌مصرف در فرانت** — بیشترشان توابع کمکی عمومی (`dom.utils.js`،
@@ -354,23 +364,24 @@ import می‌کند و همان اعداد اسنپ‌شات را روی نمو
    تا آن زمان گارد زمان اجرا این نام را «اطلاعی» گزارش می‌کند و همچنان هر «گم‌شدن نام
    جدید» را می‌گیرد.
 
-10. **برش بدنهٔ متدهای غول (فاز بعد از برش فایل)** — نُه نامزد این فهرست تمام شدند:
+10. **برش بدنهٔ متدهای غول (فاز بعد از برش فایل)** — ده نامزد این فهرست تمام شدند:
     `weeklyRenderer.renderFullReport` ۵۲۴ → ۱۳۹ (`weekly.renderer.js`، موج ۳.۲e) ·
     `buildWeeklyHistoryHTML` ۳۳۶ → ۱۳۱ (`weekly.report.history.html.js`، موج ۳.۲g) ·
     `weeklyCardMethods.renderWeeks` ۳۰۴ → ۳۰ (`weekly.cards.js`، موج ۳.۲h) ·
     `dashboardBookmarkMethods.showCreateBookmarkModal` ۲۸۴ → ۹۸ (`dashboard.bookmarks.js`، موج ۳.۲i) ·
     `HatcheryReport#buildFlockSmsReportHTML` ۲۷۷ → ۱۲۱ (`hatchery.report.js`، موج ۳.۲j) ·
-   (۲۲۳ → ۱۲۸ خط). بزرگ‌ترین متد باقی‌ماندهٔ این دامنه `setupCharts` در `dashboard.service.js` (۲۲۳ خط) است.
+    `chartDashboardRenderer.renderContainer` ۲۴۹ → ۳۱ (`chart-dashboard.renderer.js`، موج ۳.۲k) ·
     `weeklyRenderer.renderFlockReport` ۲۴۲ → ۹۹ (`weekly.renderer.js`، موج ۳.۲l) ·
     `dashboardSmsMethods.refreshSmsStatus` ۲۳۹ → ۸۸ (`dashboard.sms.js`، موج ۳.۲m) ·
-    `chartDashboardService.renderAllCharts` ۲۲۳ → ۱۲۸ (`chart-dashboard.service.js`، موج ۳.۲n).
-    هر نُه برش **بدنهٔ متد** (نه جابه‌جایی فایل) بودند و هر نُه گارد طلایی بایت‌به‌بایت گرفتند:
+    `chartDashboardService.renderAllCharts` ۲۲۳ → ۱۲۸ (`chart-dashboard.service.js`، موج ۳.۲n) ·
+    `DashboardService#setupCharts` ۲۲۳ → ۵۷ (`dashboard.service.js`، موج ۳.۲o).
+    هر ده برش **بدنهٔ متد** (نه جابه‌جایی فایل) بودند و هر ده گارد طلایی بایت‌به‌بایت گرفتند:
     `test:weekly:body` · `test:weekly:history:body` · `test:weekly:cards:body` ·
     `test:dashboard:bookmarks:body` · `test:hatchery:sms-body` · `test:chart-dashboard:body` ·
-    `test:weekly:flock-report:body` · `test:dashboard:sms-status:body` · `test:chart-dashboard:all:body`.
-    نامزدهای باقی‌مانده با `npm run audit:big-methods` (۱۵ متد):
-    `dashboardService.setupCharts` (۲۲۳) · `visitReportRenderer.renderReportModal` (۲۱۵) ·
-    `hatcheryService.saveFlock` (۲۱۰) · `_collectCompletionSave` (۲۰۳).
+    `test:weekly:flock-report:body` · `test:dashboard:sms-status:body` · `test:chart-dashboard:all:body` ·
+    `test:dashboard:setup-charts:body`. نامزدهای باقی‌مانده با `npm run audit:big-methods` (۱۴ متد):
+    `visitReportRenderer.renderReportModal` (۲۱۵) · `saveFlock` (۲۱۰) ·
+    `_collectCompletionSave` (۲۰۳) · `viewBookmarkDetail` (۲۰۱).
 
 ## قواعد نگه‌داری
 
