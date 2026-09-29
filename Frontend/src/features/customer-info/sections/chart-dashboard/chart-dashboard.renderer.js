@@ -10,13 +10,7 @@ export const chartDashboardRenderer = {
     if (!container) return;
 
     if (!flocks || flocks.length === 0) {
-      container.innerHTML = `
-                <div class="charts-empty-state">
-                    <i class="fas fa-chart-bar"></i>
-                    <h4>هیچ گله فعالی وجود ندارد</h4>
-                    <p>برای مشاهده نمودارها، ابتدا یک گله ثبت کنید</p>
-                </div>
-            `;
+      container.innerHTML = buildChartsEmptyStateHtml();
       return;
     }
 
@@ -349,3 +343,14 @@ export const chartDashboardRenderer = {
         `;
   },
 };
+// کمکی ماژول‌محلی (موج ۳.۲k) — حالت خالیِ نمودارها وقتی گلهٔ فعالی نیست.
+// ⚠️ قالب زیر بایت‌به‌بایت از بدنهٔ متد منتقل شده است؛ فاصله‌های داخل backtick
+// بخشی از خروجی HTML هستند و هرگونه dedent، بایت‌ها را عوض می‌کند.
+const buildChartsEmptyStateHtml = () => `
+                <div class="charts-empty-state">
+                    <i class="fas fa-chart-bar"></i>
+                    <h4>هیچ گله فعالی وجود ندارد</h4>
+                    <p>برای مشاهده نمودارها، ابتدا یک گله ثبت کنید</p>
+                </div>
+            `;
+
