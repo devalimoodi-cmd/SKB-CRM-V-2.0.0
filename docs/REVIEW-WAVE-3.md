@@ -1685,3 +1685,88 @@ chart-dashboard.renderer.js:: 22.8KB → 24.6KB
 - نامزدهای بعدی: `weeklyRenderer.renderFlockReport` (۲۴۲) · `dashboardSmsMethods.refreshSmsStatus` (۲۳۹) ·
   `renderAllCharts` (۲۲۳) · `dashboardService.setupCharts` (۲۲۳) · `visitReportRenderer.renderReportModal` (۲۱۵).
 
+---
+
+## ۲۳) موج ۳.۲l — برش بدنهٔ متد غول گزارش اختصاصی گله (`renderFlockReport`)
+
+### الف) هدف و اعداد
+
+`weeklyRenderer.renderFlockReport` در `weekly.renderer.js:889` با **۲۴۲ خط**
+بزرگ‌ترین متد باقی‌ماندهٔ مخزن بود. این متد در موج ۳.۲e از فهرست بيرون نرفت (آن موج فقط
+`renderFullReport` را برد) و هیچ گاردی نداشت؛ وابستگی‌اش `Date`/`Intl` (تاریخ و ساعت شمسی)
+، `localStorage.getItem("user")` و مجموعه‌ای از کمکی‌های ماژول‌محلی همین فایل است — بدون
+`document`/شبکه/`await`.
+
+| سنجه | پیش | پس |
+| --- | --- | --- |
+| `renderFlockReport` | ۲۴۲ خط | **۹۹ خط** (−۵۹٪) |
+| خطوط/بایت منتقل‌شده | — | ۳۹ + ۲۷ + ۸۳ = **۱۴۹ خط** (۱۷۰۵ + ۱۴۲۳ + ۶۰۷۶ = **۹۲۰۴ بایت**) |
+| کمکی‌های ماژول‌محلی تازه | — | ۳ (`buildWeekDetailsTableHtml` · `buildFlockWeekBlocksHtml` · `buildFlockReportHtml`) |
+| `audit:big-methods` | ۱۸ متد | **۱۷ متد** (صدر: `dashboardSmsMethods.refreshSmsStatus` ۲۳۹) |
+| `weekly.renderer.js` | 80.2KB / ۱۶۶۶ خط | 83.9KB / ۱۶۹۶ خط |
+
+### ب) گارد پیش از برش — `test:weekly:flock-report:body`
+
+پیش از هر تغییر، گارد طلایی بایت‌به‌بایت نوشته شد (کامیت `814dccd`، تگ `pre-flock-report-body-split`):
+
+- `Frontend/weekly-flock-report-body-split-test.mjs` با **۲۴ کِیس** و **۱۰۲ بررسی**، اسنپ‌شات `docs/weekly-flock-report-body-golden.json` (هش `sha256`).
+- هارنس هم‌سبک گارد ۳.۲e (همان فایل هدف): `TZ=Asia/Tehran` + `FrozenDate` + استاب
+  `window`/`document`/`localStorage`؛ رکورد هر کِیس = سند کامل HTML + `thrown` + `console*`.
+- `flock.audit` عمداً تزریق می‌شود تا شاخه‌های «ناقص/بدون‌ثبت» قطعی و تکرارپذیر باشند
+  (`auditOfFlock` در نبود آن، `auditWeeks` را صدا می‌زند و نتیجه به دادهٔ ورودی حساس می‌شود).
+- ۲۴ کِیس: گزارش پایه · بدون `savedWeeks` · گلهٔ بدون هفته · انتخاب خالی
+  (`WEEK_PRESET.MANUAL` ⇒ `weekNumbers = []`) · انتخاب فقط هفتهٔ ۲ · هفتهٔ بدون ثبت · هفتهٔ ناقص
+  (از طریق `audit.statuses`) · چهار حالت گروه‌های شاخص + آرایهٔ خالی · همهٔ گروه‌ها · `options`
+  حذف‌شده · سه حالت کاربر (`localStorage`) · `statistics` غایب · بدون `timeline` · بدون تاریخ
+  جوجه‌ریزی · تاریخ نامعتبر (شاخهٔ `catch`) · گلهٔ غیرفعال · بدون نژاد · `customer = null`
+  (خطای مرزی) · شمارهٔ هفتهٔ رشته‌ای.
+
+**⚠️ تلهٔ واقعی که گارد گرفت (و درس اصلی این موج):** در نسخهٔ اول برش B، کلوژر
+`isPartialWeek` را هم به کمکی منتقل کردم؛ اما قالبِ «بلوک‌های هفتگی» **همان کلوژر را در سه
+جای دیگر** مصرف می‌کند. نتیجه: `ReferenceError: isPartialWeek is not defined` و **۷۸ بررسی
+قرمز**. فایل با `git checkout` برگشت و برش با طراحی درست (**`isPartialWeek` در متد می‌ماند و
+به‌عنوان پارامتر پاس داده می‌شود**) دوباره اجرا شد. این همان دلیلی است که «گارد پیش از برش» در
+این کمپین اجباری است: بازبینِ چشمی این شکست را نمی‌دید.
+
+**تلهٔ انکرهای CSS:** هفت بررسی اول قرمز شد چون نام کلاس‌ها هم در `<style>${REPORT_STYLES}</style>`
+هستند (`week-report-block` · `basis-chip` · `week-range-chip` · `detail-list`). انکرها به شکل
+`class="…` تغییر کردند (درس موج ۳.۲k/۳.۲j، این بار در سطح CSS).
+
+### پ) سه برش (سه کامیت اتمی)
+
+| برش | ناحیه | کمکی | اعداد |
+| --- | --- | --- | --- |
+| B | `detailPairs` + `renderWeekDetailsTable` (خطوط ۹۷۵..۱۰۱۲) | `buildWeekDetailsTableHtml(week, { selected, isPartialWeek })` | ۳۹ → ۱ خط · ۱۷۰۵ بایت |
+| A | `weekBlocks` + `missingBlocks` (خطوط ۱۰۱۴..۱۰۴۰) | `buildFlockWeekBlocksHtml({ visibleSavedWeeks, visibleMissingWeeks, toPersian, selected, isPartialWeek })` | ۲۷ → ۱ خط · ۱۴۲۳ بایت |
+| C | `return` با قالب سند (`<!DOCTYPE html>…`) (خطوط ۱۰۴۷..۱۱۲۹) | `buildFlockReportHtml({ …۱۸ پارامتر })` | ۸۳ → ۱ خط · ۶۰۷۶ بایت |
+
+- هر سه ناحیه **بایت‌به‌بایت** منتقل شدند (صفر dedent). برش C یک **template تودرتو**
+  (`${weekBlocks}${missingBlocks}`) داخل قالب دارد که عیناً منتقل شد؛ اسکریپت، زوج‌بودن
+  بک‌تیک‌ها را بررسی می‌کند تا مرز برش جابه‌جا نشود.
+- فهرست پارامترهای `buildFlockReportHtml` **از خود قالب** استخراج می‌شود؛ اسکریپت برای هر نام
+  بررسی می‌کند که در متد «تعریف‌شده» باشد (declaration · destructuring · پارامتر امضا) —
+  همان گاردی که تلهٔ `isPartialWeek` را در آینده می‌گیرد.
+- اثبات هر برش: «ناحیه بایت‌به‌بایت در فایل تازه» + «**اثبات بازگشتی**: حذف کمکی و بازگرداندن
+  ناحیه/فراخوانی = فایل اصلی» + «کاهش طول متد» + «مصرف‌های کلیدی ثابت» + «EOL دست‌نخورده».
+- چون برش A وابسته به B است (کمکی B در قالبِ A مصرف می‌شود)، ترتیب اجرا B → A → C بود.
+
+### ت) شواهد تأیید
+
+```text
+test:weekly:flock-report:body :: ۱۰۲ بررسی · ۲۴ کِیس · pass=۱۰۲ fail=0  (پس از هر سه برش)
+audit:surface                :: ۰ گم‌شده · ۰ افزوده · ۰ نقض
+audit:big-methods            :: ۱۷ متد (پیش از موج: ۱۸) · متد هدف ۲۴۲ → ۹۹ خط
+audit:size                   :: weekly.renderer.js 80.2KB → 83.9KB
+```
+
+### ج) یادداشت نگه‌داری و گام بعدی
+
+- **گارد دائمی این موج `npm run test:weekly:flock-report:body` است** و به گام ۲۸ دروازه اضافه شد.
+  بازتولید اسنپ‌شات: `npm run test:weekly:flock-report:body -- --snapshot`.
+  ⚠️ خروجی به Intl/locale و TZ وابسته است (تاریخ/ساعت شمسی + ارقام فارسی در کل سند).
+- درس عملیاتی این موج برای موج‌های بعد: **پیش از حذف یک closure از داخل متد، همهٔ مصرف‌های
+  آن در همان متد را بشمار** (نه فقط ناحیه‌ای که منتقل می‌شود). در این موج، آن مصرف‌ها سه
+  ارجاع دیگر در قالب بلوک‌های هفتگی بودند.
+- نامزدهای بعدی: `dashboardSmsMethods.refreshSmsStatus` (۲۳۹) · `renderAllCharts` (۲۲۳) ·
+  `dashboardService.setupCharts` (۲۲۳) · `visitReportRenderer.renderReportModal` (۲۱۵) · `hatcheryService.saveFlock` (۲۱۰).
+

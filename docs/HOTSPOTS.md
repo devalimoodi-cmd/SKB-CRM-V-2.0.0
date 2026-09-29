@@ -1,7 +1,7 @@
 # نقاط داغ پروژه (Hotspots)
 
 > سند زنده — با اجرای اسکریپت‌های audit به‌رو نگه داشته می‌شود.
-> آخرین به‌روزرسانی: **موج ۳.۲l (فاز ۰ — گارد تازهٔ `test:weekly:flock-report:body` روی `weeklyRenderer.renderFlockReport`)** · پیش از آن: **موج ۳.۲k — برش بدنهٔ متد غول نمودارهای تحلیلی (`chartDashboardRenderer.renderContainer` ۲۴۹ → ۳۱ خط) با گارد طلایی تازهٔ `test:chart-dashboard:body` (۱۲۳ بررسی · ۲۵ کِیس)؛ شمارش متدهای بزرگ‌تر از بودجه ۱۹ → ۱۸** (ادامهٔ برنچ `chore/wave-3.2c-split-halls`).
+> آخرین به‌روزرسانی: **موج ۳.۲l — برش بدنهٔ متد غول گزارش اختصاصی گله (`weeklyRenderer.renderFlockReport` ۲۴۲ → ۹۹ خط) با گارد طلایی تازهٔ `test:weekly:flock-report:body` (۱۰۲ بررسی · ۲۴ کِیس)؛ شمارش متدهای بزرگ‌تر از بودجه ۱۸ → ۱۷** (ادامهٔ برنچ `chore/wave-3.2c-split-halls`).
 > گزارش‌های کامل: `docs/REVIEW-WAVE-3.md` (موج ۳.۲d و ۳.۲c و ۳.۲b و ۳.۲a و ۳.۱) · `docs/REVIEW-WAVE-2.md` (موج ۲) · `docs/REVIEW.md` (موج ۰ و ۱)
 
 ## چطور اندازه‌گیری می‌شود؟
@@ -88,7 +88,7 @@ import می‌کند و همان اعداد اسنپ‌شات را روی نمو
 | 97.2 KB | `src/pages/customer-info.html` |
 | 95.4 KB | `src/features/customer-info/sections/hatchery/hatchery.service.js` |
 | 87.1 KB | `src/features/dashboard/dashboard.service.js` |
-| 74.8 KB | `src/features/customer-info/sections/weekly/weekly.renderer.js` |
+| 83.9 KB | `src/features/customer-info/sections/weekly/weekly.renderer.js` |
 | 71.4 KB | `src/features/customer-info/sections/chart-dashboard/chart-dashboard.service.js` |
 | 68.2 KB | `src/features/dashboard/dashboard.css` |
 | 54.6 KB | `src/features/customer-info/sections/hatchery/hatchery.completion.period.js` |
@@ -196,20 +196,20 @@ import می‌کند و همان اعداد اسنپ‌شات را روی نمو
 
 #### بزرگ‌ترین متدهای باقی‌مانده (بودجهٔ ۱۵۰ خط)
 
-۱۸ متد از بودجه بزرگ‌ترند؛ فهرست کامل با `npm run audit:big-methods`. پنج مورد اول:
+۱۷ متد از بودجه بزرگ‌ترند؛ فهرست کامل با `npm run audit:big-methods`. پنج مورد اول:
 
 | خطوط | مکان | نام |
 | --- | --- | --- |
-| ۲۴۲ | `weekly/weekly.renderer.js:889` | `weeklyRenderer.renderFlockReport` |
 | ۲۳۹ | `dashboard/dashboard.sms.js:750` | `dashboardSmsMethods.refreshSmsStatus` |
 | ۲۲۳ | `chart-dashboard/chart-dashboard.service.js:1385` | `renderAllCharts` |
 | ۲۲۳ | `dashboard/dashboard.service.js:700` | `setupCharts` |
 | ۲۱۵ | `visit-report/visit-report.renderer.js:222` | `visitReportRenderer.renderReportModal` |
+| ۲۱۰ | `hatchery/hatchery.service.js:463` | `saveFlock` |
 برش فایل این دو «غول» را کوچک **نکرد**: `buildWeeklyHistoryHTML` همان ۳۳۶ خط است و فقط خانه‌اش
 از `weekly.service.js` به `weekly.report.history.html.js` منتقل شد؛ `renderWeeks` (۳۰۴ خط) هم
-به `weekly.cards.js` رفت. بزرگ‌ترین متد مخزن پس از موج ۳.۲k اکنون
-`weeklyRenderer.renderFlockReport` (۲۴۲ خط) است — هفت متد غول هفتگی/پایان دوره/داشبورد/
-جوجه‌ریزی/نمودار در موج‌های ۳.۲e/۳.۲f/۳.۲g/۳.۲h/۳.۲i/۳.۲j/۳.۲k از فهرست بودجه بیرون رفتند.
+به `weekly.cards.js` رفت. بزرگ‌ترین متد مخزن پس از موج ۳.۲l اکنون
+`dashboardSmsMethods.refreshSmsStatus` (۲۳۹ خط) است — هشت متد غول هفتگی/پایان دوره/داشبورد/
+جوجه‌ریزی/نمودار/گزارش گله در موج‌های ۳.۲e…۳.۲l از فهرست بودجه بیرون رفتند.
 
 در موج ۳.۲d چهار متد غول خوشهٔ سالن‌ها **برش بدنه** خوردند (نه جابه‌جایی فایل): `generateHTML`
 ۴۵۰ → ۴۶، `renderHallInfo` ۲۵۴ → ۲۰، `saveBasicInfo` ۱۷۷ → ۶۵ و `renderUnitDetailsPanel`
@@ -247,7 +247,19 @@ import می‌کند و همان اعداد اسنپ‌شات را روی نمو
 `npm run test:chart-dashboard:body`: **۱۲۳ بررسی · ۲۵ کِیس** (این گارد به ساعت/locale وابسته
 نیست و خودش این ادعا را بررسی می‌کند) ⇒ در هر سه برش صفر تغییر بایت، و `audit:surface` همان ۰/۰/۰.
 شمارش `audit:big-methods` از ۱۹ به **۱۸** رسید.
-شرح: `docs/REVIEW-WAVE-3.md` بخش ۲۲.#### فایل‌های js بی‌ارجاع (نه `import`، نه `<script src>`)
+شرح: `docs/REVIEW-WAVE-3.md` بخش ۲۲.
+در **موج ۳.۲l** متد غول گزارش اختصاصی گله برش خورد: `weeklyRenderer.renderFlockReport`
+(`weekly.renderer.js:889`) از **۲۴۲ به ۹۹ خط** رسید. حجمش در سه ناحیه بود — سه closure جدول
+جزئیات (۳۹ خط) · سازندهٔ بلوک‌های هفتگی ثبت‌شده/بدون‌ثبت (۲۷ خط) · قالب کامل سند (۸۳ خط /
+۶٬۰۷۶ بایت) — که با **جابه‌جایی بایت‌به‌بایت** به سه کمکی ماژول‌محلی رفتند
+(`buildWeekDetailsTableHtml` · `buildFlockWeekBlocksHtml` · `buildFlockReportHtml`) با **صفر dedent**.
+`isPartialWeek` عمداً در متد ماند (قالب بلوک‌ها هم مصرفش می‌کند) و به‌عنوان پارامتر پاس داده می‌شود.
+گارد طلایی تازهٔ `npm run test:weekly:flock-report:body`: **۱۰۲ بررسی · ۲۴ کِیس** با هش `sha256`
+روی سند کامل HTML ⇒ در هر سه برش صفر تغییر بایت، و `audit:surface` همان ۰/۰/۰. شمارش
+`audit:big-methods` از ۱۸ به **۱۷** رسید.
+شرح: `docs/REVIEW-WAVE-3.md` بخش ۲۳.
+
+#### فایل‌های js بی‌ارجاع (نه `import`، نه `<script src>`)
 
 - `src/core/types/index.types.js`
 - `src/features/sms/sms.modal.service.js`
@@ -316,19 +328,20 @@ import می‌کند و همان اعداد اسنپ‌شات را روی نمو
    تا آن زمان گارد زمان اجرا این نام را «اطلاعی» گزارش می‌کند و همچنان هر «گم‌شدن نام
    جدید» را می‌گیرد.
 
-10. **برش بدنهٔ متدهای غول (فاز بعد از برش فایل)** — شش نامزد این فهرست تمام شدند:
+10. **برش بدنهٔ متدهای غول (فاز بعد از برش فایل)** — هفت نامزد این فهرست تمام شدند:
     `weeklyRenderer.renderFullReport` ۵۲۴ → ۱۳۹ (`weekly.renderer.js`، موج ۳.۲e) ·
     `buildWeeklyHistoryHTML` ۳۳۶ → ۱۳۱ (`weekly.report.history.html.js`، موج ۳.۲g) ·
     `weeklyCardMethods.renderWeeks` ۳۰۴ → ۳۰ (`weekly.cards.js`، موج ۳.۲h) ·
     `dashboardBookmarkMethods.showCreateBookmarkModal` ۲۸۴ → ۹۸ (`dashboard.bookmarks.js`، موج ۳.۲i) ·
     `HatcheryReport#buildFlockSmsReportHTML` ۲۷۷ → ۱۲۱ (`hatchery.report.js`، موج ۳.۲j) ·
-    `chartDashboardRenderer.renderContainer` ۲۴۹ → ۳۱ (`chart-dashboard.renderer.js`، موج ۳.۲k).
-    هر شش برش **بدنهٔ متد** (نه جابه‌جایی فایل) بودند و هر شش گارد طلایی بایت‌به‌بایت گرفتند:
+    `chartDashboardRenderer.renderContainer` ۲۴۹ → ۳۱ (`chart-dashboard.renderer.js`، موج ۳.۲k) ·
+    `weeklyRenderer.renderFlockReport` ۲۴۲ → ۹۹ (`weekly.renderer.js`، موج ۳.۲l).
+    هر هفت برش **بدنهٔ متد** (نه جابه‌جایی فایل) بودند و هر هفت گارد طلایی بایت‌به‌بایت گرفتند:
     `test:weekly:body` · `test:weekly:history:body` · `test:weekly:cards:body` ·
-    `test:dashboard:bookmarks:body` · `test:hatchery:sms-body` · `test:chart-dashboard:body`.
-    نامزدهای باقی‌مانده با `npm run audit:big-methods` (۱۸ متد):
-    `weeklyRenderer.renderFlockReport` (۲۴۲) · `dashboardSmsMethods.refreshSmsStatus` (۲۳۹) ·
-    `renderAllCharts` (۲۲۳) · `dashboardService.setupCharts` (۲۲۳).
+    `test:dashboard:bookmarks:body` · `test:hatchery:sms-body` · `test:chart-dashboard:body` ·
+    `test:weekly:flock-report:body`. نامزدهای باقی‌مانده با `npm run audit:big-methods` (۱۷ متد):
+    `dashboardSmsMethods.refreshSmsStatus` (۲۳۹) · `renderAllCharts` (۲۲۳) ·
+    `dashboardService.setupCharts` (۲۲۳) · `visitReportRenderer.renderReportModal` (۲۱۵).
 
 ## قواعد نگه‌داری
 
