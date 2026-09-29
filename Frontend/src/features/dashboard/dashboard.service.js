@@ -712,43 +712,7 @@ SKB-CRM.IR`,
     this.resetChartStats();
 
     // پلاگین داخلی «نمایش مقادیر» (بدون وابستگی به chartjs-plugin-datalabels)
-    this._valueLabelPlugin = {
-      id: "dashValueLabels",
-      afterDatasetsDraw(chart) {
-        if (!chart._dashShowValues) return;
-        const chartArea = chart.chartArea;
-        if (!chartArea) return;
-        const ctx = chart.ctx;
-        ctx.save();
-        chart.data.datasets.forEach((dataset, di) => {
-          if (dataset.hidden) return;
-          const meta = chart.getDatasetMeta(di);
-          if (!meta || !meta.data) return;
-          const color = dataset.borderColor || dataset.backgroundColor || "#475569";
-          ctx.font = "700 10px Vazir, sans-serif";
-          ctx.fillStyle = color;
-          ctx.textAlign = "center";
-          const frac = typeof chart._dashFrac === "number" ? chart._dashFrac : 0;
-          (dataset.data || []).forEach((value, idx) => {
-            if (value === null || value === undefined || Number.isNaN(Number(value))) {
-              return;
-            }
-            const el = meta.data[idx];
-            if (!el || typeof el.x !== "number") return;
-            const text = Number(value).toLocaleString("fa-IR", {
-              maximumFractionDigits: frac,
-            });
-            const isBar = chart.config && chart.config.type === "bar";
-            const cx = isBar ? el.x + (el.width || 0) / 2 : el.x;
-            let y = isBar ? el.y - 5 : el.y - 11;
-            if (y < chartArea.top + 4) y = chartArea.top + 4;
-            ctx.fillText(text, cx, y);
-          });
-        });
-        ctx.restore();
-      },
-    };
-
+    this._valueLabelPlugin = buildValueLabelPlugin();
     // نمودار وزن‌گیری
     const weightCtx = document
       .getElementById("weightingCanvas")
@@ -2408,3 +2372,46 @@ export const dashboardService = new DashboardService();
 
 // ===== چسب پنجره (window.*) — منتقل‌شده به dashboard.window-glue.js (موج ۳.۲) =====
 registerDashboardWindowGlue({ dashboardService, DashboardService });
+// کمکی ماژول‌محلی (موج ۳.۲o) — پلاگین Chart.js برای نمایش مقدارها روی نمودارهای داشبورد.
+// ⚠️ متن زیر بایت‌به‌بایت از بدنهٔ `setupCharts` منتقل شده است؛ متن فارسی داخلی و
+// dedent ممنوع است.
+// ⚠️ پرانتز بعد از `=>` لازم است وگرنه `{` به‌عنوان بدنهٔ بلوکی تفسیر می‌شود (درس ۳.۲n).
+const buildValueLabelPlugin = () => (
+{
+      id: "dashValueLabels",
+      afterDatasetsDraw(chart) {
+        if (!chart._dashShowValues) return;
+        const chartArea = chart.chartArea;
+        if (!chartArea) return;
+        const ctx = chart.ctx;
+        ctx.save();
+        chart.data.datasets.forEach((dataset, di) => {
+          if (dataset.hidden) return;
+          const meta = chart.getDatasetMeta(di);
+          if (!meta || !meta.data) return;
+          const color = dataset.borderColor || dataset.backgroundColor || "#475569";
+          ctx.font = "700 10px Vazir, sans-serif";
+          ctx.fillStyle = color;
+          ctx.textAlign = "center";
+          const frac = typeof chart._dashFrac === "number" ? chart._dashFrac : 0;
+          (dataset.data || []).forEach((value, idx) => {
+            if (value === null || value === undefined || Number.isNaN(Number(value))) {
+              return;
+            }
+            const el = meta.data[idx];
+            if (!el || typeof el.x !== "number") return;
+            const text = Number(value).toLocaleString("fa-IR", {
+              maximumFractionDigits: frac,
+            });
+            const isBar = chart.config && chart.config.type === "bar";
+            const cx = isBar ? el.x + (el.width || 0) / 2 : el.x;
+            let y = isBar ? el.y - 5 : el.y - 11;
+            if (y < chartArea.top + 4) y = chartArea.top + 4;
+            ctx.fillText(text, cx, y);
+          });
+        });
+        ctx.restore();
+      },
+    }
+);
+
