@@ -31,6 +31,7 @@
     "test:weekly:flock-report:body": "node weekly-flock-report-body-split-test.mjs",
     "test:dashboard:sms-status:body": "node dashboard-sms-status-body-split-test.mjs",
     "test:chart-dashboard:all:body": "node chart-dashboard-all-body-split-test.mjs",
+    "test:dashboard:setup-charts:body": "node dashboard-setup-charts-body-split-test.mjs",
     "audit:size": "node scripts/audit-size.mjs",
     "audit:dead-exports": "node scripts/audit-dead-exports.mjs",
     "audit:surface": "node scripts/audit-service-surface.mjs",

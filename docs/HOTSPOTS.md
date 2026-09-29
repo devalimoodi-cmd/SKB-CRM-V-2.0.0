@@ -1,7 +1,7 @@
 # نقاط داغ پروژه (Hotspots)
 
 > سند زنده — با اجرای اسکریپت‌های audit به‌رو نگه داشته می‌شود.
-> آخرین به‌روزرسانی: **موج ۳.۲n — برش بدنهٔ متد غول رندر همهٔ نمودارها (`chartDashboardService.renderAllCharts` ۲۲۳ → ۱۲۸ خط) با گارد طلایی تازهٔ `test:chart-dashboard:all:body` (۸۵ بررسی · ۲۰ کِیس، شامل اجرای واقعی callbackها)؛ شمارش متدهای بزرگ‌تر از بودجه ۱۶ → ۱۵** (ادامهٔ برنچ `chore/wave-3.2c-split-halls`).
+> آخرین به‌روزرسانی: **موج ۳.۲o (فاز ۰ — گارد تازهٔ `test:dashboard:setup-charts:body` روی `DashboardService#setupCharts`؛ این گارد پلاگین درون‌خطی را هم اجرا می‌کند)** · پیش از آن: **موج ۳.۲n — برش بدنهٔ متد غول رندر همهٔ نمودارها (`chartDashboardService.renderAllCharts` ۲۲۳ → ۱۲۸ خط) با گارد طلایی تازهٔ `test:chart-dashboard:all:body` (۸۵ بررسی · ۲۰ کِیس)؛ شمارش متدهای بزرگ‌تر از بودجه ۱۶ → ۱۵** (ادامهٔ برنچ `chore/wave-3.2c-split-halls`).
 > گزارش‌های کامل: `docs/REVIEW-WAVE-3.md` (موج ۳.۲d و ۳.۲c و ۳.۲b و ۳.۲a و ۳.۱) · `docs/REVIEW-WAVE-2.md` (موج ۲) · `docs/REVIEW.md` (موج ۰ و ۱)
 
 ## چطور اندازه‌گیری می‌شود؟
@@ -28,6 +28,7 @@ npm run test:chart-dashboard:body # گارد طلایی بایت‌به‌بای
 npm run test:weekly:flock-report:body # گارد طلایی بایت‌به‌بایت بدنهٔ متد غول گزارش اختصاصی گله (۲۴ کِیس)
 npm run test:dashboard:sms-status:body # گارد طلایی بایت‌به‌بایت بدنهٔ متد غول بروزرسانی وضعیت پیامک (۲۲ کِیس)
 npm run test:chart-dashboard:all:body # گارد طلایی بایت‌به‌بایت بدنهٔ متد غول رندر همهٔ نمودارها (۲۰ کِیس)
+npm run test:dashboard:setup-charts:body # گارد طلایی بایت‌به‌بایت بدنهٔ متد غول ساخت نمودارهای داشبورد (۱۸ کِیس)
 
 # Backend
 cd Backend

@@ -1,0 +1,82 @@
+{
+  "note": "اسنپ‌شات رکورد ساختاری متد غول ساخت نمودارهای داشبورد (DashboardService#setupCharts)، گرفته‌شده پیش از موج برش بدنه (۳.۲o). هر کِیس = رکورد JSON شامل آرگومان‌های هر فراخوانی new Chart (نوع، دیتاست‌ها، گزینه‌ها، شناسهٔ پلاگین‌ها)، فراخوانی‌های ctx، **خروجی واقعی callback پلاگین (fillTextها)**، وضعیت destroy چارت‌های قبلی، فراخوانی‌های پس‌رو و console. بازتولید: npm run test:dashboard:setup-charts:body -- --snapshot",
+  "node": "v24.13.0",
+  "locale": "en-US",
+  "timeZone": "Asia/Tehran",
+  "source": "HEAD پیش از برش بدنه — git tag pre-setup-charts-body-split",
+  "note2": "متن پلاگین با toLocaleString(\"fa-IR\") ساخته می‌شود ⇒ به locale/ICU وابسته است؛ رکورد کل پیکربندی‌های three chart را هم شامل می‌شود (بزرگ‌ترین بخش رکورد).",
+  "cases": {
+    "P1.پایه-سه-نمودار": {
+      "bytes": 9754,
+      "sha256": "96d90252ffa68f1ce7140eacd62859f6d5e9e2a4e42d8e60e190726bdfc4aa43"
+    },
+    "P2.کانواس-وزن-غایب": {
+      "bytes": 6447,
+      "sha256": "c2bbe15f3b44fecdca0fc948b46f53562a39174ec8324b60c289639224beee89"
+    },
+    "P3.کانواس-تلفات-غایب": {
+      "bytes": 6771,
+      "sha256": "33dd9046c34ce1caada0ca80d39c1eb2dd2b2b200611ec7f64f5c5e7d4667f33"
+    },
+    "P4.کانواس-خوراک-غایب": {
+      "bytes": 6723,
+      "sha256": "c6d216788f7a65325adf784f4ff242dc9388e991af3ca0d405190860117fff4f"
+    },
+    "P5.هیچ-کانواسی-نیست": {
+      "bytes": 429,
+      "sha256": "0cd9a85ba9df0bf580ce7a6827243566a9494fcf2bfa0c596ee69eae3fa46271"
+    },
+    "P6.getContext-نال-برای-وزن": {
+      "bytes": 6447,
+      "sha256": "c2bbe15f3b44fecdca0fc948b46f53562a39174ec8324b60c289639224beee89"
+    },
+    "P7.چارت‌های-قبلی-destroy-می‌شوند": {
+      "bytes": 9776,
+      "sha256": "219a34687be7550996658dda971e86ac897d579d606b0bf00f1d9b0af849b753"
+    },
+    "P8.destroy-که-پرتاب-می‌کند": {
+      "bytes": 9777,
+      "sha256": "00c062edcf496cc5976d45a1729455dbca24609e4dff8e8b1a52c208d13fa33b"
+    },
+    "P9.مقدار-فالسی-در-chartInstances": {
+      "bytes": 9789,
+      "sha256": "605f8e31b9bb9e68e31a87dc308a6dc5a8a3af27d979a9b63c774e0ca5c44524"
+    },
+    "P10.پلاگین-خاموش": {
+      "bytes": 6643,
+      "sha256": "9d96199d42491ec8fb87ff5ac0040524e5ac6cf2a5d78639400f8713806bf08e"
+    },
+    "P11.پلاگین-بدون-chartArea": {
+      "bytes": 6643,
+      "sha256": "9d96199d42491ec8fb87ff5ac0040524e5ac6cf2a5d78639400f8713806bf08e"
+    },
+    "P12.دیتاست-پنهان": {
+      "bytes": 6898,
+      "sha256": "3b7a2d7cea23506fbd035fa70a3edf99e8847a642a8b2d1e0ad24e287dd1da5d"
+    },
+    "P13.دقت-اعشار-غیرعدد": {
+      "bytes": 9706,
+      "sha256": "ef7e66e4c387e4a3249f603ff35c4693f4857a95dfd3d83899bc7c51fc1ae2f6"
+    },
+    "P14.پلاگین-روی-نمودار-میله‌ای": {
+      "bytes": 8038,
+      "sha256": "ce708ee877d6b14b3b95b1dfa214e58a23229a1be9ce4a936534637e23ce27d0"
+    },
+    "P15.meta-نال": {
+      "bytes": 6898,
+      "sha256": "3b7a2d7cea23506fbd035fa70a3edf99e8847a642a8b2d1e0ad24e287dd1da5d"
+    },
+    "P16.x-غیرعدد-در-متد‌داده": {
+      "bytes": 8038,
+      "sha256": "9cbd86fbda87aba833563330ca7656d6f7ee61fa6f9ca863aa50db3b24214361"
+    },
+    "P17.زنجیرهٔ-رنگ-پیش‌فرض": {
+      "bytes": 10279,
+      "sha256": "d3af8503bece8b38e5a8411dc08958735c067236b22ed1acd7ac4a71da5ffb7a"
+    },
+    "P18.پیکربندی-نمودارها-و-پس‌رو": {
+      "bytes": 9754,
+      "sha256": "96d90252ffa68f1ce7140eacd62859f6d5e9e2a4e42d8e60e190726bdfc4aa43"
+    }
+  }
+}
