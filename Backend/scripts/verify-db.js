@@ -81,6 +81,8 @@ const EXPECTED_COLUMNS = {
     "failed_login_attempts",
     "locked_until",
     "online_status",
+    // ✅ تنظیمات شخصی کاربر (مایگریشن 20261003000000)
+    "preferences",
   ],
   customer_personal_information: [
     "customer_code",

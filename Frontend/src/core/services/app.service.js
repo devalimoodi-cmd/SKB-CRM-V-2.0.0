@@ -47,6 +47,20 @@ class AppService {
         requiresPermission: "customers.list.view",
         feature: "customer-list",
       },
+      // ✅ صفحهٔ پروفایل کاربر (هر نقشِ لاگین‌شده)
+      profile: {
+        title: "پروفایل من",
+        requiresAuth: true,
+        requiresAdmin: false,
+        feature: "profile",
+      },
+      // ✅ صفحهٔ تنظیمات حساب کاربری (هر نقشِ لاگین‌شده)
+      settings: {
+        title: "تنظیمات حساب",
+        requiresAuth: true,
+        requiresAdmin: false,
+        feature: "settings",
+      },
       sms: {
         title: "مدیریت پیامک‌ها",
         requiresAuth: true,
@@ -248,6 +262,10 @@ class AppService {
       "/customer-info.html": "customer-info",
       "/customers": "customer-list",
       "/customer-list.html": "customer-list",
+      "/profile": "profile",
+      "/profile.html": "profile",
+      "/settings": "settings",
+      "/settings.html": "settings",
       "/sms": "sms",
       "/sms.html": "sms",
       "/login": "login",

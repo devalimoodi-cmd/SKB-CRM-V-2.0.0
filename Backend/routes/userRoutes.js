@@ -59,6 +59,26 @@ router.post(
   userController.unlockUser,
 );
 
+// ===== تغییر رمز عبور (خودِ کاربر یا ادمین‌ها) =====
+// ⚠️ باید قبل از مسیر عمومی «/:id» ثبت شود تا با آن تلاقی نکند
+router.put(
+  "/:id/change-password",
+  authorizeSelfOr(...ADMIN_ROLES),
+  userController.changePassword,
+);
+
+// ===== تنظیمات کاربر (preferences) — خودِ کاربر یا ادمین‌ها =====
+router.get(
+  "/:id/preferences",
+  authorizeSelfOr(...ADMIN_ROLES),
+  userController.getUserPreferences,
+);
+router.put(
+  "/:id/preferences",
+  authorizeSelfOr(...ADMIN_ROLES),
+  userController.updateUserPreferences,
+);
+
 // ===== مشاهده/ویرایش (خودِ کاربر یا ادمین‌ها) =====
 router.get("/:id", authorizeSelfOr(...ADMIN_ROLES), userController.getUserById);
 router.put(

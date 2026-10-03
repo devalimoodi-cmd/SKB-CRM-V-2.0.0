@@ -90,6 +90,10 @@ class ApiService {
         if (response.status === 403) {
           this.notifyPermissionDenied(endpoint, errorData);
         }
+        // ✅ ۵۰۲ = بکاند در دسترس نیست (پروکسی فرانت این پرچم را می‌دهد)
+        if (response.status === 502 && errorData.serverUnavailable === true) {
+          this.notifyServerUnavailable(endpoint);
+        }
         throw new Error(
           errorData.message || `HTTP error! status: ${response.status}`,
         );
@@ -117,6 +121,32 @@ class ApiService {
     import("./permission.service.js")
       .then(({ permissionService }) =>
         permissionService.handleForbidden(errorData),
+      )
+      .catch(() => {
+        /* بی‌صدا */
+      });
+  }
+
+  // ============================================================
+  // ✅ «سرور در دسترس نیست» (بک‌اند خواب) ⇒ پیام یک‌باره و ضدنکرار
+  // ------------------------------------------------------------
+  // پروکسی فرانت هنگام شکست ارتباط با بک‌اند، ۵۰۲ با پرچم
+  // serverUnavailable=true برمی‌گرداند؛ اینجا فقط یک توست کوچک
+  // به کاربر نشان می‌دهیم (با سقف نرخ) تا دلیل خطا روشن باشد.
+  // ============================================================
+  notifyServerUnavailable(endpoint) {
+    if (String(endpoint || "").includes("/permissions/me")) return;
+
+    import("./notification.service.js")
+      .then(({ notificationService }) =>
+        notificationService.notifyOnce({
+          key: "server-unavailable",
+          message:
+            "⚠️ ارتباط با سرور برقرار نشد. لطفاً از اجرا بودن بک‌اند مطمئن شوید.",
+          type: "error",
+          cooldownMs: 30000,
+          maxPerMinute: 3,
+        }),
       )
       .catch(() => {
         /* بی‌صدا */
@@ -250,6 +280,9 @@ class ApiService {
         if (response.status === 403) {
           this.notifyPermissionDenied(endpoint, errorData);
         }
+        if (response.status === 502 && errorData.serverUnavailable === true) {
+          this.notifyServerUnavailable(endpoint);
+        }
         throw new Error(
           errorData.message || `HTTP error! status: ${response.status}`,
         );
@@ -329,6 +362,9 @@ class ApiService {
         }
         if (response.status === 403) {
           this.notifyPermissionDenied(endpoint, errorData);
+        }
+        if (response.status === 502 && errorData.serverUnavailable === true) {
+          this.notifyServerUnavailable(endpoint);
         }
         throw new Error(
           errorData.message || `HTTP error! status: ${response.status}`,

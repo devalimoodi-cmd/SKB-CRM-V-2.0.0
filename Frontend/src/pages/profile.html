@@ -1,0 +1,237 @@
+<!-- pages/profile.html — پروفایل کاربر -->
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>پروفایل من | سامانه مدیریت مشتریان ستاره کیان بیرجند</title>
+
+    <!-- ===== Vendor Styles ===== -->
+    <link rel="stylesheet" href="./../../node_modules/bootstrap/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="./../../node_modules/@fortawesome/fontawesome-free/css/all.min.css">
+
+    <!-- ===== Core Styles ===== -->
+    <link rel="stylesheet" href="/styles/global.css">
+    <link rel="stylesheet" href="/styles/info-pages.css">
+
+    <!-- ===== Layouts ===== -->
+    <link rel="stylesheet" href="./../shared/layouts/Header/header.css">
+    <link rel="stylesheet" href="./../shared/layouts/Footer/footer.css">
+
+    <!-- ===== Feature Styles ===== -->
+    <link rel="stylesheet" href="/features/user-account/user-account.css">
+    <link rel="stylesheet" href="/features/profile/profile.css">
+
+    <link rel="icon" type="image/png" href="/assets/images/favicon.ico">
+</head>
+
+<body>
+    <!-- ===== HEADER ===== -->
+    <header id="main-header"></header>
+
+    <main class="account-page">
+        <!-- ===== سرصفحهٔ پروفایل ===== -->
+        <section class="account-hero">
+            <div class="account-hero__avatar">
+                <img id="profileAvatar" src="/assets/images/default-avatar.png" alt="عکس پروفایل">
+                <button type="button" class="account-hero__avatar-edit" id="profileAvatarEdit"
+                    title="تغییر عکس پروفایل">
+                    <i class="fas fa-camera"></i>
+                </button>
+            </div>
+            <input type="file" id="profileImageInput" accept="image/*" hidden>
+
+            <div class="account-hero__info">
+                <h1 class="account-hero__name" id="profileName">…</h1>
+                <div class="account-hero__meta">
+                    <span><i class="fas fa-user"></i><span id="profileUsername">—</span></span>
+                    <span><i class="fas fa-clock"></i>آخرین ورود: <span id="profileLastLogin">—</span></span>
+                </div>
+                <div class="account-hero__badges" id="profileBadges"></div>
+            </div>
+        </section>
+
+        <!-- ===== بدنه ===== -->
+        <div class="account-layout">
+            <!-- ===== ستون اصلی: اطلاعات قابل ویرایش ===== -->
+            <div class="account-col">
+                <div class="account-card">
+                    <div class="account-card__head">
+                        <i class="fas fa-id-card"></i>
+                        <span>اطلاعات شخصی</span>
+                    </div>
+                    <div class="account-card__body">
+                        <form id="profileForm" autocomplete="off">
+                            <div class="account-form-grid">
+                                <div class="account-field">
+                                    <label for="pfFirstName">نام</label>
+                                    <input type="text" id="pfFirstName" maxlength="100" required>
+                                </div>
+                                <div class="account-field">
+                                    <label for="pfLastName">نام خانوادگی</label>
+                                    <input type="text" id="pfLastName" maxlength="100" required>
+                                </div>
+                                <div class="account-field">
+                                    <label for="pfMobile">شماره موبایل</label>
+                                    <input type="tel" id="pfMobile" inputmode="numeric" maxlength="11"
+                                        placeholder="09xxxxxxxxx">
+                                    <span class="account-hint" id="pfMobileHint"></span>
+                                </div>
+                                <div class="account-field">
+                                    <label for="pfEmail">ایمیل</label>
+                                    <input type="email" id="pfEmail" maxlength="100" dir="ltr">
+                                </div>
+                                <div class="account-field">
+                                    <label for="pfPhone">تلفن ثابت</label>
+                                    <input type="tel" id="pfPhone" maxlength="20" dir="ltr">
+                                </div>
+                                <div class="account-field">
+                                    <label for="pfUsername">نام کاربری</label>
+                                    <input type="text" id="pfUsername" maxlength="100" dir="ltr">
+                                    <span class="account-hint">در صورت تغییر، برای ورود بعدی از نام کاربری جدید
+                                        استفاده کنید.</span>
+                                </div>
+                                <div class="account-field account-field--full">
+                                    <label for="pfAddress">آدرس</label>
+                                    <input type="text" id="pfAddress" maxlength="255">
+                                </div>
+                                <div class="account-field account-field--full">
+                                    <label for="pfBio">درباره من</label>
+                                    <textarea id="pfBio" rows="3" maxlength="500"></textarea>
+                                </div>
+                            </div>
+
+                            <div class="account-actions">
+                                <button type="submit" class="account-btn account-btn--primary" id="profileSaveBtn">
+                                    <i class="fas fa-save"></i> ذخیره تغییرات
+                                </button>
+                                <button type="button" class="account-btn account-btn--ghost" id="profileResetBtn">
+                                    <i class="fas fa-undo"></i> بازگردانی
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="account-card">
+                    <div class="account-card__head">
+                        <i class="fas fa-shield-halved"></i>
+                        <span>دسترسی‌های شما</span>
+                    </div>
+                    <div class="account-card__body">
+                        <div class="account-chips" id="profilePermissions">
+                            <div class="account-empty">در حال بارگذاری…</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== ستون کناری ===== -->
+            <div class="account-col">
+                <div class="account-card">
+                    <div class="account-card__head">
+                        <i class="fas fa-circle-info"></i>
+                        <span>اطلاعات حساب</span>
+                    </div>
+                    <div class="account-card__body" id="profileAccountInfo">
+                        <div class="account-empty">در حال بارگذاری…</div>
+                    </div>
+                </div>
+
+                <div class="account-card">
+                    <div class="account-card__head">
+                        <i class="fas fa-bolt"></i>
+                        <span>دسترسی سریع</span>
+                    </div>
+                    <div class="account-card__body">
+                        <div class="account-link-list">
+                            <a class="account-link" href="/settings">
+                                <i class="fas fa-gear"></i>
+                                <span>تنظیمات حساب کاربری</span>
+                                <i class="fas fa-chevron-left"></i>
+                            </a>
+                            <button type="button" class="account-link" id="profileOpenMessages">
+                                <i class="fas fa-comments"></i>
+                                <span>نظرات و پیشنهادات</span>
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                            <button type="button" class="account-link" id="profileOpenWhatsNew">
+                                <i class="fas fa-gift"></i>
+                                <span>تغییرات جدید</span>
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                            <a class="account-link" href="/help">
+                                <i class="fas fa-circle-question"></i>
+                                <span>راهنما</span>
+                                <i class="fas fa-chevron-left"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer id="main-footer"></footer>
+
+
+    <!-- ===== Vendor Scripts ===== -->
+    <script src="./../../node_modules/jquery/dist/jquery.min.js"></script>
+    <script src="./../../node_modules/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="./../../node_modules/sweetalert2/dist/sweetalert2.all.min.js"></script>
+
+    <!-- ===== Core ===== -->
+    <script type="module" src="/core/constants/api.const.js"></script>
+    <script type="module" src="/core/constants/config.const.js"></script>
+    <script type="module" src="/core/services/cache.service.js"></script>
+    <script type="module" src="/core/services/api.service.js"></script>
+    <script type="module" src="/core/services/auth.service.js"></script>
+    <script type="module" src="/core/services/state.service.js"></script>
+    <script type="module" src="/core/services/notification.service.js"></script>
+    <script type="module" src="/core/services/router.service.js"></script>
+    <script type="module" src="/core/utils/date.utils.js"></script>
+    <script type="module" src="/core/utils/string.utils.js"></script>
+    <script type="module" src="/core/utils/dom.utils.js"></script>
+
+    <!-- ===== Layouts ===== -->
+    <script type="module" src="/shared/layouts/Header/header.service.js"></script>
+    <script type="module" src="/shared/layouts/Header/header-bookmarks.service.js"></script>
+    <script type="module" src="/shared/layouts/Header/header-dropdown.service.js"></script>
+    <script type="module" src="/shared/layouts/Footer/footer.service.js"></script>
+
+    <!-- ===== Messages / What's New (هدر) ===== -->
+    <script type="module" src="/features/messages/messages.api.js"></script>
+    <script type="module" src="/features/messages/messages.service.js"></script>
+    <script type="module" src="/features/whats-new/whats-new.service.js"></script>
+
+    <!-- ===== Feature ===== -->
+    <script type="module" src="/features/user-account/user-account.api.js"></script>
+    <script type="module" src="/features/profile/profile.renderer.js"></script>
+    <script type="module" src="/features/profile/profile.service.js"></script>
+
+    <!-- ===== App ===== -->
+    <script type="module" src="/core/services/app.service.js"></script>
+
+    <!-- ===== Init ===== -->
+    <script>
+        document.addEventListener('DOMContentLoaded', async function () {
+            try {
+                if (typeof profileService !== 'undefined') {
+                    await profileService.init();
+                }
+            } catch (error) {
+                console.error('❌ Error initializing profile page:', error);
+            } finally {
+                const overlay = document.getElementById('pageLoadingOverlay');
+                if (overlay) {
+                    overlay.style.opacity = '0';
+                    setTimeout(() => { overlay.style.display = 'none'; }, 500);
+                }
+            }
+        });
+    </script>
+</body>
+
+</html>
+

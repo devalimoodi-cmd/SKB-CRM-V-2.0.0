@@ -392,7 +392,7 @@ app.use((req, res, next) => {
 // - پاسخ: همان‌طور که هست (JSON/فایل/متن) بدون تغییر
 // ============================================
 
-const { Readable } = require("node:stream");
+const { Readable, pipeline } = require("node:stream");
 
 // ✅ لاگ خطاهای پروکسی در فایل (برای تشخیص «بک‌اند خواب است»)
 const LOG_DIR = path.join(__dirname, "logs");
@@ -407,6 +407,39 @@ const logProxyError = (message) => {
     /* بی‌صدا رد شو - لاگ نباید خودش خطا بدهد */
   }
 };
+
+// ============================================================
+// ✅ اتصال امن استریم بالادست به پاسخ HTTP (بدون کرش پروسه)
+// ------------------------------------------------------------
+// چرا: متد `pipe()` رویداد 'error' استریم مبدأ را به مقصد منتقل نمی‌کند؛
+// پس اگر استریم بالادست بعداً خطا بدهد (تایم‌اوت، قطع بک‌اند، بستن
+// کلاینت)، روی Readable یک 'error' بدون هندلر رخ می‌دهد و **کل پروسه
+// سرور فرانت کرش می‌کند**. `pipeline()` خطای همهٔ استریم‌ها را هندل می‌کند.
+// ============================================================
+const pipeUpstream = (webBody, res, label) => {
+  const source = Readable.fromWeb(webBody);
+
+  pipeline(source, res, (err) => {
+    if (!err) return;
+
+    // خطاهای پرتکرار و بی‌خطر (قطع کلاینت / بسته‌شدن استریم)
+    const code = err.code || err.name;
+    const benign =
+      code === "ERR_STREAM_PREMATURE_CLOSE" ||
+      code === "ECONNRESET" ||
+      code === "ERR_STREAM_DESTROYED" ||
+      code === "EPIPE" ||
+      err.name === "AbortError";
+    if (benign) return;
+
+    console.error(`❌ stream error (${label}):`, err.message);
+    logProxyError(`[stream] ${label} -> ${code}: ${err.message}`);
+  });
+};
+
+// ✅ حداکثر زمان انتظار برای فایل‌های آپلودی (تصاویر/پیوست‌ها)
+// کوتاه‌تر از تایم‌اوت API تا «بک‌اند خواب» سریع شکست بخورد.
+const UPLOADS_TIMEOUT_MS = Number(process.env.UPLOADS_TIMEOUT_MS || 15000);
 
 // ✅ حالت سخت‌گیرانهٔ پروکسی (PROXY_STRICT=true)
 // دلیل وجود: در حالت عادی، اگر API_URL اشتباه باشد یا بک‌اند اصلی بالا نباشد،
@@ -505,6 +538,13 @@ app.use("/api", async (req, res) => {
     ),
   ];
 
+  // ✅ اگر کلاینت وسط پاسخ قطع شد، فچِ بالادست هم لغو شود
+  // (res.writableFinished یعنی پاسخ کامل فلاش شده؛ در غیر این صورت = قطع کلاینت)
+  const clientAbort = new AbortController();
+  res.on("close", () => {
+    if (!res.writableFinished) clientAbort.abort();
+  });
+
   let lastError = null;
 
   for (const base of targets) {
@@ -516,7 +556,10 @@ app.use("/api", async (req, res) => {
         headers: buildForwardHeaders(req),
         body,
         duplex,
-        signal: AbortSignal.timeout(PROXY_TIMEOUT_MS),
+        signal: AbortSignal.any([
+          AbortSignal.timeout(PROXY_TIMEOUT_MS),
+          clientAbort.signal,
+        ]),
       });
 
       activeApiTarget = base;
@@ -531,22 +574,35 @@ app.use("/api", async (req, res) => {
         res.setHeader("Content-Disposition", resDisposition);
       }
 
-      if (!response.body) return res.end();
+      if (!response.body) {
+        res.end();
+        return;
+      }
 
       // ✅ پاسخ را همان‌طور که هست (JSON یا فایل) عبور بده
-      return Readable.fromWeb(response.body).pipe(res);
+      // (pipeline خطای استریم را هندل می‌کند → بدون کرش)
+      pipeUpstream(response.body, res, `[api] ${targetUrl}`);
+      return;
     } catch (error) {
       lastError = error;
       if (activeApiTarget === base) activeApiTarget = null;
+
+      // اگر استریم شروع شده باشد، دیگر امکان ارسال پاسخ خطا نیست
+      if (res.headersSent) return;
+
       const failMsg = `${req.method} ${targetUrl} → ${error.message}`;
       console.error(`❌ Proxy failed (${base}):`, error.message);
       logProxyError(failMsg);
     }
   }
 
+  if (res.headersSent) return;
+
   res.status(502).json({
     success: false,
-    message: "خطا در ارتباط با سرور",
+    serverUnavailable: true,
+    message:
+      "ارتباط با سرور اصلی برقرار نشد. لطفاً از اجرا بودن بک‌اند مطمئن شوید.",
     error: lastError ? lastError.message : "Unknown error",
   });
 });
@@ -558,6 +614,12 @@ app.use("/api", async (req, res) => {
 app.use("/uploads", async (req, res) => {
   const filePath = req.originalUrl.replace(/^\/uploads/, "") || "/";
 
+  // ✅ لغو فچِ بالادست با قطع‌شدن کلاینت (جلوگیری از استریم معلق)
+  const clientAbort = new AbortController();
+  res.on("close", () => {
+    if (!res.writableFinished) clientAbort.abort();
+  });
+
   for (const base of API_TARGETS) {
     const origin = base.replace(/\/api\/?$/, "");
     const targetUrl = `${origin}/uploads${filePath}`;
@@ -566,10 +628,21 @@ app.use("/uploads", async (req, res) => {
       const response = await fetch(targetUrl, {
         method: req.method,
         headers: buildForwardHeaders(req),
-        signal: AbortSignal.timeout(60000),
+        signal: AbortSignal.any([
+          AbortSignal.timeout(UPLOADS_TIMEOUT_MS),
+          clientAbort.signal,
+        ]),
       });
 
-      if (response.status === 404) continue; // شاید روی تارگت دیگری باشد
+      if (response.status === 404) {
+        // بدنهٔ پاسخ این تارگت را آزاد کن و تارگت بعدی را امتحان کن
+        try {
+          await response.body?.cancel();
+        } catch {
+          /* بی‌صدا */
+        }
+        continue;
+      }
 
       res.status(response.status);
 
@@ -577,16 +650,23 @@ app.use("/uploads", async (req, res) => {
       if (resContentType) res.setHeader("Content-Type", resContentType);
       res.setHeader("Cache-Control", "public, max-age=86400");
 
-      if (!response.body) return res.end();
+      if (!response.body) {
+        res.end();
+        return;
+      }
 
-      return Readable.fromWeb(response.body).pipe(res);
+      // ✅ pipeline خطای استریم را هندل می‌کند → بدون کرش پروسه
+      pipeUpstream(response.body, res, `[uploads] ${targetUrl}`);
+      return;
     } catch (error) {
       console.error(`❌ Uploads proxy failed (${targetUrl}):`, error.message);
       logProxyError(`[uploads] ${req.method} ${targetUrl} -> ${error.message}`);
     }
   }
 
-  res.status(404).json({ success: false, message: "File not found" });
+  if (!res.headersSent) {
+    res.status(404).json({ success: false, message: "File not found" });
+  }
 });
 
 // ============================================
@@ -649,6 +729,16 @@ app.get("/customer-list.html", (req, res) => {
   res.sendFile(path.join(srcPath, "pages", "customer-list.html"));
 });
 
+// ===== صفحهٔ پروفایل کاربر (خودِ کاربر) =====
+app.get(["/profile", "/profile.html"], (req, res) => {
+  res.sendFile(path.join(srcPath, "pages", "profile.html"));
+});
+
+// ===== صفحهٔ تنظیمات حساب کاربری (خودِ کاربر) =====
+app.get(["/settings", "/settings.html"], (req, res) => {
+  res.sendFile(path.join(srcPath, "pages", "settings.html"));
+});
+
 // ===== صفحه‌های اطلاعاتی (عمومی، بدون نیاز به ورود) =====
 app.get(["/about", "/about.html"], (req, res) => {
   res.sendFile(path.join(srcPath, "pages", "about.html"));
@@ -687,6 +777,23 @@ app.get("/setup-admin.html", (req, res) => {
 // ============================================
 app.use((req, res) => {
   res.status(404).sendFile(path.join(srcPath, "pages", "404.html"));
+});
+
+// ============================================
+// ✅ شبکهٔ ایمنی سراسری (دفاعی)
+// ------------------------------------------------------------
+// هر خطای هندل‌نشده فقط لاگ می‌شود و پروسهٔ سرور فرانت را نمی‌کشد
+// (مثلاً خطای استریم پروکسی / قطع بک‌اند). هدف: سایت حتی وقتی
+// بک‌اند خواب است، بالا بماند و فقط خطای ۵۰۲ به کاربر بدهد.
+// ============================================
+process.on("uncaughtException", (error) => {
+  console.error("❌ uncaughtException:", error?.message || error);
+  logProxyError(`[uncaughtException] ${error?.stack || error?.message || error}`);
+});
+
+process.on("unhandledRejection", (reason) => {
+  console.error("❌ unhandledRejection:", reason?.message || reason);
+  logProxyError(`[unhandledRejection] ${reason?.message || reason}`);
 });
 
 // ============================================

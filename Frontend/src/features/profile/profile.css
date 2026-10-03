@@ -1,0 +1,24 @@
+/* ============================================================
+   features/profile/profile.css
+   تنظیمات ظاهری اختصاصی صفحهٔ «پروفایل من»
+   (پایه‌ها در user-account.css است)
+   ============================================================ */
+
+#pfBio {
+  resize: vertical;
+  min-height: 70px;
+  line-height: 1.7;
+}
+
+/* در نمایشگرهای کوچک، سرصفحه عمودی شود */
+@media (max-width: 620px) {
+  .account-hero {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .account-hero__meta,
+  .account-hero__badges {
+    justify-content: center;
+  }
+}

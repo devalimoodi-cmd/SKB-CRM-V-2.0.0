@@ -17,6 +17,8 @@ export const API_CONSTANTS = {
       DELETE: "/users/:id",
       RESET_TOKEN: "/users/:id/reset-token",
       ONLINE_STATUS: "/users/:id/online-status",
+      // ✅ تنظیمات شخصی کاربر (preferences) — ذخیره‌سازی سمت سرور
+      PREFERENCES: "/users/:id/preferences",
     },
     CUSTOMERS: {
       REGISTER: "/customers/register",

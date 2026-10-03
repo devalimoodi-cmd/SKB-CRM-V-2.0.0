@@ -448,6 +448,152 @@ const updateUser = async (req, res) => {
 };
 
 // ============================================
+// تغییر رمز عبور (خودِ کاربر یا ادمین‌ها)
+// ============================================
+// • برای تغییر رمز «خودِ کاربر» بررسی رمز فعلی اجباری است.
+// • برای ادمینی که رمز کاربر دیگری را عوض می‌کند، رمز فعلی لازم نیست.
+// • هش رمز به‌صورت خودکار با هوک beforeUpdate مدل User انجام می‌شود.
+const changePassword = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const currentPassword = req.body?.currentPassword;
+    const newPassword = req.body?.newPassword;
+
+    if (!newPassword) {
+      return errorResponse(res, "رمز عبور جدید الزامی است", 400);
+    }
+    if (String(newPassword).length < 6) {
+      return errorResponse(res, "رمز عبور جدید باید حداقل 6 کاراکتر باشد", 400);
+    }
+
+    const user = await User.findByPk(id);
+    if (!user) return errorResponse(res, "کاربر یافت نشد", 404);
+
+    const isSelf = String(req.user?.id) === String(id);
+
+    if (isSelf) {
+      if (!currentPassword) {
+        return errorResponse(res, "رمز عبور فعلی الزامی است", 400);
+      }
+      const isCorrect = await user.comparePassword(currentPassword);
+      if (!isCorrect) {
+        return errorResponse(res, "رمز عبور فعلی اشتباه است", 400);
+      }
+      if (String(currentPassword) === String(newPassword)) {
+        return errorResponse(res, "رمز جدید نباید با رمز فعلی یکسان باشد", 400);
+      }
+    }
+
+    // ✅ رمز جدید (هش خودکار توسط هوک مدل)
+    await user.update({ password: newPassword });
+
+    // ✅ باطل‌کردن نشست‌های قبلی: توکن تازه صادر می‌شود
+    //    (اگر ENFORCE_SINGLE_SESSION=true باشد، دستگاه‌های دیگر خارج می‌شوند)
+    const newToken = user.generateToken();
+    await user.update({
+      token: newToken,
+      token_expires_at: getTokenExpiryDate(),
+    });
+
+    successResponse(
+      res,
+      { token: newToken },
+      "رمز عبور با موفقیت تغییر کرد",
+    );
+  } catch (error) {
+    console.error("خطا در تغییر رمز عبور:", error);
+    if (error.name === "SequelizeValidationError") {
+      return errorResponse(res, error.errors[0].message, 400);
+    }
+    errorResponse(res, error.message, 500);
+  }
+};
+
+// ============================================
+// تنظیمات کاربر (preferences)
+// ============================================
+// ساختار سبک کلید/مقدار روی ستون JSONB مدل User.
+// فقط کلیدهای مجاز ذخیره می‌شوند تا از آلودگی داده جلوگیری شود.
+const ALLOWED_PREFERENCE_KEYS = [
+  "toastEnabled",
+  "notifyMessages",
+  "dashboardChartLayout",
+  "analysisLayout",
+  "chartLabelStyle",
+  "theme",
+];
+
+const sanitizePreferences = (input) => {
+  const out = {};
+  if (!input || typeof input !== "object" || Array.isArray(input)) return out;
+  ALLOWED_PREFERENCE_KEYS.forEach((key) => {
+    if (Object.prototype.hasOwnProperty.call(input, key)) {
+      out[key] = input[key];
+    }
+  });
+  return out;
+};
+
+// مقداردهی ستون: اگر ستون preferences وجود نداشته باشد (مایگریشن اجرا نشده)،
+// با خطای واضح پاسخ می‌دهیم تا فرانت بتواند به localStorage برگردد.
+const isMissingPreferencesColumn = (error) =>
+  /column .*preferences.* does not exist|preferences/i.test(
+    String(error?.message || ""),
+  ) && error?.name === "SequelizeDatabaseError";
+
+const getUserPreferences = async (req, res) => {
+  try {
+    const user = await User.findByPk(req.params.id, {
+      attributes: ["id", "preferences"],
+    });
+    if (!user) return errorResponse(res, "کاربر یافت نشد", 404);
+
+    const prefs =
+      user.preferences && typeof user.preferences === "object"
+        ? user.preferences
+        : {};
+    successResponse(res, prefs, "تنظیمات کاربر دریافت شد");
+  } catch (error) {
+    if (isMissingPreferencesColumn(error)) {
+      return errorResponse(
+        res,
+        "ستون preferences آماده نیست؛ مایگریشن را اجرا کنید",
+        409,
+      );
+    }
+    console.error("خطا در دریافت تنظیمات کاربر:", error);
+    errorResponse(res, error.message, 500);
+  }
+};
+
+const updateUserPreferences = async (req, res) => {
+  try {
+    const user = await User.findByPk(req.params.id);
+    if (!user) return errorResponse(res, "کاربر یافت نشد", 404);
+
+    const current =
+      user.preferences && typeof user.preferences === "object"
+        ? user.preferences
+        : {};
+    const patch = sanitizePreferences(req.body);
+    const merged = { ...current, ...patch };
+
+    await user.update({ preferences: merged });
+    successResponse(res, merged, "تنظیمات کاربر ذخیره شد");
+  } catch (error) {
+    if (isMissingPreferencesColumn(error)) {
+      return errorResponse(
+        res,
+        "ستون preferences آماده نیست؛ مایگریشن را اجرا کنید",
+        409,
+      );
+    }
+    console.error("خطا در ذخیره تنظیمات کاربر:", error);
+    errorResponse(res, error.message, 500);
+  }
+};
+
+// ============================================
 // حذف کاربر
 // ============================================
 const deleteUser = async (req, res) => {
@@ -685,4 +831,9 @@ module.exports = {
   updateOnlineStatus,
   logoutUser,
   unlockUser,
+  // ✅ تغییر رمز عبور (خودِ کاربر یا ادمین‌ها)
+  changePassword,
+  // ✅ تنظیمات کاربر (preferences)
+  getUserPreferences,
+  updateUserPreferences,
 };

@@ -162,6 +162,14 @@ const User = sequelize.define(
       defaultValue: true,
       field: "isActive",
     },
+    // ✅ تنظیمات شخصی کاربر (JSONB) — توست/اعلان‌ها/چیدمان نمودار/تم
+    // ساختار کلید/مقدار سبک؛ کلیدهای مجاز در userController کنترل می‌شوند.
+    preferences: {
+      type: DataTypes.JSONB,
+      allowNull: true,
+      defaultValue: {},
+      field: "preferences",
+    },
   },
 
   {

@@ -1,0 +1,290 @@
+<!-- pages/settings.html — تنظیمات حساب کاربری -->
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تنظیمات حساب | سامانه مدیریت مشتریان ستاره کیان بیرجند</title>
+
+    <!-- ===== Vendor Styles ===== -->
+    <link rel="stylesheet" href="./../../node_modules/bootstrap/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="./../../node_modules/@fortawesome/fontawesome-free/css/all.min.css">
+
+    <!-- ===== Core Styles ===== -->
+    <link rel="stylesheet" href="/styles/global.css">
+    <link rel="stylesheet" href="/styles/info-pages.css">
+
+    <!-- ===== Layouts ===== -->
+    <link rel="stylesheet" href="./../shared/layouts/Header/header.css">
+    <link rel="stylesheet" href="./../shared/layouts/Footer/footer.css">
+
+    <!-- ===== Feature Styles ===== -->
+    <link rel="stylesheet" href="/features/user-account/user-account.css">
+    <link rel="stylesheet" href="/features/settings/settings.css">
+
+    <link rel="icon" type="image/png" href="/assets/images/favicon.ico">
+</head>
+
+<body>
+    <!-- ===== HEADER ===== -->
+    <header id="main-header"></header>
+
+    <main class="account-page">
+        <!-- ===== سرصفحهٔ تنظیمات ===== -->
+        <section class="account-hero">
+            <div class="account-hero__avatar" style="display:flex;align-items:center;justify-content:center;">
+                <i class="fas fa-gear" style="font-size:38px;color:#2c7a6e;"></i>
+            </div>
+            <div class="account-hero__info">
+                <h1 class="account-hero__name">تنظیمات حساب کاربری</h1>
+                <div class="account-hero__meta">
+                    <span><i class="fas fa-user-gear"></i>شخصی‌سازی امنیت، اعلان‌ها و ظاهر حساب شما</span>
+                </div>
+            </div>
+        </section>
+
+        <div class="account-layout">
+            <!-- ===== ستون اصلی ===== -->
+            <div class="account-col">
+                <!-- ===== امنیت حساب ===== -->
+                <div class="account-card">
+                    <div class="account-card__head">
+                        <i class="fas fa-lock"></i>
+                        <span>تغییر رمز عبور</span>
+                    </div>
+                    <div class="account-card__body">
+                        <form id="settingsPasswordForm" autocomplete="off">
+                            <div class="account-form-grid">
+                                <div class="account-field account-field--full">
+                                    <label for="spCurrent">رمز عبور فعلی</label>
+                                    <input type="password" id="spCurrent" maxlength="100" required>
+                                </div>
+                                <div class="account-field">
+                                    <label for="spNew">رمز عبور جدید</label>
+                                    <input type="password" id="spNew" maxlength="100" required>
+                                    <span class="account-hint">حداقل ۶ کاراکتر</span>
+                                </div>
+                                <div class="account-field">
+                                    <label for="spConfirm">تکرار رمز جدید</label>
+                                    <input type="password" id="spConfirm" maxlength="100" required>
+                                    <span class="account-hint" id="spConfirmHint"></span>
+                                </div>
+                            </div>
+                            <div class="account-actions">
+                                <button type="submit" class="account-btn account-btn--primary"
+                                    id="settingsPasswordSaveBtn">
+                                    <i class="fas fa-key"></i> تغییر رمز عبور
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- ===== اعلان‌ها ===== -->
+                <div class="account-card">
+                    <div class="account-card__head">
+                        <i class="fas fa-bell"></i>
+                        <span>اعلان‌ها و نمایش</span>
+                    </div>
+                    <div class="account-card__body">
+                        <div class="account-toggle-row">
+                            <div class="account-toggle-row__text">
+                                <span class="account-toggle-row__title">نمایش پیام‌های کوتاه (توست)</span>
+                                <span class="account-toggle-row__desc">پیام‌های موفقیت/خطا به‌صورت توست کوچک نمایش داده
+                                    شوند</span>
+                            </div>
+                            <label class="account-switch">
+                                <input type="checkbox" id="prefToastEnabled">
+                                <span class="account-switch__slider"></span>
+                            </label>
+                        </div>
+
+                        <div class="account-toggle-row">
+                            <div class="account-toggle-row__text">
+                                <span class="account-toggle-row__title">اعلان پیام‌های «نظرات و پیشنهادات»</span>
+                                <span class="account-toggle-row__desc">با پاسخ جدید ادمین مطلع شوم</span>
+                            </div>
+                            <label class="account-switch">
+                                <input type="checkbox" id="prefNotifyMessages">
+                                <span class="account-switch__slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ===== ظاهر و چیدمان ===== -->
+                <div class="account-card">
+                    <div class="account-card__head">
+                        <i class="fas fa-palette"></i>
+                        <span>ظاهر و چیدمان</span>
+                    </div>
+                    <div class="account-card__body">
+                        <div class="account-toggle-row">
+                            <div class="account-toggle-row__text">
+                                <span class="account-toggle-row__title">حالت نمایش تم</span>
+                                <span class="account-toggle-row__desc">روشن، تیره یا مطابق سیستم‌عامل</span>
+                            </div>
+                            <div class="account-seg" id="settingsThemeSeg">
+                                <button type="button" data-theme-value="light"><i class="fas fa-sun"></i>روشن</button>
+                                <button type="button" data-theme-value="dark"><i class="fas fa-moon"></i>تیره</button>
+                                <button type="button" data-theme-value="system"><i
+                                        class="fas fa-desktop"></i>سیستم</button>
+                            </div>
+                        </div>
+
+                        <div class="account-toggle-row">
+                            <div class="account-toggle-row__text">
+                                <span class="account-toggle-row__title">چیدمان نمودارهای داشبورد</span>
+                                <span class="account-toggle-row__desc">نمایش تمام‌عرض یا کنار هم</span>
+                            </div>
+                            <select id="selDashboardLayout" class="account-inline-select">
+                                <option value="full">تمام‌عرض</option>
+                                <option value="grid">کنار هم</option>
+                            </select>
+                        </div>
+
+                        <div class="account-toggle-row">
+                            <div class="account-toggle-row__text">
+                                <span class="account-toggle-row__title">چیدمان کارت‌های تحلیل مشتری</span>
+                                <span class="account-toggle-row__desc">چیدمان پیش‌فرض صفحهٔ تحلیل</span>
+                            </div>
+                            <select id="selAnalysisLayout" class="account-inline-select">
+                                <option value="stacked">عمودی (تک‌ستونه)</option>
+                                <option value="duo">دو ستونه</option>
+                                <option value="side">داشبوردی</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+            <!-- ===== ستون کناری ===== -->
+            <div class="account-col">
+                <!-- ===== امنیت نشست ===== -->
+                <div class="account-danger-zone">
+                    <h4><i class="fas fa-right-from-bracket"></i> امنیت نشست‌ها</h4>
+                    <p>
+                        با «خروج از همه دستگاه‌ها»، همهٔ نشست‌های فعال شما (در سایر مرورگرها و دستگاه‌ها)
+                        بسته می‌شود و باید دوباره وارد شوید.
+                    </p>
+                    <button type="button" class="account-btn account-btn--danger" id="settingsResetSessionsBtn">
+                        <i class="fas fa-power-off"></i> خروج از همه دستگاه‌ها
+                    </button>
+                </div>
+
+                <!-- ===== دسترسی سریع ===== -->
+                <div class="account-card">
+                    <div class="account-card__head">
+                        <i class="fas fa-bolt"></i>
+                        <span>دسترسی سریع</span>
+                    </div>
+                    <div class="account-card__body">
+                        <div class="account-link-list">
+                            <a class="account-link" href="/profile">
+                                <i class="fas fa-user"></i>
+                                <span>پروفایل من</span>
+                                <i class="fas fa-chevron-left"></i>
+                            </a>
+                            <button type="button" class="account-link" id="settingsOpenMessages">
+                                <i class="fas fa-comments"></i>
+                                <span>نظرات و پیشنهادات</span>
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                            <button type="button" class="account-link" id="settingsOpenWhatsNew">
+                                <i class="fas fa-gift"></i>
+                                <span>تغییرات جدید</span>
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ===== درباره ===== -->
+                <div class="account-card">
+                    <div class="account-card__head">
+                        <i class="fas fa-circle-info"></i>
+                        <span>درباره سامانه</span>
+                    </div>
+                    <div class="account-card__body">
+                        <div class="account-kv">
+                            <span class="account-kv__key">نام سامانه</span>
+                            <span class="account-kv__val account-kv__val--rtl">SKB-CRM ستاره کیان بیرجند</span>
+                        </div>
+                        <div class="account-kv">
+                            <span class="account-kv__key">نسخه</span>
+                            <span class="account-kv__val account-kv__val--ltr">2.0.0</span>
+                        </div>
+                        <div class="account-kv">
+                            <span class="account-kv__key">وضعیت ذخیره‌سازی تنظیمات</span>
+                            <span class="account-kv__val account-kv__val--rtl" id="settingsSaveStatus">—</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer id="main-footer"></footer>
+
+
+    <!-- ===== Vendor Scripts ===== -->
+    <script src="./../../node_modules/jquery/dist/jquery.min.js"></script>
+    <script src="./../../node_modules/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="./../../node_modules/sweetalert2/dist/sweetalert2.all.min.js"></script>
+
+    <!-- ===== Core ===== -->
+    <script type="module" src="/core/constants/api.const.js"></script>
+    <script type="module" src="/core/constants/config.const.js"></script>
+    <script type="module" src="/core/services/cache.service.js"></script>
+    <script type="module" src="/core/services/api.service.js"></script>
+    <script type="module" src="/core/services/auth.service.js"></script>
+    <script type="module" src="/core/services/state.service.js"></script>
+    <script type="module" src="/core/services/notification.service.js"></script>
+    <script type="module" src="/core/services/router.service.js"></script>
+    <script type="module" src="/core/utils/date.utils.js"></script>
+    <script type="module" src="/core/utils/string.utils.js"></script>
+    <script type="module" src="/core/utils/dom.utils.js"></script>
+
+    <!-- ===== Layouts ===== -->
+    <script type="module" src="/shared/layouts/Header/header.service.js"></script>
+    <script type="module" src="/shared/layouts/Header/header-bookmarks.service.js"></script>
+    <script type="module" src="/shared/layouts/Header/header-dropdown.service.js"></script>
+    <script type="module" src="/shared/layouts/Footer/footer.service.js"></script>
+
+    <!-- ===== Messages / What's New (هدر) ===== -->
+    <script type="module" src="/features/messages/messages.api.js"></script>
+    <script type="module" src="/features/messages/messages.service.js"></script>
+    <script type="module" src="/features/whats-new/whats-new.service.js"></script>
+
+    <!-- ===== Feature ===== -->
+    <script type="module" src="/features/user-account/user-account.api.js"></script>
+    <script type="module" src="/features/settings/settings.renderer.js"></script>
+    <script type="module" src="/features/settings/settings.service.js"></script>
+
+    <!-- ===== App ===== -->
+    <script type="module" src="/core/services/app.service.js"></script>
+
+    <!-- ===== Init ===== -->
+    <script>
+        document.addEventListener('DOMContentLoaded', async function () {
+            try {
+                if (typeof settingsService !== 'undefined') {
+                    await settingsService.init();
+                }
+            } catch (error) {
+                console.error('❌ Error initializing settings page:', error);
+            } finally {
+                const overlay = document.getElementById('pageLoadingOverlay');
+                if (overlay) {
+                    overlay.style.opacity = '0';
+                    setTimeout(() => { overlay.style.display = 'none'; }, 500);
+                }
+            }
+        });
+    </script>
+</body>
+
+</html>
+

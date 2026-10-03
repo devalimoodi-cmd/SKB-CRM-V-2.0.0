@@ -1,0 +1,36 @@
+/* ============================================================
+   features/settings/settings.css
+   تنظیمات ظاهری اختصاصی صفحهٔ «تنظیمات حساب»
+   (پایه‌ها در user-account.css است)
+   ============================================================ */
+
+.account-inline-select {
+  min-width: 150px;
+  padding: 8px 10px;
+  border: 1px solid var(--acc-border-strong);
+  border-radius: 10px;
+  background: var(--acc-surface-2);
+  color: var(--acc-text);
+  font-family: "Vazir", sans-serif;
+  font-size: 13px;
+  cursor: pointer;
+  outline: none;
+}
+
+.account-inline-select:focus {
+  border-color: var(--acc-primary);
+  box-shadow: 0 0 0 3px var(--acc-primary-soft);
+}
+
+/* در موبایل، ردیف‌های کلید/کنترل عمودی شوند */
+@media (max-width: 620px) {
+  .account-toggle-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .account-inline-select {
+    width: 100%;
+  }
+}
