@@ -249,7 +249,7 @@ export const dashboardSmsMethods = {
           html: `
             <div style="text-align: right; font-family: 'Vazir', sans-serif; padding: 5px;">
               <!-- اطلاعات گیرنده -->
-              <div style="display:flex; align-items:center; gap:10px; background: linear-gradient(135deg, var(--primary, #2c7a6e) 0%, var(--success-deeper, #065f46) 100%); color:#fff; padding:12px 16px; border-radius:10px; margin-bottom:14px;">
+              <div style="display:flex; align-items:center; gap:10px; background: linear-gradient(135deg, var(--primary, #2c7a6e) 0%, var(--success-deeper, #065f46) 100%); color:var(--c-fff, #fff); padding:12px 16px; border-radius:10px; margin-bottom:14px;">
                 <span style="font-size:22px;">👤</span>
                 <div>
                   <div style="font-size:14px; font-weight:700;">${customerName || "مشتری"}</div>
@@ -715,7 +715,7 @@ export const dashboardSmsMethods = {
             </div>
             <div style="display:flex; justify-content:center; margin-top:12px;">
               <button type="button" onclick="window.refreshSmsHistoryFromModal()"
-                      style="display:inline-flex; align-items:center; gap:6px; padding:8px 16px; border:none; border-radius:8px; background:var(--primary, #2c7a6e); color:#ffffff; font-family:'Vazir'; font-size:12px; font-weight:600; cursor:pointer; box-shadow:0 2px 8px rgba(var(--primary-rgb),0.25);">
+                      style="display:inline-flex; align-items:center; gap:6px; padding:8px 16px; border:none; border-radius:8px; background:var(--primary, #2c7a6e); color:var(--c-fff, #fff)fff; font-family:'Vazir'; font-size:12px; font-weight:600; cursor:pointer; box-shadow:0 2px 8px rgba(var(--primary-rgb),0.25);">
                 <i class="fas fa-sync-alt"></i> بروزرسانی وضعیت پیامک‌های قبلی
               </button>
             </div>

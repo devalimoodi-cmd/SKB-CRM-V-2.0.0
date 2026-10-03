@@ -141,9 +141,10 @@ walk(SRC, (file) => {
   if (!/\.(css|js|html)$/i.test(file)) return;
   const text = fs.readFileSync(file, "utf8");
   for (const m of text.matchAll(
-    /var\(--c-([0-9a-f]{3,8}),\s*(#[0-9a-fA-F]{3,8})\)/gi,
+    /var\(--[a-z0-9-]+,\s*(#[0-9a-fA-F]{3,8})\)/gi,
   )) {
-    refs.set(m[2].toLowerCase(), `--c-${m[1].toLowerCase()}`);
+    const hex = m[1].toLowerCase();
+    refs.set(hex, `--c-${hex.replace("#", "")}`);
   }
 });
 
@@ -181,15 +182,32 @@ const darkLines = allHexes.map(
   (hex) => `  ${map[hex].token}: ${map[hex].dark};`,
 );
 
+// ===== توکن‌های «مقیمِ تیره» برای پس‌زمینه‌های تیره (موج ۹) =====
+// رنگ‌هایی که در حالت روشن «تیره» هستند و در پس‌زمینه استفاده می‌شوند نباید
+// در تم تیره به رنگ روشن بپرند؛ برایشان توکن `-s` می‌سازیم که تیره می‌ماند.
+const luminanceOf = (hex) => {
+  const [r, g, b] = hexToRgb(hex);
+  return 0.299 * r + 0.587 * g + 0.114 * b;
+};
+const darkSources = allHexes.filter((h) => luminanceOf(h) < 110);
+const stayLight = darkSources.map((h) => `  --c-${h.replace("#", "")}-s: ${h};`);
+const stayDark = darkSources.map((h) => {
+  const [hh, ss, ll] = rgbToHsl(hexToRgb(h));
+  const shade = hslToHex([hh, clamp(ss, 0, 0.7), Math.min(0.34, ll + 0.1)]);
+  return `  --c-${h.replace("#", "")}-s: ${shade};`;
+});
+
 const block = [
   START,
-  "/* ===== توکن‌های تولیدشده (موج ۷) — رنگ‌های باقی‌مانده ===== */",
+  "/* ===== توکن‌های تولیدشده (موج ۷) + «مقیمِ تیره» (موج ۹) ===== */",
   ":root {",
   ...lightLines,
+  ...stayLight,
   "}",
   "",
   'html[data-theme="dark"] {',
   ...darkLines,
+  ...stayDark,
   "}",
   END,
 ].join("\n");

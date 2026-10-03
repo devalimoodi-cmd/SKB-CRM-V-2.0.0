@@ -161,6 +161,55 @@ const mapRgba = (str) =>
     },
   );
 
+// ✅ «پس‌زمینهٔ تیره»: توکن‌های فلیپ‌شونده‌ی رنگ‌های تیره در پس‌زمینه → توکن «مقیمِ تیره» (-s)
+const luminanceOfHex = (hex) => {
+  let h = String(hex).replace("#", "");
+  if (h.length === 3) h = h.split("").map((c) => c + c).join("");
+  const n = parseInt(h, 16);
+  const r = (n >> 16) & 255;
+  const g = (n >> 8) & 255;
+  const b = n & 255;
+  return 0.299 * r + 0.587 * g + 0.114 * b;
+};
+
+const DARK_SOURCE = new Set(
+  EFFECTIVE_HEX_MAP.filter(([hex]) => luminanceOfHex(hex) < 110).map(([hex]) =>
+    hex.toLowerCase(),
+  ),
+);
+
+const mapDarkBackgrounds = (str) =>
+  str.replace(
+    /(background(?:-color)?\s*:\s*)([^;}]+)/gi,
+    (_m, prop, value) => {
+      // ۱) شکل var() فقط برای توکن‌های تولیدشدهٔ --c-* → توکن «مقیمِ تیره»
+      //    (توکن‌های معنایی مثل --primary/--success مقدار تیرهٔ «طراحی‌شده» دارند و نباید عوض شوند)
+      let fixed = value.replace(
+        /var\(--c-[0-9a-f]{3,8},\s*(#[0-9a-fA-F]{3,8})\)/g,
+        (mm, hex) =>
+          DARK_SOURCE.has(hex.toLowerCase())
+            ? `var(--c-${hex.replace("#", "")}-s, ${hex})`
+            : mm,
+      );
+
+      // ۲) هگزهای خام (بیرون از var) → توکن «مقیمِ تیره»
+      const savedVars = [];
+      fixed = fixed.replace(/var\([^)]*\)/g, (m) => {
+        savedVars.push(m);
+        return `@@V${savedVars.length - 1}@@`;
+      });
+      for (const hex of DARK_SOURCE) {
+        fixed = fixed.replace(
+          new RegExp(hex, "gi"),
+          `var(--c-${hex.replace("#", "")}-s, ${hex})`,
+        );
+      }
+      fixed = fixed.replace(/@@V(\d+)@@/g, (_m, i) => savedVars[Number(i)]);
+
+      return `${prop}${fixed}`;
+    },
+  );
+
 const maskBlocks = (css, protectTokenDefs) => {
   const saved = [];
   const keep = (block) => {
@@ -203,7 +252,7 @@ const migrate = (src, { protectTokenDefs = false } = {}) => {
     );
   }
 
-  const v = maskExistingVars(b.out);
+  const v = maskExistingVars(mapDarkBackgrounds(b.out));
   let out = v.out;
 
   // ۱) پس‌زمینه‌های سفید → --bg-surface
@@ -259,9 +308,12 @@ const collapseNestedVars = (str) => {
 };
 
 const mapInnerStyle = (inner) => {
+  // ✅ اول پس‌زمینه‌های تیره (باید پیش از پنهان‌کردن var()ها اجرا شود)
+  const darkFixed = mapDarkBackgrounds(inner);
+
   // محافظت از var(...)های موجود تا دوباره پیچیده نشوند
   const savedVars = [];
-  let out = inner.replace(VAR_RX, (m) => {
+  let out = darkFixed.replace(VAR_RX, (m) => {
     savedVars.push(m);
     return `@@IV${savedVars.length - 1}@@`;
   });

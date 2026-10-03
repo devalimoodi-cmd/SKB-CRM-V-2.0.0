@@ -534,7 +534,7 @@
 
 .action-btn.completion-edit:hover {
   background: var(--warning, #f59e0b);
-  color: #ffffff;
+  color: var(--c-fff, #fff)fff;
 }
 
 /* بوردر زرد مودال در حالت ویرایش اطلاعات پایان دوره */
@@ -571,8 +571,8 @@
 }
 
 .action-btn.report-completion:hover {
-  background: var(--c-0369a1, #0369a1);
-  color: #ffffff;
+  background: var(--c-0369a1-s, #0369a1);
+  color: var(--c-fff, #fff)fff;
 }
 
 /* گزارش پیامک‌های گله */
@@ -582,8 +582,8 @@
 }
 
 .action-btn.report-sms:hover {
-  background: var(--c-0f766e, #0f766e);
-  color: #ffffff;
+  background: var(--c-0f766e-s, #0f766e);
+  color: var(--c-fff, #fff)fff;
 }
 
 /* ثبت اتمام دوره / پایان گله */
@@ -594,7 +594,7 @@
 
 .action-btn.complete:hover {
   background: var(--violet-deep, #7c3aed);
-  color: #ffffff;
+  color: var(--c-fff, #fff)fff;
 }
 
 /* ============================================
@@ -748,8 +748,8 @@
 }
 
 .flock-end-btn:hover {
-  background: var(--c-e11d48, #e11d48);
-  color: #fff;
+  background: var(--c-e11d48-s, #e11d48);
+  color: var(--c-fff, #fff);
   border-color: var(--c-e11d48, #e11d48);
 }
 
@@ -768,7 +768,7 @@
 
 .flock-bookmark-btn:hover {
   background: var(--success-deep, #047857);
-  color: #fff;
+  color: var(--c-fff, #fff);
   border-color: var(--success-deep, #047857);
 }
 
@@ -790,7 +790,7 @@
 
 .flock-sms-btn:hover {
   background: var(--info-strong, #2563eb);
-  color: #fff;
+  color: var(--c-fff, #fff);
   border-color: var(--info-strong, #2563eb);
 }
 
@@ -812,7 +812,7 @@
 
 .flock-hall-sms:hover {
   background: var(--info-strong, #2563eb);
-  color: #fff;
+  color: var(--c-fff, #fff);
 }
 
 .flock-halls {

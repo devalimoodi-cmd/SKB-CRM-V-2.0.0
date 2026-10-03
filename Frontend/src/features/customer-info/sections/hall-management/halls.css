@@ -489,7 +489,7 @@
 }
 
 .hall-card-header:hover {
-  background: linear-gradient(135deg, var(--c-1a5c52, #1a5c52) 0%, var(--c-033d3a, #033d3a) 100%);
+  background: linear-gradient(135deg, var(--c-1a5c52-s, #1a5c52) 0%, var(--c-033d3a-s, #033d3a) 100%);
   padding-right: 24px;
 }
 
@@ -739,7 +739,7 @@
 }
 
 .btn-water-feed-info:hover {
-  background: var(--c-4f46e5, #4f46e5);
+  background: var(--c-4f46e5-s, #4f46e5);
   color: white;
 }
 
@@ -850,7 +850,7 @@
   font-weight: 600;
 }
 .unit-card-header:hover {
-  background: linear-gradient(135deg, var(--c-1a5c52, #1a5c52) 0%, var(--c-033d3a, #033d3a) 100%);
+  background: linear-gradient(135deg, var(--c-1a5c52-s, #1a5c52) 0%, var(--c-033d3a-s, #033d3a) 100%);
 }
 .unit-status-badge.active {
   background: rgba(var(--success-rgb), 0.25);
@@ -900,7 +900,7 @@
   font-weight: 600;
 }
 .unit-card-header:hover {
-  background: linear-gradient(135deg, var(--c-1a5c52, #1a5c52) 0%, var(--c-033d3a, #033d3a) 100%);
+  background: linear-gradient(135deg, var(--c-1a5c52-s, #1a5c52) 0%, var(--c-033d3a-s, #033d3a) 100%);
 }
 .unit-status-badge.active {
   background: rgba(var(--success-rgb), 0.25);
@@ -940,7 +940,7 @@
   font-weight: 600;
 }
 .unit-card-header:hover {
-  background: linear-gradient(135deg, var(--c-1a5c52, #1a5c52) 0%, var(--c-033d3a, #033d3a) 100%);
+  background: linear-gradient(135deg, var(--c-1a5c52-s, #1a5c52) 0%, var(--c-033d3a-s, #033d3a) 100%);
 }
 .unit-status-badge.active {
   background: rgba(var(--success-rgb), 0.25);

@@ -12,7 +12,7 @@
   --acc-primary: var(--primary, #2c7a6e);
   --acc-primary-dark: var(--primary-dark, #035552);
   --acc-primary-soft: rgba(var(--primary-rgb), 0.1);
-  --acc-surface: #ffffff;
+  --acc-surface: var(--c-ffffff, #ffffff);
   --acc-surface-2: var(--bg-surface-2, #f8fafc);
   --acc-text: var(--text-dark, #1e293b);
   --acc-muted: var(--text-gray, #64748b);
@@ -50,9 +50,8 @@ html[data-theme="dark"] .account-page {
   --acc-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
 }
 
-html[data-theme="dark"] body {
-  background: var(--c-0b1220, #0b1220);
-}
+/* ✅ پس‌زمینهٔ صفحه از توکن سراسری می‌آید (global.css) تا با کل سیستم هماهنگ بماند.
+   ⛔ قاعدهٔ قبلی (var(--c-0b1220)) در حالت تیره دوبار-فلیپ می‌کرد و صفحه را روشن می‌کرد. */
 
 /* ===== سرصفحهٔ حساب ===== */
 .account-hero {
@@ -62,7 +61,7 @@ html[data-theme="dark"] body {
   padding: 24px;
   border-radius: var(--acc-radius);
   background: linear-gradient(135deg, var(--acc-primary) 0%, var(--acc-primary-dark) 100%);
-  color: #fff;
+  color: var(--c-fff, #fff);
   box-shadow: 0 6px 18px rgba(var(--primary-rgb), 0.25);
 }
 
@@ -91,7 +90,7 @@ html[data-theme="dark"] body {
   align-items: center;
   justify-content: center;
   background: rgba(0, 0, 0, 0.45);
-  color: #fff;
+  color: var(--c-fff, #fff);
   font-size: 20px;
   opacity: 0;
   cursor: pointer;
@@ -142,7 +141,7 @@ html[data-theme="dark"] body {
   font-size: 12px;
   border-radius: 20px;
   background: rgba(var(--surface-rgb), 0.18);
-  color: #fff;
+  color: var(--c-fff, #fff);
   border: 1px solid rgba(var(--surface-rgb), 0.3);
 }
 
@@ -289,7 +288,7 @@ html[data-theme="dark"] body {
 
 .account-btn--primary {
   background: var(--acc-primary);
-  color: #fff;
+  color: var(--c-fff, #fff);
 }
 
 .account-btn--primary:hover {
@@ -314,7 +313,7 @@ html[data-theme="dark"] body {
 
 .account-btn--danger:hover {
   background: var(--acc-danger);
-  color: #fff;
+  color: var(--c-fff, #fff);
 }
 
 .account-btn:disabled {

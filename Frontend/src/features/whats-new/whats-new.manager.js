@@ -76,7 +76,7 @@ class WhatsNewManager {
   // ===== اسکلت UI =====
   renderShell() {
     this.root.innerHTML = `
-      <div style="background:linear-gradient(135deg,var(--primary, #2c7a6e) 0%,var(--primary-dark, #035552) 100%);border-radius:12px;padding:16px 20px;color:#fff;margin-bottom:16px;">
+      <div style="background:linear-gradient(135deg,var(--primary, #2c7a6e) 0%,var(--primary-dark, #035552) 100%);border-radius:12px;padding:16px 20px;color:var(--c-fff, #fff);margin-bottom:16px;">
         <h3 style="margin:0;font-size:16px;">
           <i class="fas fa-bullhorn"></i> تغییرات و اطلاع‌رسانی نسخه‌ها
         </h3>

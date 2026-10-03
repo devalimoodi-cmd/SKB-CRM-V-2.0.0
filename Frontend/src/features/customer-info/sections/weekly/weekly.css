@@ -325,7 +325,7 @@
 }
 
 .flock-card-header:hover {
-  background: linear-gradient(135deg, var(--primary-dark, #035552) 0%, var(--c-022e2a, #022e2a) 100%);
+  background: linear-gradient(135deg, var(--primary-dark, #035552) 0%, var(--c-022e2a-s, #022e2a) 100%);
 }
 
 .flock-info {
@@ -736,7 +736,7 @@
 .field-help:hover,
 .field-help:focus {
   background: var(--primary, #2c7a6e);
-  color: #fff;
+  color: var(--c-fff, #fff);
   outline: none;
 }
 
@@ -894,7 +894,7 @@
   font-weight: 600;
   opacity: 0.95;
   background: rgba(var(--surface-rgb), 0.15);
-  color: #ffffff;
+  color: var(--c-fff, #fff)fff;
   border: 1px solid rgba(var(--surface-rgb), 0.25);
   padding: 3px 10px;
   border-radius: 20px;
@@ -975,14 +975,14 @@
   gap: 10px;
   padding: 10px 16px;
   background: linear-gradient(135deg, var(--primary-dark, #035552) 0%, var(--accent-teal, #0d9488) 100%);
-  color: #fff;
+  color: var(--c-fff, #fff);
   cursor: pointer;
   user-select: none;
   transition: background 0.25s;
 }
 
 .flock-group-header:hover {
-  background: linear-gradient(135deg, var(--c-022e2a, #022e2a) 0%, var(--c-0b7c72, #0b7c72) 100%);
+  background: linear-gradient(135deg, var(--c-022e2a-s, #022e2a) 0%, var(--c-0b7c72-s, #0b7c72) 100%);
 }
 
 .flock-group-info {
@@ -1053,7 +1053,7 @@
 
 .btn-show-more-weeks:hover {
   background: var(--primary, #2c7a6e);
-  color: #ffffff;
+  color: var(--c-fff, #fff)fff;
   border-style: solid;
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(var(--primary-rgb), 0.25);
@@ -1344,7 +1344,7 @@
 .wk-chip.is-active {
   background: var(--primary, #2c7a6e);
   border-color: var(--primary, #2c7a6e);
-  color: #fff;
+  color: var(--c-fff, #fff);
 }
 
 .wk-range {

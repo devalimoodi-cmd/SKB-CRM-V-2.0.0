@@ -304,7 +304,7 @@ export const dashboardBookmarkMethods = {
           html: `
             <div style="text-align:center; font-family:'Vazir','Vazirmatn',sans-serif; direction:rtl;">
               <!-- آیکون مدور -->
-              <div style="width:72px; height:72px; border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 16px; font-size:30px; color:#fff; background:linear-gradient(135deg,${pr.gradient}); box-shadow:0 8px 32px ${pr.shadow}; position:relative;">
+              <div style="width:72px; height:72px; border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 16px; font-size:30px; color:var(--c-fff, #fff); background:linear-gradient(135deg,${pr.gradient}); box-shadow:0 8px 32px ${pr.shadow}; position:relative;">
                 <i class="fas ${typeIcon}"></i>
               </div>
 
@@ -417,7 +417,7 @@ const buildBookmarkModalHtml = ({
 }) => `
             <div style="text-align: right; font-family: 'Vazir', 'Vazirmatn', sans-serif; direction: rtl;">
               <!-- ===== هدر گرافیکی ===== -->
-              <div style="display:flex; align-items:center; gap:12px; background:linear-gradient(135deg,var(--primary, #2c7a6e) 0%,var(--primary-dark, #035552) 100%); border-radius:14px; padding:12px 16px; margin-bottom:16px; color:#fff; position:relative; overflow:hidden;">
+              <div style="display:flex; align-items:center; gap:12px; background:linear-gradient(135deg,var(--primary, #2c7a6e) 0%,var(--primary-dark, #035552) 100%); border-radius:14px; padding:12px 16px; margin-bottom:16px; color:var(--c-fff, #fff); position:relative; overflow:hidden;">
                 <div style="position:absolute; top:0; left:0; right:0; height:4px; background:linear-gradient(135deg,var(--primary, #2c7a6e),var(--primary-light, #4a9e8f),var(--warning, #f59e0b)); background-size:200% 200%; animation: bmShimmer 3s ease-in-out infinite;"></div>
                 <div style="width:42px; height:42px; border-radius:12px; background:rgba(var(--surface-rgb),0.2); display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0;">
                   <i class="fas fa-bookmark"></i>

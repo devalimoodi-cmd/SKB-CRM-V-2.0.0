@@ -12,7 +12,7 @@
 
 .info-hero {
   background: linear-gradient(135deg, var(--primary, #2c7a6e) 0%, var(--primary-dark, #035552) 100%);
-  color: #fff;
+  color: var(--c-fff, #fff);
   border-radius: 18px;
   padding: 28px 26px;
   display: flex;
@@ -234,7 +234,7 @@
   border: none;
   border-radius: 10px;
   background: linear-gradient(135deg, var(--primary, #2c7a6e) 0%, var(--primary-dark, #035552) 100%);
-  color: #fff;
+  color: var(--c-fff, #fff);
   font-family: inherit;
   font-size: 14px;
   font-weight: 600;
@@ -345,7 +345,7 @@
 .msg-row.mine .msg-bubble {
   background: var(--primary, #2c7a6e);
   border-color: var(--primary, #2c7a6e);
-  color: #fff;
+  color: var(--c-fff, #fff);
 }
 
 .msg-meta {
@@ -477,7 +477,7 @@
 
 .msg-modal-header {
   background: linear-gradient(135deg, var(--primary, #2c7a6e) 0%, var(--primary-dark, #035552) 100%);
-  color: #fff;
+  color: var(--c-fff, #fff);
   padding: 14px 18px;
   display: flex;
   align-items: center;
@@ -496,7 +496,7 @@
 .msg-modal-header button {
   background: transparent;
   border: none;
-  color: #fff;
+  color: var(--c-fff, #fff);
   font-size: 22px;
   line-height: 1;
   cursor: pointer;

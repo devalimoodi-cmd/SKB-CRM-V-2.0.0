@@ -403,7 +403,7 @@ class HatcheryReport {
           .stat-box .stat-value { font-size: 17px; font-weight: 700; color: var(--primary, #2c7a6e); margin-top: 2px; }
           .report-flock { page-break-inside: avoid; margin-bottom: 10px; }
           .report-flock-header h3 {
-            background: var(--primary, #2c7a6e); color: #fff; padding: 6px 14px; border-radius: 8px;
+            background: var(--primary, #2c7a6e); color: var(--c-fff, #fff); padding: 6px 14px; border-radius: 8px;
             font-size: 14px; margin: 0 0 8px; display: flex; justify-content: space-between; align-items: center;
           }
           .status-tag { display: inline-block; padding: 1px 10px; border-radius: 10px; font-size: 10.5px; font-weight: 500; }
@@ -416,7 +416,7 @@ class HatcheryReport {
           .report-section-full { margin: 8px 0; background: var(--slate-mist, #fafbfc); border-radius: 6px; padding: 10px 12px; border: 1px solid var(--border-light, #eef2f6); }
           .report-section h4, .report-section-full h4 { color: var(--primary, #2c7a6e); font-size: 12px; margin: 0 0 6px; padding-bottom: 4px; border-bottom: 1px solid var(--border-light, #eef2f6); }
           .report-table { width: 100%; border-collapse: collapse; font-size: 12px; }
-          .report-table th { background: var(--primary, #2c7a6e); color: #fff; padding: 5px 10px; font-weight: 500; text-align: center; }
+          .report-table th { background: var(--primary, #2c7a6e); color: var(--c-fff, #fff); padding: 5px 10px; font-weight: 500; text-align: center; }
           .report-table td { padding: 5px 8px; border: 1px solid var(--border-light, #eef2f6); text-align: center; }
           .report-table.compact td { border: none; border-bottom: 1px solid var(--gray-100, #f1f5f9); padding: 2px 6px; text-align: right; }
           .report-table.compact tr:last-child td { border-bottom: none; }
@@ -797,7 +797,7 @@ const buildFlockSmsReportDocument = (params) => {
           .stat-box .stat-label { font-size: 11px; color: var(--text-gray, #64748b); }
           .stat-box .stat-value { font-size: 18px; font-weight: 700; color: var(--primary, #2c7a6e); }
           .report-table { width: 100%; border-collapse: collapse; font-size: 12px; table-layout: fixed; }
-          .report-table th { background: var(--primary, #2c7a6e); color: #fff; padding: 8px 5px; font-weight: 700; font-size: 11px; text-align: center; border: 1px solid var(--primary, #2c7a6e); white-space: nowrap; }
+          .report-table th { background: var(--primary, #2c7a6e); color: var(--c-fff, #fff); padding: 8px 5px; font-weight: 700; font-size: 11px; text-align: center; border: 1px solid var(--primary, #2c7a6e); white-space: nowrap; }
           .report-table td { padding: 7px 6px; border: 1px solid var(--border-light, #eef2f6); text-align: center; vertical-align: middle; line-height: 1.6; overflow-wrap: break-word; word-break: break-word; }
           .report-table tbody tr:nth-child(even) { background: var(--slate-mist, #fafbfc); }
           .report-table tbody tr { page-break-inside: avoid; }

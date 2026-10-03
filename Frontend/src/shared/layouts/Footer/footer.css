@@ -95,7 +95,7 @@
 
 .footer-social-icon:hover {
   background: var(--primary, #2c7a6e);
-  color: #ffffff;
+  color: var(--c-fff, #fff)fff;
   border-color: var(--primary, #2c7a6e);
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(var(--primary-rgb), 0.3);
@@ -131,7 +131,7 @@
 }
 
 .footer-dark .footer-link:hover {
-  color: #ffffff;
+  color: var(--c-fff, #fff)fff;
 }
 
 .footer-dark .footer-link i {
@@ -139,7 +139,7 @@
 }
 
 .footer-dark .footer-link:hover i {
-  color: #ffffff;
+  color: var(--c-fff, #fff)fff;
 }
 
 .footer-dark .footer-social-icon {
@@ -150,7 +150,7 @@
 
 .footer-dark .footer-social-icon:hover {
   background: var(--primary, #2c7a6e);
-  color: #ffffff;
+  color: var(--c-fff, #fff)fff;
 }
 
 .footer-dark .footer-version {

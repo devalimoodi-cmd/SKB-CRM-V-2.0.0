@@ -590,7 +590,7 @@
   height: 72px;
   border-radius: 50%;
   background: linear-gradient(135deg, var(--primary, #2c7a6e), var(--primary-dark, #035552));
-  color: #ffffff;
+  color: var(--c-fff, #fff)fff;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -759,7 +759,7 @@
   justify-content: center;
   font-size: 16px;
   background: var(--accent, #2c7a6e);
-  color: #ffffff;
+  color: var(--c-fff, #fff)fff;
   flex-shrink: 0;
 }
 
@@ -851,8 +851,8 @@
 }
 
 .skb-modal-download-all {
-  background: linear-gradient(135deg, var(--success, #10b981), var(--c-059669, #059669));
-  color: #ffffff;
+  background: linear-gradient(135deg, var(--success, #10b981), var(--c-059669-s, #059669));
+  color: var(--c-fff, #fff)fff;
   border: none;
   border-radius: 8px;
   padding: 8px 16px;
@@ -944,13 +944,13 @@
 
 .skb-modal-attachment-download:hover {
   background: var(--info, #3b82f6);
-  color: #ffffff;
+  color: var(--c-fff, #fff)fff;
   transform: scale(1.05);
 }
 
 /* ===== دکمه‌های مودال ===== */
 .skb-print-btn {
-  background: linear-gradient(135deg, var(--success, #10b981), var(--c-059669, #059669));
+  background: linear-gradient(135deg, var(--success, #10b981), var(--c-059669-s, #059669));
   color: white;
   border: none;
   padding: 10px 24px;

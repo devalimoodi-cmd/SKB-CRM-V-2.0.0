@@ -586,5 +586,133 @@
   "#e9a7a3": {
     "token": "--c-e9a7a3",
     "dark": "#5a1a16"
+  },
+  "#333": {
+    "token": "--c-333",
+    "dark": "#cbd5e1"
+  },
+  "#fef2f2": {
+    "token": "--c-fef2f2",
+    "dark": "#401c1c"
+  },
+  "#fff": {
+    "token": "--c-fff",
+    "dark": "#0f1729"
+  },
+  "#ffffff": {
+    "token": "--c-ffffff",
+    "dark": "#0f1729"
+  },
+  "#cbd5e1": {
+    "token": "--c-cbd5e1",
+    "dark": "#293747"
+  },
+  "#fafbfc": {
+    "token": "--c-fafbfc",
+    "dark": "#222e39"
+  },
+  "#f1f5f9": {
+    "token": "--c-f1f5f9",
+    "dark": "#1c2e40"
+  },
+  "#e2e8f0": {
+    "token": "--c-e2e8f0",
+    "dark": "#1f2c3d"
+  },
+  "#dbeafe": {
+    "token": "--c-dbeafe",
+    "dark": "#1c2b40"
+  },
+  "#2563eb": {
+    "token": "--c-2563eb",
+    "dark": "#5a85e2"
+  },
+  "#334155": {
+    "token": "--c-334155",
+    "dark": "#99aac2"
+  },
+  "#ecfdf5": {
+    "token": "--c-ecfdf5",
+    "dark": "#1c402f"
+  },
+  "#d1fae5": {
+    "token": "--c-d1fae5",
+    "dark": "#165a37"
+  },
+  "#fef3c7": {
+    "token": "--c-fef3c7",
+    "dark": "#5a4c16"
+  },
+  "#d97706": {
+    "token": "--c-d97706",
+    "dark": "#efb26c"
+  },
+  "#8b5cf6": {
+    "token": "--c-8b5cf6",
+    "dark": "#845ae2"
+  },
+  "#10b981": {
+    "token": "--c-10b981",
+    "dark": "#6cefc3"
+  },
+  "#047857": {
+    "token": "--c-047857",
+    "dark": "#6cefca"
+  },
+  "#a7f3d0": {
+    "token": "--c-a7f3d0",
+    "dark": "#165a3b"
+  },
+  "#92400e": {
+    "token": "--c-92400e",
+    "dark": "#ef9e6c"
+  },
+  "#fcd34d": {
+    "token": "--c-fcd34d",
+    "dark": "#e2c25a"
+  },
+  "#7c3aed": {
+    "token": "--c-7c3aed",
+    "dark": "#8c5ae2"
+  },
+  "#fca5a5": {
+    "token": "--c-fca5a5",
+    "dark": "#5a1616"
+  },
+  "#b91c1c": {
+    "token": "--c-b91c1c",
+    "dark": "#ea7171"
+  },
+  "#065f46": {
+    "token": "--c-065f46",
+    "dark": "#6cefca"
+  },
+  "#eff6ff": {
+    "token": "--c-eff6ff",
+    "dark": "#1c2c40"
+  },
+  "#0d9488": {
+    "token": "--c-0d9488",
+    "dark": "#6cefe3"
+  },
+  "#1d4ed8": {
+    "token": "--c-1d4ed8",
+    "dark": "#6f90ec"
+  },
+  "#f0fdf4": {
+    "token": "--c-f0fdf4",
+    "dark": "#1c4027"
+  },
+  "#3b82f6": {
+    "token": "--c-3b82f6",
+    "dark": "#5a8ee2"
+  },
+  "#4a9e8f": {
+    "token": "--c-4a9e8f",
+    "dark": "#90cbc0"
+  },
+  "#93c5fd": {
+    "token": "--c-93c5fd",
+    "dark": "#16365a"
   }
 }
