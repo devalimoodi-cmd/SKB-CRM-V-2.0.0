@@ -12,11 +12,11 @@
 
 /* ===== فرم ثبت نام ===== */
 .customer-register-form {
-  background: #ffffff;
+  background: var(--bg-surface, #ffffff);
   border-radius: 16px;
   padding: 1.75rem;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-  border: 1px solid #eef2f6;
+  border: 1px solid var(--border-light, #eef2f6);
   margin-bottom: 1.75rem;
 }
 
@@ -29,14 +29,14 @@
 .register-header_title {
   font-size: 18px;
   font-weight: 600;
-  color: #1e293b;
+  color: var(--text-dark, #1e293b);
   display: flex;
   align-items: center;
   gap: 10px;
 }
 
 .register-header_title i {
-  color: #2c7a6e;
+  color: var(--primary, #2c7a6e);
 }
 
 .register-body {
@@ -75,27 +75,27 @@
   align-items: center;
   border: 1px solid #dee2e6;
   border-radius: 8px;
-  background: white;
+  background: var(--bg-surface, #fff);
   transition: all 0.3s ease;
   padding: 0 12px;
   min-height: 44px;
 }
 
 .filed-flot-input:focus-within {
-  border-color: #2c7a6e;
+  border-color: var(--primary, #2c7a6e);
   box-shadow: 0 0 0 3px rgba(44, 122, 110, 0.1);
 }
 
 .float-icon {
   font-size: 14px;
-  color: #94a3b8;
+  color: var(--text-light, #94a3b8);
   margin-left: 10px;
   flex-shrink: 0;
   transition: color 0.3s ease;
 }
 
 .filed-flot-input:focus-within .float-icon {
-  color: #2c7a6e;
+  color: var(--primary, #2c7a6e);
 }
 
 .float-input {
@@ -106,7 +106,7 @@
   font-size: 13px;
   padding: 12px 0;
   font-family: "Vazir", sans-serif;
-  color: #1e293b;
+  color: var(--text-dark, #1e293b);
   width: 100%;
 }
 
@@ -127,9 +127,9 @@
   right: 36px;
   top: 50%;
   transform: translateY(-50%);
-  background: white;
+  background: var(--bg-surface, #fff);
   padding: 0 4px;
-  color: #94a3b8;
+  color: var(--text-light, #94a3b8);
   font-size: 12px;
   transition: all 0.3s ease;
   pointer-events: none;
@@ -140,13 +140,13 @@
 .float-input:not(:placeholder-shown) ~ .float-label {
   top: 0;
   font-size: 10px;
-  color: #2c7a6e;
+  color: var(--primary, #2c7a6e);
   transform: translateY(-50%);
 }
 
 .float-input:disabled {
   background: #f8f9fa;
-  color: #64748b;
+  color: var(--text-gray, #64748b);
   cursor: not-allowed;
 }
 
@@ -168,7 +168,7 @@
   left: 12px;
   top: 50%;
   transform: translateY(-50%);
-  color: #94a3b8;
+  color: var(--text-light, #94a3b8);
   font-size: 12px;
   pointer-events: none;
   transition: transform 0.3s ease;
@@ -176,7 +176,7 @@
 
 .select-input:focus-within .select-arrow {
   transform: translateY(-50%) rotate(180deg);
-  color: #2c7a6e;
+  color: var(--primary, #2c7a6e);
 }
 
 /* ===== اصلاح موقعیت تقویم شمسی ===== */
@@ -214,12 +214,12 @@
 }
 
 .submit-btn {
-  background: #2c7a6e;
+  background: var(--primary, #2c7a6e);
   color: white;
 }
 
 .submit-btn:hover {
-  background: #035552;
+  background: var(--primary-dark, #035552);
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(44, 122, 110, 0.3);
 }
@@ -232,7 +232,7 @@
 
 .cancel-btn {
   background: #dee2e6;
-  color: #1e293b;
+  color: var(--text-dark, #1e293b);
 }
 
 .cancel-btn:hover {
@@ -247,9 +247,9 @@
   align-items: center;
   gap: 15px;
   padding: 12px 20px;
-  background: #ffffff;
+  background: var(--bg-surface, #ffffff);
   border-radius: 12px;
-  border: 1px solid #eef2f6;
+  border: 1px solid var(--border-light, #eef2f6);
   margin-bottom: 20px;
 }
 
@@ -272,7 +272,7 @@
   right: 14px;
   top: 50%;
   transform: translateY(-50%);
-  color: #94a3b8;
+  color: var(--text-light, #94a3b8);
   font-size: 15px;
   pointer-events: none;
 }
@@ -286,13 +286,13 @@
   font-size: 14px;
   transition: all 0.3s ease;
   background: #fafbfc;
-  color: #1e293b;
+  color: var(--text-dark, #1e293b);
 }
 
 .search-box-input:focus {
   outline: none;
-  border-color: #2c7a6e;
-  background: white;
+  border-color: var(--primary, #2c7a6e);
+  background: var(--bg-surface, #fff);
   box-shadow: 0 0 0 3px rgba(44, 122, 110, 0.1);
 }
 
@@ -303,7 +303,7 @@
   transform: translateY(-50%);
   background: none;
   border: none;
-  color: #94a3b8;
+  color: var(--text-light, #94a3b8);
   cursor: pointer;
   font-size: 14px;
   transition: all 0.2s ease;
@@ -314,7 +314,7 @@
 }
 
 .search-box-clear:hover {
-  color: #dc2626;
+  color: var(--danger, #dc2626);
   transform: translateY(-50%) scale(1.1);
 }
 
@@ -332,7 +332,7 @@
 
 #searchResultCount {
   font-weight: bold;
-  color: #2c7a6e;
+  color: var(--primary, #2c7a6e);
   font-size: 16px;
 }
 
@@ -350,19 +350,19 @@
   background: #fafbfc;
   cursor: pointer;
   transition: all 0.3s ease;
-  color: #1e293b;
+  color: var(--text-dark, #1e293b);
 }
 
 .search-column-select:focus {
   outline: none;
-  border-color: #2c7a6e;
+  border-color: var(--primary, #2c7a6e);
 }
 
 /* ===== جدول ===== */
 .table-container {
-  background: #ffffff;
+  background: var(--bg-surface, #ffffff);
   border-radius: 12px;
-  border: 1px solid #eef2f6;
+  border: 1px solid var(--border-light, #eef2f6);
   /* ✅ بدون اسکرول افقی: جدول با عرض ظرف خودش جا می‌شود
      (عرض ستون‌ها درصدی است، پس هیچ‌وقت سرریز نمی‌کند) */
   overflow-x: hidden;
@@ -437,7 +437,7 @@
 }
 
 .data-table thead {
-  background: linear-gradient(135deg, #2c7a6e 0%, #035552 100%);
+  background: linear-gradient(135deg, var(--primary, #2c7a6e) 0%, var(--primary-dark, #035552) 100%);
 }
 
 .data-table th {
@@ -457,13 +457,13 @@
 }
 
 .data-table tbody tr:hover {
-  background: #f8fafc;
+  background: var(--bg-surface-2, #f8fafc);
 }
 
 .data-table td {
   padding: 10px 6px;
   text-align: center;
-  color: #1e293b;
+  color: var(--text-dark, #1e293b);
   font-size: 12px;
   /* ✅ هر سلول یک‌خطی می‌ماند تا ارتفاع ردیف‌ها یکدست باشد
      (Bootstrap باعث vertical-align: top می‌شد) */
@@ -607,15 +607,15 @@
 
 .customer-avatar i {
   font-size: 18px;
-  color: #94a3b8;
+  color: var(--text-light, #94a3b8);
 }
 
 .customer-avatar.online {
-  border: 2px solid #10b981;
+  border: 2px solid var(--success, #10b981);
 }
 
 .customer-avatar.offline {
-  border: 2px solid #cbd5e1;
+  border: 2px solid var(--border-strong, #cbd5e1);
 }
 
 /* ===== وضعیت‌ها ===== */
@@ -634,7 +634,7 @@
 
 .status-badge.inactive {
   background: #fee2e2;
-  color: #dc2626;
+  color: var(--danger, #dc2626);
 }
 
 .status-badge.pending {
@@ -679,7 +679,7 @@
 
 .action-btn.delete {
   background: #fee2e2;
-  color: #dc2626;
+  color: var(--danger, #dc2626);
 }
 
 .action-btn.disable {
@@ -700,17 +700,17 @@
   flex-wrap: wrap;
   gap: 15px;
   padding: 16px 20px;
-  background: #f8fafc;
-  border-top: 1px solid #eef2f6;
+  background: var(--bg-surface-2, #f8fafc);
+  border-top: 1px solid var(--border-light, #eef2f6);
 }
 
 .table-info {
   font-size: 13px;
-  color: #64748b;
-  background: white;
+  color: var(--text-gray, #64748b);
+  background: var(--bg-surface, #fff);
   padding: 6px 16px;
   border-radius: 20px;
-  border: 1px solid #eef2f6;
+  border: 1px solid var(--border-light, #eef2f6);
 }
 
 .table-pagination {
@@ -725,7 +725,7 @@
   height: 36px;
   padding: 0 12px;
   border: 1px solid #e5e7eb;
-  background: white;
+  background: var(--bg-surface, #fff);
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -738,9 +738,9 @@
 }
 
 .pagination-btn:hover:not(:disabled) {
-  background: #2c7a6e;
+  background: var(--primary, #2c7a6e);
   color: white;
-  border-color: #2c7a6e;
+  border-color: var(--primary, #2c7a6e);
   transform: translateY(-2px);
 }
 
@@ -759,7 +759,7 @@
   min-width: 36px;
   height: 36px;
   border: 1px solid #e5e7eb;
-  background: white;
+  background: var(--bg-surface, #fff);
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -770,13 +770,13 @@
 
 .page-num:hover {
   background: #f1f5f9;
-  border-color: #2c7a6e;
+  border-color: var(--primary, #2c7a6e);
 }
 
 .page-num.active {
-  background: #2c7a6e;
+  background: var(--primary, #2c7a6e);
   color: white;
-  border-color: #2c7a6e;
+  border-color: var(--primary, #2c7a6e);
   box-shadow: 0 2px 8px rgba(44, 122, 110, 0.3);
 }
 
@@ -786,7 +786,7 @@
   justify-content: center;
   min-width: 36px;
   height: 36px;
-  color: #94a3b8;
+  color: var(--text-light, #94a3b8);
   font-size: 14px;
 }
 
@@ -795,17 +795,17 @@
   align-items: center;
   gap: 8px;
   font-size: 13px;
-  color: #64748b;
+  color: var(--text-gray, #64748b);
 }
 
 .page-size-selector select {
   padding: 6px 12px;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
-  background: white;
+  background: var(--bg-surface, #fff);
   font-family: "Vazir", sans-serif;
   cursor: pointer;
-  color: #1e293b;
+  color: var(--text-dark, #1e293b);
 }
 
 /* ===== مودال ===== */
@@ -829,7 +829,7 @@
 }
 
 .modal-container {
-  background: white;
+  background: var(--bg-surface, #fff);
   border-radius: 16px;
   width: 90%;
   max-width: 800px;
@@ -855,7 +855,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 16px 24px;
-  background: linear-gradient(135deg, #2c7a6e 0%, #035552 100%);
+  background: linear-gradient(135deg, var(--primary, #2c7a6e) 0%, var(--primary-dark, #035552) 100%);
   color: white;
   border-radius: 16px 16px 0 0;
 }
@@ -1020,7 +1020,7 @@
   width: 17px;
   height: 17px;
   border-radius: 50%;
-  background: #e2e8f0;
+  background: var(--border-color, #e2e8f0);
   color: #475569;
   font-size: 11px;
   font-weight: 800;
@@ -1034,7 +1034,7 @@
 
 .field-help:hover,
 .field-help:focus {
-  background: #2c7a6e;
+  background: var(--primary, #2c7a6e);
   color: #fff;
   outline: none;
 }
@@ -1050,8 +1050,8 @@
   position: absolute;
   bottom: calc(100% + 8px);
   left: 0;
-  background: #1e293b;
-  color: #f8fafc;
+  background: var(--text-dark, #1e293b);
+  color: var(--bg-surface-2, #f8fafc);
   font-size: 11px;
   font-weight: 400;
   line-height: 1.7;

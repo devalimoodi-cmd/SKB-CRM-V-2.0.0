@@ -3,10 +3,10 @@
    ============================================ */
 
 .card {
-  background: #ffffff;
+  background: var(--bg-surface, #ffffff);
   border-radius: 16px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-  border: 1px solid #eef2f6;
+  border: 1px solid var(--border-light, #eef2f6);
   overflow: hidden;
   transition: all 0.3s ease;
 }
@@ -19,7 +19,7 @@
 /* ===== هدر کارت ===== */
 .card-header {
   padding: 16px 20px;
-  border-bottom: 1px solid #eef2f6;
+  border-bottom: 1px solid var(--border-light, #eef2f6);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -29,14 +29,14 @@
 .card-header .card-title {
   font-size: 16px;
   font-weight: 600;
-  color: #1e293b;
+  color: var(--text-dark, #1e293b);
   display: flex;
   align-items: center;
   gap: 10px;
 }
 
 .card-header .card-title i {
-  color: #2c7a6e;
+  color: var(--primary, #2c7a6e);
 }
 
 .card-header .card-actions {
@@ -47,13 +47,13 @@
 /* ===== بدنه کارت ===== */
 .card-body {
   padding: 20px;
-  color: #1e293b;
+  color: var(--text-dark, #1e293b);
 }
 
 /* ===== فوتر کارت ===== */
 .card-footer {
   padding: 16px 20px;
-  border-top: 1px solid #eef2f6;
+  border-top: 1px solid var(--border-light, #eef2f6);
   background: #fafbfc;
   display: flex;
   justify-content: flex-end;
@@ -74,23 +74,23 @@
 
 /* با حاشیه رنگی */
 .card-primary {
-  border-top: 4px solid #2c7a6e;
+  border-top: 4px solid var(--primary, #2c7a6e);
 }
 
 .card-success {
-  border-top: 4px solid #10b981;
+  border-top: 4px solid var(--success, #10b981);
 }
 
 .card-danger {
-  border-top: 4px solid #dc2626;
+  border-top: 4px solid var(--danger, #dc2626);
 }
 
 .card-warning {
-  border-top: 4px solid #f59e0b;
+  border-top: 4px solid var(--warning, #f59e0b);
 }
 
 .card-info {
-  border-top: 4px solid #3b82f6;
+  border-top: 4px solid var(--info, #3b82f6);
 }
 
 /* ===== کارت با عکس ===== */
@@ -131,12 +131,12 @@
 
 .card-avatar i {
   font-size: 40px;
-  color: #94a3b8;
+  color: var(--text-light, #94a3b8);
 }
 
 /* ===== کارت با هدر رنگی ===== */
 .card-header-primary .card-header {
-  background: linear-gradient(135deg, #2c7a6e 0%, #035552 100%);
+  background: linear-gradient(135deg, var(--primary, #2c7a6e) 0%, var(--primary-dark, #035552) 100%);
   color: white;
 }
 
@@ -166,7 +166,7 @@
 
 .card-icon .icon {
   font-size: 48px;
-  color: #2c7a6e;
+  color: var(--primary, #2c7a6e);
   margin-bottom: 16px;
   display: block;
 }
@@ -178,7 +178,7 @@
 }
 
 .card-icon .card-text {
-  color: #64748b;
+  color: var(--text-gray, #64748b);
 }
 
 /* ===== کارت آماری ===== */
@@ -190,18 +190,18 @@
 .card-stats .stat-number {
   font-size: 32px;
   font-weight: 700;
-  color: #1e293b;
+  color: var(--text-dark, #1e293b);
 }
 
 .card-stats .stat-label {
   font-size: 14px;
-  color: #64748b;
+  color: var(--text-gray, #64748b);
   margin-top: 4px;
 }
 
 .card-stats .stat-icon {
   font-size: 32px;
-  color: #2c7a6e;
+  color: var(--primary, #2c7a6e);
   margin-bottom: 8px;
   display: block;
 }

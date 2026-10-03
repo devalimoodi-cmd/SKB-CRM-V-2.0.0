@@ -18,7 +18,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f5f7fb;
+  background: var(--bg-body, #f5f7fb);
   z-index: 999999;
   transition: opacity 0.5s ease;
 }
@@ -43,14 +43,14 @@ html[data-loader="logo"] .skb-loader--logo {
 /* ===== متن مشترک هر دو حالت ===== */
 .skb-loader-text {
   font-family: "Vazir", "Vazirmatn", sans-serif;
-  color: #2c7a6e;
+  color: var(--primary, #2c7a6e);
   font-size: 16px;
   font-weight: 600;
 }
 
 .skb-loader-tagline {
   font-family: "Vazir", "Vazirmatn", sans-serif;
-  color: #94a3b8;
+  color: var(--text-light, #94a3b8);
   font-size: 12px;
   margin-top: 8px;
   text-align: center;
@@ -63,8 +63,8 @@ html[data-loader="logo"] .skb-loader--logo {
 .skb-classic-spinner {
   width: 60px;
   height: 60px;
-  border: 4px solid #e2e8f0;
-  border-top-color: #2c7a6e;
+  border: 4px solid var(--border-color, #e2e8f0);
+  border-top-color: var(--primary, #2c7a6e);
   border-radius: 50%;
   animation: skb-page-spin 0.8s linear infinite;
   margin-bottom: 20px;
@@ -97,8 +97,8 @@ html[data-loader="logo"] .skb-loader--logo {
   position: absolute;
   inset: 0;
   border: 3px solid transparent;
-  border-top-color: #2c7a6e;
-  border-right-color: #2c7a6e;
+  border-top-color: var(--primary, #2c7a6e);
+  border-right-color: var(--primary, #2c7a6e);
   border-radius: 50%;
   animation: skb-spin 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
 }
@@ -108,8 +108,8 @@ html[data-loader="logo"] .skb-loader--logo {
   position: absolute;
   inset: 14px;
   border: 2px solid transparent;
-  border-bottom-color: #4a9e8f;
-  border-left-color: #4a9e8f;
+  border-bottom-color: var(--primary-light, #4a9e8f);
+  border-left-color: var(--primary-light, #4a9e8f);
   border-radius: 50%;
   animation: skb-spin-reverse 1.8s cubic-bezier(0.5, 0, 0.5, 1) infinite;
 }
@@ -148,8 +148,8 @@ html[data-loader="logo"] .skb-loader--logo {
 }
 
 .skb-logo-svg path {
-  fill: #2c7a6e;
-  stroke: #2c7a6e;
+  fill: var(--primary, #2c7a6e);
+  stroke: var(--primary, #2c7a6e);
   transition: all 0.3s ease;
 }
 
@@ -169,7 +169,7 @@ html[data-loader="logo"] .skb-loader--logo {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #2c7a6e;
+  background: var(--primary, #2c7a6e);
   animation: skb-dot 1.4s ease-in-out infinite;
 }
 

@@ -3,6 +3,90 @@
    ================================================================ */
 
 /* ================================================================
+   ✅ توکن‌های طراحی (Design Tokens) — موج ۴ (تم روشن/تیره)
+   ----------------------------------------------------------------
+   • همهٔ رنگ‌های سایت به‌تدریج از این متغیرها استفاده می‌کنند:
+       var(--token, #رنگ‌قدیم)   ← الگوی مهاجرت بی‌خطر
+   • حالت روشن = پیش‌فرض؛ حالت تیره با html[data-theme="dark"] فعال می‌شود.
+   • مقدار data-theme توسط اسکریپت بوت‌استرپ در server.js (بدون فلاش)
+     یا core/services/theme.service.js تنظیم می‌شود.
+   ================================================================ */
+:root {
+  /* ===== برند ===== */
+  --primary: #2c7a6e;
+  --primary-dark: #035552;
+  --primary-light: #4a9e8f;
+  --primary-soft: rgba(44, 122, 110, 0.1);
+
+  /* ===== سطوح (Background) ===== */
+  --bg-body: #f5f7fb;
+  --bg-surface: #ffffff;
+  --bg-surface-2: #f8fafc;
+  --bg-muted: #eef2f6;
+
+  /* ===== متن ===== */
+  --text-dark: #1e293b;
+  --text-gray: #64748b;
+  --text-light: #94a3b8;
+  --text-inverse: #ffffff;
+
+  /* ===== حاشیه ===== */
+  --border-color: #e2e8f0;
+  --border-light: #eef2f6;
+  --border-strong: #cbd5e1;
+
+  /* ===== رنگ‌های وضعیت ===== */
+  --success: #10b981;
+  --success-soft: #f0fdf4;
+  --warning: #f59e0b;
+  --warning-soft: #fffbeb;
+  --danger: #dc2626;
+  --danger-soft: #fef2f2;
+  --info: #3b82f6;
+  --info-soft: #eff6ff;
+
+  /* ===== سایه ===== */
+  --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.06);
+  --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.08);
+  --shadow-lg: 0 10px 30px rgba(15, 23, 42, 0.12);
+}
+
+/* ===== حالت تیره ===== */
+html[data-theme="dark"] {
+  --primary: #3ba99a;
+  --primary-dark: #2c7a6e;
+  --primary-light: #5cc3b4;
+  --primary-soft: rgba(59, 169, 154, 0.15);
+
+  --bg-body: #0b1220;
+  --bg-surface: #111a2b;
+  --bg-surface-2: #0f1729;
+  --bg-muted: #1e293b;
+
+  --text-dark: #e2e8f0;
+  --text-gray: #94a3b8;
+  --text-light: #64748b;
+  --text-inverse: #0b1220;
+
+  --border-color: #334155;
+  --border-light: #1e293b;
+  --border-strong: #475569;
+
+  --success: #34d399;
+  --success-soft: rgba(52, 211, 153, 0.15);
+  --warning: #fbbf24;
+  --warning-soft: rgba(251, 191, 36, 0.15);
+  --danger: #f87171;
+  --danger-soft: rgba(248, 113, 113, 0.15);
+  --info: #60a5fa;
+  --info-soft: rgba(96, 165, 250, 0.15);
+
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.55);
+}
+
+/* ================================================================
    فونت وزیر (Vazir) - باید روی سرور هم لود شود
    ================================================================ */
 @font-face {
@@ -218,16 +302,16 @@ button {
   color: var(--primary, #2c7a6e);
 }
 .text-success {
-  color: #10b981;
+  color: var(--success, #10b981);
 }
 .text-danger {
-  color: #dc2626;
+  color: var(--danger, #dc2626);
 }
 .text-warning {
-  color: #f59e0b;
+  color: var(--warning, #f59e0b);
 }
 .text-info {
-  color: #3b82f6;
+  color: var(--info, #3b82f6);
 }
 
 .text-uppercase {
@@ -593,16 +677,16 @@ button {
   border-color: var(--primary, #2c7a6e);
 }
 .border-success {
-  border-color: #10b981;
+  border-color: var(--success, #10b981);
 }
 .border-danger {
-  border-color: #dc2626;
+  border-color: var(--danger, #dc2626);
 }
 .border-warning {
-  border-color: #f59e0b;
+  border-color: var(--warning, #f59e0b);
 }
 .border-info {
-  border-color: #3b82f6;
+  border-color: var(--info, #3b82f6);
 }
 
 .rounded {
@@ -739,7 +823,7 @@ button {
 }
 .badge-danger {
   background: #fee2e2;
-  color: #dc2626;
+  color: var(--danger, #dc2626);
 }
 .badge-warning {
   background: #fef3c7;
@@ -751,7 +835,7 @@ button {
 }
 .badge-secondary {
   background: #f1f5f9;
-  color: #64748b;
+  color: var(--text-gray, #64748b);
 }
 
 /* ===== Loading ===== */
@@ -831,7 +915,7 @@ button {
 
 @media print {
   body {
-    background: white !important;
+    background: var(--bg-surface, #fff) !important;
     color: black !important;
   }
 
@@ -946,10 +1030,10 @@ button {
    ============================================ */
 
 .UserTask-sidebar {
-  background: #ffffff;
+  background: var(--bg-surface, #ffffff);
   border-radius: 12px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-  border: 1px solid #eef2f6;
+  border: 1px solid var(--border-light, #eef2f6);
   padding: 12px 8px;
   position: sticky;
   top: 80px;
@@ -962,7 +1046,7 @@ button {
 }
 
 .UserTask-sidebar::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: var(--border-strong, #cbd5e1);
   border-radius: 10px;
 }
 
@@ -981,12 +1065,12 @@ button {
 
 .sidebar-menu-item:hover {
   background: #f1f5f9;
-  border-right: 3px solid #2c7a6e;
+  border-right: 3px solid var(--primary, #2c7a6e);
   transform: translateX(-4px);
 }
 
 .sidebar-menu-item.active {
-  background: #2c7a6e;
+  background: var(--primary, #2c7a6e);
   border-color: transparent;
 }
 
@@ -1007,7 +1091,7 @@ button {
 }
 
 .sidebar-menu-item.active .menu-icon-wrapper {
-  background: #035552;
+  background: var(--primary-dark, #035552);
 }
 
 .menu-icon-wrapper {
@@ -1016,7 +1100,7 @@ button {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: white;
+  background: var(--bg-surface, #fff);
   border-radius: 10px;
   flex-shrink: 0;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
@@ -1024,7 +1108,7 @@ button {
 
 .menu-icon {
   font-size: 18px;
-  color: #2c7a6e;
+  color: var(--primary, #2c7a6e);
   transition: all 0.3s ease;
 }
 
@@ -1041,19 +1125,19 @@ button {
   display: block;
   font-size: 13px;
   font-weight: 600;
-  color: #1e293b;
+  color: var(--text-dark, #1e293b);
   transition: all 0.3s ease;
 }
 
 .menu-description {
   display: block;
   font-size: 11px;
-  color: #64748b;
+  color: var(--text-gray, #64748b);
   transition: all 0.3s ease;
 }
 
 .menu-arrow {
-  color: #94a3b8;
+  color: var(--text-light, #94a3b8);
   font-size: 12px;
   transition: all 0.3s ease;
   flex-shrink: 0;
@@ -1107,8 +1191,8 @@ button {
   max-width: 520px;
   text-align: center;
   direction: rtl;
-  background: #f8fafc;
-  border: 1px dashed #cbd5e1;
+  background: var(--bg-surface-2, #f8fafc);
+  border: 1px dashed var(--border-strong, #cbd5e1);
   border-radius: 14px;
   color: #475569;
   font-family: inherit;
@@ -1116,7 +1200,7 @@ button {
 
 .perm-denied-box > i {
   font-size: 30px;
-  color: #94a3b8;
+  color: var(--text-light, #94a3b8);
 }
 
 .perm-denied-box > p {
@@ -1127,12 +1211,12 @@ button {
 
 .perm-denied-box .perm-denied-hint {
   font-size: 12.5px;
-  color: #64748b;
+  color: var(--text-gray, #64748b);
 }
 
 .perm-denied-box .perm-denied-code {
   font-size: 11.5px;
-  color: #94a3b8;
+  color: var(--text-light, #94a3b8);
   font-family: monospace;
   direction: ltr;
 }
@@ -1140,5 +1224,52 @@ button {
 .perm-no-section .perm-denied-hint {
   margin: 0;
   font-size: 13px;
-  color: #64748b;
+  color: var(--text-gray, #64748b);
+}
+
+/* ================================================================
+   ✅ صیقل تم تیره (موج ۴.۵)
+   ================================================================ */
+html[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+html[data-theme="dark"] body {
+  background: var(--bg-body);
+  color: var(--text-dark);
+}
+
+html[data-theme="dark"] ::selection {
+  background: var(--primary-soft);
+  color: var(--text-dark);
+}
+
+/* اسکرول‌بار تیره */
+html[data-theme="dark"] ::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+html[data-theme="dark"] ::-webkit-scrollbar-track {
+  background: var(--bg-surface-2);
+}
+
+html[data-theme="dark"] ::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 8px;
+}
+
+html[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+  background: var(--primary);
+}
+
+/* SweetAlert2 در حالت تیره */
+html[data-theme="dark"] .swal2-popup {
+  background: var(--bg-surface) !important;
+  color: var(--text-dark) !important;
+}
+
+html[data-theme="dark"] .swal2-title,
+html[data-theme="dark"] .swal2-html-container {
+  color: var(--text-dark) !important;
 }

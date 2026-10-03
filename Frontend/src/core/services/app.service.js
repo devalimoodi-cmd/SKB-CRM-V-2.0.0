@@ -3,6 +3,7 @@ import { authService } from "./auth.service.js";
 import { stateService } from "./state.service.js";
 import { notificationService } from "./notification.service.js";
 import { permissionService } from "./permission.service.js";
+import { chartThemeService } from "./chart-theme.service.js";
 import { headerService } from "../../shared/layouts/Header/header.service.js";
 import { footerService } from "../../shared/layouts/Footer/footer.service.js";
 import { sidebarService } from "../../shared/layouts/Sidebar/sidebar.service.js";
@@ -97,6 +98,13 @@ class AppService {
 
       // 1.5 ✅ سطوح دسترسی (مجوزهای کاربر جاری + گیت منو/دکمه‌ها)
       await this.initPermissions();
+
+      // 1.6 ✅ تم نمودارها (Chart.js) — هماهنگ با تم روشن/تیره
+      try {
+        chartThemeService.init();
+      } catch (chartThemeError) {
+        console.warn("⚠️ chart theme init failed:", chartThemeError?.message || chartThemeError);
+      }
 
       // 2. مقداردهی Layouts
       await this.initLayouts();

@@ -22,14 +22,14 @@
 .sms-header h1 {
   font-size: 24px;
   font-weight: 700;
-  color: #1e293b;
+  color: var(--text-dark, #1e293b);
   display: flex;
   align-items: center;
   gap: 12px;
 }
 
 .sms-header h1 i {
-  color: #3b82f6;
+  color: var(--info, #3b82f6);
 }
 
 .sms-header-actions {
@@ -40,11 +40,11 @@
 
 .btn-refresh {
   padding: 10px 16px;
-  background: #f8fafc;
-  border: 1px solid #eef2f6;
+  background: var(--bg-surface-2, #f8fafc);
+  border: 1px solid var(--border-light, #eef2f6);
   border-radius: 8px;
   cursor: pointer;
-  color: #64748b;
+  color: var(--text-gray, #64748b);
   transition: all 0.3s ease;
 }
 
@@ -55,9 +55,9 @@
 
 /* ===== اعتبار ===== */
 .sms-credit {
-  background: white;
+  background: var(--bg-surface, #fff);
   border-radius: 12px;
-  border: 1px solid #eef2f6;
+  border: 1px solid var(--border-light, #eef2f6);
   padding: 12px 20px;
   display: flex;
   align-items: center;
@@ -66,25 +66,25 @@
 
 .sms-credit .credit-label {
   font-size: 13px;
-  color: #64748b;
+  color: var(--text-gray, #64748b);
 }
 
 .sms-credit .credit-value {
   font-size: 20px;
   font-weight: 700;
-  color: #1e293b;
+  color: var(--text-dark, #1e293b);
 }
 
 .sms-credit .credit-value.credit-low {
-  color: #dc2626;
+  color: var(--danger, #dc2626);
 }
 
 .sms-credit .credit-value.credit-medium {
-  color: #f59e0b;
+  color: var(--warning, #f59e0b);
 }
 
 .sms-credit .credit-value.credit-high {
-  color: #10b981;
+  color: var(--success, #10b981);
 }
 
 /* ===== آمار ===== */
@@ -96,10 +96,10 @@
 }
 
 .stat-item {
-  background: white;
+  background: var(--bg-surface, #fff);
   padding: 16px 20px;
   border-radius: 12px;
-  border: 1px solid #eef2f6;
+  border: 1px solid var(--border-light, #eef2f6);
   text-align: center;
   transition: all 0.3s ease;
 }
@@ -113,24 +113,24 @@
   display: block;
   font-size: 24px;
   font-weight: 700;
-  color: #1e293b;
+  color: var(--text-dark, #1e293b);
 }
 
 .stat-value.delivered {
-  color: #10b981;
+  color: var(--success, #10b981);
 }
 
 .stat-value.failed {
-  color: #dc2626;
+  color: var(--danger, #dc2626);
 }
 
 .stat-value.pending {
-  color: #f59e0b;
+  color: var(--warning, #f59e0b);
 }
 
 .stat-label {
   font-size: 12px;
-  color: #94a3b8;
+  color: var(--text-light, #94a3b8);
   margin-top: 4px;
 }
 
@@ -141,9 +141,9 @@
   gap: 12px;
   margin-bottom: 24px;
   padding: 16px 20px;
-  background: white;
+  background: var(--bg-surface, #fff);
   border-radius: 12px;
-  border: 1px solid #eef2f6;
+  border: 1px solid var(--border-light, #eef2f6);
 }
 
 .filter-group {
@@ -161,14 +161,14 @@
   font-size: 13px;
   transition: all 0.3s ease;
   background: #fafbfc;
-  color: #1e293b;
+  color: var(--text-dark, #1e293b);
 }
 
 .filter-input:focus {
   outline: none;
-  border-color: #2c7a6e;
+  border-color: var(--primary, #2c7a6e);
   box-shadow: 0 0 0 3px rgba(44, 122, 110, 0.1);
-  background: white;
+  background: var(--bg-surface, #fff);
 }
 
 .filter-icon {
@@ -176,7 +176,7 @@
   right: 14px;
   top: 50%;
   transform: translateY(-50%);
-  color: #94a3b8;
+  color: var(--text-light, #94a3b8);
 }
 
 .filter-select {
@@ -188,25 +188,25 @@
   font-size: 13px;
   background: #fafbfc;
   cursor: pointer;
-  color: #1e293b;
+  color: var(--text-dark, #1e293b);
   transition: all 0.3s ease;
 }
 
 .filter-select:focus {
   outline: none;
-  border-color: #2c7a6e;
+  border-color: var(--primary, #2c7a6e);
   box-shadow: 0 0 0 3px rgba(44, 122, 110, 0.1);
 }
 
 .btn-reset-filters {
   padding: 10px 20px;
   background: #f1f5f9;
-  border: 1px solid #eef2f6;
+  border: 1px solid var(--border-light, #eef2f6);
   border-radius: 8px;
   cursor: pointer;
   font-family: "Vazir", sans-serif;
   font-size: 13px;
-  color: #64748b;
+  color: var(--text-gray, #64748b);
   transition: all 0.3s ease;
   display: flex;
   align-items: center;
@@ -214,15 +214,15 @@
 }
 
 .btn-reset-filters:hover {
-  background: #e2e8f0;
+  background: var(--border-color, #e2e8f0);
   transform: translateY(-2px);
 }
 
 /* ===== فرم ارسال ===== */
 .sms-send-form {
-  background: white;
+  background: var(--bg-surface, #fff);
   border-radius: 12px;
-  border: 1px solid #eef2f6;
+  border: 1px solid var(--border-light, #eef2f6);
   padding: 24px;
   margin-bottom: 24px;
 }
@@ -239,12 +239,12 @@
   display: block;
   font-size: 13px;
   font-weight: 500;
-  color: #1e293b;
+  color: var(--text-dark, #1e293b);
   margin-bottom: 6px;
 }
 
 .sms-send-form .form-group label .required {
-  color: #dc2626;
+  color: var(--danger, #dc2626);
 }
 
 .sms-send-form .form-control {
@@ -255,13 +255,13 @@
   font-family: "Vazir", sans-serif;
   font-size: 13px;
   transition: all 0.3s ease;
-  background: white;
-  color: #1e293b;
+  background: var(--bg-surface, #fff);
+  color: var(--text-dark, #1e293b);
 }
 
 .sms-send-form .form-control:focus {
   outline: none;
-  border-color: #2c7a6e;
+  border-color: var(--primary, #2c7a6e);
   box-shadow: 0 0 0 3px rgba(44, 122, 110, 0.1);
 }
 
@@ -280,22 +280,22 @@
 .char-counter {
   text-align: left;
   font-size: 12px;
-  color: #94a3b8;
+  color: var(--text-light, #94a3b8);
   margin-top: 6px;
 }
 
 .char-counter #charCount {
   font-weight: 600;
-  color: #1e293b;
+  color: var(--text-dark, #1e293b);
 }
 
 .char-counter .over-limit {
-  color: #dc2626 !important;
+  color: var(--danger, #dc2626) !important;
 }
 
 /* ===== پیش‌نمایش ===== */
 .sms-preview {
-  background: #f8fafc;
+  background: var(--bg-surface-2, #f8fafc);
   border-radius: 8px;
   padding: 16px;
   min-height: 80px;
@@ -307,7 +307,7 @@
 
 .sms-preview .preview-content {
   text-align: center;
-  color: #94a3b8;
+  color: var(--text-light, #94a3b8);
   font-size: 14px;
 }
 
@@ -318,12 +318,12 @@
 }
 
 .sms-preview .preview-content .preview-message {
-  color: #1e293b;
+  color: var(--text-dark, #1e293b);
   text-align: right;
   padding: 12px;
-  background: white;
+  background: var(--bg-surface, #fff);
   border-radius: 8px;
-  border: 1px solid #eef2f6;
+  border: 1px solid var(--border-light, #eef2f6);
   max-width: 400px;
   margin: 0 auto;
 }
@@ -353,12 +353,12 @@
 }
 
 .btn-send-sms {
-  background: #2c7a6e;
+  background: var(--primary, #2c7a6e);
   color: white;
 }
 
 .btn-send-sms:hover {
-  background: #035552;
+  background: var(--primary-dark, #035552);
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(44, 122, 110, 0.3);
 }
@@ -382,12 +382,12 @@
 
 .btn-clear {
   background: #f1f5f9;
-  color: #64748b;
-  border: 1px solid #eef2f6;
+  color: var(--text-gray, #64748b);
+  border: 1px solid var(--border-light, #eef2f6);
 }
 
 .btn-clear:hover {
-  background: #e2e8f0;
+  background: var(--border-color, #e2e8f0);
   transform: translateY(-2px);
 }
 
@@ -399,9 +399,9 @@
 }
 
 .sms-history-item {
-  background: white;
+  background: var(--bg-surface, #fff);
   border-radius: 12px;
-  border: 1px solid #eef2f6;
+  border: 1px solid var(--border-light, #eef2f6);
   padding: 16px 20px;
   transition: all 0.3s ease;
 }
@@ -412,19 +412,19 @@
 }
 
 .sms-history-item.pending {
-  border-right: 4px solid #f59e0b;
+  border-right: 4px solid var(--warning, #f59e0b);
 }
 
 .sms-history-item.sent {
-  border-right: 4px solid #3b82f6;
+  border-right: 4px solid var(--info, #3b82f6);
 }
 
 .sms-history-item.delivered {
-  border-right: 4px solid #10b981;
+  border-right: 4px solid var(--success, #10b981);
 }
 
 .sms-history-item.failed {
-  border-right: 4px solid #dc2626;
+  border-right: 4px solid var(--danger, #dc2626);
 }
 
 .sms-item-header {
@@ -441,7 +441,7 @@
   flex-wrap: wrap;
   gap: 12px;
   font-size: 13px;
-  color: #64748b;
+  color: var(--text-gray, #64748b);
 }
 
 .sms-item-info span {
@@ -452,7 +452,7 @@
 
 .sms-item-info .sms-customer {
   font-weight: 600;
-  color: #1e293b;
+  color: var(--text-dark, #1e293b);
 }
 
 .sms-item-status .status-badge {
@@ -473,10 +473,10 @@
 
 .sms-message {
   font-size: 14px;
-  color: #1e293b;
+  color: var(--text-dark, #1e293b);
   line-height: 1.8;
   padding: 8px 12px;
-  background: #f8fafc;
+  background: var(--bg-surface-2, #f8fafc);
   border-radius: 8px;
   margin-bottom: 10px;
 }
@@ -486,7 +486,7 @@
   flex-wrap: wrap;
   gap: 16px;
   font-size: 12px;
-  color: #94a3b8;
+  color: var(--text-light, #94a3b8);
 }
 
 .sms-meta span {
@@ -551,7 +551,7 @@
   min-width: 36px;
   height: 36px;
   border: 1px solid #e5e7eb;
-  background: white;
+  background: var(--bg-surface, #fff);
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -564,9 +564,9 @@
 }
 
 .sms-pagination .page-btn:hover:not(:disabled) {
-  background: #2c7a6e;
+  background: var(--primary, #2c7a6e);
   color: white;
-  border-color: #2c7a6e;
+  border-color: var(--primary, #2c7a6e);
   transform: translateY(-2px);
 }
 
@@ -576,9 +576,9 @@
 }
 
 .sms-pagination .page-btn.active {
-  background: #2c7a6e;
+  background: var(--primary, #2c7a6e);
   color: white;
-  border-color: #2c7a6e;
+  border-color: var(--primary, #2c7a6e);
   box-shadow: 0 2px 8px rgba(44, 122, 110, 0.3);
 }
 
@@ -588,34 +588,34 @@
   justify-content: center;
   min-width: 36px;
   height: 36px;
-  color: #94a3b8;
+  color: var(--text-light, #94a3b8);
 }
 
 /* ===== وضعیت خالی ===== */
 .empty-state {
   text-align: center;
   padding: 40px 20px;
-  background: white;
+  background: var(--bg-surface, #fff);
   border-radius: 12px;
-  border: 1px solid #eef2f6;
+  border: 1px solid var(--border-light, #eef2f6);
 }
 
 .empty-state i {
   font-size: 48px;
-  color: #cbd5e1;
+  color: var(--border-strong, #cbd5e1);
   display: block;
   margin-bottom: 16px;
 }
 
 .empty-state h4 {
   font-size: 18px;
-  color: #64748b;
+  color: var(--text-gray, #64748b);
   margin-bottom: 8px;
 }
 
 .empty-state p {
   font-size: 14px;
-  color: #94a3b8;
+  color: var(--text-light, #94a3b8);
 }
 
 /* ===== ریسپانسیو ===== */
