@@ -643,7 +643,7 @@
 
 .analysis-group-count {
   background: var(--primary, #2c7a6e);
-  color: #fff;
+  color: var(--c-fff, #fff);
   font-size: 10px;
   font-weight: 600;
   border-radius: 20px;
@@ -726,7 +726,7 @@
 
 .series-remove-btn:hover {
   background: var(--danger, #dc2626);
-  color: #fff;
+  color: var(--c-fff, #fff);
 }
 
 .analysis-cmp-btn {
@@ -736,7 +736,7 @@
 
 .analysis-cmp-btn:hover {
   background: var(--violet, #8b5cf6) !important;
-  color: #fff !important;
+  color: var(--c-fff, #fff) !important;
 }
 
 .cmp-option-list {
@@ -857,7 +857,7 @@
 
 .analysis-breed-btn:hover {
   background: var(--c-0ea5e9, #0ea5e9) !important;
-  color: #fff !important;
+  color: var(--c-fff, #fff) !important;
 }
 
 @media (max-width: 768px) {

@@ -193,7 +193,7 @@ class HeaderBookmarksService {
     const content = `
       <div style="text-align:center; font-family:'Vazir','Vazirmatn',sans-serif; direction:rtl;">
         <!-- آیکون مدور -->
-        <div style="width:72px; height:72px; border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 16px; font-size:30px; color:#fff; background:linear-gradient(135deg,${pr.gradient}); box-shadow:0 8px 32px ${pr.shadow}; position:relative;">
+        <div style="width:72px; height:72px; border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 16px; font-size:30px; color:var(--c-fff, #fff); background:linear-gradient(135deg,${pr.gradient}); box-shadow:0 8px 32px ${pr.shadow}; position:relative;">
           <i class="fas ${typeIcon}"></i>
         </div>
 

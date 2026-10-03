@@ -165,6 +165,64 @@ check(
   }`,
 );
 
+// ===== موج ۹: پس‌زمینه‌های تیره باید از توکن «مقیمِ تیره» (-s) استفاده کنند =====
+const lumOf = (hex) => {
+  let h = String(hex).replace("#", "");
+  if (h.length === 3) h = h.split("").map((c) => c + c).join("");
+  const n = parseInt(h, 16);
+  return (
+    0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)
+  );
+};
+
+const flippingDarkBackgrounds = () => {
+  const hits = [];
+  const walk = (dir) => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const abs = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        walk(abs);
+        continue;
+      }
+      if (!/\.(css|js|html)$/i.test(entry.name)) continue;
+      const text = fs.readFileSync(abs, "utf8");
+      const parts = entry.name.endsWith(".css")
+        ? [text]
+        : text.match(/<style\b[^>]*>[\s\S]*?<\/style>|style="[^"]*"/gi) || [];
+      for (const part of parts) {
+        for (const decl of part.matchAll(
+          /background(?:-color)?\s*:\s*([^;}]+)/gi,
+        )) {
+          for (const v of decl[1].matchAll(
+            /var\((--[a-z0-9-]+),\s*(#[0-9a-fA-F]{3,8})\)/g,
+          )) {
+            const token = v[1];
+            const hex = v[2];
+            if (
+              lumOf(hex) < 110 &&
+              token.startsWith("--c-") &&
+              !token.endsWith("-s")
+            ) {
+              hits.push(`${entry.name}:${hex}`);
+            }
+          }
+        }
+      }
+    }
+  };
+  walk(path.join(here, "src"));
+  return hits;
+};
+
+const flippingBg = flippingDarkBackgrounds();
+check(
+  "موج ۹: پس‌زمینه‌های تیره از توکن «مقیمِ تیره» (-s) استفاده می‌کنند",
+  flippingBg.length === 0,
+  `hits=${flippingBg.length}${
+    flippingBg.length ? " → " + flippingBg.slice(0, 6).join(", ") : ""
+  }`,
+);
+
 // ============================================================
 //  بخش ۲) بررسی زمان اجرا: تزریق بوت‌استرپ در HTML سروشده
 // ============================================================

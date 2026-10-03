@@ -65,7 +65,7 @@
 }
 
 .btn-success:hover:not(:disabled) {
-  background: var(--c-059669, #059669);
+  background: var(--c-059669-s, #059669);
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(var(--success-rgb), 0.3);
 }

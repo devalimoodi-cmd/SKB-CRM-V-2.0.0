@@ -403,7 +403,7 @@ export const hatcheryCompletionPeriodMethods = {
         title: "",
         html: `
           <div style="text-align:right; font-family:'Vazir'; direction:rtl;">
-            <div style="background:linear-gradient(135deg,var(--primary, #2c7a6e),var(--primary-dark, #035552)); color:#fff; border-radius:12px; padding:14px 16px; margin-bottom:16px; display:flex; align-items:center; gap:12px;">
+            <div style="background:linear-gradient(135deg,var(--primary, #2c7a6e),var(--primary-dark, #035552)); color:var(--c-fff, #fff); border-radius:12px; padding:14px 16px; margin-bottom:16px; display:flex; align-items:center; gap:12px;">
               <div style="width:42px; height:42px; border-radius:50%; background:rgba(var(--surface-rgb),0.2); display:flex; align-items:center; justify-content:center; font-size:20px;">
                 <i class="fas fa-file-alt"></i>
               </div>
@@ -631,7 +631,7 @@ const buildCompletionEditFormHtml = ({
         <div style="text-align:right; font-family:'Vazir'; direction:rtl;">
           <style>${UE_FORM_STYLE_BLOCK}</style>
 
-          <div style="background:linear-gradient(135deg,var(--primary, #2c7a6e),var(--primary-dark, #035552)); color:#fff; border-radius:12px; padding:14px 16px; margin-bottom:16px; display:flex; align-items:center; gap:12px; position:relative;">
+          <div style="background:linear-gradient(135deg,var(--primary, #2c7a6e),var(--primary-dark, #035552)); color:var(--c-fff, #fff); border-radius:12px; padding:14px 16px; margin-bottom:16px; display:flex; align-items:center; gap:12px; position:relative;">
             <div style="width:42px; height:42px; border-radius:50%; background:rgba(var(--surface-rgb),0.2); display:flex; align-items:center; justify-content:center; font-size:20px;">
               <i class="fas fa-pen"></i>
             </div>
@@ -643,7 +643,7 @@ const buildCompletionEditFormHtml = ({
 
           <div style="display:flex; justify-content:flex-end; margin-bottom:12px;">
             <button type="button" id="ueRecomputeBtn"
-              style="padding:8px 18px; background:var(--warning-deep-2, #d97706); color:#fff; border:none; border-radius:10px; font-family:'Vazir'; font-size:12.5px; font-weight:600; cursor:pointer; transition:all .3s; display:flex; align-items:center; gap:6px;">
+              style="padding:8px 18px; background:var(--warning-deep-2, #d97706); color:var(--c-fff, #fff); border:none; border-radius:10px; font-family:'Vazir'; font-size:12.5px; font-weight:600; cursor:pointer; transition:all .3s; display:flex; align-items:center; gap:6px;">
               <i class="fas fa-sync-alt" id="ueRecomputeIcon"></i> محاسبه مجدد فیلدهای سیستمی
             </button>
           </div>
@@ -1007,7 +1007,7 @@ const buildCompletionFlockOptions = (periodFlocks) => {
 
 const buildPeriodCompletionInfoHtml = (period, periodFlocks) => {
       return `
-        <div style="background:linear-gradient(135deg,var(--primary, #2c7a6e),var(--primary-dark, #035552)); color:#fff; border-radius:12px; padding:14px 16px; margin-bottom:16px; display:flex; align-items:center; gap:12px;">
+        <div style="background:linear-gradient(135deg,var(--primary, #2c7a6e),var(--primary-dark, #035552)); color:var(--c-fff, #fff); border-radius:12px; padding:14px 16px; margin-bottom:16px; display:flex; align-items:center; gap:12px;">
           <div style="width:42px; height:42px; border-radius:50%; background:rgba(var(--surface-rgb),0.2); display:flex; align-items:center; justify-content:center; font-size:20px;">
             <i class="fas fa-flag-checkered"></i>
           </div>

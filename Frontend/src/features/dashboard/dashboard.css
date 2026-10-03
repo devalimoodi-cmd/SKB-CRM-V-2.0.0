@@ -359,7 +359,7 @@
 
 .btn-remove-all:hover {
   background: var(--danger, #dc2626);
-  color: #ffffff;
+  color: var(--c-fff, #fff)fff;
   transform: translateY(-2px);
 }
 
@@ -380,7 +380,7 @@
 
 .btn-send-sms:hover {
   background: var(--success-strong, #16a34a);
-  color: #ffffff;
+  color: var(--c-fff, #fff)fff;
   transform: translateY(-2px);
 }
 
@@ -621,7 +621,7 @@
   align-items: center;
   padding: 18px 28px;
   background: linear-gradient(135deg, var(--primary, #2c7a6e) 0%, var(--primary-dark, #035552) 100%);
-  color: #ffffff;
+  color: var(--c-fff, #fff)fff;
   border-radius: 16px 16px 0 0;
   position: sticky;
   top: 0;
@@ -637,7 +637,7 @@
   align-items: center;
   gap: 12px;
   font-family: "Vazir", sans-serif;
-  color: #ffffff;
+  color: var(--c-fff, #fff)fff;
 }
 
 .modal-header h3 i {
@@ -647,7 +647,7 @@
 
 /* ✅ نام مشتری در هدر مودال همیشه سفید باشد */
 .modal-header #modalCustomerName {
-  color: #ffffff !important;
+  color: var(--c-fff, #fff)fff !important;
   font-weight: 700;
   font-size: 18px;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
@@ -656,7 +656,7 @@
 .modal-close {
   background: rgba(var(--surface-rgb), 0.15);
   border: none;
-  color: #ffffff;
+  color: var(--c-fff, #fff)fff;
   width: 40px;
   height: 40px;
   border-radius: 50%;
@@ -713,7 +713,7 @@
 }
 
 .modal-footer .btn-primary:hover {
-  background: linear-gradient(135deg, var(--primary-dark, #035552) 0%, var(--c-022e2a, #022e2a) 100%);
+  background: linear-gradient(135deg, var(--primary-dark, #035552) 0%, var(--c-022e2a-s, #022e2a) 100%);
   transform: translateY(-2px);
   box-shadow: 0 4px 14px rgba(var(--primary-rgb), 0.4);
 }
@@ -1313,7 +1313,7 @@
 }
 .task-halls-toggle .th-count-badge {
   background: var(--info-strong, #2563eb);
-  color: #ffffff;
+  color: var(--c-fff, #fff)fff;
   border-radius: 999px;
   font-size: 10px;
   padding: 1px 8px;
@@ -1415,7 +1415,7 @@
 .th-selected-tag {
   display: none;
   background: var(--info-strong, #2563eb);
-  color: #ffffff;
+  color: var(--c-fff, #fff)fff;
   font-size: 10px;
   font-weight: 700;
   padding: 1px 8px;
@@ -1757,7 +1757,7 @@
   width: 11px;
   height: 11px;
   border-radius: 50%;
-  border: 2px solid #ffffff;
+  border: 2px solid var(--c-fff, #fff)fff;
   animation: fcPulse 1.6s ease-in-out infinite;
 }
 @keyframes fcPulse {
@@ -2236,7 +2236,7 @@
 .db-layout-btn.active {
   background: var(--primary, #2c7a6e);
   border-color: var(--primary, #2c7a6e);
-  color: #ffffff;
+  color: var(--c-fff, #fff)fff;
 }
 
 /* حالت تمام‌عرض/افقی: هر نمودار به‌صورت تمام‌عرض زیر هم */
@@ -2412,7 +2412,7 @@
   display: none;
   pointer-events: none;
   background: rgba(var(--ink-rgb), 0.95);
-  color: #ffffff;
+  color: var(--c-fff, #fff)fff;
   direction: rtl;
   text-align: right;
   font-family: "Vazir", sans-serif;
@@ -2468,7 +2468,7 @@
 
 .dash-tt-value {
   margin-inline-start: auto;
-  color: #ffffff;
+  color: var(--c-fff, #fff)fff;
   font-weight: 700;
 }
 
@@ -2876,7 +2876,7 @@
 }
 
 .cd-tab-active {
-  color: #fff;
+  color: var(--c-fff, #fff);
   background: var(--primary, #2c7a6e);
   border-color: var(--primary, #2c7a6e);
 }
@@ -3338,7 +3338,7 @@
 }
 
 .cd-chart-card-sky .cd-chart-sheet {
-  background: linear-gradient(135deg, var(--c-0ea5e9, #0ea5e9), var(--c-0369a1, #0369a1));
+  background: linear-gradient(135deg, var(--c-0ea5e9, #0ea5e9), var(--c-0369a1-s, #0369a1));
 }
 
 .cd-chart-card-amber .cd-chart-sheet {

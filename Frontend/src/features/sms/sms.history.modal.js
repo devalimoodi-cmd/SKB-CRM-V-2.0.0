@@ -233,7 +233,7 @@ function renderModal(records, notice = null) {
             </div>
             <div style="display:flex; justify-content:center; margin-top:12px;">
               <button type="button" onclick="window.refreshSmsHistoryModal()"
-                      style="display:inline-flex; align-items:center; gap:6px; padding:8px 16px; border:none; border-radius:8px; background:var(--primary, #2c7a6e); color:#ffffff; font-family:'Vazir'; font-size:12px; font-weight:600; cursor:pointer; box-shadow:0 2px 8px rgba(var(--primary-rgb),0.25);">
+                      style="display:inline-flex; align-items:center; gap:6px; padding:8px 16px; border:none; border-radius:8px; background:var(--primary, #2c7a6e); color:var(--c-fff, #fff)fff; font-family:'Vazir'; font-size:12px; font-weight:600; cursor:pointer; box-shadow:0 2px 8px rgba(var(--primary-rgb),0.25);">
                 <i class="fas fa-sync-alt"></i> بروزرسانی وضعیت پیامک‌های قبلی
               </button>
             </div>

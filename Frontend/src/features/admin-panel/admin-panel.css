@@ -714,8 +714,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, var(--c-14b8a6, #14b8a6), var(--c-0f766e, #0f766e));
-  color: #ffffff;
+  background: linear-gradient(135deg, var(--c-14b8a6, #14b8a6), var(--c-0f766e-s, #0f766e));
+  color: var(--c-fff, #fff)fff;
   font-size: 20px;
   box-shadow: 0 6px 16px rgba(20, 184, 166, 0.35);
 }
@@ -1178,7 +1178,7 @@
 
 /* ===== آواتار وضعیت آنلاین ===== */
 .customer-avatar.online {
-  background: linear-gradient(135deg, var(--success, #10b981) 0%, var(--c-059669, #059669) 100%) !important;
+  background: linear-gradient(135deg, var(--success, #10b981) 0%, var(--c-059669-s, #059669) 100%) !important;
   border: 2px solid var(--success, #10b981);
   box-shadow: 0 0 0 2px rgba(var(--success-rgb), 0.3);
 }
@@ -1608,7 +1608,7 @@
 
 .perm-tab.active {
     background: linear-gradient(135deg, var(--primary, #2c7a6e) 0%, var(--primary-dark, #035552) 100%);
-    color: #fff;
+    color: var(--c-fff, #fff);
     border-color: transparent;
 }
 
@@ -1649,7 +1649,7 @@
 
 .perm-role-chip.active {
     background: var(--primary, #2c7a6e);
-    color: #fff;
+    color: var(--c-fff, #fff);
     border-color: var(--primary, #2c7a6e);
 }
 
@@ -1699,7 +1699,7 @@
 
 .perm-btn.primary {
     background: linear-gradient(135deg, var(--primary, #2c7a6e) 0%, var(--primary-dark, #035552) 100%);
-    color: #fff;
+    color: var(--c-fff, #fff);
 }
 
 .perm-btn.primary:disabled {

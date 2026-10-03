@@ -1035,7 +1035,7 @@
 .field-help:hover,
 .field-help:focus {
   background: var(--primary, #2c7a6e);
-  color: #fff;
+  color: var(--c-fff, #fff);
   outline: none;
 }
 
