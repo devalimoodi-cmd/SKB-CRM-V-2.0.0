@@ -455,24 +455,24 @@ class VisitReportService {
                 <i class="fas ${fileIcon}"></i>
                 <span style="flex:1; margin-right: 10px;">${attachment.name}</span>
                 <button onclick="window.viewAttachment(${attachment.id})"
-                        style="background: none; border: none; color: #2c7a6e; cursor: pointer; margin:0 5px;"
+                        style="background: none; border: none; color: var(--primary, #2c7a6e); cursor: pointer; margin:0 5px;"
                         title="مشاهده">
                     <i class="fas fa-eye"></i>
                 </button>
                 <button onclick="window.downloadAttachment(${attachment.id}, '${attachment.name}')" 
-                        style="background: none; border: none; color: #3b82f6; cursor: pointer; margin:0 5px;" 
+                        style="background: none; border: none; color: var(--info, #3b82f6); cursor: pointer; margin:0 5px;" 
                         title="دانلود">
                     <i class="fas fa-download"></i>
                 </button>
                 <i class="fas fa-times remove-attach" onclick="window.removeAttachment(${attachment.id})" 
-                   style="cursor:pointer; color:#ef4444;" title="حذف"></i>
+                   style="cursor:pointer; color:var(--danger-strong, #ef4444);" title="حذف"></i>
             `;
     } else {
       div.innerHTML = `
                 <i class="fas ${fileIcon}"></i>
                 <span style="flex:1; margin-right: 10px;">${attachment.name}</span>
                 <i class="fas fa-times remove-attach" onclick="window.removeAttachment(${attachment.id})" 
-                   style="cursor:pointer; color:#ef4444;" title="حذف"></i>
+                   style="cursor:pointer; color:var(--danger-strong, #ef4444);" title="حذف"></i>
             `;
     }
     container.appendChild(div);

@@ -8,100 +8,100 @@
   "note2": "خروجی به locale/ICU و منطقهٔ زمانی محیط Node وابسته است (تاریخ و ساعت شمسی + ارقام فارسی در تمام سند)؛ هارنس ساعت را تثبیت و TZ را روی Asia/Tehran قفل می‌کند، پس مقایسه فقط در همان محیطی معنا دارد که اسنپ‌شات گرفته شده است.",
   "cases": {
     "F1.گزارش-پایه-دو-هفته": {
-      "bytes": 29136,
-      "sha256": "b3e5162d011c1624664826344acdb194605c8db7d234af00d0a0e5a3968f31bc"
+      "bytes": 29154,
+      "sha256": "b202ce50ee0d80a125000178ae87819357e4bbcaf9f4c33792099a8e7bf2b55c"
     },
     "F2.بدون-savedWeeks-و-بدون-بلوک": {
-      "bytes": 18112,
-      "sha256": "bdf1bcb1e0f6dc54321a60cf6f85c1b8059f81e8f95b18134bac59f023fd6555"
+      "bytes": 18168,
+      "sha256": "ab08eec57fb2d9e16837f1d714a7608d3a3b5b4ce62a90fa92158445b807c8b5"
     },
     "F3.گلهٔ-بدون-هیچ-هفته": {
-      "bytes": 17940,
-      "sha256": "0ce3049478fc0579d15c39e4d4707bdc3d93f5ea1b5352e1d1d54a65e07ceedf"
+      "bytes": 17996,
+      "sha256": "0f063eca919460ff79e991233861ec6a8603b46f8559bf75155e20d7505d795e"
     },
     "F4.انتخاب-خالی-MANUAL": {
-      "bytes": 18324,
-      "sha256": "60fc4b89ed6c3902e3fdfbf3ac57418e34dd19dbb01ffc2fdbcfa7e6be49307d"
+      "bytes": 18380,
+      "sha256": "e4b3f96e3021874714ffa4f23112dae1c674fe662cd2e52c33947b84bf0fdade"
     },
     "F5.انتخاب-فقط-هفتهٔ-۲": {
-      "bytes": 23761,
-      "sha256": "24c0f367cd2e13560f1c3b478799cdefd90a4bcfe8bbfb84d9437ec612a9a2f4"
+      "bytes": 23779,
+      "sha256": "e6aaae6d565945c39ed4f62bd3a68e423a87e1940a8c6a14e1a183053084c561"
     },
     "F6.هفتهٔ-بدون-ثبت-بلوک-هشدار": {
-      "bytes": 23890,
-      "sha256": "cfdc77d5ac1a3b6eea4f00cbfd8c0bb17917e1a45bb9b74f1fb99ea9f994db3f"
+      "bytes": 23908,
+      "sha256": "d1ae8cd82ada3f87a7630d800897b31abe33a818df0b754a479e092d5d2c7141"
     },
     "F7.هفتهٔ-ناقص-PARTIAL": {
-      "bytes": 29227,
-      "sha256": "7b07df6db1b6b0e5c32c5dc5761593f91cde795ea41adc77faa95c09fe43a3d3"
+      "bytes": 29245,
+      "sha256": "aa49b73ce32cf180d48de68a99c871e6836a2698c9f0e9026c8ad83bac5b80bb"
     },
     "F8.گروهٔ-جمعیت-فقط": {
-      "bytes": 21577,
-      "sha256": "1dca3592ffc9a156882e9d42225001c171abd288bf4a64a52abd4e3e1c72f066"
+      "bytes": 21595,
+      "sha256": "6b6b5e07d76e73cbf8fb03d74db801b752a5906341b5e075078526be4fd8b149"
     },
     "F9.گروهٔ-خوراک-فقط": {
-      "bytes": 21302,
-      "sha256": "ec1efa1ea1c9486b6cc7995c5cf4af7b0783d234e5d52631bb0133e37fc4c05c"
+      "bytes": 21320,
+      "sha256": "1bb686786a3c8c122fd4c79cdc3e939fb5e57dba3b16fa7ed16fb34430d7b677"
     },
     "F10.گروهٔ-جزئیات-فقط": {
-      "bytes": 19599,
-      "sha256": "5753f1770e6f1f34b4c408dfa47b9ed2d13ddc4facbf3cd830f171d9d0c30744"
+      "bytes": 19617,
+      "sha256": "6d1eb847e0eaab8d099ea41b60100ca46185cba77a79bee523edd95c02b87c6d"
     },
     "F11.گروه‌های-آرایهٔ-خالی-رفتار-واقعی": {
-      "bytes": 29136,
-      "sha256": "b3e5162d011c1624664826344acdb194605c8db7d234af00d0a0e5a3968f31bc"
+      "bytes": 29154,
+      "sha256": "b202ce50ee0d80a125000178ae87819357e4bbcaf9f4c33792099a8e7bf2b55c"
     },
     "F12.همهٔ-گروه‌ها-صریح": {
-      "bytes": 27964,
-      "sha256": "6aae03592cbd11b771cdd2f37af3bcbb279c6114fe54c7855f5d4e6e74aa25a0"
+      "bytes": 27982,
+      "sha256": "7a9e8573f42d5dae8f6697cf554548728bdbc9c384a61e551d6f93f54b8410b1"
     },
     "F13.options-حذف‌شده": {
-      "bytes": 29136,
-      "sha256": "b3e5162d011c1624664826344acdb194605c8db7d234af00d0a0e5a3968f31bc"
+      "bytes": 29154,
+      "sha256": "b202ce50ee0d80a125000178ae87819357e4bbcaf9f4c33792099a8e7bf2b55c"
     },
     "F14.کاربر-نام-و-فامیل-نقش-میانی": {
-      "bytes": 29147,
-      "sha256": "98163586d57cf147aa940650c8a79476b4306fadff757b740579fa87eaaf50fc"
+      "bytes": 29165,
+      "sha256": "14d1d7ab1f5eaed9b884eb7ee5829b593514e163cc1b593e8d1d03e42ce70a7f"
     },
     "F15.کاربر-یوزرنیم-نقش-ناشناس": {
-      "bytes": 29121,
-      "sha256": "d3692f6f36ed3a510fc51c44a2b2b70af8fb3874b8dd05458894c3f07adcfabc"
+      "bytes": 29139,
+      "sha256": "fd5584ac475cb08cd742c288adf7094c67554cdf24b6d91c5f910c7ef3434e03"
     },
     "F16.بدون-کاربر": {
-      "bytes": 29142,
-      "sha256": "da2ad2b3232a8f1654784d614e3f3aa04cc84b60d21d828650dd663410e6675b"
+      "bytes": 29160,
+      "sha256": "c057ed2d5fb5f909d9a7bcc00f611d34c80e7e2fe4866f82c539bbb5e83992eb"
     },
     "F17.statistics-غایب-شاخص‌ها-خط‌تیره": {
-      "bytes": 29055,
-      "sha256": "fbf1e2602c568480f2d2908c11e7fc1834e6e3410f3933cd25f4604bcb995827"
+      "bytes": 29073,
+      "sha256": "1ed4d78171a825d745b2c3d16074c385c88155b19d88ea679a9910f1fd6bdda9"
     },
     "F18.بدون-timeline": {
-      "bytes": 28964,
-      "sha256": "3e3a693ea244a5c90fdb702ce17ff6f8e625d0b1ad01507a73e505204b561546"
+      "bytes": 28982,
+      "sha256": "dc4de5d494e564f26107870927bd13f034b676ecb600c0ce2f1af690f7dd3cef"
     },
     "F19.بدون-تاریخ-جوجه‌ریزی": {
-      "bytes": 29118,
-      "sha256": "c8b9d1157952c24c2d443e6ac4587f61452532bebb14918aa9cc2ef008093591"
+      "bytes": 29136,
+      "sha256": "89a5627307a2d37f8603beb99568913cdd5f633009e83030fcaec204405524a3"
     },
     "F20.تاریخ-هفتهٔ-نامعتبر-شاخهٔ-catch": {
-      "bytes": 23503,
-      "sha256": "eed2aff621828c31d727e16fb6492782d727ba418d8009a2606d1f510dfebcf2"
+      "bytes": 23521,
+      "sha256": "97e6fd69e2b599fba24375e6227874b7bb51adcb9547ec3f1fe989a78b2a2df6"
     },
     "F21.گلهٔ-غیرفعال": {
-      "bytes": 29144,
-      "sha256": "8c41d0c25aa11a610f3c844cd1293a6fec822722a7ededeb261ddb808785f0d2"
+      "bytes": 29162,
+      "sha256": "edcbd56be501325d7ebda1235edd30f4729e3a6a89433ab677a371c069d9c38a"
     },
     "F22.بدون-نژاد-برچسب-خط-تیره": {
-      "bytes": 29124,
-      "sha256": "d21a181426190247d27785ca596637a23b868f72bf7d63b6475de41aff2b1fa8"
+      "bytes": 29142,
+      "sha256": "ad4a24bd4ed3bdc80f497b499b6955151564af5a6e58b048e6b97b7fed5e6890"
     },
     "F23.مشتری-null-خطای-مرزی": {
       "bytes": 157,
       "sha256": "722bf57a1d89fa3727d0e99adedd2961ffb196c12507443dd4751359dc35f529"
     },
     "F24.شمارهٔ-هفته-رشته‌ای": {
-      "bytes": 23537,
-      "sha256": "bd38a676fcbef352bfefe41f31400dd4a9a9e0ca3758ccbadfe69973ad79c059"
+      "bytes": 23555,
+      "sha256": "4da4f62552a046b709cd8e59fb40eb73e7fb8443009493c94e16047ac90b121c"
     }
   }
 }

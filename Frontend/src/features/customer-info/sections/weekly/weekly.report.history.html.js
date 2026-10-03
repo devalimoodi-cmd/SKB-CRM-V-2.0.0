@@ -151,7 +151,7 @@ export const weeklyHistoryHtmlMethods = {
               ${
                 blocks.length
                   ? bodyBlocks
-                  : '<div class="flock-section"><p style="text-align:center;color:#94a3b8;padding:10px;">گلهٔ تکمیل‌شده با ثبت هفتگی برای این مشتری یافت نشد.</p></div>'
+                  : '<div class="flock-section"><p style="text-align:center;color:var(--text-light, #94a3b8);padding:10px;">گلهٔ تکمیل‌شده با ثبت هفتگی برای این مشتری یافت نشد.</p></div>'
               }
               <div class="report-footer">
                 <div class="report-by">📌 دریافت گزارش توسط: <strong>${reporterName}</strong> (${roleText}) — تاریخ: <strong>${reportDate}</strong> | ساعت: <strong>${reportTime}</strong></div>
@@ -432,7 +432,7 @@ const buildHistoryHallHtml = (hall, flockKey, weekSelection, selectedGroups) => 
                 ${
                   list.length || audit.missing.length
                     ? renderHistoryWeekMatrix(timeline, selectedGroups)
-                    : '<p style="color:#94a3b8;padding:4px 2px;">ثبت هفتگی‌ای برای این سالن موجود نیست</p>'
+                    : '<p style="color:var(--text-light, #94a3b8);padding:4px 2px;">ثبت هفتگی‌ای برای این سالن موجود نیست</p>'
                 }
               </div>
             `,

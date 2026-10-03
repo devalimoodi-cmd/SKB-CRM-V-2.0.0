@@ -438,7 +438,7 @@ function showBasicUpdateSuccess(summaryItems) {
     Swal.fire({
       icon: "success",
       title: "✅ اطلاعات پایه بروزرسانی شد",
-      html: `<div style="text-align:right; font-family:Vazir; direction:rtl;"><ul style="list-style:none; padding:0; margin:0;">${summaryItems.map((item) => `<li style="padding:3px 8px; background:#f8fafc; margin:3px 0; border-radius:4px; font-size:12px;">✅ ${item}</li>`).join("")}</ul></div>`,
+      html: `<div style="text-align:right; font-family:Vazir; direction:rtl;"><ul style="list-style:none; padding:0; margin:0;">${summaryItems.map((item) => `<li style="padding:3px 8px; background:var(--bg-surface-2, #f8fafc); margin:3px 0; border-radius:4px; font-size:12px;">✅ ${item}</li>`).join("")}</ul></div>`,
       confirmButtonText: "باشه",
       confirmButtonColor: "#2c7a6e",
     });

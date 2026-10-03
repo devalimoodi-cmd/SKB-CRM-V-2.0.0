@@ -12,6 +12,7 @@ import { chartDashboardApi } from "./chart-dashboard.api.js";
 import { chartDashboardRenderer } from "./chart-dashboard.renderer.js";
 import { notificationService } from "../../../../core/services/notification.service.js";
 import { stateService } from "../../../../core/services/state.service.js";
+import { chartThemeService } from "../../../../core/services/chart-theme.service.js";
 import {
   findStandard,
   getInitialWeightKg,
@@ -526,11 +527,11 @@ class ChartDashboardService {
       const result = await Swal.fire({
         title: "مقایسه با گله/سالن سایر مشتریان",
         html: `<div style="text-align:right;direction:rtl;font-family:Vazir,sans-serif;">
-                 <label style="display:block;font-size:12px;color:#334155;margin-bottom:6px;">مشتری:</label>
-                 <select id="cmpCustomer" style="width:100%;padding:8px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;">
+                 <label style="display:block;font-size:12px;color:var(--text-slate-strong, #334155);margin-bottom:6px;">مشتری:</label>
+                 <select id="cmpCustomer" style="width:100%;padding:8px;border:1px solid var(--border-color, #e2e8f0);border-radius:8px;font-size:13px;">
                    <option value="">انتخاب مشتری...</option>${opts}
                  </select>
-                 <p style="font-size:11px;color:#94a3b8;margin-top:8px;">سریهای انتخابی روی همه نمودارهای این صفحه نمایش داده میشوند.</p>
+                 <p style="font-size:11px;color:var(--text-light, #94a3b8);margin-top:8px;">سریهای انتخابی روی همه نمودارهای این صفحه نمایش داده میشوند.</p>
                </div>`,
         showCancelButton: true,
         confirmButtonText: "ادامه",
@@ -617,7 +618,7 @@ class ChartDashboardService {
     const res = await Swal.fire({
       title: "انتخاب گله/سالن برای مقایسه",
       html: `<div style="text-align:right;direction:rtl;font-family:Vazir,sans-serif;">
-               <p style="font-size:11px;color:#64748b;margin-bottom:8px;">میتوانید چند گله یا سالن را همزمان انتخاب کنید (حداکثر ۸ سری).</p>
+               <p style="font-size:11px;color:var(--text-gray, #64748b);margin-bottom:8px;">میتوانید چند گله یا سالن را همزمان انتخاب کنید (حداکثر ۸ سری).</p>
                <div class="cmp-option-list">${rows}</div>
              </div>`,
       showCancelButton: true,
@@ -1315,7 +1316,7 @@ class ChartDashboardService {
             text: yLabel,
             font: { family: "Vazir", size: 11 },
           },
-          grid: { color: "#f1f5f9" },
+          grid: { color: chartThemeService.tokens().grid },
         },
         x: { grid: { display: false } },
       },
@@ -1952,7 +1953,7 @@ class ChartDashboardService {
       const res = await Swal.fire({
         title: "افزودن استاندارد وزنی نژاد روی نمودار",
         html: `<div style="text-align:right;direction:rtl;font-family:Vazir,sans-serif;">
-               <p style="font-size:11px;color:#64748b;margin-bottom:8px;">استانداردهای نژادهای دلخواه مانند خط هدف + بازهٔ حداقل/حداکثر روی نمودار اصلی و FCR نمایش داده می‌شوند (حداکثر ۸ نژاد).</p>
+               <p style="font-size:11px;color:var(--text-gray, #64748b);margin-bottom:8px;">استانداردهای نژادهای دلخواه مانند خط هدف + بازهٔ حداقل/حداکثر روی نمودار اصلی و FCR نمایش داده می‌شوند (حداکثر ۸ نژاد).</p>
                <div class="cmp-option-list">${rows}</div>
              </div>`,
         showCancelButton: true,
@@ -2074,6 +2075,19 @@ if (typeof window !== "undefined") {
   window.loadAccordionState = () => {};
   window.openAllAccordion = () => {};
   window.closeAllAccordion = () => {};
+
+  // ✅ روی تغییر تم، نمودارهای تحلیل بازسازی شوند تا رنگ grid/محورها تازه شود
+  window.addEventListener("theme:changed", () => {
+    const svc = window.chartDashboardService;
+    if (
+      svc &&
+      svc.chartInstances &&
+      Object.keys(svc.chartInstances).length &&
+      typeof svc.rerenderCharts === "function"
+    ) {
+      svc.rerenderCharts();
+    }
+  });
 }
 // کمکی ماژول‌محلی (موج ۳.۲n) — گزینه‌های نمودار اصلی (تولتیپ + برچسب‌های داده).
 // ⚠️ متن زیر بایت‌به‌بایت از بدنهٔ `renderAllCharts` منتقل شده است؛ قالب‌های رشته‌ای

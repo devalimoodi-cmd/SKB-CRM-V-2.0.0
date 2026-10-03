@@ -386,11 +386,11 @@ export const hatcheryCompletionFlockMethods = {
     const ph = opts.placeholder || "";
     const blurAttr = opts.onblur ? ` onblur="${opts.onblur}"` : "";
     const extraAttrs = readOnly
-      ? 'readonly style="background:#f1f5f9;color:#334155;cursor:not-allowed;"'
+      ? 'readonly style="background:var(--gray-100, #f1f5f9);color:var(--text-slate-strong, #334155);cursor:not-allowed;"'
       : `oninput="hatcheryRecalcCompletion()"${blurAttr}`;
     return `<div style="margin-bottom:7px;">
       <label class="pc-label" for="${id}">${label}${
-        unit ? ` <small style="color:#94a3b8;">(${unit})</small>` : ""
+        unit ? ` <small style="color:var(--text-light, #94a3b8);">(${unit})</small>` : ""
       }</label>
       <input type="${type}" id="${id}" class="pc-in" value="${
         value ?? ""
@@ -401,7 +401,7 @@ export const hatcheryCompletionFlockMethods = {
   _pcRead(label, id, unit = "") {
     return `<div style="margin-bottom:7px;">
       <label class="pc-label">${label}${
-        unit ? ` <small style="color:#94a3b8;">(${unit})</small>` : ""
+        unit ? ` <small style="color:var(--text-light, #94a3b8);">(${unit})</small>` : ""
       }</label>
       <div id="${id}" class="pc-read">۰</div>
     </div>`;
@@ -414,9 +414,9 @@ export const hatcheryCompletionFlockMethods = {
     const hLive = hx.live_weight_kg ?? "";
     const hFeed = hx.declared_feed_intake ?? "";
     return `<div class="pc-hall">
-      <div style="font-weight:700;font-size:12px;color:#2c7a6e;margin-bottom:6px;display:flex;align-items:center;gap:6px;">
+      <div style="font-weight:700;font-size:12px;color:var(--primary, #2c7a6e);margin-bottom:6px;display:flex;align-items:center;gap:6px;">
         <i class="fas fa-warehouse"></i> ${hall.hall_name || `سالن ${hall.hall_id}`}
-        <span style="font-weight:500;font-size:10.5px;color:#64748b;">(اولیه: ${Number(
+        <span style="font-weight:500;font-size:10.5px;color:var(--text-gray, #64748b);">(اولیه: ${Number(
           hall.initial_chicks_count || 0,
         ).toLocaleString("fa-IR")} قطعه)</span>
       </div>
@@ -481,7 +481,7 @@ export const hatcheryCompletionFlockMethods = {
               <input type="text" id="pc_sdate" class="pc-in pc-date" value="${startDate}" onchange="hatcheryRecalcCompletion()" oninput="hatcheryRecalcCompletion()">
             </div>
             <div style="margin-bottom:7px;">
-              <label class="pc-label">تاریخ پایان کشتار <small style="color:#94a3b8;">(اختیاری — اگر کشتار چند روز طول بکشد)</small></label>
+              <label class="pc-label">تاریخ پایان کشتار <small style="color:var(--text-light, #94a3b8);">(اختیاری — اگر کشتار چند روز طول بکشد)</small></label>
               <input type="text" id="pc_sdate_end" class="pc-in pc-date" value="${endDate}" onchange="hatcheryRecalcCompletion()" oninput="hatcheryRecalcCompletion()">
             </div>
           </div>
@@ -518,7 +518,7 @@ export const hatcheryCompletionFlockMethods = {
             ${this._pcRead("", "pc_out_age")}
           </div>
           <div style="margin-bottom:7px;">
-            <label class="pc-label">نام کشتارگاه <small style="color:#94a3b8;">(اختیاری)</small></label>
+            <label class="pc-label">نام کشتارگاه <small style="color:var(--text-light, #94a3b8);">(اختیاری)</small></label>
             <input type="text" id="pc_slaughterhouse" class="pc-in" value="${ex?.slaughterhouse_name || ""}" placeholder="اختیاری">
           </div>
         </div>
@@ -623,7 +623,7 @@ export const hatcheryCompletionFlockMethods = {
       <div class="pc-sec">
         <div class="pc-sec-title"><i class="fas fa-sticky-note"></i> توضیحات و تأیید</div>
         <textarea id="pc_notes" class="pc-note" rows="2" placeholder="توضیحات تکمیلی (اختیاری)...">${ex?.notes || ""}</textarea>
-        <label style="display:flex;align-items:center;gap:6px;font-size:11.5px;color:#475569;margin-top:8px;cursor:pointer;">
+        <label style="display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--text-slate, #475569);margin-top:8px;cursor:pointer;">
           <input type="checkbox" id="pc_confirmed" ${ex?.confirmed_by_customer ? "checked" : ""}> اطلاعات پایان دوره توسط مرغدار تأیید شده است
         </label>
         <input type="hidden" id="pc_init_weight" value="${initWeight.toFixed(4)}">

@@ -270,11 +270,11 @@ class CustomerInfoService {
 
     let metaHTML = `
       <div class="meta-item" style="display:flex; align-items:center; gap:4px;">
-        <i class="fas fa-user-plus" style="color:#2c7a6e;"></i>
+        <i class="fas fa-user-plus" style="color:var(--primary, #2c7a6e);"></i>
         <span>ثبت‌کننده: <strong>${creatorName}</strong></span>
       </div>
       <div class="meta-item" style="display:flex; align-items:center; gap:4px;">
-        <i class="fas fa-calendar-plus" style="color:#2c7a6e;"></i>
+        <i class="fas fa-calendar-plus" style="color:var(--primary, #2c7a6e);"></i>
         <span>تاریخ ثبت: <strong>${registeredDate}</strong></span>
       </div>
     `;
@@ -282,17 +282,17 @@ class CustomerInfoService {
     if (isUpdated) {
       metaHTML += `
         <div class="meta-item" style="display:flex; align-items:center; gap:4px;">
-          <i class="fas fa-user-edit" style="color:#f59e0b;"></i>
+          <i class="fas fa-user-edit" style="color:var(--warning, #f59e0b);"></i>
           <span>آخرین بروزرسانی: <strong>${updaterName}</strong></span>
         </div>
         <div class="meta-item" style="display:flex; align-items:center; gap:4px;">
-          <i class="fas fa-calendar-edit" style="color:#f59e0b;"></i>
+          <i class="fas fa-calendar-edit" style="color:var(--warning, #f59e0b);"></i>
           <span>تاریخ بروزرسانی: <strong>${updatedDate}</strong></span>
         </div>
       `;
     } else {
       metaHTML += `
-        <div class="meta-item" style="display:flex; align-items:center; gap:4px; color:#94a3b8;">
+        <div class="meta-item" style="display:flex; align-items:center; gap:4px; color:var(--text-light, #94a3b8);">
           <i class="fas fa-info-circle"></i>
           <span>هنوز بروزرسانی نشده است</span>
         </div>

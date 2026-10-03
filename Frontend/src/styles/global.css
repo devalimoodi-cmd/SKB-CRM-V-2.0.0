@@ -45,6 +45,18 @@
   --info: #3b82f6;
   --info-soft: #eff6ff;
 
+  /* ===== حالت‌های تکمیلی (استایل‌های inline در JS) ===== */
+  --text-slate: #475569;
+  --text-slate-strong: #334155;
+  --success-strong: #16a34a;
+  --success-bg: #dcfce7;
+  --danger-strong: #ef4444;
+  --danger-bg: #fee2e2;
+  --warning-bg: #fef3c7;
+  --info-bg: #dbeafe;
+  --gray-100: #f1f5f9;
+  --gray-200: #e5e7eb;
+
   /* ===== سایه ===== */
   --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.06);
   --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.08);
@@ -80,6 +92,18 @@ html[data-theme="dark"] {
   --danger-soft: rgba(248, 113, 113, 0.15);
   --info: #60a5fa;
   --info-soft: rgba(96, 165, 250, 0.15);
+
+  /* ===== حالت‌های تکمیلی (استایل‌های inline در JS) ===== */
+  --text-slate: #cbd5e1;
+  --text-slate-strong: #e2e8f0;
+  --success-strong: #34d399;
+  --success-bg: rgba(52, 211, 153, 0.18);
+  --danger-strong: #f87171;
+  --danger-bg: rgba(248, 113, 113, 0.18);
+  --warning-bg: rgba(251, 191, 36, 0.18);
+  --info-bg: rgba(96, 165, 250, 0.18);
+  --gray-100: #1e293b;
+  --gray-200: #334155;
 
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.5);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);

@@ -77,8 +77,8 @@ function showLoader(text = "در حال بارگذاری...") {
       title: "⏳ لطفاً صبر کنید...",
       html: `
           <div style="display:flex; align-items:center; justify-content:center; gap:10px; direction:rtl; font-family:'Vazir', sans-serif; padding:8px 0;">
-            <i class="fas fa-circle-notch fa-spin" style="font-size:22px; color:#2c7a6e;"></i>
-            <span style="font-size:13px; color:#334155;">${text}</span>
+            <i class="fas fa-circle-notch fa-spin" style="font-size:22px; color:var(--primary, #2c7a6e);"></i>
+            <span style="font-size:13px; color:var(--text-slate-strong, #334155);">${text}</span>
           </div>`,
       allowOutsideClick: false,
       allowEscapeKey: false,
@@ -158,51 +158,51 @@ function renderModal(records, notice = null) {
   let rows = "";
   if (!records || records.length === 0) {
     rows =
-      '<tr><td colspan="8" style="text-align:center; padding:20px; color:#94a3b8;">هیچ پیامکی ارسال نشده است</td></tr>';
+      '<tr><td colspan="8" style="text-align:center; padding:20px; color:var(--text-light, #94a3b8);">هیچ پیامکی ارسال نشده است</td></tr>';
   } else {
     rows = records
       .map(
         (r, i) => `
             <tr>
-              <td style="padding:8px; border-bottom:1px solid #f1f5f9; text-align:center;">${i + 1}</td>
-              <td style="padding:8px; border-bottom:1px solid #f1f5f9; text-align:center; max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${r.message || "-"}</td>
-              <td style="padding:8px; border-bottom:1px solid #f1f5f9; text-align:center; min-width:140px;">
+              <td style="padding:8px; border-bottom:1px solid var(--gray-100, #f1f5f9); text-align:center;">${i + 1}</td>
+              <td style="padding:8px; border-bottom:1px solid var(--gray-100, #f1f5f9); text-align:center; max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${r.message || "-"}</td>
+              <td style="padding:8px; border-bottom:1px solid var(--gray-100, #f1f5f9); text-align:center; min-width:140px;">
                 <div><span style="display:inline-block; padding:1px 8px; border-radius:999px; font-size:9.5px; font-weight:700; background:${
                   r.scope === "hall" ? "#eff6ff" : "#ecfdf5"
                 }; color:${
                   r.scope === "hall" ? "#1d4ed8" : "#047857"
                 };">${r.scope === "hall" ? "سالن" : "کل گله"}</span></div>
-                <div style="font-size:10.5px; font-weight:700; color:#334155; margin-top:2px;">${r.targetLabel || r.target_title || "—"}</div>
-                <div style="font-size:10px; color:#64748b;">${r.roleLabel || "—"}</div>
+                <div style="font-size:10.5px; font-weight:700; color:var(--text-slate-strong, #334155); margin-top:2px;">${r.targetLabel || r.target_title || "—"}</div>
+                <div style="font-size:10px; color:var(--text-gray, #64748b);">${r.roleLabel || "—"}</div>
                 ${
                   r.flock_number
-                    ? `<div style="font-size:9.5px; color:#94a3b8; margin-top:1px;">گله ${r.flock_number}${r.week_number ? ` | هفته ${r.week_number}` : ""}</div>`
+                    ? `<div style="font-size:9.5px; color:var(--text-light, #94a3b8); margin-top:1px;">گله ${r.flock_number}${r.week_number ? ` | هفته ${r.week_number}` : ""}</div>`
                     : ""
                 }
               </td>
-              <td style="padding:8px; border-bottom:1px solid #f1f5f9; text-align:center;">${formatDateTime(r.sent_at || r.created_at)}</td>
-              <td style="padding:8px; border-bottom:1px solid #f1f5f9; text-align:center;">${formatDateTime(r.delivered_at)}</td>
-              <td style="padding:8px; border-bottom:1px solid #f1f5f9; text-align:center;">${getDeliveryText(r.delivery_state)}</td>
-              <td style="padding:8px; border-bottom:1px solid #f1f5f9; text-align:center;">
+              <td style="padding:8px; border-bottom:1px solid var(--gray-100, #f1f5f9); text-align:center;">${formatDateTime(r.sent_at || r.created_at)}</td>
+              <td style="padding:8px; border-bottom:1px solid var(--gray-100, #f1f5f9); text-align:center;">${formatDateTime(r.delivered_at)}</td>
+              <td style="padding:8px; border-bottom:1px solid var(--gray-100, #f1f5f9); text-align:center;">${getDeliveryText(r.delivery_state)}</td>
+              <td style="padding:8px; border-bottom:1px solid var(--gray-100, #f1f5f9); text-align:center;">
                 <span style="display:inline-block; padding:2px 10px; border-radius:12px; font-size:10px; font-weight:500; background:${
                   r.status === "delivered"
-                    ? "#dcfce7"
+                    ? "var(--success-bg, #dcfce7)"
                     : r.status === "failed"
-                      ? "#fee2e2"
+                      ? "var(--danger-bg, #fee2e2)"
                       : r.status === "sent"
-                        ? "#dbeafe"
-                        : "#fef3c7"
+                        ? "var(--info-bg, #dbeafe)"
+                        : "var(--warning-bg, #fef3c7)"
                 }; color:${
                   r.status === "delivered"
-                    ? "#16a34a"
+                    ? "var(--success-strong, #16a34a)"
                     : r.status === "failed"
-                      ? "#dc2626"
+                      ? "var(--danger, #dc2626)"
                       : r.status === "sent"
                         ? "#2563eb"
                         : "#d97706"
                 };">${getSmsStatusInfo(r.status || "pending").text}</span>
               </td>
-              <td style="padding:8px; border-bottom:1px solid #f1f5f9; text-align:center;">${getSenderName(r.sender)}</td>
+              <td style="padding:8px; border-bottom:1px solid var(--gray-100, #f1f5f9); text-align:center;">${getSenderName(r.sender)}</td>
             </tr>
           `,
       )
@@ -217,15 +217,15 @@ function renderModal(records, notice = null) {
               ${noticeHTML}
               <table style="width:100%; border-collapse:collapse; font-size:12px;">
                 <thead>
-                  <tr style="background:#f8fafc;">
-                    <th style="padding:8px; border-bottom:2px solid #eef2f6;">ردیف</th>
-                    <th style="padding:8px; border-bottom:2px solid #eef2f6;">متن پیام</th>
-                    <th style="padding:8px; border-bottom:2px solid #eef2f6;">هدف / گیرنده</th>
-                    <th style="padding:8px; border-bottom:2px solid #eef2f6;">تاریخ و زمان ارسال</th>
-                    <th style="padding:8px; border-bottom:2px solid #eef2f6;">تاریخ و زمان تحویل</th>
-                    <th style="padding:8px; border-bottom:2px solid #eef2f6;">وضعیت تحویل</th>
-                    <th style="padding:8px; border-bottom:2px solid #eef2f6;">وضعیت</th>
-                    <th style="padding:8px; border-bottom:2px solid #eef2f6;">فرستنده</th>
+                  <tr style="background:var(--bg-surface-2, #f8fafc);">
+                    <th style="padding:8px; border-bottom:2px solid var(--border-light, #eef2f6);">ردیف</th>
+                    <th style="padding:8px; border-bottom:2px solid var(--border-light, #eef2f6);">متن پیام</th>
+                    <th style="padding:8px; border-bottom:2px solid var(--border-light, #eef2f6);">هدف / گیرنده</th>
+                    <th style="padding:8px; border-bottom:2px solid var(--border-light, #eef2f6);">تاریخ و زمان ارسال</th>
+                    <th style="padding:8px; border-bottom:2px solid var(--border-light, #eef2f6);">تاریخ و زمان تحویل</th>
+                    <th style="padding:8px; border-bottom:2px solid var(--border-light, #eef2f6);">وضعیت تحویل</th>
+                    <th style="padding:8px; border-bottom:2px solid var(--border-light, #eef2f6);">وضعیت</th>
+                    <th style="padding:8px; border-bottom:2px solid var(--border-light, #eef2f6);">فرستنده</th>
                   </tr>
                 </thead>
                 <tbody>${rows}</tbody>
@@ -233,7 +233,7 @@ function renderModal(records, notice = null) {
             </div>
             <div style="display:flex; justify-content:center; margin-top:12px;">
               <button type="button" onclick="window.refreshSmsHistoryModal()"
-                      style="display:inline-flex; align-items:center; gap:6px; padding:8px 16px; border:none; border-radius:8px; background:#2c7a6e; color:#ffffff; font-family:'Vazir'; font-size:12px; font-weight:600; cursor:pointer; box-shadow:0 2px 8px rgba(44,122,110,0.25);">
+                      style="display:inline-flex; align-items:center; gap:6px; padding:8px 16px; border:none; border-radius:8px; background:var(--primary, #2c7a6e); color:#ffffff; font-family:'Vazir'; font-size:12px; font-weight:600; cursor:pointer; box-shadow:0 2px 8px rgba(44,122,110,0.25);">
                 <i class="fas fa-sync-alt"></i> بروزرسانی وضعیت پیامک‌های قبلی
               </button>
             </div>

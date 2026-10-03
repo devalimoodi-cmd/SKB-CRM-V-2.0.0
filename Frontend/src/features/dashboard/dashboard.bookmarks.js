@@ -28,9 +28,9 @@ export const dashboardBookmarkMethods = {
     if (!this.bookmarks || this.bookmarks.length === 0) {
       container.innerHTML = `
                 <div class="empty-list">
-                    <i class="fas fa-bookmark" style="font-size: 32px; display: block; margin-bottom: 10px; color: #cbd5e1;"></i>
+                    <i class="fas fa-bookmark" style="font-size: 32px; display: block; margin-bottom: 10px; color: var(--border-strong, #cbd5e1);"></i>
                     <span>هیچ بوکمارکی وجود ندارد</span>
-                    <p style="font-size: 12px; margin-top: 8px; color: #cbd5e1;">
+                    <p style="font-size: 12px; margin-top: 8px; color: var(--border-strong, #cbd5e1);">
                         برای ایجاد بوکمارک جدید، روی دکمه <strong>+</strong> کلیک کنید
                     </p>
                 </div>
@@ -63,7 +63,7 @@ export const dashboardBookmarkMethods = {
       const persianDate = convertToPersianDate(bookmark.due_date);
       const isOverdue = new Date(bookmark.due_date) < new Date();
       dueDateHTML = `
-                <span style="color: ${isOverdue ? "#dc2626" : "#64748b"}; font-size: 11px;">
+                <span style="color: ${isOverdue ? "var(--danger, #dc2626)" : "var(--text-gray, #64748b)"}; font-size: 11px;">
                     <i class="fas fa-calendar-alt"></i> ${persianDate}
                     ${isOverdue ? " ⚠️" : ""}
                 </span>
@@ -73,7 +73,7 @@ export const dashboardBookmarkMethods = {
     let statusHTML = "";
     if (bookmark.status === "read") {
       statusHTML =
-        '<span style="color: #16a34a; font-size: 11px;"><i class="fas fa-check-circle"></i> خوانده شده</span>';
+        '<span style="color: var(--success-strong, #16a34a); font-size: 11px;"><i class="fas fa-check-circle"></i> خوانده شده</span>';
     } else if (bookmark.status === "completed") {
       statusHTML =
         '<span style="color: #2563eb; font-size: 11px;"><i class="fas fa-check-double"></i> انجام شده</span>';
@@ -96,14 +96,14 @@ export const dashboardBookmarkMethods = {
                 <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
                     <i class="fas ${icon} bookmark-icon" style="color: ${iconColor};"></i>
                     <button onclick="event.stopPropagation(); window.showCreateBookmarkModal(${bookmark.id})" 
-                            style="background: none; border: none; color: #3b82f6; cursor: pointer; padding: 4px 6px; font-size: 14px; transition: all 0.2s ease; border-radius: 4px;"
+                            style="background: none; border: none; color: var(--info, #3b82f6); cursor: pointer; padding: 4px 6px; font-size: 14px; transition: all 0.2s ease; border-radius: 4px;"
                             onmouseover="this.style.background='#dbeafe'; this.style.transform='scale(1.1)'" 
                             onmouseout="this.style.background='transparent'; this.style.transform='scale(1)'"
                             title="ویرایش بوکمارک">
                         <i class="fas fa-edit"></i>
                     </button>
                     <button onclick="event.stopPropagation(); window.deleteBookmarkAction(${bookmark.id})" 
-                            style="background: none; border: none; color: #dc2626; cursor: pointer; padding: 4px 6px; font-size: 14px; transition: all 0.2s ease; border-radius: 4px;"
+                            style="background: none; border: none; color: var(--danger, #dc2626); cursor: pointer; padding: 4px 6px; font-size: 14px; transition: all 0.2s ease; border-radius: 4px;"
                             onmouseover="this.style.background='#fee2e2'; this.style.transform='scale(1.1)'" 
                             onmouseout="this.style.background='transparent'; this.style.transform='scale(1)'"
                             title="حذف بوکمارک">
@@ -309,19 +309,19 @@ export const dashboardBookmarkMethods = {
               </div>
 
               <!-- عنوان -->
-              <div style="font-size:20px; font-weight:800; color:#1e293b; margin-bottom:4px;">${bookmark.title}</div>
+              <div style="font-size:20px; font-weight:800; color:var(--text-dark, #1e293b); margin-bottom:4px;">${bookmark.title}</div>
               <div style="display:flex; align-items:center; justify-content:center; gap:8px; flex-wrap:wrap; margin-bottom:20px;">
-                <span style="font-size:11px; padding:2px 12px; border-radius:20px; background:rgba(44,122,110,0.08); color:#2c7a6e; font-weight:600; display:inline-flex; align-items:center; gap:4px;">
+                <span style="font-size:11px; padding:2px 12px; border-radius:20px; background:rgba(44,122,110,0.08); color:var(--primary, #2c7a6e); font-weight:600; display:inline-flex; align-items:center; gap:4px;">
                   <i class="fas fa-tag"></i> ${typeText}
                 </span>
-                <span style="color:#e2e8f0;">|</span>
-                <span style="font-size:11px; padding:2px 10px; border-radius:20px; background:#f8fafc; color:#64748b; display:inline-flex; align-items:center; gap:4px;">
+                <span style="color:var(--border-color, #e2e8f0);">|</span>
+                <span style="font-size:11px; padding:2px 10px; border-radius:20px; background:var(--bg-surface-2, #f8fafc); color:var(--text-gray, #64748b); display:inline-flex; align-items:center; gap:4px;">
                   <i class="fas fa-hashtag"></i> #${bookmark.id}
                 </span>
                 ${
                   dueDate
-                    ? `<span style="color:#e2e8f0;">|</span>
-                       <span style="font-size:11px; color:#94a3b8;"><i class="fas fa-clock"></i> ${dueDate}</span>`
+                    ? `<span style="color:var(--border-color, #e2e8f0);">|</span>
+                       <span style="font-size:11px; color:var(--text-light, #94a3b8);"><i class="fas fa-clock"></i> ${dueDate}</span>`
                     : ""
                 }
               </div>
@@ -329,14 +329,14 @@ export const dashboardBookmarkMethods = {
               <!-- اطلاعات -->
               <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px; text-align:right;">
                 <div style="background:#fafbfc; border-radius:14px; padding:12px 16px; border:1px solid transparent;">
-                  <div style="font-size:11px; font-weight:600; color:#64748b; display:flex; align-items:center; gap:6px; margin-bottom:2px;">
-                    <i class="fas fa-user" style="color:#2c7a6e;"></i> مشتری
+                  <div style="font-size:11px; font-weight:600; color:var(--text-gray, #64748b); display:flex; align-items:center; gap:6px; margin-bottom:2px;">
+                    <i class="fas fa-user" style="color:var(--primary, #2c7a6e);"></i> مشتری
                   </div>
-                  <div style="font-size:15px; font-weight:600; color:#2c7a6e; padding-right:4px;">${customerName}</div>
+                  <div style="font-size:15px; font-weight:600; color:var(--primary, #2c7a6e); padding-right:4px;">${customerName}</div>
                 </div>
                 <div style="background:#fafbfc; border-radius:14px; padding:12px 16px; border:1px solid transparent;">
-                  <div style="font-size:11px; font-weight:600; color:#64748b; display:flex; align-items:center; gap:6px; margin-bottom:2px;">
-                    <i class="fas fa-flag" style="color:#2c7a6e;"></i> اولویت
+                  <div style="font-size:11px; font-weight:600; color:var(--text-gray, #64748b); display:flex; align-items:center; gap:6px; margin-bottom:2px;">
+                    <i class="fas fa-flag" style="color:var(--primary, #2c7a6e);"></i> اولویت
                   </div>
                   <div style="font-size:15px; font-weight:600; padding-right:4px;">
                     <span style="font-size:12px; padding:2px 14px; border-radius:20px; font-weight:700; background:${pr.bg}; color:${pr.color}; display:inline-flex; align-items:center; gap:6px;">
@@ -347,14 +347,14 @@ export const dashboardBookmarkMethods = {
                 ${
                   dueDate
                     ? `<div style="grid-column:1/-1; background:#fafbfc; border-radius:14px; padding:12px 16px; border:1px solid transparent;">
-                        <div style="font-size:11px; font-weight:600; color:#64748b; display:flex; align-items:center; gap:6px; margin-bottom:2px;">
-                          <i class="fas fa-calendar-alt" style="color:#2c7a6e;"></i> تاریخ سررسید
+                        <div style="font-size:11px; font-weight:600; color:var(--text-gray, #64748b); display:flex; align-items:center; gap:6px; margin-bottom:2px;">
+                          <i class="fas fa-calendar-alt" style="color:var(--primary, #2c7a6e);"></i> تاریخ سررسید
                         </div>
-                        <div style="font-size:15px; font-weight:600; padding-right:4px; color:${isOverdue ? "#dc2626" : "#1e293b"}; display:flex; align-items:center; gap:6px;">
+                        <div style="font-size:15px; font-weight:600; padding-right:4px; color:${isOverdue ? "var(--danger, #dc2626)" : "var(--text-dark, #1e293b)"}; display:flex; align-items:center; gap:6px;">
                           <i class="fas ${isOverdue ? "fa-exclamation-circle" : "fa-calendar-check"}"></i> ${dueDate}
                           ${
                             isOverdue
-                              ? '<span style="font-size:11px; font-weight:400; color:#dc2626; background:#fee2e2; padding:0 8px; border-radius:12px;">تأخیر</span>'
+                              ? '<span style="font-size:11px; font-weight:400; color:var(--danger, #dc2626); background:var(--danger-bg, #fee2e2); padding:0 8px; border-radius:12px;">تأخیر</span>'
                               : ""
                           }
                         </div>
@@ -364,11 +364,11 @@ export const dashboardBookmarkMethods = {
               </div>
 
               <!-- توضیحات -->
-              <div style="background:linear-gradient(135deg,#fafbfc,#f8fafc); border-radius:14px; padding:14px 18px; border:1px solid #f1f5f9; text-align:right;">
-                <div style="font-size:11px; font-weight:600; color:#64748b; display:flex; align-items:center; gap:6px; margin-bottom:4px;">
-                  <i class="fas fa-align-left" style="color:#2c7a6e;"></i> توضیحات
+              <div style="background:linear-gradient(135deg,#fafbfc,var(--bg-surface-2, #f8fafc)); border-radius:14px; padding:14px 18px; border:1px solid var(--gray-100, #f1f5f9); text-align:right;">
+                <div style="font-size:11px; font-weight:600; color:var(--text-gray, #64748b); display:flex; align-items:center; gap:6px; margin-bottom:4px;">
+                  <i class="fas fa-align-left" style="color:var(--primary, #2c7a6e);"></i> توضیحات
                 </div>
-                <div style="font-size:14px; color:#1e293b; line-height:1.7; padding-right:4px; word-wrap:break-word; text-align:right;">${
+                <div style="font-size:14px; color:var(--text-dark, #1e293b); line-height:1.7; padding-right:4px; word-wrap:break-word; text-align:right;">${
                   bookmark.description || "—"
                 }</div>
               </div>
@@ -417,8 +417,8 @@ const buildBookmarkModalHtml = ({
 }) => `
             <div style="text-align: right; font-family: 'Vazir', 'Vazirmatn', sans-serif; direction: rtl;">
               <!-- ===== هدر گرافیکی ===== -->
-              <div style="display:flex; align-items:center; gap:12px; background:linear-gradient(135deg,#2c7a6e 0%,#035552 100%); border-radius:14px; padding:12px 16px; margin-bottom:16px; color:#fff; position:relative; overflow:hidden;">
-                <div style="position:absolute; top:0; left:0; right:0; height:4px; background:linear-gradient(135deg,#2c7a6e,#4a9e8f,#f59e0b); background-size:200% 200%; animation: bmShimmer 3s ease-in-out infinite;"></div>
+              <div style="display:flex; align-items:center; gap:12px; background:linear-gradient(135deg,var(--primary, #2c7a6e) 0%,var(--primary-dark, #035552) 100%); border-radius:14px; padding:12px 16px; margin-bottom:16px; color:#fff; position:relative; overflow:hidden;">
+                <div style="position:absolute; top:0; left:0; right:0; height:4px; background:linear-gradient(135deg,var(--primary, #2c7a6e),var(--primary-light, #4a9e8f),var(--warning, #f59e0b)); background-size:200% 200%; animation: bmShimmer 3s ease-in-out infinite;"></div>
                 <div style="width:42px; height:42px; border-radius:12px; background:rgba(255,255,255,0.2); display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0;">
                   <i class="fas fa-bookmark"></i>
                 </div>
@@ -489,19 +489,19 @@ const buildBookmarkModalHtml = ({
                 <label class="bm-label">اولویت</label>
                 <div class="bm-priority-group" id="bookmarkPriorityGroup">
                   <div class="bm-priority-option ${currentPriority === "critical" ? "active" : ""}" data-value="critical">
-                    <i class="fas fa-circle" style="color:#dc2626;"></i>
+                    <i class="fas fa-circle" style="color:var(--danger, #dc2626);"></i>
                     بحرانی <span class="pl">فوری</span>
                   </div>
                   <div class="bm-priority-option ${currentPriority === "high" ? "active" : ""}" data-value="high">
-                    <i class="fas fa-circle" style="color:#f59e0b;"></i>
+                    <i class="fas fa-circle" style="color:var(--warning, #f59e0b);"></i>
                     بالا <span class="pl">مهم</span>
                   </div>
                   <div class="bm-priority-option ${currentPriority === "medium" ? "active" : ""}" data-value="medium">
-                    <i class="fas fa-circle" style="color:#3b82f6;"></i>
+                    <i class="fas fa-circle" style="color:var(--info, #3b82f6);"></i>
                     متوسط <span class="pl">معمولی</span>
                   </div>
                   <div class="bm-priority-option ${currentPriority === "low" ? "active" : ""}" data-value="low">
-                    <i class="fas fa-circle" style="color:#94a3b8;"></i>
+                    <i class="fas fa-circle" style="color:var(--text-light, #94a3b8);"></i>
                     پایین <span class="pl">کم</span>
                   </div>
                 </div>

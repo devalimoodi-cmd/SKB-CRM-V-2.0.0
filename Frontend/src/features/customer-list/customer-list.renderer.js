@@ -10,7 +10,7 @@ export const customerListRenderer = {
     if (!customers || customers.length === 0) {
       return `
                 <tr>
-                    <td colspan="14" style="text-align: center; padding: 40px; color: #94a3b8;">
+                    <td colspan="14" style="text-align: center; padding: 40px; color: var(--text-light, #94a3b8);">
                         <i class="fas fa-users" style="font-size: 32px; display: block; margin-bottom: 10px;"></i>
                         <span>هیچ مشتری‌ای ثبت نشده است</span>
                         <p style="font-size: 12px; margin-top: 8px;">برای شروع، یک مشتری جدید ثبت کنید</p>

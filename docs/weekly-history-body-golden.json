@@ -32,12 +32,12 @@
       "sha256": "ac9f0c36c0bab3b8197a43b4a4c1e1d0a80cccd785cd5b690efc721f654c2b83"
     },
     "H7.buildWeeklyHistoryHTML-رکورد-حداقلی": {
-      "bytes": 17957,
-      "sha256": "e3c222503e61fe724ce24351e60b510a3ea3dfad6cd5a5723532cdcc10d6695c"
+      "bytes": 17976,
+      "sha256": "9f23564a0afc9d19d7f98318d23e19b4ca32f6e562ac1d431d20ce72f6fecefe"
     },
     "H8.buildWeeklyHistoryHTML-بلوک-خالی": {
-      "bytes": 16496,
-      "sha256": "e1dda63361892a07a5cd94d7b3ae5601b8189c10b25f9651c76e9b38e3696452"
+      "bytes": 16515,
+      "sha256": "1ea77cfd621e55d3a555b17a0e7e9d628b1a30b30c8e18a56ada6d331cd8b0f7"
     },
     "H9.buildWeeklyHistoryHTML-مشتری-ناقص": {
       "bytes": 31422,

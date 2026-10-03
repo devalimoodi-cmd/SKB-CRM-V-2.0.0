@@ -160,7 +160,7 @@ export const smsRenderer = {
                     <label>پیش‌نمایش</label>
                     <div id="smsPreview" class="sms-preview">
                         <div class="preview-content">
-                            <i class="fas fa-sms" style="color: #94a3b8;"></i>
+                            <i class="fas fa-sms" style="color: var(--text-light, #94a3b8);"></i>
                             <span>پیش‌نمایش پیامک در اینجا نمایش داده می‌شود</span>
                         </div>
                     </div>

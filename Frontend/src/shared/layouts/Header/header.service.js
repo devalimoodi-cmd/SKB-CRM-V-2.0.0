@@ -91,14 +91,14 @@ class HeaderService {
     if (!container) return;
 
     container.innerHTML = `
-      <header class="header-desktop" style="background: #2c7a6e; color: white; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center;">
+      <header class="header-desktop" style="background: var(--primary, #2c7a6e); color: white; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center;">
         <div style="display: flex; align-items: center; gap: 15px;">
           <img src="/assets/images/skb-logo.png" alt="SKB" style="height: 40px;" onerror="this.style.display='none'">
           <span style="font-weight: bold; font-size: 18px;">SKB-CRM</span>
         </div>
         <div style="display: flex; align-items: center; gap: 15px;">
           <span id="headerUserName">کاربر</span>
-          <button onclick="window.logout()" style="background: #dc2626; color: white; border: none; padding: 5px 15px; border-radius: 5px; cursor: pointer;">خروج</button>
+          <button onclick="window.logout()" style="background: var(--danger, #dc2626); color: white; border: none; padding: 5px 15px; border-radius: 5px; cursor: pointer;">خروج</button>
         </div>
       </header>
     `;
@@ -156,10 +156,10 @@ class HeaderService {
 
     if (!this.user) {
       dropdown.innerHTML = `
-        <div style="padding: 20px; text-align: center; color: #94a3b8;">
+        <div style="padding: 20px; text-align: center; color: var(--text-light, #94a3b8);">
           <i class="fas fa-user-circle" style="font-size: 40px; display: block; margin-bottom: 10px;"></i>
           <p>لطفاً وارد شوید</p>
-          <a href="/login" class="btn btn-primary" style="margin-top: 10px; display: inline-block; padding: 8px 20px; background: #2c7a6e; color: white; border-radius: 8px; text-decoration: none;">ورود</a>
+          <a href="/login" class="btn btn-primary" style="margin-top: 10px; display: inline-block; padding: 8px 20px; background: var(--primary, #2c7a6e); color: white; border-radius: 8px; text-decoration: none;">ورود</a>
         </div>
       `;
       return;
@@ -173,31 +173,31 @@ class HeaderService {
     const avatarUrl = this.user.profile_image || this.getDefaultAvatar();
 
     dropdown.innerHTML = `
-      <div style="padding: 16px 20px; border-bottom: 1px solid #eef2f6; display: flex; gap: 14px; align-items: center;">
-        <div style="width: 50px; height: 50px; border-radius: 50%; overflow: hidden; border: 2px solid #2c7a6e; flex-shrink: 0;">
+      <div style="padding: 16px 20px; border-bottom: 1px solid var(--border-light, #eef2f6); display: flex; gap: 14px; align-items: center;">
+        <div style="width: 50px; height: 50px; border-radius: 50%; overflow: hidden; border: 2px solid var(--primary, #2c7a6e); flex-shrink: 0;">
           <img src="${avatarUrl}" alt="${fullName}" style="width: 100%; height: 100%; object-fit: cover;" 
                onerror="this.src='${this.getDefaultAvatar()}'">
         </div>
         <div style="flex: 1; min-width: 0;">
-          <div style="font-weight: 600; color: #1e293b; font-size: 15px;">${fullName}</div>
-          <div style="font-size: 12px; color: #64748b;">${this.getRoleText(this.user.role)}</div>
-          <div style="font-size: 11px; color: #94a3b8; margin-top: 2px;">
+          <div style="font-weight: 600; color: var(--text-dark, #1e293b); font-size: 15px;">${fullName}</div>
+          <div style="font-size: 12px; color: var(--text-gray, #64748b);">${this.getRoleText(this.user.role)}</div>
+          <div style="font-size: 11px; color: var(--text-light, #94a3b8); margin-top: 2px;">
             <i class="fas fa-user"></i> ${this.user.username || ""}
           </div>
         </div>
       </div>
       <div style="padding: 8px 0;">
-        <a href="/profile" style="display: flex; align-items: center; gap: 12px; padding: 10px 20px; color: #1e293b; text-decoration: none; transition: all 0.2s ease;">
-          <i class="fas fa-user" style="width: 20px; color: #94a3b8;"></i>
+        <a href="/profile" style="display: flex; align-items: center; gap: 12px; padding: 10px 20px; color: var(--text-dark, #1e293b); text-decoration: none; transition: all 0.2s ease;">
+          <i class="fas fa-user" style="width: 20px; color: var(--text-light, #94a3b8);"></i>
           <span>پروفایل</span>
         </a>
-        <a href="/settings" style="display: flex; align-items: center; gap: 12px; padding: 10px 20px; color: #1e293b; text-decoration: none; transition: all 0.2s ease;">
-          <i class="fas fa-cog" style="width: 20px; color: #94a3b8;"></i>
+        <a href="/settings" style="display: flex; align-items: center; gap: 12px; padding: 10px 20px; color: var(--text-dark, #1e293b); text-decoration: none; transition: all 0.2s ease;">
+          <i class="fas fa-cog" style="width: 20px; color: var(--text-light, #94a3b8);"></i>
           <span>تنظیمات</span>
         </a>
       </div>
-      <div style="border-top: 1px solid #eef2f6; padding: 8px 0;">
-        <button onclick="window.logout()" style="display: flex; align-items: center; gap: 12px; padding: 10px 20px; color: #dc2626; background: none; border: none; width: 100%; cursor: pointer; font-family: 'Vazir'; font-size: 14px; transition: all 0.2s ease;">
+      <div style="border-top: 1px solid var(--border-light, #eef2f6); padding: 8px 0;">
+        <button onclick="window.logout()" style="display: flex; align-items: center; gap: 12px; padding: 10px 20px; color: var(--danger, #dc2626); background: none; border: none; width: 100%; cursor: pointer; font-family: 'Vazir'; font-size: 14px; transition: all 0.2s ease;">
           <i class="fas fa-sign-out-alt" style="width: 20px;"></i>
           <span>خروج</span>
         </button>

@@ -270,7 +270,7 @@ export const hatcheryCompletionPeriodMethods = {
             </div>
             <div>
               <label class="ue-label">تاریخ کشتار (محاسبه‌شده)</label>
-              <div class="ue-field" id="ue_direct_date" style="background:#f1f5f9;padding-top:10px;">—</div>
+              <div class="ue-field" id="ue_direct_date" style="background:var(--gray-100, #f1f5f9);padding-top:10px;">—</div>
             </div>
           </div>
           <div class="ue-age-calc-note">تاریخ بر اساس سن و تاریخ جوجه‌ریزی به‌صورت خودکار محاسبه می‌شود.</div>
@@ -369,7 +369,7 @@ export const hatcheryCompletionPeriodMethods = {
               ? Number(incomeValue) - Number(c.total_cost)
               : null);
           return `
-            <tr style="border-bottom:1px solid #eef2f6;">
+            <tr style="border-bottom:1px solid var(--border-light, #eef2f6);">
               <td style="padding:8px; text-align:center;">${i + 1}</td>
               <td style="padding:8px; text-align:center;"><strong>گله ${flock.flock_number || "-"}</strong></td>
               <td style="padding:8px; text-align:center;">${hallName}</td>
@@ -378,7 +378,7 @@ export const hatcheryCompletionPeriodMethods = {
               <td style="padding:8px; text-align:center;"><strong>${finalChicks.toLocaleString()}</strong></td>
               <td style="padding:8px; text-align:center;">${systemMortality}</td>
               <td style="padding:8px; text-align:center;">${transportMortality}</td>
-              <td style="padding:8px; text-align:center;"><strong style="color:#dc2626;">${totalMortality}</strong></td>
+              <td style="padding:8px; text-align:center;"><strong style="color:var(--danger, #dc2626);">${totalMortality}</strong></td>
               <td style="padding:8px; text-align:center;">${mortalityRate}٪</td>
               <td style="padding:8px; text-align:center;">${c.system_total_feed ?? "-"}</td>
               <td style="padding:8px; text-align:center;">${c.system_last_weight ?? "-"}</td>
@@ -387,7 +387,7 @@ export const hatcheryCompletionPeriodMethods = {
               <td style="padding:8px; text-align:center;">${c.system_adg_grams ?? c.adg_grams ?? "-"} / ${c.farmer_adg_grams ?? "-"}</td>
               <td style="padding:8px; text-align:center;">${fmtNum(incomeValue)}</td>
               <td style="padding:8px; text-align:center;">${fmtNum(c.total_cost)}</td>
-              <td style="padding:8px; text-align:center;"><strong style="color:${profitValue !== null && Number(profitValue) >= 0 ? "#16a34a" : "#dc2626"};">${fmtNum(profitValue)}</strong></td>
+              <td style="padding:8px; text-align:center;"><strong style="color:${profitValue !== null && Number(profitValue) >= 0 ? "var(--success-strong, #16a34a)" : "var(--danger, #dc2626)"};">${fmtNum(profitValue)}</strong></td>
               <td style="padding:8px; text-align:center;">${c.profit_percent != null ? `${c.profit_percent}٪` : "-"}</td>
               <td style="padding:8px; text-align:center;">${formatAgeRange(c)}</td>
               <td style="padding:8px; text-align:center;">${c.total_live_weight ?? "-"}</td>
@@ -403,7 +403,7 @@ export const hatcheryCompletionPeriodMethods = {
         title: "",
         html: `
           <div style="text-align:right; font-family:'Vazir'; direction:rtl;">
-            <div style="background:linear-gradient(135deg,#2c7a6e,#035552); color:#fff; border-radius:12px; padding:14px 16px; margin-bottom:16px; display:flex; align-items:center; gap:12px;">
+            <div style="background:linear-gradient(135deg,var(--primary, #2c7a6e),var(--primary-dark, #035552)); color:#fff; border-radius:12px; padding:14px 16px; margin-bottom:16px; display:flex; align-items:center; gap:12px;">
               <div style="width:42px; height:42px; border-radius:50%; background:rgba(255,255,255,0.2); display:flex; align-items:center; justify-content:center; font-size:20px;">
                 <i class="fas fa-file-alt"></i>
               </div>
@@ -414,7 +414,7 @@ export const hatcheryCompletionPeriodMethods = {
             </div>
             <div style="overflow-x:auto; max-height:400px; overflow-y:auto;">
               <table style="width:100%; border-collapse:collapse; font-size:12px;">
-                <thead style="position:sticky; top:0; background:#f8fafc;">
+                <thead style="position:sticky; top:0; background:var(--bg-surface-2, #f8fafc);">
                   <tr>
                     <th style="padding:8px;">#</th>
                     <th style="padding:8px;">گله</th>
@@ -631,7 +631,7 @@ const buildCompletionEditFormHtml = ({
         <div style="text-align:right; font-family:'Vazir'; direction:rtl;">
           <style>${UE_FORM_STYLE_BLOCK}</style>
 
-          <div style="background:linear-gradient(135deg,#2c7a6e,#035552); color:#fff; border-radius:12px; padding:14px 16px; margin-bottom:16px; display:flex; align-items:center; gap:12px; position:relative;">
+          <div style="background:linear-gradient(135deg,var(--primary, #2c7a6e),var(--primary-dark, #035552)); color:#fff; border-radius:12px; padding:14px 16px; margin-bottom:16px; display:flex; align-items:center; gap:12px; position:relative;">
             <div style="width:42px; height:42px; border-radius:50%; background:rgba(255,255,255,0.2); display:flex; align-items:center; justify-content:center; font-size:20px;">
               <i class="fas fa-pen"></i>
             </div>
@@ -997,7 +997,7 @@ const buildCompletionFlockOptions = (periodFlocks) => {
       return periodFlocks
         .map(
           (f) =>
-            `<label style="display:flex; align-items:center; gap:8px; padding:6px 10px; background:#f8fafc; border-radius:8px; cursor:pointer; font-size:12.5px;">
+            `<label style="display:flex; align-items:center; gap:8px; padding:6px 10px; background:var(--bg-surface-2, #f8fafc); border-radius:8px; cursor:pointer; font-size:12.5px;">
               <input type="checkbox" class="completion-flock-check" value="${f.id}" checked>
               گله ${f.flock_number} - ${f.total_chicks_count?.toLocaleString() || "-"} قطعه
             </label>`,
@@ -1007,7 +1007,7 @@ const buildCompletionFlockOptions = (periodFlocks) => {
 
 const buildPeriodCompletionInfoHtml = (period, periodFlocks) => {
       return `
-        <div style="background:linear-gradient(135deg,#2c7a6e,#035552); color:#fff; border-radius:12px; padding:14px 16px; margin-bottom:16px; display:flex; align-items:center; gap:12px;">
+        <div style="background:linear-gradient(135deg,var(--primary, #2c7a6e),var(--primary-dark, #035552)); color:#fff; border-radius:12px; padding:14px 16px; margin-bottom:16px; display:flex; align-items:center; gap:12px;">
           <div style="width:42px; height:42px; border-radius:50%; background:rgba(255,255,255,0.2); display:flex; align-items:center; justify-content:center; font-size:20px;">
             <i class="fas fa-flag-checkered"></i>
           </div>

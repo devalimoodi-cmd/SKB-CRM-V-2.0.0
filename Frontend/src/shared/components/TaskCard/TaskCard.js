@@ -223,7 +223,7 @@ function TaskCard(props = {}) {
               }
               <span><i class="fas fa-egg"></i> گله #${flockNumber}${breedName ? ` - ${breedName}` : ""}</span>
               <span class="sep">|</span>
-              <span style="color:var(--gray-500, #94a3b8);font-size:11px;"><i class="fas fa-id-card"></i> ID: ${flockId}</span>
+              <span style="color:var(--gray-500, var(--text-light, #94a3b8));font-size:11px;"><i class="fas fa-id-card"></i> ID: ${flockId}</span>
             </div>
             <div class="task-status">
               <span class="badge ${statusClass}">

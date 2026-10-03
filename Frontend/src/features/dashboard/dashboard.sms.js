@@ -249,7 +249,7 @@ export const dashboardSmsMethods = {
           html: `
             <div style="text-align: right; font-family: 'Vazir', sans-serif; padding: 5px;">
               <!-- اطلاعات گیرنده -->
-              <div style="display:flex; align-items:center; gap:10px; background: linear-gradient(135deg, #2c7a6e 0%, #065f46 100%); color:#fff; padding:12px 16px; border-radius:10px; margin-bottom:14px;">
+              <div style="display:flex; align-items:center; gap:10px; background: linear-gradient(135deg, var(--primary, #2c7a6e) 0%, #065f46 100%); color:#fff; padding:12px 16px; border-radius:10px; margin-bottom:14px;">
                 <span style="font-size:22px;">👤</span>
                 <div>
                   <div style="font-size:14px; font-weight:700;">${customerName || "مشتری"}</div>
@@ -261,10 +261,10 @@ export const dashboardSmsMethods = {
 
               <!-- انتخاب قالب -->
               <div style="margin-bottom: 12px;">
-                <label style="display: block; margin-bottom: 6px; font-weight: 700; font-size: 13px; color:#1e293b;">
+                <label style="display: block; margin-bottom: 6px; font-weight: 700; font-size: 13px; color:var(--text-dark, #1e293b);">
                   📋 انتخاب قالب پیامک
                 </label>
-                <select id="smsTemplateSelect" style="width: 100%; padding: 10px 12px; border: 1.5px solid #e2e8f0; border-radius: 8px; font-family: 'Vazir'; font-size: 13px; background:#fff; cursor:pointer; outline:none; transition: border-color 0.2s;">
+                <select id="smsTemplateSelect" style="width: 100%; padding: 10px 12px; border: 1.5px solid var(--border-color, #e2e8f0); border-radius: 8px; font-family: 'Vazir'; font-size: 13px; background:var(--bg-surface, #fff); cursor:pointer; outline:none; transition: border-color 0.2s;">
                   <option value="custom">✏️ متن آزاد</option>
                   ${templateOptions}
                 </select>
@@ -272,17 +272,17 @@ export const dashboardSmsMethods = {
 
               <!-- متن پیامک -->
               <div style="margin-bottom: 8px;">
-                <label style="display: block; margin-bottom: 6px; font-weight: 700; font-size: 13px; color:#1e293b;">
+                <label style="display: block; margin-bottom: 6px; font-weight: 700; font-size: 13px; color:var(--text-dark, #1e293b);">
                   💬 متن پیامک
                 </label>
                 <textarea id="smsMessage" rows="7" 
-                  style="width: 100%; padding: 12px; border: 1.5px solid #e2e8f0; border-radius: 8px; font-family: 'Vazir'; font-size: 13px; resize: vertical; direction: rtl; line-height:1.8; outline:none; background:#f8fafc;"
+                  style="width: 100%; padding: 12px; border: 1.5px solid var(--border-color, #e2e8f0); border-radius: 8px; font-family: 'Vazir'; font-size: 13px; resize: vertical; direction: rtl; line-height:1.8; outline:none; background:var(--bg-surface-2, #f8fafc);"
                 >${defaultMessage}</textarea>
               </div>
 
               <!-- شمارنده کاراکتر -->
-              <div style="display: flex; justify-content: space-between; font-size: 12px; color: #94a3b8; padding: 0 2px;">
-                <span>تعداد کاراکتر: <strong id="smsCharCount" style="color:#2c7a6e;">${defaultMessage.length}</strong></span>
+              <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-light, #94a3b8); padding: 0 2px;">
+                <span>تعداد کاراکتر: <strong id="smsCharCount" style="color:var(--primary, #2c7a6e);">${defaultMessage.length}</strong></span>
                 <span>حداکثر 1000 کاراکتر</span>
               </div>
             </div>
@@ -641,51 +641,51 @@ export const dashboardSmsMethods = {
       let rows = "";
       if (records.length === 0) {
         rows =
-          '<tr><td colspan="8" style="text-align:center; padding:20px; color:#94a3b8;">هیچ پیامکی ارسال نشده است</td></tr>';
+          '<tr><td colspan="8" style="text-align:center; padding:20px; color:var(--text-light, #94a3b8);">هیچ پیامکی ارسال نشده است</td></tr>';
       } else {
         rows = records
           .map(
             (r, i) => `
             <tr>
-              <td style="padding:8px; border-bottom:1px solid #f1f5f9; text-align:center;">${i + 1}</td>
-              <td style="padding:8px; border-bottom:1px solid #f1f5f9; text-align:center; max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${r.message || "-"}</td>
-              <td style="padding:8px; border-bottom:1px solid #f1f5f9; text-align:center; min-width:140px;">
+              <td style="padding:8px; border-bottom:1px solid var(--gray-100, #f1f5f9); text-align:center;">${i + 1}</td>
+              <td style="padding:8px; border-bottom:1px solid var(--gray-100, #f1f5f9); text-align:center; max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${r.message || "-"}</td>
+              <td style="padding:8px; border-bottom:1px solid var(--gray-100, #f1f5f9); text-align:center; min-width:140px;">
                 <div><span style="display:inline-block; padding:1px 8px; border-radius:999px; font-size:9.5px; font-weight:700; background:${
                   r.scope === "hall" ? "#eff6ff" : "#ecfdf5"
                 }; color:${
                   r.scope === "hall" ? "#1d4ed8" : "#047857"
                 };">${r.scope === "hall" ? "سالن" : "کل گله"}</span></div>
-                <div style="font-size:10.5px; font-weight:700; color:#334155; margin-top:2px;">${r.targetLabel || r.target_title || "—"}</div>
-                <div style="font-size:10px; color:#64748b;">${r.roleLabel || "—"}</div>
+                <div style="font-size:10.5px; font-weight:700; color:var(--text-slate-strong, #334155); margin-top:2px;">${r.targetLabel || r.target_title || "—"}</div>
+                <div style="font-size:10px; color:var(--text-gray, #64748b);">${r.roleLabel || "—"}</div>
                 ${
                   r.flock_number
-                    ? `<div style="font-size:9.5px; color:#94a3b8; margin-top:1px;">گله ${r.flock_number}${r.week_number ? ` | هفته ${r.week_number}` : ""}</div>`
+                    ? `<div style="font-size:9.5px; color:var(--text-light, #94a3b8); margin-top:1px;">گله ${r.flock_number}${r.week_number ? ` | هفته ${r.week_number}` : ""}</div>`
                     : ""
                 }
               </td>
-              <td style="padding:8px; border-bottom:1px solid #f1f5f9; text-align:center;">${formatDateTime(r.sent_at || r.created_at)}</td>
-              <td style="padding:8px; border-bottom:1px solid #f1f5f9; text-align:center;">${formatDateTime(r.delivered_at)}</td>
-              <td style="padding:8px; border-bottom:1px solid #f1f5f9; text-align:center;">${getDeliveryText(r.delivery_state)}</td>
-              <td style="padding:8px; border-bottom:1px solid #f1f5f9; text-align:center;">
+              <td style="padding:8px; border-bottom:1px solid var(--gray-100, #f1f5f9); text-align:center;">${formatDateTime(r.sent_at || r.created_at)}</td>
+              <td style="padding:8px; border-bottom:1px solid var(--gray-100, #f1f5f9); text-align:center;">${formatDateTime(r.delivered_at)}</td>
+              <td style="padding:8px; border-bottom:1px solid var(--gray-100, #f1f5f9); text-align:center;">${getDeliveryText(r.delivery_state)}</td>
+              <td style="padding:8px; border-bottom:1px solid var(--gray-100, #f1f5f9); text-align:center;">
                 <span style="display:inline-block; padding:2px 10px; border-radius:12px; font-size:10px; font-weight:500; background:${
                   r.status === "delivered"
-                    ? "#dcfce7"
+                    ? "var(--success-bg, #dcfce7)"
                     : r.status === "failed"
-                      ? "#fee2e2"
+                      ? "var(--danger-bg, #fee2e2)"
                       : r.status === "sent"
-                        ? "#dbeafe"
-                        : "#fef3c7"
+                        ? "var(--info-bg, #dbeafe)"
+                        : "var(--warning-bg, #fef3c7)"
                 }; color:${
                   r.status === "delivered"
-                    ? "#16a34a"
+                    ? "var(--success-strong, #16a34a)"
                     : r.status === "failed"
-                      ? "#dc2626"
+                      ? "var(--danger, #dc2626)"
                       : r.status === "sent"
                         ? "#2563eb"
                         : "#d97706"
                 };">${this.getSmsStatusInfo(r.status || "pending").text}</span>
               </td>
-              <td style="padding:8px; border-bottom:1px solid #f1f5f9; text-align:center;">${getSenderName(r.sender)}</td>
+              <td style="padding:8px; border-bottom:1px solid var(--gray-100, #f1f5f9); text-align:center;">${getSenderName(r.sender)}</td>
             </tr>
           `,
           )
@@ -699,15 +699,15 @@ export const dashboardSmsMethods = {
             <div style="direction:rtl; text-align:right; font-family:'Vazir'; overflow-x:auto;">
               <table style="width:100%; border-collapse:collapse; font-size:12px;">
                 <thead>
-                  <tr style="background:#f8fafc;">
-                    <th style="padding:8px; border-bottom:2px solid #eef2f6;">ردیف</th>
-                    <th style="padding:8px; border-bottom:2px solid #eef2f6;">متن پیام</th>
-                    <th style="padding:8px; border-bottom:2px solid #eef2f6;">هدف / گیرنده</th>
-                    <th style="padding:8px; border-bottom:2px solid #eef2f6;">تاریخ و زمان ارسال</th>
-                    <th style="padding:8px; border-bottom:2px solid #eef2f6;">تاریخ و زمان تحویل</th>
-                    <th style="padding:8px; border-bottom:2px solid #eef2f6;">وضعیت تحویل</th>
-                    <th style="padding:8px; border-bottom:2px solid #eef2f6;">وضعیت</th>
-                    <th style="padding:8px; border-bottom:2px solid #eef2f6;">فرستنده</th>
+                  <tr style="background:var(--bg-surface-2, #f8fafc);">
+                    <th style="padding:8px; border-bottom:2px solid var(--border-light, #eef2f6);">ردیف</th>
+                    <th style="padding:8px; border-bottom:2px solid var(--border-light, #eef2f6);">متن پیام</th>
+                    <th style="padding:8px; border-bottom:2px solid var(--border-light, #eef2f6);">هدف / گیرنده</th>
+                    <th style="padding:8px; border-bottom:2px solid var(--border-light, #eef2f6);">تاریخ و زمان ارسال</th>
+                    <th style="padding:8px; border-bottom:2px solid var(--border-light, #eef2f6);">تاریخ و زمان تحویل</th>
+                    <th style="padding:8px; border-bottom:2px solid var(--border-light, #eef2f6);">وضعیت تحویل</th>
+                    <th style="padding:8px; border-bottom:2px solid var(--border-light, #eef2f6);">وضعیت</th>
+                    <th style="padding:8px; border-bottom:2px solid var(--border-light, #eef2f6);">فرستنده</th>
                   </tr>
                 </thead>
                 <tbody>${rows}</tbody>
@@ -715,7 +715,7 @@ export const dashboardSmsMethods = {
             </div>
             <div style="display:flex; justify-content:center; margin-top:12px;">
               <button type="button" onclick="window.refreshSmsHistoryFromModal()"
-                      style="display:inline-flex; align-items:center; gap:6px; padding:8px 16px; border:none; border-radius:8px; background:#2c7a6e; color:#ffffff; font-family:'Vazir'; font-size:12px; font-weight:600; cursor:pointer; box-shadow:0 2px 8px rgba(44,122,110,0.25);">
+                      style="display:inline-flex; align-items:center; gap:6px; padding:8px 16px; border:none; border-radius:8px; background:var(--primary, #2c7a6e); color:#ffffff; font-family:'Vazir'; font-size:12px; font-weight:600; cursor:pointer; box-shadow:0 2px 8px rgba(44,122,110,0.25);">
                 <i class="fas fa-sync-alt"></i> بروزرسانی وضعیت پیامک‌های قبلی
               </button>
             </div>
@@ -893,24 +893,24 @@ const buildSmsStatusRowsHtml = (records, { service }) => {
           .map(
             (r, i) => `
             <tr>
-              <td style="padding:8px; border-bottom:1px solid #f1f5f9; text-align:center;">${i + 1}</td>
-              <td style="padding:8px; border-bottom:1px solid #f1f5f9; text-align:center; max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${r.message || ""}">${r.message || "-"}</td>
-              <td style="padding:8px; border-bottom:1px solid #f1f5f9; text-align:center; min-width:150px;">
+              <td style="padding:8px; border-bottom:1px solid var(--gray-100, #f1f5f9); text-align:center;">${i + 1}</td>
+              <td style="padding:8px; border-bottom:1px solid var(--gray-100, #f1f5f9); text-align:center; max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${r.message || ""}">${r.message || "-"}</td>
+              <td style="padding:8px; border-bottom:1px solid var(--gray-100, #f1f5f9); text-align:center; min-width:150px;">
                 <div><span style="display:inline-block; padding:1px 8px; border-radius:999px; font-size:9.5px; font-weight:700; background:${
                   r.scope === "hall" ? "#eff6ff" : "#ecfdf5"
                 }; color:${
                   r.scope === "hall" ? "#1d4ed8" : "#047857"
                 };">${r.scope === "hall" ? "سالن" : "کل گله"}</span></div>
-                <div style="font-size:10.5px; font-weight:700; color:#334155; margin-top:2px;">${r.targetLabel || r.target_title || "—"}</div>
-                <div style="font-size:10px; color:#64748b;">${r.roleLabel || "—"}</div>
+                <div style="font-size:10.5px; font-weight:700; color:var(--text-slate-strong, #334155); margin-top:2px;">${r.targetLabel || r.target_title || "—"}</div>
+                <div style="font-size:10px; color:var(--text-gray, #64748b);">${r.roleLabel || "—"}</div>
                 ${
                   r.flock_number
-                    ? `<div style="font-size:9.5px; color:#94a3b8; margin-top:1px;">گله ${r.flock_number}${r.week_number ? ` | هفته ${r.week_number}` : ""}</div>`
+                    ? `<div style="font-size:9.5px; color:var(--text-light, #94a3b8); margin-top:1px;">گله ${r.flock_number}${r.week_number ? ` | هفته ${r.week_number}` : ""}</div>`
                     : ""
                 }
               </td>
-              <td style="padding:8px; border-bottom:1px solid #f1f5f9; text-align:center;">${formatDateTime(r.sent_at || r.created_at)}</td>
-              <td style="padding:8px; border-bottom:1px solid #f1f5f9; text-align:center; min-width:120px;">
+              <td style="padding:8px; border-bottom:1px solid var(--gray-100, #f1f5f9); text-align:center;">${formatDateTime(r.sent_at || r.created_at)}</td>
+              <td style="padding:8px; border-bottom:1px solid var(--gray-100, #f1f5f9); text-align:center; min-width:120px;">
                 <span style="display:inline-block; padding:2px 8px; border-radius:8px; font-size:10px; font-weight:600; background:${
                   r.delivery_state === 1
                     ? "#ecfdf5"
@@ -925,27 +925,27 @@ const buildSmsStatusRowsHtml = (records, { service }) => {
                       : "#b45309"
                 };">${getDeliveryText(r.delivery_state)}</span>
               </td>
-              <td style="padding:8px; border-bottom:1px solid #f1f5f9; text-align:center; min-width:100px;">${formatDateTime(r.delivered_at)}</td>
-              <td style="padding:8px; border-bottom:1px solid #f1f5f9; text-align:center;">
+              <td style="padding:8px; border-bottom:1px solid var(--gray-100, #f1f5f9); text-align:center; min-width:100px;">${formatDateTime(r.delivered_at)}</td>
+              <td style="padding:8px; border-bottom:1px solid var(--gray-100, #f1f5f9); text-align:center;">
                 <span style="display:inline-block; padding:2px 10px; border-radius:12px; font-size:10px; font-weight:500; background:${
                   r.status === "delivered"
-                    ? "#dcfce7"
+                    ? "var(--success-bg, #dcfce7)"
                     : r.status === "failed"
-                      ? "#fee2e2"
+                      ? "var(--danger-bg, #fee2e2)"
                       : r.status === "sent"
-                        ? "#dbeafe"
-                        : "#fef3c7"
+                        ? "var(--info-bg, #dbeafe)"
+                        : "var(--warning-bg, #fef3c7)"
                 }; color:${
                   r.status === "delivered"
-                    ? "#16a34a"
+                    ? "var(--success-strong, #16a34a)"
                     : r.status === "failed"
-                      ? "#dc2626"
+                      ? "var(--danger, #dc2626)"
                       : r.status === "sent"
                         ? "#2563eb"
                         : "#d97706"
                 };">${service.getSmsStatusInfo(r.status || "pending").text}</span>
               </td>
-              <td style="padding:8px; border-bottom:1px solid #f1f5f9; text-align:center; font-size:11px; color:#475569;">${getSenderName(r.sender)}</td>
+              <td style="padding:8px; border-bottom:1px solid var(--gray-100, #f1f5f9); text-align:center; font-size:11px; color:var(--text-slate, #475569);">${getSenderName(r.sender)}</td>
             </tr>
           `,
           )
@@ -972,36 +972,36 @@ const buildSmsStatusModalHtml = ({ records, rows, totalChecked, updatedCount }) 
             <div style="direction:rtl; text-align:right; font-family:'Vazir';">
               <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:12px;">
                 <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; padding:8px; text-align:center;">
-                  <div style="font-size:18px; font-weight:700; color:#16a34a;">${deliveredCount}</div>
-                  <div style="font-size:10px; color:#94a3b8;">✅ تحویل شده</div>
+                  <div style="font-size:18px; font-weight:700; color:var(--success-strong, #16a34a);">${deliveredCount}</div>
+                  <div style="font-size:10px; color:var(--text-light, #94a3b8);">✅ تحویل شده</div>
                 </div>
                 <div style="background:#fef2f2; border:1px solid #fecaca; border-radius:8px; padding:8px; text-align:center;">
-                  <div style="font-size:18px; font-weight:700; color:#dc2626;">${failedCount}</div>
-                  <div style="font-size:10px; color:#94a3b8;">❌ ناموفق</div>
+                  <div style="font-size:18px; font-weight:700; color:var(--danger, #dc2626);">${failedCount}</div>
+                  <div style="font-size:10px; color:var(--text-light, #94a3b8);">❌ ناموفق</div>
                 </div>
                 <div style="background:#fffbeb; border:1px solid #fde68a; border-radius:8px; padding:8px; text-align:center;">
                   <div style="font-size:18px; font-weight:700; color:#d97706;">${pendingCount}</div>
-                  <div style="font-size:10px; color:#94a3b8;">⏳ در انتظار</div>
+                  <div style="font-size:10px; color:var(--text-light, #94a3b8);">⏳ در انتظار</div>
                 </div>
               </div>
               <div style="overflow-x:auto; max-height:300px; overflow-y:auto;">
                 <table style="width:100%; border-collapse:collapse; font-size:12px;">
                   <thead>
-                    <tr style="background:#f8fafc; position:sticky; top:0;">
-                      <th style="padding:8px; border-bottom:2px solid #eef2f6;">ردیف</th>
-                      <th style="padding:8px; border-bottom:2px solid #eef2f6;">متن پیام</th>
-                      <th style="padding:8px; border-bottom:2px solid #eef2f6;">گیرنده</th>
-                      <th style="padding:8px; border-bottom:2px solid #eef2f6;">تاریخ و زمان ارسال</th>
-                      <th style="padding:8px; border-bottom:2px solid #eef2f6;">وضعیت تحویل</th>
-                      <th style="padding:8px; border-bottom:2px solid #eef2f6;">تاریخ و زمان تحویل</th>
-                      <th style="padding:8px; border-bottom:2px solid #eef2f6;">وضعیت</th>
-                      <th style="padding:8px; border-bottom:2px solid #eef2f6;">فرستنده</th>
+                    <tr style="background:var(--bg-surface-2, #f8fafc); position:sticky; top:0;">
+                      <th style="padding:8px; border-bottom:2px solid var(--border-light, #eef2f6);">ردیف</th>
+                      <th style="padding:8px; border-bottom:2px solid var(--border-light, #eef2f6);">متن پیام</th>
+                      <th style="padding:8px; border-bottom:2px solid var(--border-light, #eef2f6);">گیرنده</th>
+                      <th style="padding:8px; border-bottom:2px solid var(--border-light, #eef2f6);">تاریخ و زمان ارسال</th>
+                      <th style="padding:8px; border-bottom:2px solid var(--border-light, #eef2f6);">وضعیت تحویل</th>
+                      <th style="padding:8px; border-bottom:2px solid var(--border-light, #eef2f6);">تاریخ و زمان تحویل</th>
+                      <th style="padding:8px; border-bottom:2px solid var(--border-light, #eef2f6);">وضعیت</th>
+                      <th style="padding:8px; border-bottom:2px solid var(--border-light, #eef2f6);">فرستنده</th>
                     </tr>
                   </thead>
                   <tbody>${rows}</tbody>
                 </table>
               </div>
-              <p style="font-size:11px; color:#94a3b8; margin-top:10px; text-align:center;">
+              <p style="font-size:11px; color:var(--text-light, #94a3b8); margin-top:10px; text-align:center;">
                 ${totalChecked} پیامک بررسی شد ${updatedCount > 0 ? ` | ${updatedCount} پیامک به‌روزرسانی شد` : ""}
               </p>
             </div>

@@ -386,7 +386,7 @@ class DictionaryManager {
     if (this.data.length === 0) {
       rows = `
         <tr>
-          <td colspan="${totalCols}" style="text-align:center; color:#94a3b8; padding:40px;">
+          <td colspan="${totalCols}" style="text-align:center; color:var(--text-light, #94a3b8); padding:40px;">
             <i class="fas fa-inbox" style="font-size:28px; display:block; margin-bottom:10px;"></i>
             هیچ رکوردی یافت نشد
           </td>
@@ -638,7 +638,7 @@ class DictionaryManager {
       if (result.isConfirmed) {
         Swal.fire({
           icon: "success",
-          title: '<i class="fas fa-check-circle" style="color:#16a34a"></i> ایجاد شد',
+          title: '<i class="fas fa-check-circle" style="color:var(--success-strong, #16a34a)"></i> ایجاد شد',
           text: "رکورد جدید با موفقیت ایجاد شد",
           timer: 1500,
           showConfirmButton: false,
@@ -692,7 +692,7 @@ class DictionaryManager {
       if (result.isConfirmed) {
         Swal.fire({
           icon: "success",
-          title: '<i class="fas fa-check-circle" style="color:#16a34a"></i> ذخیره شد',
+          title: '<i class="fas fa-check-circle" style="color:var(--success-strong, #16a34a)"></i> ذخیره شد',
           timer: 1500,
           showConfirmButton: false,
         });
@@ -716,7 +716,7 @@ class DictionaryManager {
     const name = escapeHtml(displayValue || `#${id}`);
 
     const confirmResult = await Swal.fire({
-      title: '<i class="fas fa-trash-alt" style="color:#dc2626"></i> تأیید حذف',
+      title: '<i class="fas fa-trash-alt" style="color:var(--danger, #dc2626)"></i> تأیید حذف',
       html: `آیا از حذف <strong>«${name}»</strong> اطمینان دارید؟`,
       icon: "warning",
       showCancelButton: true,
@@ -734,7 +734,7 @@ class DictionaryManager {
       if (res.success) {
         Swal.fire({
           icon: "success",
-          title: '<i class="fas fa-check-circle" style="color:#16a34a"></i> حذف شد',
+          title: '<i class="fas fa-check-circle" style="color:var(--success-strong, #16a34a)"></i> حذف شد',
           text: "رکورد با موفقیت حذف شد",
           timer: 1500,
           showConfirmButton: false,
@@ -743,14 +743,14 @@ class DictionaryManager {
       } else {
         Swal.fire({
           icon: "error",
-          title: '<i class="fas fa-times-circle" style="color:#dc2626"></i> خطا',
+          title: '<i class="fas fa-times-circle" style="color:var(--danger, #dc2626)"></i> خطا',
           text: friendlyDeleteError(res.message) || "حذف انجام نشد",
         });
       }
     } catch (error) {
       Swal.fire({
         icon: "error",
-        title: '<i class="fas fa-times-circle" style="color:#dc2626"></i> خطا',
+        title: '<i class="fas fa-times-circle" style="color:var(--danger, #dc2626)"></i> خطا',
         text: error.message || "خطا در ارتباط با سرور",
       });
     }
@@ -773,7 +773,7 @@ class DictionaryManager {
         Swal.fire({
           icon: "success",
           title: newActive
-            ? '<i class="fas fa-check-circle" style="color:#16a34a"></i> فعال شد'
+            ? '<i class="fas fa-check-circle" style="color:var(--success-strong, #16a34a)"></i> فعال شد'
             : '<i class="fas fa-pause-circle" style="color:#d97706"></i> غیرفعال شد',
           timer: 1000,
           showConfirmButton: false,

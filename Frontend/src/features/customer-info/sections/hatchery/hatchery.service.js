@@ -627,7 +627,7 @@ class HatcheryService {
               : "✅ جوجه‌ریزی ثبت شد",
             html: `<div style="text-align:right; font-family:Vazir; direction:rtl;">
               <ul style="list-style:none; padding:0; margin:0;">
-                ${summaryItems.map((item) => `<li style="padding:3px 8px; background:#f8fafc; margin:3px 0; border-radius:4px; font-size:12px;">✅ ${item}</li>`).join("")}
+                ${summaryItems.map((item) => `<li style="padding:3px 8px; background:var(--bg-surface-2, #f8fafc); margin:3px 0; border-radius:4px; font-size:12px;">✅ ${item}</li>`).join("")}
               </ul>
             </div>`,
             confirmButtonText: "باشه",
@@ -1395,13 +1395,13 @@ class HatcheryService {
         if (record) {
           const html = `
             <div style="direction:rtl; text-align:right; font-family:Vazir; padding:15px;">
-              <h3 style="color:#2c7a6e; margin-bottom:15px;">اطلاعات بهداشت و ضدعفونی</h3>
+              <h3 style="color:var(--primary, #2c7a6e); margin-bottom:15px;">اطلاعات بهداشت و ضدعفونی</h3>
               <div class="hall-info-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-                <div class="hall-info-item"><span class="label" style="color:#94a3b8;">سالن</span><span class="value" style="font-weight:600;">${hall.hall_name}</span></div>
-                <div class="hall-info-item"><span class="label" style="color:#94a3b8;">آخرین شستشو</span><span class="value">${record.last_wash_date ? convertToPersianDate(record.last_wash_date) : "-"}</span></div>
-                <div class="hall-info-item"><span class="label" style="color:#94a3b8;">آخرین ضدعفونی</span><span class="value">${record.last_disinfect_date ? convertToPersianDate(record.last_disinfect_date) : "-"}</span></div>
-                <div class="hall-info-item"><span class="label" style="color:#94a3b8;">نوع مواد ضدعفونی</span><span class="value">${record.disinfectant_type || "-"}</span></div>
-                ${record.description ? `<div class="hall-info-item full-width" style="grid-column:1/-1;"><span class="label" style="color:#94a3b8;">توضیحات</span><span class="value">${record.description}</span></div>` : ""}
+                <div class="hall-info-item"><span class="label" style="color:var(--text-light, #94a3b8);">سالن</span><span class="value" style="font-weight:600;">${hall.hall_name}</span></div>
+                <div class="hall-info-item"><span class="label" style="color:var(--text-light, #94a3b8);">آخرین شستشو</span><span class="value">${record.last_wash_date ? convertToPersianDate(record.last_wash_date) : "-"}</span></div>
+                <div class="hall-info-item"><span class="label" style="color:var(--text-light, #94a3b8);">آخرین ضدعفونی</span><span class="value">${record.last_disinfect_date ? convertToPersianDate(record.last_disinfect_date) : "-"}</span></div>
+                <div class="hall-info-item"><span class="label" style="color:var(--text-light, #94a3b8);">نوع مواد ضدعفونی</span><span class="value">${record.disinfectant_type || "-"}</span></div>
+                ${record.description ? `<div class="hall-info-item full-width" style="grid-column:1/-1;"><span class="label" style="color:var(--text-light, #94a3b8);">توضیحات</span><span class="value">${record.description}</span></div>` : ""}
               </div>
             </div>
           `;
@@ -1824,31 +1824,31 @@ class HatcheryService {
       const html = `
         <div style="direction:rtl; text-align:right; font-family:Vazir; padding:10px;">
           <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
-            <div style="background:#f8fafc; padding:10px; border-radius:8px;">
-              <h4 style="color:#2c7a6e; font-size:13px; margin:0 0 8px; border-bottom:2px solid #e8f5f0; padding-bottom:5px;">📋 اطلاعات پایه</h4>
+            <div style="background:var(--bg-surface-2, #f8fafc); padding:10px; border-radius:8px;">
+              <h4 style="color:var(--primary, #2c7a6e); font-size:13px; margin:0 0 8px; border-bottom:2px solid #e8f5f0; padding-bottom:5px;">📋 اطلاعات پایه</h4>
               <table style="width:100%; border-collapse:collapse; font-size:12px;">
-                <tr><td style="padding:4px 6px; color:#94a3b8; width:100px;">شماره گله</td><td style="padding:4px 6px; font-weight:600;">${flock.flock_number}</td></tr>
-                <tr><td style="padding:4px 6px; color:#94a3b8;">سالن</td><td style="padding:4px 6px; font-weight:600;">${hall?.hall_name || "-"}</td></tr>
-                <tr><td style="padding:4px 6px; color:#94a3b8;">دوره</td><td style="padding:4px 6px; font-weight:600;">${period?.period_name || "-"}</td></tr>
-                <tr><td style="padding:4px 6px; color:#94a3b8;">وضعیت</td><td style="padding:4px 6px;"><span style="background:${flock.is_active ? "#dcfce7" : "#fee2e2"}; color:${flock.is_active ? "#16a34a" : "#dc2626"}; padding:2px 10px; border-radius:10px; font-size:11px;">${flock.is_active ? "فعال" : "غیرفعال"}</span></td></tr>
+                <tr><td style="padding:4px 6px; color:var(--text-light, #94a3b8); width:100px;">شماره گله</td><td style="padding:4px 6px; font-weight:600;">${flock.flock_number}</td></tr>
+                <tr><td style="padding:4px 6px; color:var(--text-light, #94a3b8);">سالن</td><td style="padding:4px 6px; font-weight:600;">${hall?.hall_name || "-"}</td></tr>
+                <tr><td style="padding:4px 6px; color:var(--text-light, #94a3b8);">دوره</td><td style="padding:4px 6px; font-weight:600;">${period?.period_name || "-"}</td></tr>
+                <tr><td style="padding:4px 6px; color:var(--text-light, #94a3b8);">وضعیت</td><td style="padding:4px 6px;"><span style="background:${flock.is_active ? "var(--success-bg, #dcfce7)" : "var(--danger-bg, #fee2e2)"}; color:${flock.is_active ? "var(--success-strong, #16a34a)" : "var(--danger, #dc2626)"}; padding:2px 10px; border-radius:10px; font-size:11px;">${flock.is_active ? "فعال" : "غیرفعال"}</span></td></tr>
               </table>
             </div>
-            <div style="background:#f8fafc; padding:10px; border-radius:8px;">
-              <h4 style="color:#2c7a6e; font-size:13px; margin:0 0 8px; border-bottom:2px solid #e8f5f0; padding-bottom:5px;">🐣 اطلاعات جوجه‌ریزی</h4>
+            <div style="background:var(--bg-surface-2, #f8fafc); padding:10px; border-radius:8px;">
+              <h4 style="color:var(--primary, #2c7a6e); font-size:13px; margin:0 0 8px; border-bottom:2px solid #e8f5f0; padding-bottom:5px;">🐣 اطلاعات جوجه‌ریزی</h4>
               <table style="width:100%; border-collapse:collapse; font-size:12px;">
-                <tr><td style="padding:4px 6px; color:#94a3b8;">تاریخ جوجه‌ریزی</td><td style="padding:4px 6px; font-weight:600;">${convertToPersianDate(flock.placement_date)}</td></tr>
-                <tr><td style="padding:4px 6px; color:#94a3b8;">نژاد</td><td style="padding:4px 6px; font-weight:600;">${breed?.name || flock.breed_id || "-"}</td></tr>
-                <tr><td style="padding:4px 6px; color:#94a3b8;">مبدا</td><td style="padding:4px 6px; font-weight:600;">${source?.name || "-"}</td></tr>
-                <tr><td style="padding:4px 6px; color:#94a3b8;">سن در بدو ورود</td><td style="padding:4px 6px; font-weight:600;">${flock.chick_age_on_arrival || "-"} روز</td></tr>
+                <tr><td style="padding:4px 6px; color:var(--text-light, #94a3b8);">تاریخ جوجه‌ریزی</td><td style="padding:4px 6px; font-weight:600;">${convertToPersianDate(flock.placement_date)}</td></tr>
+                <tr><td style="padding:4px 6px; color:var(--text-light, #94a3b8);">نژاد</td><td style="padding:4px 6px; font-weight:600;">${breed?.name || flock.breed_id || "-"}</td></tr>
+                <tr><td style="padding:4px 6px; color:var(--text-light, #94a3b8);">مبدا</td><td style="padding:4px 6px; font-weight:600;">${source?.name || "-"}</td></tr>
+                <tr><td style="padding:4px 6px; color:var(--text-light, #94a3b8);">سن در بدو ورود</td><td style="padding:4px 6px; font-weight:600;">${flock.chick_age_on_arrival || "-"} روز</td></tr>
               </table>
             </div>
           </div>
-          <div style="background:#f8fafc; padding:10px; border-radius:8px; margin-top:10px;">
-            <h4 style="color:#2c7a6e; font-size:13px; margin:0 0 8px; border-bottom:2px solid #e8f5f0; padding-bottom:5px;">📊 آمار</h4>
+          <div style="background:var(--bg-surface-2, #f8fafc); padding:10px; border-radius:8px; margin-top:10px;">
+            <h4 style="color:var(--primary, #2c7a6e); font-size:13px; margin:0 0 8px; border-bottom:2px solid #e8f5f0; padding-bottom:5px;">📊 آمار</h4>
             <table style="width:100%; border-collapse:collapse; font-size:12px;">
-              <tr><td style="padding:4px 6px; color:#94a3b8;">تعداد جوجه</td><td style="padding:4px 6px; font-weight:600;">${(flock.total_chicks_count || 0).toLocaleString()} قطعه</td></tr>
-              <tr><td style="padding:4px 6px; color:#94a3b8;">وزن اولیه</td><td style="padding:4px 6px; font-weight:600;">${flock.avg_initial_weight || "-"} گرم</td></tr>
-              <tr><td style="padding:4px 6px; color:#94a3b8;">تراکم</td><td style="padding:4px 6px; font-weight:600;">${flock.placement_density || "-"} قطعه/مترمربع</td></tr>
+              <tr><td style="padding:4px 6px; color:var(--text-light, #94a3b8);">تعداد جوجه</td><td style="padding:4px 6px; font-weight:600;">${(flock.total_chicks_count || 0).toLocaleString()} قطعه</td></tr>
+              <tr><td style="padding:4px 6px; color:var(--text-light, #94a3b8);">وزن اولیه</td><td style="padding:4px 6px; font-weight:600;">${flock.avg_initial_weight || "-"} گرم</td></tr>
+              <tr><td style="padding:4px 6px; color:var(--text-light, #94a3b8);">تراکم</td><td style="padding:4px 6px; font-weight:600;">${flock.placement_density || "-"} قطعه/مترمربع</td></tr>
             </table>
           </div>
         </div>
@@ -1948,19 +1948,19 @@ class HatcheryService {
       <div style="margin-top:16px;">
         <h4 style="color:#0d9488;font-size:14px;margin:0 0 8px;border-bottom:2px solid #ccfbf1;padding-bottom:5px;"><i class="fas fa-flag-checkered"></i> اطلاعات پایان دوره و کشتار</h4>
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:10px;">
-          <div style="background:#f8fafc;border-radius:10px;padding:7px 10px;font-size:11px;color:#64748b;">تاریخ کشتار<br><b style="color:#0f172a;">${formatSlaughterRange(c)}</b></div>
-          <div style="background:#f8fafc;border-radius:10px;padding:7px 10px;font-size:11px;color:#64748b;">کشتارگاه<br><b style="color:#0f172a;">${c.slaughterhouse_name || "-"}</b></div>
-          <div style="background:#f8fafc;border-radius:10px;padding:7px 10px;font-size:11px;color:#64748b;">ارسالی به کشتارگاه<br><b style="color:#0f172a;">${fmt(c.total_sent)} قطعه</b></div>
-          <div style="background:#f8fafc;border-radius:10px;padding:7px 10px;font-size:11px;color:#64748b;">وزن کل زنده<br><b style="color:#0f172a;">${fmt(c.total_live_weight)} کیلوگرم</b></div>
-          <div style="background:#f8fafc;border-radius:10px;padding:7px 10px;font-size:11px;color:#64748b;">میانگین وزن<br><b style="color:#0f172a;">${fmt(c.avg_live_weight, 3)} کیلوگرم</b></div>
-          <div style="background:#f8fafc;border-radius:10px;padding:7px 10px;font-size:11px;color:#64748b;">سن کشتار<br><b style="color:#0f172a;">${formatAgeRange(c)}</b>${
+          <div style="background:var(--bg-surface-2, #f8fafc);border-radius:10px;padding:7px 10px;font-size:11px;color:var(--text-gray, #64748b);">تاریخ کشتار<br><b style="color:#0f172a;">${formatSlaughterRange(c)}</b></div>
+          <div style="background:var(--bg-surface-2, #f8fafc);border-radius:10px;padding:7px 10px;font-size:11px;color:var(--text-gray, #64748b);">کشتارگاه<br><b style="color:#0f172a;">${c.slaughterhouse_name || "-"}</b></div>
+          <div style="background:var(--bg-surface-2, #f8fafc);border-radius:10px;padding:7px 10px;font-size:11px;color:var(--text-gray, #64748b);">ارسالی به کشتارگاه<br><b style="color:#0f172a;">${fmt(c.total_sent)} قطعه</b></div>
+          <div style="background:var(--bg-surface-2, #f8fafc);border-radius:10px;padding:7px 10px;font-size:11px;color:var(--text-gray, #64748b);">وزن کل زنده<br><b style="color:#0f172a;">${fmt(c.total_live_weight)} کیلوگرم</b></div>
+          <div style="background:var(--bg-surface-2, #f8fafc);border-radius:10px;padding:7px 10px;font-size:11px;color:var(--text-gray, #64748b);">میانگین وزن<br><b style="color:#0f172a;">${fmt(c.avg_live_weight, 3)} کیلوگرم</b></div>
+          <div style="background:var(--bg-surface-2, #f8fafc);border-radius:10px;padding:7px 10px;font-size:11px;color:var(--text-gray, #64748b);">سن کشتار<br><b style="color:#0f172a;">${formatAgeRange(c)}</b>${
             slaughterAgeMethodLabel(c)
               ? `<div style="color:#7c3aed;font-size:9.5px;font-weight:600;margin-top:3px;">${slaughterAgeMethodLabel(c)}</div>`
               : ""
           }</div>
         </div>
         ${slaughterShipmentsHtml(c)}
-        <div style="background:#f8fafc;border:1px solid #eef2f6;border-radius:12px;padding:10px 14px;margin-bottom:10px;">
+        <div style="background:var(--bg-surface-2, #f8fafc);border:1px solid var(--border-light, #eef2f6);border-radius:12px;padding:10px 14px;margin-bottom:10px;">
           <div style="font-size:12px;font-weight:800;color:#0f172a;margin-bottom:6px;">شاخصها (سیستمی / اعلامی مرغدار)</div>
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:6px;font-size:11.5px;">
             <div><b>FCR:</b> ${fmt(c.system_fcr, 3)} / ${fmt(c.farmer_fcr, 3)}</div>
@@ -2016,14 +2016,14 @@ class HatcheryService {
         .map(
           (p) =>
             `<tr>
-              <td style="padding:6px 8px;border-bottom:1px solid #eef2f6;">${this._flockHallName(p)}</td>
-              <td style="padding:6px 8px;border-bottom:1px solid #eef2f6;">${p.placement_date ? convertToPersianDate(p.placement_date) : "-"}</td>
-              <td style="padding:6px 8px;border-bottom:1px solid #eef2f6;">${this._flockSourceName(p.chick_source_id)}</td>
-              <td style="padding:6px 8px;border-bottom:1px solid #eef2f6;">${p.breed?.name || "-"}</td>
-              <td style="padding:6px 8px;border-bottom:1px solid #eef2f6;">${p.chick_age_on_arrival ?? "-"}</td>
-              <td style="padding:6px 8px;border-bottom:1px solid #eef2f6;">${p.avg_initial_weight ?? "-"}</td>
-              <td style="padding:6px 8px;border-bottom:1px solid #eef2f6;">${Number(p.total_chicks_count || 0).toLocaleString("fa-IR")}</td>
-              <td style="padding:6px 8px;border-bottom:1px solid #eef2f6;"><span style="background:${p.is_active ? "#dcfce7" : "#fee2e2"};color:${p.is_active ? "#16a34a" : "#dc2626"};padding:2px 10px;border-radius:10px;font-size:11px;">${p.is_active ? "فعال" : "غیرفعال"}</span></td>
+              <td style="padding:6px 8px;border-bottom:1px solid var(--border-light, #eef2f6);">${this._flockHallName(p)}</td>
+              <td style="padding:6px 8px;border-bottom:1px solid var(--border-light, #eef2f6);">${p.placement_date ? convertToPersianDate(p.placement_date) : "-"}</td>
+              <td style="padding:6px 8px;border-bottom:1px solid var(--border-light, #eef2f6);">${this._flockSourceName(p.chick_source_id)}</td>
+              <td style="padding:6px 8px;border-bottom:1px solid var(--border-light, #eef2f6);">${p.breed?.name || "-"}</td>
+              <td style="padding:6px 8px;border-bottom:1px solid var(--border-light, #eef2f6);">${p.chick_age_on_arrival ?? "-"}</td>
+              <td style="padding:6px 8px;border-bottom:1px solid var(--border-light, #eef2f6);">${p.avg_initial_weight ?? "-"}</td>
+              <td style="padding:6px 8px;border-bottom:1px solid var(--border-light, #eef2f6);">${Number(p.total_chicks_count || 0).toLocaleString("fa-IR")}</td>
+              <td style="padding:6px 8px;border-bottom:1px solid var(--border-light, #eef2f6);"><span style="background:${p.is_active ? "var(--success-bg, #dcfce7)" : "var(--danger-bg, #fee2e2)"};color:${p.is_active ? "var(--success-strong, #16a34a)" : "var(--danger, #dc2626)"};padding:2px 10px;border-radius:10px;font-size:11px;">${p.is_active ? "فعال" : "غیرفعال"}</span></td>
             </tr>`,
         )
         .join("");
@@ -2031,23 +2031,23 @@ class HatcheryService {
       const html = `
         <div style="text-align:right;direction:rtl;font-family:Vazir,sans-serif;">
           <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
-            <div style="background:#f0fdfa;border-radius:8px;padding:6px 10px;flex:1;min-width:140px;"><div style="font-size:11px;color:#64748b;">شماره گله</div><div style="font-weight:700;">${flock.flock_number ?? "-"}</div></div>
-            <div style="background:#f8fafc;border-radius:8px;padding:6px 10px;flex:1;min-width:140px;"><div style="font-size:11px;color:#64748b;">واحد</div><div style="font-weight:600;">${unit.unit_name || "-"}</div></div>
-            <div style="background:#f8fafc;border-radius:8px;padding:6px 10px;flex:1;min-width:140px;"><div style="font-size:11px;color:#64748b;">تاریخ شروع</div><div style="font-weight:600;">${flock.placement_date ? convertToPersianDate(flock.placement_date) : "-"}</div></div>
-            <div style="background:${flock.status === "active" ? "#dcfce7" : "#fee2e2"};border-radius:8px;padding:6px 10px;flex:1;min-width:140px;"><div style="font-size:11px;color:#64748b;">وضعیت گله</div><div style="font-weight:700;color:${flock.status === "active" ? "#16a34a" : "#dc2626"};">${statusFa}</div></div>
+            <div style="background:#f0fdfa;border-radius:8px;padding:6px 10px;flex:1;min-width:140px;"><div style="font-size:11px;color:var(--text-gray, #64748b);">شماره گله</div><div style="font-weight:700;">${flock.flock_number ?? "-"}</div></div>
+            <div style="background:var(--bg-surface-2, #f8fafc);border-radius:8px;padding:6px 10px;flex:1;min-width:140px;"><div style="font-size:11px;color:var(--text-gray, #64748b);">واحد</div><div style="font-weight:600;">${unit.unit_name || "-"}</div></div>
+            <div style="background:var(--bg-surface-2, #f8fafc);border-radius:8px;padding:6px 10px;flex:1;min-width:140px;"><div style="font-size:11px;color:var(--text-gray, #64748b);">تاریخ شروع</div><div style="font-weight:600;">${flock.placement_date ? convertToPersianDate(flock.placement_date) : "-"}</div></div>
+            <div style="background:${flock.status === "active" ? "var(--success-bg, #dcfce7)" : "var(--danger-bg, #fee2e2)"};border-radius:8px;padding:6px 10px;flex:1;min-width:140px;"><div style="font-size:11px;color:var(--text-gray, #64748b);">وضعیت گله</div><div style="font-weight:700;color:${flock.status === "active" ? "var(--success-strong, #16a34a)" : "var(--danger, #dc2626)"};">${statusFa}</div></div>
           </div>
-          <div style="background:#f8fafc;border:1px solid #eef2f6;border-radius:8px;padding:8px 12px;margin-bottom:12px;font-size:12px;">
+          <div style="background:var(--bg-surface-2, #f8fafc);border:1px solid var(--border-light, #eef2f6);border-radius:8px;padding:8px 12px;margin-bottom:12px;font-size:12px;">
             <b>مجموع جوجه‌ها:</b> ${Number(summary.totalChicks || 0).toLocaleString("fa-IR")} قطعه
             &nbsp;•&nbsp; <b>سالن‌های عضو:</b> ${summary.totalHalls ?? placements.length}
             &nbsp;•&nbsp; <b>سالن‌های فعال:</b> ${summary.activeHalls ?? 0}
           </div>
-          ${flock.notes ? `<div style="background:#fffbeb;border:1px solid #fef3c7;border-radius:8px;padding:8px 12px;margin-bottom:12px;font-size:12px;color:#92400e;"><b>یادداشت:</b> ${flock.notes}</div>` : ""}
-          <h4 style="color:#2c7a6e;font-size:13px;margin:0 0 8px;border-bottom:2px solid #e8f5f0;padding-bottom:5px;">جزئیات سالن‌های عضو گله</h4>
-          <div style="max-height:300px;overflow:auto;border:1px solid #eef2f6;border-radius:10px;">
+          ${flock.notes ? `<div style="background:#fffbeb;border:1px solid var(--warning-bg, #fef3c7);border-radius:8px;padding:8px 12px;margin-bottom:12px;font-size:12px;color:#92400e;"><b>یادداشت:</b> ${flock.notes}</div>` : ""}
+          <h4 style="color:var(--primary, #2c7a6e);font-size:13px;margin:0 0 8px;border-bottom:2px solid #e8f5f0;padding-bottom:5px;">جزئیات سالن‌های عضو گله</h4>
+          <div style="max-height:300px;overflow:auto;border:1px solid var(--border-light, #eef2f6);border-radius:10px;">
             ${placements.length ? `<table style="width:100%;border-collapse:collapse;font-size:11px;min-width:820px;">
-              <thead><tr style="background:#f8fafc;color:#475569;"><th style="padding:8px;text-align:right;">سالن</th><th style="padding:8px;text-align:right;">تاریخ جوجه‌ریزی</th><th style="padding:8px;text-align:right;">مبدا</th><th style="padding:8px;text-align:right;">نژاد</th><th style="padding:8px;text-align:right;">سن (روز)</th><th style="padding:8px;text-align:right;">وزن اولیه (گرم)</th><th style="padding:8px;text-align:right;">تعداد جوجه</th><th style="padding:8px;text-align:right;">وضعیت</th></tr></thead>
+              <thead><tr style="background:var(--bg-surface-2, #f8fafc);color:var(--text-slate, #475569);"><th style="padding:8px;text-align:right;">سالن</th><th style="padding:8px;text-align:right;">تاریخ جوجه‌ریزی</th><th style="padding:8px;text-align:right;">مبدا</th><th style="padding:8px;text-align:right;">نژاد</th><th style="padding:8px;text-align:right;">سن (روز)</th><th style="padding:8px;text-align:right;">وزن اولیه (گرم)</th><th style="padding:8px;text-align:right;">تعداد جوجه</th><th style="padding:8px;text-align:right;">وضعیت</th></tr></thead>
               <tbody>${hallRows}</tbody>
-            </table>` : `<div style="padding:16px;text-align:center;color:#94a3b8;">سالنی برای این گله ثبت نشده است</div>`}
+            </table>` : `<div style="padding:16px;text-align:center;color:var(--text-light, #94a3b8);">سالنی برای این گله ثبت نشده است</div>`}
           </div>
         </div>`;
 
@@ -2138,15 +2138,15 @@ class HatcheryService {
     return placements
       .map(
         (p) => `
-          <fieldset style="border:1px solid #e2e8f0;border-radius:10px;padding:8px 12px;margin:8px 0;">
-            <legend style="font-size:12px;font-weight:700;color:#2c7a6e;">${this._flockHallName(p)}</legend>
+          <fieldset style="border:1px solid var(--border-color, #e2e8f0);border-radius:10px;padding:8px 12px;margin:8px 0;">
+            <legend style="font-size:12px;font-weight:700;color:var(--primary, #2c7a6e);">${this._flockHallName(p)}</legend>
             <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;">
-              <label style="font-size:11px;color:#475569;">تاریخ جوجه‌ریزی سالن<input type="text" id="ge_date_${p.id}" class="hatch-edit-date" value="${p.placement_date ? convertToPersianDate(p.placement_date) : ""}" style="${inputStyle}"></label>
-              <label style="font-size:11px;color:#475569;">مبدا جوجه<select id="ge_source_${p.id}" style="${inputStyle}">${this._flockSourceOptions(p.chick_source_id)}</select></label>
-              <label style="font-size:11px;color:#475569;">نژاد جوجه<select id="ge_breed_${p.id}" style="${inputStyle}">${this._flockBreedOptions(p.breed_id)}</select></label>
-              <label style="font-size:11px;color:#475569;">سن در بدو ورود (روز)<input type="number" min="0" id="ge_age_${p.id}" value="${p.chick_age_on_arrival ?? ""}" style="${inputStyle}"></label>
-              <label style="font-size:11px;color:#475569;">وزن اولیه (گرم)<input type="number" step="0.01" min="0" id="ge_weight_${p.id}" value="${p.avg_initial_weight ?? ""}" style="${inputStyle}"></label>
-              <label style="font-size:11px;color:#475569;">تعداد جوجه (قطعه) *<input type="number" min="1" id="ge_count_${p.id}" value="${p.total_chicks_count ?? ""}" style="${inputStyle}"></label>
+              <label style="font-size:11px;color:var(--text-slate, #475569);">تاریخ جوجه‌ریزی سالن<input type="text" id="ge_date_${p.id}" class="hatch-edit-date" value="${p.placement_date ? convertToPersianDate(p.placement_date) : ""}" style="${inputStyle}"></label>
+              <label style="font-size:11px;color:var(--text-slate, #475569);">مبدا جوجه<select id="ge_source_${p.id}" style="${inputStyle}">${this._flockSourceOptions(p.chick_source_id)}</select></label>
+              <label style="font-size:11px;color:var(--text-slate, #475569);">نژاد جوجه<select id="ge_breed_${p.id}" style="${inputStyle}">${this._flockBreedOptions(p.breed_id)}</select></label>
+              <label style="font-size:11px;color:var(--text-slate, #475569);">سن در بدو ورود (روز)<input type="number" min="0" id="ge_age_${p.id}" value="${p.chick_age_on_arrival ?? ""}" style="${inputStyle}"></label>
+              <label style="font-size:11px;color:var(--text-slate, #475569);">وزن اولیه (گرم)<input type="number" step="0.01" min="0" id="ge_weight_${p.id}" value="${p.avg_initial_weight ?? ""}" style="${inputStyle}"></label>
+              <label style="font-size:11px;color:var(--text-slate, #475569);">تعداد جوجه (قطعه) *<input type="number" min="1" id="ge_count_${p.id}" value="${p.total_chicks_count ?? ""}" style="${inputStyle}"></label>
             </div>
           </fieldset>`,
       )
@@ -2180,14 +2180,14 @@ class HatcheryService {
           <div style="background:#f0fdfa;border:1px solid #99f6e4;border-radius:10px;padding:10px 12px;margin-bottom:10px;">
             <div style="font-size:12px;font-weight:700;color:#0f172a;margin-bottom:8px;"><i class="fas fa-layer-group"></i> اطلاعات مشترک گله</div>
             <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;">
-              <label style="font-size:11px;color:#475569;">شماره گله *<input type="number" min="1" id="ge_fnum" value="${flock.flock_number ?? ""}" style="${sharedStyle}"></label>
-              <label style="font-size:11px;color:#475569;">تاریخ شروع گله<input type="text" id="ge_flock_date" class="hatch-edit-date" value="${flockDate}" style="${sharedStyle}"></label>
+              <label style="font-size:11px;color:var(--text-slate, #475569);">شماره گله *<input type="number" min="1" id="ge_fnum" value="${flock.flock_number ?? ""}" style="${sharedStyle}"></label>
+              <label style="font-size:11px;color:var(--text-slate, #475569);">تاریخ شروع گله<input type="text" id="ge_flock_date" class="hatch-edit-date" value="${flockDate}" style="${sharedStyle}"></label>
             </div>
-            <label style="font-size:11px;color:#475569;display:block;margin-top:8px;">یادداشت گله<textarea id="ge_notes" rows="2" style="${sharedStyle}">${flock.notes || ""}</textarea></label>
+            <label style="font-size:11px;color:var(--text-slate, #475569);display:block;margin-top:8px;">یادداشت گله<textarea id="ge_notes" rows="2" style="${sharedStyle}">${flock.notes || ""}</textarea></label>
           </div>
           <div style="font-size:12px;font-weight:700;color:#0f172a;margin:6px 0;"><i class="fas fa-warehouse"></i> سالن‌های عضو (ویرایش هر سالن به تفکیک)</div>
           ${this._flockEditHallRows(placements)}
-          <p style="font-size:11px;color:#94a3b8;margin-top:6px;">تغییر شماره گله روی همه سالن‌ها اعمال می‌شود؛ سایر فیلدها به‌صورت جداگانه برای هر سالن ذخیره می‌شوند.</p>
+          <p style="font-size:11px;color:var(--text-light, #94a3b8);margin-top:6px;">تغییر شماره گله روی همه سالن‌ها اعمال می‌شود؛ سایر فیلدها به‌صورت جداگانه برای هر سالن ذخیره می‌شوند.</p>
         </div>`;
 
       const result = await Swal.fire({

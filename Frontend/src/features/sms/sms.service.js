@@ -141,9 +141,9 @@ class SmsService {
     if (this.history.length === 0) {
       container.innerHTML = `
                 <div class="empty-state">
-                    <i class="fas fa-sms" style="font-size: 48px; color: #cbd5e1; display: block; margin-bottom: 16px;"></i>
-                    <h4 style="font-size: 18px; color: #64748b; margin-bottom: 8px;">هیچ پیامکی ارسال نشده است</h4>
-                    <p style="font-size: 14px; color: #94a3b8;">برای شروع، یک پیامک ارسال کنید</p>
+                    <i class="fas fa-sms" style="font-size: 48px; color: var(--border-strong, #cbd5e1); display: block; margin-bottom: 16px;"></i>
+                    <h4 style="font-size: 18px; color: var(--text-gray, #64748b); margin-bottom: 8px;">هیچ پیامکی ارسال نشده است</h4>
+                    <p style="font-size: 14px; color: var(--text-light, #94a3b8);">برای شروع، یک پیامک ارسال کنید</p>
                 </div>
             `;
       return;
