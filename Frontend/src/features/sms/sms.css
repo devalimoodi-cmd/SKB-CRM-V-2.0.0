@@ -49,7 +49,7 @@
 }
 
 .btn-refresh:hover {
-  background: #f1f5f9;
+  background: var(--gray-100, #f1f5f9);
   transform: rotate(180deg);
 }
 
@@ -160,7 +160,7 @@
   font-family: "Vazir", sans-serif;
   font-size: 13px;
   transition: all 0.3s ease;
-  background: #fafbfc;
+  background: var(--slate-mist, #fafbfc);
   color: var(--text-dark, #1e293b);
 }
 
@@ -186,7 +186,7 @@
   border-radius: 8px;
   font-family: "Vazir", sans-serif;
   font-size: 13px;
-  background: #fafbfc;
+  background: var(--slate-mist, #fafbfc);
   cursor: pointer;
   color: var(--text-dark, #1e293b);
   transition: all 0.3s ease;
@@ -200,7 +200,7 @@
 
 .btn-reset-filters {
   padding: 10px 20px;
-  background: #f1f5f9;
+  background: var(--gray-100, #f1f5f9);
   border: 1px solid var(--border-light, #eef2f6);
   border-radius: 8px;
   cursor: pointer;
@@ -370,18 +370,18 @@
 }
 
 .btn-send-bulk {
-  background: #8b5cf6;
+  background: var(--violet, #8b5cf6);
   color: white;
 }
 
 .btn-send-bulk:hover {
-  background: #7c3aed;
+  background: var(--violet-deep, #7c3aed);
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
 }
 
 .btn-clear {
-  background: #f1f5f9;
+  background: var(--gray-100, #f1f5f9);
   color: var(--text-gray, #64748b);
   border: 1px solid var(--border-light, #eef2f6);
 }
@@ -467,8 +467,8 @@
 
 .sms-item-body {
   padding: 12px 0;
-  border-top: 1px solid #f1f5f9;
-  border-bottom: 1px solid #f1f5f9;
+  border-top: 1px solid var(--gray-100, #f1f5f9);
+  border-bottom: 1px solid var(--gray-100, #f1f5f9);
 }
 
 .sms-message {
@@ -500,7 +500,7 @@
   gap: 8px;
   margin-top: 12px;
   padding-top: 12px;
-  border-top: 1px solid #f1f5f9;
+  border-top: 1px solid var(--gray-100, #f1f5f9);
 }
 
 .sms-item-actions button {
@@ -518,23 +518,23 @@
 }
 
 .btn-check-status {
-  background: #dbeafe;
-  color: #2563eb;
+  background: var(--info-bg, #dbeafe);
+  color: var(--info-strong, #2563eb);
 }
 
 .btn-check-status:hover {
-  background: #2563eb;
+  background: var(--info-strong, #2563eb);
   color: white;
   transform: translateY(-2px);
 }
 
 .btn-resend {
-  background: #fef3c7;
-  color: #d97706;
+  background: var(--warning-bg, #fef3c7);
+  color: var(--warning-deep-2, #d97706);
 }
 
 .btn-resend:hover {
-  background: #d97706;
+  background: var(--warning-deep-2, #d97706);
   color: white;
   transform: translateY(-2px);
 }
@@ -550,14 +550,14 @@
 .sms-pagination .page-btn {
   min-width: 36px;
   height: 36px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--gray-200, #e5e7eb);
   background: var(--bg-surface, #fff);
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
   font-family: "Vazir", sans-serif;
   font-size: 13px;
-  color: #475569;
+  color: var(--text-slate, #475569);
   display: inline-flex;
   align-items: center;
   justify-content: center;

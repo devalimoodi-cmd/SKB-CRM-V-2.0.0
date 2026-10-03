@@ -1929,7 +1929,7 @@ class HatcheryService {
       v === null || v === undefined || v === "" ? "-" : `${fmt(v)} تومان`;
     if (!c) {
       return `
-        <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:12px;padding:10px 14px;margin-top:14px;font-size:12px;color:#92400e;">
+        <div style="background:var(--warning-soft, #fffbeb);border:1px solid #fde68a;border-radius:12px;padding:10px 14px;margin-top:14px;font-size:12px;color:var(--warning-deep-3, #92400e);">
           <i class="fas fa-info-circle"></i> برای این گله هنوز اطلاعات پایان دوره/کشتار ثبت نشده است.
         </div>`;
     }
@@ -1946,22 +1946,22 @@ class HatcheryService {
         : null;
     return `
       <div style="margin-top:16px;">
-        <h4 style="color:#0d9488;font-size:14px;margin:0 0 8px;border-bottom:2px solid #ccfbf1;padding-bottom:5px;"><i class="fas fa-flag-checkered"></i> اطلاعات پایان دوره و کشتار</h4>
+        <h4 style="color:var(--accent-teal, #0d9488);font-size:14px;margin:0 0 8px;border-bottom:2px solid #ccfbf1;padding-bottom:5px;"><i class="fas fa-flag-checkered"></i> اطلاعات پایان دوره و کشتار</h4>
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:10px;">
-          <div style="background:var(--bg-surface-2, #f8fafc);border-radius:10px;padding:7px 10px;font-size:11px;color:var(--text-gray, #64748b);">تاریخ کشتار<br><b style="color:#0f172a;">${formatSlaughterRange(c)}</b></div>
-          <div style="background:var(--bg-surface-2, #f8fafc);border-radius:10px;padding:7px 10px;font-size:11px;color:var(--text-gray, #64748b);">کشتارگاه<br><b style="color:#0f172a;">${c.slaughterhouse_name || "-"}</b></div>
-          <div style="background:var(--bg-surface-2, #f8fafc);border-radius:10px;padding:7px 10px;font-size:11px;color:var(--text-gray, #64748b);">ارسالی به کشتارگاه<br><b style="color:#0f172a;">${fmt(c.total_sent)} قطعه</b></div>
-          <div style="background:var(--bg-surface-2, #f8fafc);border-radius:10px;padding:7px 10px;font-size:11px;color:var(--text-gray, #64748b);">وزن کل زنده<br><b style="color:#0f172a;">${fmt(c.total_live_weight)} کیلوگرم</b></div>
-          <div style="background:var(--bg-surface-2, #f8fafc);border-radius:10px;padding:7px 10px;font-size:11px;color:var(--text-gray, #64748b);">میانگین وزن<br><b style="color:#0f172a;">${fmt(c.avg_live_weight, 3)} کیلوگرم</b></div>
-          <div style="background:var(--bg-surface-2, #f8fafc);border-radius:10px;padding:7px 10px;font-size:11px;color:var(--text-gray, #64748b);">سن کشتار<br><b style="color:#0f172a;">${formatAgeRange(c)}</b>${
+          <div style="background:var(--bg-surface-2, #f8fafc);border-radius:10px;padding:7px 10px;font-size:11px;color:var(--text-gray, #64748b);">تاریخ کشتار<br><b style="color:var(--ink, #0f172a);">${formatSlaughterRange(c)}</b></div>
+          <div style="background:var(--bg-surface-2, #f8fafc);border-radius:10px;padding:7px 10px;font-size:11px;color:var(--text-gray, #64748b);">کشتارگاه<br><b style="color:var(--ink, #0f172a);">${c.slaughterhouse_name || "-"}</b></div>
+          <div style="background:var(--bg-surface-2, #f8fafc);border-radius:10px;padding:7px 10px;font-size:11px;color:var(--text-gray, #64748b);">ارسالی به کشتارگاه<br><b style="color:var(--ink, #0f172a);">${fmt(c.total_sent)} قطعه</b></div>
+          <div style="background:var(--bg-surface-2, #f8fafc);border-radius:10px;padding:7px 10px;font-size:11px;color:var(--text-gray, #64748b);">وزن کل زنده<br><b style="color:var(--ink, #0f172a);">${fmt(c.total_live_weight)} کیلوگرم</b></div>
+          <div style="background:var(--bg-surface-2, #f8fafc);border-radius:10px;padding:7px 10px;font-size:11px;color:var(--text-gray, #64748b);">میانگین وزن<br><b style="color:var(--ink, #0f172a);">${fmt(c.avg_live_weight, 3)} کیلوگرم</b></div>
+          <div style="background:var(--bg-surface-2, #f8fafc);border-radius:10px;padding:7px 10px;font-size:11px;color:var(--text-gray, #64748b);">سن کشتار<br><b style="color:var(--ink, #0f172a);">${formatAgeRange(c)}</b>${
             slaughterAgeMethodLabel(c)
-              ? `<div style="color:#7c3aed;font-size:9.5px;font-weight:600;margin-top:3px;">${slaughterAgeMethodLabel(c)}</div>`
+              ? `<div style="color:var(--violet-deep, #7c3aed);font-size:9.5px;font-weight:600;margin-top:3px;">${slaughterAgeMethodLabel(c)}</div>`
               : ""
           }</div>
         </div>
         ${slaughterShipmentsHtml(c)}
         <div style="background:var(--bg-surface-2, #f8fafc);border:1px solid var(--border-light, #eef2f6);border-radius:12px;padding:10px 14px;margin-bottom:10px;">
-          <div style="font-size:12px;font-weight:800;color:#0f172a;margin-bottom:6px;">شاخصها (سیستمی / اعلامی مرغدار)</div>
+          <div style="font-size:12px;font-weight:800;color:var(--ink, #0f172a);margin-bottom:6px;">شاخصها (سیستمی / اعلامی مرغدار)</div>
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:6px;font-size:11.5px;">
             <div><b>FCR:</b> ${fmt(c.system_fcr, 3)} / ${fmt(c.farmer_fcr, 3)}</div>
             <div><b>EPI:</b> ${fmt(c.system_epi)} / ${fmt(c.farmer_epi)}</div>
@@ -1975,9 +1975,9 @@ class HatcheryService {
           </div>
         </div>
         <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;padding:10px 14px;">
-          <div style="font-size:12px;font-weight:800;color:#0f172a;margin-bottom:6px;">گزارش اقتصادی (تومان)</div>
+          <div style="font-size:12px;font-weight:800;color:var(--ink, #0f172a);margin-bottom:6px;">گزارش اقتصادی (تومان)</div>
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:6px;font-size:11.5px;">
-            <div>درآمد کل:<br><b style="color:#1d4ed8;">${toman(c.income_total)}</b></div>
+            <div>درآمد کل:<br><b style="color:var(--info-deep, #1d4ed8);">${toman(c.income_total)}</b></div>
             <div>جمع هزینه‌ها:<br><b style="color:#c2410c;">${toman(c.total_cost)}</b></div>
             <div>سود خالص:<br><b style="color:${profitColor};">${toman(c.net_profit)}</b></div>
             <div>درصد سود:<br><b>${c.profit_percent != null ? `${c.profit_percent}٪` : "-"}</b></div>
@@ -2041,7 +2041,7 @@ class HatcheryService {
             &nbsp;•&nbsp; <b>سالن‌های عضو:</b> ${summary.totalHalls ?? placements.length}
             &nbsp;•&nbsp; <b>سالن‌های فعال:</b> ${summary.activeHalls ?? 0}
           </div>
-          ${flock.notes ? `<div style="background:#fffbeb;border:1px solid var(--warning-bg, #fef3c7);border-radius:8px;padding:8px 12px;margin-bottom:12px;font-size:12px;color:#92400e;"><b>یادداشت:</b> ${flock.notes}</div>` : ""}
+          ${flock.notes ? `<div style="background:var(--warning-soft, #fffbeb);border:1px solid var(--warning-bg, #fef3c7);border-radius:8px;padding:8px 12px;margin-bottom:12px;font-size:12px;color:var(--warning-deep-3, #92400e);"><b>یادداشت:</b> ${flock.notes}</div>` : ""}
           <h4 style="color:var(--primary, #2c7a6e);font-size:13px;margin:0 0 8px;border-bottom:2px solid #e8f5f0;padding-bottom:5px;">جزئیات سالن‌های عضو گله</h4>
           <div style="max-height:300px;overflow:auto;border:1px solid var(--border-light, #eef2f6);border-radius:10px;">
             ${placements.length ? `<table style="width:100%;border-collapse:collapse;font-size:11px;min-width:820px;">
@@ -2178,14 +2178,14 @@ class HatcheryService {
       const html = `
         <div style="text-align:right;direction:rtl;font-family:Vazir,sans-serif;max-height:62vh;overflow-y:auto;padding:4px;">
           <div style="background:#f0fdfa;border:1px solid #99f6e4;border-radius:10px;padding:10px 12px;margin-bottom:10px;">
-            <div style="font-size:12px;font-weight:700;color:#0f172a;margin-bottom:8px;"><i class="fas fa-layer-group"></i> اطلاعات مشترک گله</div>
+            <div style="font-size:12px;font-weight:700;color:var(--ink, #0f172a);margin-bottom:8px;"><i class="fas fa-layer-group"></i> اطلاعات مشترک گله</div>
             <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;">
               <label style="font-size:11px;color:var(--text-slate, #475569);">شماره گله *<input type="number" min="1" id="ge_fnum" value="${flock.flock_number ?? ""}" style="${sharedStyle}"></label>
               <label style="font-size:11px;color:var(--text-slate, #475569);">تاریخ شروع گله<input type="text" id="ge_flock_date" class="hatch-edit-date" value="${flockDate}" style="${sharedStyle}"></label>
             </div>
             <label style="font-size:11px;color:var(--text-slate, #475569);display:block;margin-top:8px;">یادداشت گله<textarea id="ge_notes" rows="2" style="${sharedStyle}">${flock.notes || ""}</textarea></label>
           </div>
-          <div style="font-size:12px;font-weight:700;color:#0f172a;margin:6px 0;"><i class="fas fa-warehouse"></i> سالن‌های عضو (ویرایش هر سالن به تفکیک)</div>
+          <div style="font-size:12px;font-weight:700;color:var(--ink, #0f172a);margin:6px 0;"><i class="fas fa-warehouse"></i> سالن‌های عضو (ویرایش هر سالن به تفکیک)</div>
           ${this._flockEditHallRows(placements)}
           <p style="font-size:11px;color:var(--text-light, #94a3b8);margin-top:6px;">تغییر شماره گله روی همه سالن‌ها اعمال می‌شود؛ سایر فیلدها به‌صورت جداگانه برای هر سالن ذخیره می‌شوند.</p>
         </div>`;

@@ -76,7 +76,7 @@ export const dashboardBookmarkMethods = {
         '<span style="color: var(--success-strong, #16a34a); font-size: 11px;"><i class="fas fa-check-circle"></i> خوانده شده</span>';
     } else if (bookmark.status === "completed") {
       statusHTML =
-        '<span style="color: #2563eb; font-size: 11px;"><i class="fas fa-check-double"></i> انجام شده</span>';
+        '<span style="color: var(--info-strong, #2563eb); font-size: 11px;"><i class="fas fa-check-double"></i> انجام شده</span>';
     }
 
     return `
@@ -328,13 +328,13 @@ export const dashboardBookmarkMethods = {
 
               <!-- اطلاعات -->
               <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px; text-align:right;">
-                <div style="background:#fafbfc; border-radius:14px; padding:12px 16px; border:1px solid transparent;">
+                <div style="background:var(--slate-mist, #fafbfc); border-radius:14px; padding:12px 16px; border:1px solid transparent;">
                   <div style="font-size:11px; font-weight:600; color:var(--text-gray, #64748b); display:flex; align-items:center; gap:6px; margin-bottom:2px;">
                     <i class="fas fa-user" style="color:var(--primary, #2c7a6e);"></i> مشتری
                   </div>
                   <div style="font-size:15px; font-weight:600; color:var(--primary, #2c7a6e); padding-right:4px;">${customerName}</div>
                 </div>
-                <div style="background:#fafbfc; border-radius:14px; padding:12px 16px; border:1px solid transparent;">
+                <div style="background:var(--slate-mist, #fafbfc); border-radius:14px; padding:12px 16px; border:1px solid transparent;">
                   <div style="font-size:11px; font-weight:600; color:var(--text-gray, #64748b); display:flex; align-items:center; gap:6px; margin-bottom:2px;">
                     <i class="fas fa-flag" style="color:var(--primary, #2c7a6e);"></i> اولویت
                   </div>
@@ -346,7 +346,7 @@ export const dashboardBookmarkMethods = {
                 </div>
                 ${
                   dueDate
-                    ? `<div style="grid-column:1/-1; background:#fafbfc; border-radius:14px; padding:12px 16px; border:1px solid transparent;">
+                    ? `<div style="grid-column:1/-1; background:var(--slate-mist, #fafbfc); border-radius:14px; padding:12px 16px; border:1px solid transparent;">
                         <div style="font-size:11px; font-weight:600; color:var(--text-gray, #64748b); display:flex; align-items:center; gap:6px; margin-bottom:2px;">
                           <i class="fas fa-calendar-alt" style="color:var(--primary, #2c7a6e);"></i> تاریخ سررسید
                         </div>
@@ -364,7 +364,7 @@ export const dashboardBookmarkMethods = {
               </div>
 
               <!-- توضیحات -->
-              <div style="background:linear-gradient(135deg,#fafbfc,var(--bg-surface-2, #f8fafc)); border-radius:14px; padding:14px 18px; border:1px solid var(--gray-100, #f1f5f9); text-align:right;">
+              <div style="background:linear-gradient(135deg,var(--slate-mist, #fafbfc),var(--bg-surface-2, #f8fafc)); border-radius:14px; padding:14px 18px; border:1px solid var(--gray-100, #f1f5f9); text-align:right;">
                 <div style="font-size:11px; font-weight:600; color:var(--text-gray, #64748b); display:flex; align-items:center; gap:6px; margin-bottom:4px;">
                   <i class="fas fa-align-left" style="color:var(--primary, #2c7a6e);"></i> توضیحات
                 </div>
@@ -430,11 +430,11 @@ const buildBookmarkModalHtml = ({
 
               <style>
                 @keyframes bmShimmer { 0%,100%{background-position:0% 50%;} 50%{background-position:100% 50%;} }
-                .bm-field { width:100%; padding:8px 12px; border:1.5px solid #e2e8f0; border-radius:10px; font-family:'Vazir','Vazirmatn',sans-serif; font-size:12.5px; transition:all 0.3s ease; background:white; color:#1e293b; margin-top:4px; box-sizing:border-box; }
-                .bm-field:focus { outline:none; border-color:#2c7a6e; box-shadow:0 0 0 4px rgba(44,122,110,0.08); }
-                .bm-label { display:block; font-size:12px; font-weight:600; color:#1e293b; }
-                .bm-label .bm-req { color:#dc2626; }
-                .bm-label .bm-hint { font-weight:400; font-size:10px; color:#94a3b8; }
+                .bm-field { width:100%; padding:8px 12px; border:1.5px solid var(--border-color, #e2e8f0); border-radius:10px; font-family:'Vazir','Vazirmatn',sans-serif; font-size:12.5px; transition:all 0.3s ease; background:var(--bg-surface, #fff); color:var(--text-dark, #1e293b); margin-top:4px; box-sizing:border-box; }
+                .bm-field:focus { outline:none; border-color:var(--primary, #2c7a6e); box-shadow:0 0 0 4px rgba(44,122,110,0.08); }
+                .bm-label { display:block; font-size:12px; font-weight:600; color:var(--text-dark, #1e293b); }
+                .bm-label .bm-req { color:var(--danger, #dc2626); }
+                .bm-label .bm-hint { font-weight:400; font-size:10px; color:var(--text-light, #94a3b8); }
                 .bm-fg { margin-bottom:10px; animation:bmFieldIn 0.4s ease forwards; opacity:0; transform:translateY(8px); }
                 .bm-fg:nth-child(1){animation-delay:0.04s;} .bm-fg:nth-child(2){animation-delay:0.08s;}
                 .bm-fg:nth-child(3){animation-delay:0.12s;} .bm-fg:nth-child(4){animation-delay:0.16s;}
@@ -443,19 +443,19 @@ const buildBookmarkModalHtml = ({
                 .bm-col-2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
                 select.bm-field { background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2364748b' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:left 12px center; padding-left:36px; appearance:none; -webkit-appearance:none; }
                 .bm-priority-group { display:flex; gap:6px; margin-top:4px; }
-                .bm-priority-option { flex:1; min-width:0; padding:6px 3px; border:2px solid #e2e8f0; border-radius:8px; text-align:center; cursor:pointer; transition:all 0.3s cubic-bezier(0.34,1.56,0.64,1); font-size:10.5px; font-weight:600; background:white; color:#64748b; display:flex; flex-direction:column; align-items:center; gap:1px; }
+                .bm-priority-option { flex:1; min-width:0; padding:6px 3px; border:2px solid var(--border-color, #e2e8f0); border-radius:8px; text-align:center; cursor:pointer; transition:all 0.3s cubic-bezier(0.34,1.56,0.64,1); font-size:10.5px; font-weight:600; background:var(--bg-surface, #fff); color:var(--text-gray, #64748b); display:flex; flex-direction:column; align-items:center; gap:1px; }
                 .bm-priority-option i { font-size:12px; }
-                .bm-priority-option .pl { font-size:8.5px; font-weight:400; color:#94a3b8; }
+                .bm-priority-option .pl { font-size:8.5px; font-weight:400; color:var(--text-light, #94a3b8); }
                 .bm-priority-option:hover { transform:translateY(-2px); box-shadow:0 2px 12px rgba(0,0,0,0.06); }
-                .bm-priority-option[data-value="critical"]{border-color:#fca5a5; color:#dc2626;}
-                .bm-priority-option[data-value="high"]{border-color:#fcd34d; color:#b45309;}
-                .bm-priority-option[data-value="medium"]{border-color:#93c5fd; color:#3b82f6;}
-                .bm-priority-option[data-value="low"]{border-color:#cbd5e1; color:#64748b;}
+                .bm-priority-option[data-value="critical"]{border-color:var(--danger-brd, #fca5a5); color:var(--danger, #dc2626);}
+                .bm-priority-option[data-value="high"]{border-color:var(--warning-brd, #fcd34d); color:var(--warning-deep, #b45309);}
+                .bm-priority-option[data-value="medium"]{border-color:var(--info-brd, #93c5fd); color:var(--info, #3b82f6);}
+                .bm-priority-option[data-value="low"]{border-color:var(--border-strong, #cbd5e1); color:var(--text-gray, #64748b);}
                 .bm-priority-option.active{box-shadow:0 2px 8px rgba(0,0,0,0.08);}
-                .bm-priority-option[data-value="critical"].active{background:#fee2e2; border-color:#dc2626;}
-                .bm-priority-option[data-value="high"].active{background:#fef3c7; border-color:#f59e0b;}
-                .bm-priority-option[data-value="medium"].active{background:#dbeafe; border-color:#3b82f6;}
-                .bm-priority-option[data-value="low"].active{background:#e2e8f0; border-color:#64748b;}
+                .bm-priority-option[data-value="critical"].active{background:var(--danger-bg, #fee2e2); border-color:var(--danger, #dc2626);}
+                .bm-priority-option[data-value="high"].active{background:var(--warning-bg, #fef3c7); border-color:var(--warning, #f59e0b);}
+                .bm-priority-option[data-value="medium"].active{background:var(--info-bg, #dbeafe); border-color:var(--info, #3b82f6);}
+                .bm-priority-option[data-value="low"].active{background:var(--border-color, #e2e8f0); border-color:var(--text-gray, #64748b);}
                 textarea.bm-field { resize:vertical; min-height:55px; }
               </style>
 

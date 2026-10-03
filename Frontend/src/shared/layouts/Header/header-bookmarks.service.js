@@ -217,13 +217,13 @@ class HeaderBookmarksService {
 
         <!-- اطلاعات -->
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px; text-align:right;">
-          <div style="background:#fafbfc; border-radius:14px; padding:12px 16px; border:1px solid transparent;">
+          <div style="background:var(--slate-mist, #fafbfc); border-radius:14px; padding:12px 16px; border:1px solid transparent;">
             <div style="font-size:11px; font-weight:600; color:var(--text-gray, #64748b); display:flex; align-items:center; gap:6px; margin-bottom:2px;">
               <i class="fas fa-user" style="color:var(--primary, #2c7a6e);"></i> مشتری
             </div>
             <div style="font-size:15px; font-weight:600; color:var(--primary, #2c7a6e); padding-right:4px;">${customerName}</div>
           </div>
-          <div style="background:#fafbfc; border-radius:14px; padding:12px 16px; border:1px solid transparent;">
+          <div style="background:var(--slate-mist, #fafbfc); border-radius:14px; padding:12px 16px; border:1px solid transparent;">
             <div style="font-size:11px; font-weight:600; color:var(--text-gray, #64748b); display:flex; align-items:center; gap:6px; margin-bottom:2px;">
               <i class="fas fa-flag" style="color:var(--primary, #2c7a6e);"></i> اولویت
             </div>
@@ -233,7 +233,7 @@ class HeaderBookmarksService {
               </span>
             </div>
           </div>
-          <div style="background:#fafbfc; border-radius:14px; padding:12px 16px; border:1px solid transparent;">
+          <div style="background:var(--slate-mist, #fafbfc); border-radius:14px; padding:12px 16px; border:1px solid transparent;">
             <div style="font-size:11px; font-weight:600; color:var(--text-gray, #64748b); display:flex; align-items:center; gap:6px; margin-bottom:2px;">
               <i class="fas fa-tag" style="color:var(--primary, #2c7a6e);"></i> نوع
             </div>
@@ -243,7 +243,7 @@ class HeaderBookmarksService {
           </div>
           ${
             dueDate
-              ? `<div style="background:#fafbfc; border-radius:14px; padding:12px 16px; border:1px solid transparent;">
+              ? `<div style="background:var(--slate-mist, #fafbfc); border-radius:14px; padding:12px 16px; border:1px solid transparent;">
                   <div style="font-size:11px; font-weight:600; color:var(--text-gray, #64748b); display:flex; align-items:center; gap:6px; margin-bottom:2px;">
                     <i class="fas fa-calendar-alt" style="color:var(--primary, #2c7a6e);"></i> تاریخ سررسید
                   </div>
@@ -256,7 +256,7 @@ class HeaderBookmarksService {
                     }
                   </div>
                 </div>`
-              : `<div style="background:#fafbfc; border-radius:14px; padding:12px 16px; border:1px solid transparent;">
+              : `<div style="background:var(--slate-mist, #fafbfc); border-radius:14px; padding:12px 16px; border:1px solid transparent;">
                   <div style="font-size:11px; font-weight:600; color:var(--text-gray, #64748b); display:flex; align-items:center; gap:6px; margin-bottom:2px;">
                     <i class="fas fa-calendar-alt" style="color:var(--primary, #2c7a6e);"></i> تاریخ سررسید
                   </div>
@@ -266,7 +266,7 @@ class HeaderBookmarksService {
         </div>
 
         <!-- توضیحات -->
-        <div style="background:linear-gradient(135deg,#fafbfc,var(--bg-surface-2, #f8fafc)); border-radius:14px; padding:14px 18px; border:1px solid var(--gray-100, #f1f5f9); text-align:right;">
+        <div style="background:linear-gradient(135deg,var(--slate-mist, #fafbfc),var(--bg-surface-2, #f8fafc)); border-radius:14px; padding:14px 18px; border:1px solid var(--gray-100, #f1f5f9); text-align:right;">
           <div style="font-size:11px; font-weight:600; color:var(--text-gray, #64748b); display:flex; align-items:center; gap:6px; margin-bottom:4px;">
             <i class="fas fa-align-left" style="color:var(--primary, #2c7a6e);"></i> توضیحات
           </div>

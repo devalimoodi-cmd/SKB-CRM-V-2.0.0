@@ -59,7 +59,7 @@
   font-family: "Vazir", sans-serif !important;
   text-align: right !important;
   font-size: 14px !important;
-  color: #475569 !important;
+  color: var(--text-slate, #475569) !important;
   line-height: 1.7 !important;
 }
 
@@ -88,7 +88,7 @@
 
 .swal2-popup:not(.swal2-toast) .swal2-cancel {
   background: var(--border-color, #e2e8f0) !important;
-  color: #475569 !important;
+  color: var(--text-slate, #475569) !important;
 }
 
 .swal2-popup:not(.swal2-toast) .swal2-cancel:hover {

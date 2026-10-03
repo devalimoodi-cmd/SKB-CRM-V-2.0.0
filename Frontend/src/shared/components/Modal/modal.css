@@ -132,7 +132,7 @@
 }
 
 .modal-body::-webkit-scrollbar-track {
-  background: #f1f5f9;
+  background: var(--gray-100, #f1f5f9);
   border-radius: 10px;
 }
 
@@ -149,7 +149,7 @@
   justify-content: flex-end;
   gap: 12px;
   flex-wrap: wrap;
-  background: #fafbfc;
+  background: var(--slate-mist, #fafbfc);
   border-radius: 0 0 16px 16px;
 }
 

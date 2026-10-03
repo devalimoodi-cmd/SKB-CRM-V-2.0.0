@@ -774,7 +774,7 @@ class DictionaryManager {
           icon: "success",
           title: newActive
             ? '<i class="fas fa-check-circle" style="color:var(--success-strong, #16a34a)"></i> فعال شد'
-            : '<i class="fas fa-pause-circle" style="color:#d97706"></i> غیرفعال شد',
+            : '<i class="fas fa-pause-circle" style="color:var(--warning-deep-2, #d97706)"></i> غیرفعال شد',
           timer: 1000,
           showConfirmButton: false,
         });

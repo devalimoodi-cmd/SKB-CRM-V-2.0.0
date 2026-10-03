@@ -227,7 +227,7 @@
 .skb-video-limit-note {
   font-size: 10px;
   color: var(--text-light, #94a3b8);
-  background: #f1f5f9;
+  background: var(--gray-100, #f1f5f9);
   padding: 5px 12px;
   border-radius: 8px;
   align-self: center;
@@ -385,27 +385,27 @@
 }
 
 .skb-visit-btn.view {
-  background: #dbeafe;
-  color: #2563eb;
+  background: var(--info-bg, #dbeafe);
+  color: var(--info-strong, #2563eb);
 }
 
 .skb-visit-btn.view:hover {
-  background: #2563eb;
+  background: var(--info-strong, #2563eb);
   color: white;
 }
 
 .skb-visit-btn.edit {
-  background: #fef3c7;
-  color: #d97706;
+  background: var(--warning-bg, #fef3c7);
+  color: var(--warning-deep-2, #d97706);
 }
 
 .skb-visit-btn.edit:hover {
-  background: #d97706;
+  background: var(--warning-deep-2, #d97706);
   color: white;
 }
 
 .skb-visit-btn.delete {
-  background: #fee2e2;
+  background: var(--danger-bg, #fee2e2);
   color: var(--danger, #dc2626);
 }
 
@@ -415,12 +415,12 @@
 }
 
 .skb-visit-btn.print {
-  background: #dcfce7;
-  color: #16a34a;
+  background: var(--success-bg, #dcfce7);
+  color: var(--success-strong, #16a34a);
 }
 
 .skb-visit-btn.print:hover {
-  background: #16a34a;
+  background: var(--success-strong, #16a34a);
   color: white;
 }
 
@@ -429,13 +429,13 @@
    ============================================ */
 
 .status-badge.read {
-  background: #dcfce7;
-  color: #16a34a;
+  background: var(--success-bg, #dcfce7);
+  color: var(--success-strong, #16a34a);
 }
 
 .status-badge.unread {
-  background: #fef3c7;
-  color: #d97706;
+  background: var(--warning-bg, #fef3c7);
+  color: var(--warning-deep-2, #d97706);
 }
 
 /* ============================================
@@ -626,7 +626,7 @@
 }
 
 .skb-upload-progress-wrapper {
-  background: #f1f5f9;
+  background: var(--gray-100, #f1f5f9);
   border-radius: 50px;
   height: 10px;
   overflow: hidden;
@@ -671,7 +671,7 @@
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 12px;
   margin-bottom: 20px;
-  background: linear-gradient(135deg, var(--bg-surface-2, #f8fafc) 0%, #f1f5f9 100%);
+  background: linear-gradient(135deg, var(--bg-surface-2, #f8fafc) 0%, var(--gray-100, #f1f5f9) 100%);
   border: 1px solid var(--border-light, #eef2f6);
   border-radius: 14px;
   padding: 16px;
@@ -808,7 +808,7 @@
 }
 
 .skb-report-description {
-  background: linear-gradient(135deg, var(--bg-surface-2, #f8fafc) 0%, #f1f5f9 100%);
+  background: linear-gradient(135deg, var(--bg-surface-2, #f8fafc) 0%, var(--gray-100, #f1f5f9) 100%);
   border-radius: 12px;
   padding: 18px 22px;
   border-right: 3px solid var(--primary, #2c7a6e);
@@ -819,7 +819,7 @@
   margin: 0;
   text-align: justify;
   font-size: 13px;
-  color: #334155;
+  color: var(--text-slate-strong, #334155);
 }
 
 /* ===== بخش پیوست‌ها ===== */
@@ -931,7 +931,7 @@
   height: 30px;
   border: none;
   border-radius: 8px;
-  background: #f1f5f9;
+  background: var(--gray-100, #f1f5f9);
   color: var(--info, #3b82f6);
   cursor: pointer;
   display: flex;

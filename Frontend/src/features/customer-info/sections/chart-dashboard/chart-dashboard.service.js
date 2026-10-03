@@ -2077,17 +2077,19 @@ if (typeof window !== "undefined") {
   window.closeAllAccordion = () => {};
 
   // ✅ روی تغییر تم، نمودارهای تحلیل بازسازی شوند تا رنگ grid/محورها تازه شود
-  window.addEventListener("theme:changed", () => {
-    const svc = window.chartDashboardService;
-    if (
-      svc &&
-      svc.chartInstances &&
-      Object.keys(svc.chartInstances).length &&
-      typeof svc.rerenderCharts === "function"
-    ) {
-      svc.rerenderCharts();
-    }
-  });
+  if (typeof window.addEventListener === "function") {
+    window.addEventListener("theme:changed", () => {
+      const svc = window.chartDashboardService;
+      if (
+        svc &&
+        svc.chartInstances &&
+        Object.keys(svc.chartInstances).length &&
+        typeof svc.rerenderCharts === "function"
+      ) {
+        svc.rerenderCharts();
+      }
+    });
+  }
 }
 // کمکی ماژول‌محلی (موج ۳.۲n) — گزینه‌های نمودار اصلی (تولتیپ + برچسب‌های داده).
 // ⚠️ متن زیر بایت‌به‌بایت از بدنهٔ `renderAllCharts` منتقل شده است؛ قالب‌های رشته‌ای

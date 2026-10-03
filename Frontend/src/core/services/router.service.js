@@ -65,10 +65,10 @@ class RouterService {
     if (this.container) {
       this.container.innerHTML = `
                 <div class="error-page" style="text-align: center; padding: 60px 20px;">
-                    <div class="error-code" style="font-size: 80px; font-weight: bold; color: #667eea;">۴۰۴</div>
-                    <h2 style="color: #333; margin: 20px 0;">⛔ صفحه یافت نشد</h2>
-                    <p style="color: #666; margin-bottom: 30px;">متأسفیم، صفحه‌ای که به دنبال آن هستید وجود ندارد.</p>
-                    <a href="/" class="btn-home" style="background: #667eea; color: white; padding: 12px 30px; border-radius: 10px; text-decoration: none; display: inline-block;">بازگشت به صفحه اصلی</a>
+                    <div class="error-code" style="font-size: 80px; font-weight: bold; color: var(--indigo, #667eea);">۴۰۴</div>
+                    <h2 style="color: var(--text-dark, #333); margin: 20px 0;">⛔ صفحه یافت نشد</h2>
+                    <p style="color: var(--text-gray, #666); margin-bottom: 30px;">متأسفیم، صفحه‌ای که به دنبال آن هستید وجود ندارد.</p>
+                    <a href="/" class="btn-home" style="background: var(--indigo, #667eea); color: white; padding: 12px 30px; border-radius: 10px; text-decoration: none; display: inline-block;">بازگشت به صفحه اصلی</a>
                 </div>
             `;
     }

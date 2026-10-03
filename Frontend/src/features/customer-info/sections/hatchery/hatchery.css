@@ -92,14 +92,14 @@
   align-items: center;
   gap: 8px;
   color: white;
-  background: #8b5cf6;
+  background: var(--violet, #8b5cf6);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   white-space: nowrap;
 }
 
 .Hatchery-Management .weekly-card__actions .action-btn.report:hover,
 .Hatchery-Management .weekly-card__actions .action-btn:hover {
-  background: #7c3aed;
+  background: var(--violet-deep, #7c3aed);
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
 }
@@ -403,7 +403,7 @@
 
 .skb-data-table tbody td {
   padding: 11px 16px;
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid var(--gray-100, #f1f5f9);
   vertical-align: middle;
   text-align: center;
   color: var(--text-dark, #1e293b);
@@ -433,18 +433,18 @@
 
 .skb-data-table .status-badge.active,
 .skb-data-table .status-badge.success {
-  background: #dcfce7;
-  color: #16a34a;
+  background: var(--success-bg, #dcfce7);
+  color: var(--success-strong, #16a34a);
 }
 
 .skb-data-table .status-badge.inactive {
-  background: #fee2e2;
+  background: var(--danger-bg, #fee2e2);
   color: var(--danger, #dc2626);
 }
 
 .skb-data-table .status-badge.info {
-  background: #dbeafe;
-  color: #2563eb;
+  background: var(--info-bg, #dbeafe);
+  color: var(--info-strong, #2563eb);
 }
 
 /* ============================================
@@ -460,32 +460,32 @@
 }
 
 .status-badge.active {
-  background: #dcfce7;
-  color: #16a34a;
+  background: var(--success-bg, #dcfce7);
+  color: var(--success-strong, #16a34a);
 }
 
 .status-badge.inactive {
-  background: #fee2e2;
+  background: var(--danger-bg, #fee2e2);
   color: var(--danger, #dc2626);
 }
 
 .status-badge.success {
-  background: #dcfce7;
-  color: #16a34a;
+  background: var(--success-bg, #dcfce7);
+  color: var(--success-strong, #16a34a);
 }
 
 .status-badge.danger {
-  background: #fee2e2;
+  background: var(--danger-bg, #fee2e2);
   color: var(--danger, #dc2626);
 }
 
 .status-badge.info {
-  background: #dbeafe;
-  color: #2563eb;
+  background: var(--info-bg, #dbeafe);
+  color: var(--info-strong, #2563eb);
 }
 
 .status-badge.secondary {
-  background: #f1f5f9;
+  background: var(--gray-100, #f1f5f9);
   color: var(--text-gray, #64748b);
 }
 
@@ -517,19 +517,19 @@
 }
 
 .action-btn.view {
-  background: #dbeafe;
-  color: #2563eb;
+  background: var(--info-bg, #dbeafe);
+  color: var(--info-strong, #2563eb);
 }
 
 .action-btn.edit {
-  background: #dcfce7;
-  color: #16a34a;
+  background: var(--success-bg, #dcfce7);
+  color: var(--success-strong, #16a34a);
 }
 
 /* ویرایش / اصلاح اطلاعات پایان دوره */
 .action-btn.completion-edit {
-  background: #fef3c7;
-  color: #b45309;
+  background: var(--warning-bg, #fef3c7);
+  color: var(--warning-deep, #b45309);
 }
 
 .action-btn.completion-edit:hover {
@@ -546,22 +546,22 @@
 }
 
 .swal2-popup.pc-popup-edit .swal2-title {
-  color: #b45309 !important;
+  color: var(--warning-deep, #b45309) !important;
 }
 
 .action-btn.delete {
-  background: #fee2e2;
+  background: var(--danger-bg, #fee2e2);
   color: var(--danger, #dc2626);
 }
 
 .action-btn.disable {
-  background: #fef3c7;
-  color: #d97706;
+  background: var(--warning-bg, #fef3c7);
+  color: var(--warning-deep-2, #d97706);
 }
 
 .action-btn.enable {
-  background: #dbeafe;
-  color: #2563eb;
+  background: var(--info-bg, #dbeafe);
+  color: var(--info-strong, #2563eb);
 }
 
 /* گزارش پایان دوره گله */
@@ -589,11 +589,11 @@
 /* ثبت اتمام دوره / پایان گله */
 .action-btn.complete {
   background: #ede9fe;
-  color: #7c3aed;
+  color: var(--violet-deep, #7c3aed);
 }
 
 .action-btn.complete:hover {
-  background: #7c3aed;
+  background: var(--violet-deep, #7c3aed);
   color: #ffffff;
 }
 
@@ -679,7 +679,7 @@
   align-items: center;
   gap: 8px;
   padding: 16px 18px;
-  background: #f1f5f9;
+  background: var(--gray-100, #f1f5f9);
   border: 1px dashed var(--border-strong, #cbd5e1);
   border-radius: 10px;
   color: var(--text-gray, #64748b);
@@ -712,7 +712,7 @@
 }
 
 .flock-panel-title i {
-  color: #0d9488;
+  color: var(--accent-teal, #0d9488);
 }
 
 .flock-meta {
@@ -727,11 +727,11 @@
 
 .flock-meta-item {
   font-size: 13px;
-  color: #334155;
+  color: var(--text-slate-strong, #334155);
 }
 
 .flock-meta-item b {
-  color: #0f172a;
+  color: var(--ink, #0f172a);
 }
 
 .flock-end-btn {
@@ -755,9 +755,9 @@
 
 .flock-bookmark-btn {
   margin-inline-start: auto;
-  background: #ecfdf5;
-  color: #047857;
-  border: 1px solid #a7f3d0;
+  background: var(--success-mist-2, #ecfdf5);
+  color: var(--success-deep, #047857);
+  border: 1px solid var(--success-mist-4, #a7f3d0);
   border-radius: 8px;
   padding: 6px 12px;
   font-family: inherit;
@@ -767,9 +767,9 @@
 }
 
 .flock-bookmark-btn:hover {
-  background: #047857;
+  background: var(--success-deep, #047857);
   color: #fff;
-  border-color: #047857;
+  border-color: var(--success-deep, #047857);
 }
 
 .flock-meta .flock-end-btn {
@@ -777,8 +777,8 @@
 }
 
 .flock-sms-btn {
-  background: #eff6ff;
-  color: #2563eb;
+  background: var(--info-soft, #eff6ff);
+  color: var(--info-strong, #2563eb);
   border: 1px solid #bfdbfe;
   border-radius: 8px;
   padding: 6px 12px;
@@ -789,9 +789,9 @@
 }
 
 .flock-sms-btn:hover {
-  background: #2563eb;
+  background: var(--info-strong, #2563eb);
   color: #fff;
-  border-color: #2563eb;
+  border-color: var(--info-strong, #2563eb);
 }
 
 .flock-meta .flock-bookmark-btn,
@@ -800,8 +800,8 @@
 }
 
 .flock-hall-sms {
-  background: #eff6ff;
-  color: #2563eb;
+  background: var(--info-soft, #eff6ff);
+  color: var(--info-strong, #2563eb);
   border: 1px solid #bfdbfe;
   border-radius: 6px;
   padding: 4px 8px;
@@ -811,7 +811,7 @@
 }
 
 .flock-hall-sms:hover {
-  background: #2563eb;
+  background: var(--info-strong, #2563eb);
   color: #fff;
 }
 
@@ -838,17 +838,17 @@
 }
 
 .flock-hall-name {
-  color: #0f172a;
+  color: var(--ink, #0f172a);
   font-weight: 600;
 }
 
 .flock-hall-name i {
-  color: #0d9488;
+  color: var(--accent-teal, #0d9488);
   margin-inline-end: 4px;
 }
 
 .flock-hall-chicks {
-  color: #475569;
+  color: var(--text-slate, #475569);
 }
 
 .flock-badge {
@@ -859,12 +859,12 @@
 }
 
 .flock-badge-active {
-  background: #dcfce7;
+  background: var(--success-bg, #dcfce7);
   color: #15803d;
 }
 
 .flock-badge-ended {
-  background: #f1f5f9;
+  background: var(--gray-100, #f1f5f9);
   color: var(--text-gray, #64748b);
 }
 
@@ -889,12 +889,12 @@
   align-items: flex-start;
   gap: 8px;
   font-size: 13px;
-  color: #475569;
+  color: var(--text-slate, #475569);
   line-height: 2;
 }
 
 .flock-empty-text i {
-  color: #0d9488;
+  color: var(--accent-teal, #0d9488);
   margin-top: 7px;
 }
 
@@ -943,7 +943,7 @@
 .flock-extra-item input[type="checkbox"] {
   width: 16px;
   height: 16px;
-  accent-color: #0d9488;
+  accent-color: var(--accent-teal, #0d9488);
   cursor: pointer;
 }
 
@@ -956,7 +956,7 @@
 
 .flock-extra-count {
   font-size: 12px;
-  color: #475569;
+  color: var(--text-slate, #475569);
   display: flex;
   align-items: center;
   gap: 6px;

@@ -249,7 +249,7 @@ export const dashboardSmsMethods = {
           html: `
             <div style="text-align: right; font-family: 'Vazir', sans-serif; padding: 5px;">
               <!-- اطلاعات گیرنده -->
-              <div style="display:flex; align-items:center; gap:10px; background: linear-gradient(135deg, var(--primary, #2c7a6e) 0%, #065f46 100%); color:#fff; padding:12px 16px; border-radius:10px; margin-bottom:14px;">
+              <div style="display:flex; align-items:center; gap:10px; background: linear-gradient(135deg, var(--primary, #2c7a6e) 0%, var(--success-deeper, #065f46) 100%); color:#fff; padding:12px 16px; border-radius:10px; margin-bottom:14px;">
                 <span style="font-size:22px;">👤</span>
                 <div>
                   <div style="font-size:14px; font-weight:700;">${customerName || "مشتری"}</div>
@@ -651,9 +651,9 @@ export const dashboardSmsMethods = {
               <td style="padding:8px; border-bottom:1px solid var(--gray-100, #f1f5f9); text-align:center; max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${r.message || "-"}</td>
               <td style="padding:8px; border-bottom:1px solid var(--gray-100, #f1f5f9); text-align:center; min-width:140px;">
                 <div><span style="display:inline-block; padding:1px 8px; border-radius:999px; font-size:9.5px; font-weight:700; background:${
-                  r.scope === "hall" ? "#eff6ff" : "#ecfdf5"
+                  r.scope === "hall" ? "var(--info-soft, #eff6ff)" : "var(--success-mist-2, #ecfdf5)"
                 }; color:${
-                  r.scope === "hall" ? "#1d4ed8" : "#047857"
+                  r.scope === "hall" ? "var(--info-deep, #1d4ed8)" : "var(--success-deep, #047857)"
                 };">${r.scope === "hall" ? "سالن" : "کل گله"}</span></div>
                 <div style="font-size:10.5px; font-weight:700; color:var(--text-slate-strong, #334155); margin-top:2px;">${r.targetLabel || r.target_title || "—"}</div>
                 <div style="font-size:10px; color:var(--text-gray, #64748b);">${r.roleLabel || "—"}</div>
@@ -681,8 +681,8 @@ export const dashboardSmsMethods = {
                     : r.status === "failed"
                       ? "var(--danger, #dc2626)"
                       : r.status === "sent"
-                        ? "#2563eb"
-                        : "#d97706"
+                        ? "var(--info-strong, #2563eb)"
+                        : "var(--warning-deep-2, #d97706)"
                 };">${this.getSmsStatusInfo(r.status || "pending").text}</span>
               </td>
               <td style="padding:8px; border-bottom:1px solid var(--gray-100, #f1f5f9); text-align:center;">${getSenderName(r.sender)}</td>
@@ -897,9 +897,9 @@ const buildSmsStatusRowsHtml = (records, { service }) => {
               <td style="padding:8px; border-bottom:1px solid var(--gray-100, #f1f5f9); text-align:center; max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${r.message || ""}">${r.message || "-"}</td>
               <td style="padding:8px; border-bottom:1px solid var(--gray-100, #f1f5f9); text-align:center; min-width:150px;">
                 <div><span style="display:inline-block; padding:1px 8px; border-radius:999px; font-size:9.5px; font-weight:700; background:${
-                  r.scope === "hall" ? "#eff6ff" : "#ecfdf5"
+                  r.scope === "hall" ? "var(--info-soft, #eff6ff)" : "var(--success-mist-2, #ecfdf5)"
                 }; color:${
-                  r.scope === "hall" ? "#1d4ed8" : "#047857"
+                  r.scope === "hall" ? "var(--info-deep, #1d4ed8)" : "var(--success-deep, #047857)"
                 };">${r.scope === "hall" ? "سالن" : "کل گله"}</span></div>
                 <div style="font-size:10.5px; font-weight:700; color:var(--text-slate-strong, #334155); margin-top:2px;">${r.targetLabel || r.target_title || "—"}</div>
                 <div style="font-size:10px; color:var(--text-gray, #64748b);">${r.roleLabel || "—"}</div>
@@ -913,16 +913,16 @@ const buildSmsStatusRowsHtml = (records, { service }) => {
               <td style="padding:8px; border-bottom:1px solid var(--gray-100, #f1f5f9); text-align:center; min-width:120px;">
                 <span style="display:inline-block; padding:2px 8px; border-radius:8px; font-size:10px; font-weight:600; background:${
                   r.delivery_state === 1
-                    ? "#ecfdf5"
+                    ? "var(--success-mist-2, #ecfdf5)"
                     : r.delivery_state === 6 || r.status === "failed"
-                      ? "#fef2f2"
-                      : "#fffbeb"
+                      ? "var(--danger-soft, #fef2f2)"
+                      : "var(--warning-soft, #fffbeb)"
                 }; color:${
                   r.delivery_state === 1
-                    ? "#047857"
+                    ? "var(--success-deep, #047857)"
                     : r.delivery_state === 6 || r.status === "failed"
-                      ? "#b91c1c"
-                      : "#b45309"
+                      ? "var(--danger-deep, #b91c1c)"
+                      : "var(--warning-deep, #b45309)"
                 };">${getDeliveryText(r.delivery_state)}</span>
               </td>
               <td style="padding:8px; border-bottom:1px solid var(--gray-100, #f1f5f9); text-align:center; min-width:100px;">${formatDateTime(r.delivered_at)}</td>
@@ -941,8 +941,8 @@ const buildSmsStatusRowsHtml = (records, { service }) => {
                     : r.status === "failed"
                       ? "var(--danger, #dc2626)"
                       : r.status === "sent"
-                        ? "#2563eb"
-                        : "#d97706"
+                        ? "var(--info-strong, #2563eb)"
+                        : "var(--warning-deep-2, #d97706)"
                 };">${service.getSmsStatusInfo(r.status || "pending").text}</span>
               </td>
               <td style="padding:8px; border-bottom:1px solid var(--gray-100, #f1f5f9); text-align:center; font-size:11px; color:var(--text-slate, #475569);">${getSenderName(r.sender)}</td>
@@ -971,16 +971,16 @@ const buildSmsStatusModalHtml = ({ records, rows, totalChecked, updatedCount }) 
   return `
             <div style="direction:rtl; text-align:right; font-family:'Vazir';">
               <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:12px;">
-                <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; padding:8px; text-align:center;">
+                <div style="background:var(--success-soft, #f0fdf4); border:1px solid var(--success-mist-3, #bbf7d0); border-radius:8px; padding:8px; text-align:center;">
                   <div style="font-size:18px; font-weight:700; color:var(--success-strong, #16a34a);">${deliveredCount}</div>
                   <div style="font-size:10px; color:var(--text-light, #94a3b8);">✅ تحویل شده</div>
                 </div>
-                <div style="background:#fef2f2; border:1px solid #fecaca; border-radius:8px; padding:8px; text-align:center;">
+                <div style="background:var(--danger-soft, #fef2f2); border:1px solid var(--danger-mist, #fecaca); border-radius:8px; padding:8px; text-align:center;">
                   <div style="font-size:18px; font-weight:700; color:var(--danger, #dc2626);">${failedCount}</div>
                   <div style="font-size:10px; color:var(--text-light, #94a3b8);">❌ ناموفق</div>
                 </div>
-                <div style="background:#fffbeb; border:1px solid #fde68a; border-radius:8px; padding:8px; text-align:center;">
-                  <div style="font-size:18px; font-weight:700; color:#d97706;">${pendingCount}</div>
+                <div style="background:var(--warning-soft, #fffbeb); border:1px solid #fde68a; border-radius:8px; padding:8px; text-align:center;">
+                  <div style="font-size:18px; font-weight:700; color:var(--warning-deep-2, #d97706);">${pendingCount}</div>
                   <div style="font-size:10px; color:var(--text-light, #94a3b8);">⏳ در انتظار</div>
                 </div>
               </div>

@@ -253,7 +253,7 @@ export const dashboardRenderer = {
           <div class="fc-main" style="flex:1; min-width:0;">
             <div class="fc-headline">
               <div style="flex:1; min-width:0;">
-                <div class="customer-name" style="font-weight:700; color:#0f172a;">${escapeHtml(customer?.name || "نامشخص")}</div>
+                <div class="customer-name" style="font-weight:700; color:var(--ink, #0f172a);">${escapeHtml(customer?.name || "نامشخص")}</div>
                 <div class="customer-farm" style="font-size:12px; color:var(--text-gray, #64748b);">${escapeHtml(customer?.farmName || "")}${customer?.city ? " | " + escapeHtml(customer.city) : ""}</div>
               </div>
               <span class="status-text" style="color:${st.color}; font-weight:700;">${st.text}</span>

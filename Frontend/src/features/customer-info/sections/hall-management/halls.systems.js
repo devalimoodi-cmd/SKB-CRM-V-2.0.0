@@ -71,7 +71,7 @@ export const hallsSystemMethods = {
           <input type="text" class="sys-item-capacity" value="${capacity}" placeholder="ظرفیت (مترمکعب/ساعت)" style="width:140px; padding:5px 8px; border:1px solid var(--border-color, #e2e8f0); border-radius:6px; font-size:12px;">
           <input type="number" min="1" class="sys-item-qty" value="${qty}" placeholder="تعداد" style="width:80px; padding:5px 8px; border:1px solid var(--border-color, #e2e8f0); border-radius:6px; font-size:12px;">
           <button type="button" class="sys-item-del" onclick="removeSystemItemRow(this)" title="حذف"
-            style="background:var(--danger-bg, #fee2e2); color:#b91c1c; border:none; border-radius:6px; width:26px; height:26px; cursor:pointer;"><i class="fas fa-times"></i></button>
+            style="background:var(--danger-bg, #fee2e2); color:var(--danger-deep, #b91c1c); border:none; border-radius:6px; width:26px; height:26px; cursor:pointer;"><i class="fas fa-times"></i></button>
         </div>`;
     }
     const meta = this.sysCatMeta()[cat];
@@ -83,7 +83,7 @@ export const hallsSystemMethods = {
         </select>
         <input type="number" min="1" class="sys-item-qty" value="${qty}" placeholder="تعداد" style="width:80px; padding:5px 8px; border:1px solid var(--border-color, #e2e8f0); border-radius:6px; font-size:12px;">
         <button type="button" class="sys-item-del" onclick="removeSystemItemRow(this)" title="حذف"
-          style="background:var(--danger-bg, #fee2e2); color:#b91c1c; border:none; border-radius:6px; width:26px; height:26px; cursor:pointer;"><i class="fas fa-times"></i></button>
+          style="background:var(--danger-bg, #fee2e2); color:var(--danger-deep, #b91c1c); border:none; border-radius:6px; width:26px; height:26px; cursor:pointer;"><i class="fas fa-times"></i></button>
       </div>`;
   },
   renderSystemItemsEditor(items = [], legacy = {}) {
@@ -140,7 +140,7 @@ export const hallsSystemMethods = {
         <div style="margin:8px 0 4px; padding:8px 10px; border:1px solid #e8edf3; border-radius:8px; background:#fbfdff;">
           <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap;">
             <div style="font-weight:700; font-size:12px; color:var(--text-slate-strong, #334155);">${meta.title}</div>
-            <span class="sys-cat-total" style="font-size:10.5px; color:var(--primary, #2c7a6e); background:#ecfdf5; border:1px solid #a7f3d0; padding:1px 10px; border-radius:999px; font-weight:600;">مجموع: ۰</span>
+            <span class="sys-cat-total" style="font-size:10.5px; color:var(--primary, #2c7a6e); background:var(--success-mist-2, #ecfdf5); border:1px solid var(--success-mist-4, #a7f3d0); padding:1px 10px; border-radius:999px; font-weight:600;">مجموع: ۰</span>
           </div>
           <div class="sys-rows" id="sysRows-${cat}">${rows
             .map((r) => this.createSysRowHtml(cat, r))

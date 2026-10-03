@@ -212,7 +212,7 @@ export const hatcheryRenderer = {
             <i class="fas fa-ban"></i> پایان گله
           </button>
           <button type="button" class="flock-bookmark-btn"
-            style="background:#fef2f2; color:#b91c1c;"
+            style="background:var(--danger-soft, #fef2f2); color:var(--danger-deep, #b91c1c);"
             onclick="window.deleteFlockGroup(${flock.id})" title="حذف کامل گله">
             <i class="fas fa-trash-alt"></i> حذف گله
           </button>

@@ -77,7 +77,7 @@
 }
 
 .btn-danger:hover:not(:disabled) {
-  background: #b91c1c;
+  background: var(--danger-deep, #b91c1c);
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
 }
@@ -89,7 +89,7 @@
 }
 
 .btn-warning:hover:not(:disabled) {
-  background: #d97706;
+  background: var(--warning-deep-2, #d97706);
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
 }
@@ -101,7 +101,7 @@
 }
 
 .btn-info:hover:not(:disabled) {
-  background: #2563eb;
+  background: var(--info-strong, #2563eb);
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 }
@@ -127,7 +127,7 @@
 }
 
 .btn-ghost:hover:not(:disabled) {
-  background: #f1f5f9;
+  background: var(--gray-100, #f1f5f9);
   transform: translateY(-2px);
 }
 

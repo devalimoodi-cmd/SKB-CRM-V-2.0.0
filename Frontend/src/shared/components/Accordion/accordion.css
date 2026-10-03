@@ -38,14 +38,14 @@
   align-items: center;
   padding: 16px 20px;
   cursor: pointer;
-  background: #fafbfc;
+  background: var(--slate-mist, #fafbfc);
   transition: all 0.3s ease;
   user-select: none;
   gap: 12px;
 }
 
 .accordion-header:hover {
-  background: #f1f5f9;
+  background: var(--gray-100, #f1f5f9);
 }
 
 .accordion-item.open .accordion-header {

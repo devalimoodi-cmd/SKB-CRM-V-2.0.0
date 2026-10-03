@@ -57,6 +57,32 @@
   --gray-100: #f1f5f9;
   --gray-200: #e5e7eb;
 
+  /* ===== پالت تکمیلی (موج ۶) ===== */
+  --ink: #0f172a;
+  --accent-teal: #0d9488;
+  --success-deep: #047857;
+  --success-deeper: #065f46;
+  --success-mist: #d1fae5;
+  --success-mist-2: #ecfdf5;
+  --success-mist-3: #bbf7d0;
+  --success-mist-4: #a7f3d0;
+  --danger-deep: #b91c1c;
+  --danger-mist: #fecaca;
+  --warning-mist: #fffbeb;
+  --warning-deep: #b45309;
+  --warning-deep-2: #d97706;
+  --warning-deep-3: #92400e;
+  --info-strong: #2563eb;
+  --info-deep: #1d4ed8;
+  --violet: #8b5cf6;
+  --violet-deep: #7c3aed;
+  --indigo: #667eea;
+  --slate-mist: #fafbfc;
+  --slate-border: #d8e0e8;
+  --danger-brd: #fca5a5;
+  --warning-brd: #fcd34d;
+  --info-brd: #93c5fd;
+
   /* ===== سایه ===== */
   --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.06);
   --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.08);
@@ -104,6 +130,32 @@ html[data-theme="dark"] {
   --info-bg: rgba(96, 165, 250, 0.18);
   --gray-100: #1e293b;
   --gray-200: #334155;
+
+  /* ===== پالت تکمیلی (موج ۶) ===== */
+  --ink: #e2e8f0;
+  --accent-teal: #2dd4bf;
+  --success-deep: #34d399;
+  --success-deeper: #6ee7b7;
+  --success-mist: rgba(52, 211, 153, 0.2);
+  --success-mist-2: rgba(52, 211, 153, 0.12);
+  --success-mist-3: rgba(52, 211, 153, 0.3);
+  --success-mist-4: rgba(52, 211, 153, 0.34);
+  --danger-deep: #f87171;
+  --danger-mist: rgba(248, 113, 113, 0.25);
+  --warning-mist: rgba(251, 191, 36, 0.12);
+  --warning-deep: #fbbf24;
+  --warning-deep-2: #fbbf24;
+  --warning-deep-3: #fcd34d;
+  --info-strong: #60a5fa;
+  --info-deep: #93c5fd;
+  --violet: #a78bfa;
+  --violet-deep: #a78bfa;
+  --indigo: #818cf8;
+  --slate-mist: #0f1729;
+  --slate-border: #334155;
+  --danger-brd: rgba(248, 113, 113, 0.5);
+  --warning-brd: rgba(251, 191, 36, 0.5);
+  --info-brd: rgba(96, 165, 250, 0.5);
 
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.5);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
@@ -842,23 +894,23 @@ button {
   color: var(--primary, #2c7a6e);
 }
 .badge-success {
-  background: #dcfce7;
-  color: #16a34a;
+  background: var(--success-bg, #dcfce7);
+  color: var(--success-strong, #16a34a);
 }
 .badge-danger {
-  background: #fee2e2;
+  background: var(--danger-bg, #fee2e2);
   color: var(--danger, #dc2626);
 }
 .badge-warning {
-  background: #fef3c7;
-  color: #d97706;
+  background: var(--warning-bg, #fef3c7);
+  color: var(--warning-deep-2, #d97706);
 }
 .badge-info {
-  background: #dbeafe;
-  color: #2563eb;
+  background: var(--info-bg, #dbeafe);
+  color: var(--info-strong, #2563eb);
 }
 .badge-secondary {
-  background: #f1f5f9;
+  background: var(--gray-100, #f1f5f9);
   color: var(--text-gray, #64748b);
 }
 
@@ -1083,12 +1135,12 @@ button {
   transition: all 0.3s ease;
   gap: 10px;
   margin-bottom: 4px;
-  background: #fafbfc;
-  border: 1px solid #e5e7eb;
+  background: var(--slate-mist, #fafbfc);
+  border: 1px solid var(--gray-200, #e5e7eb);
 }
 
 .sidebar-menu-item:hover {
-  background: #f1f5f9;
+  background: var(--gray-100, #f1f5f9);
   border-right: 3px solid var(--primary, #2c7a6e);
   transform: translateX(-4px);
 }
@@ -1218,7 +1270,7 @@ button {
   background: var(--bg-surface-2, #f8fafc);
   border: 1px dashed var(--border-strong, #cbd5e1);
   border-radius: 14px;
-  color: #475569;
+  color: var(--text-slate, #475569);
   font-family: inherit;
 }
 
