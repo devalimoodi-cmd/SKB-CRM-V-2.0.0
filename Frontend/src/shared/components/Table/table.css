@@ -196,7 +196,7 @@
 }
 
 .table .action-btn.print {
-  background: #e8f5e9;
+  background: var(--c-e8f5e9, #e8f5e9);
   color: var(--success, #10b981);
 }
 

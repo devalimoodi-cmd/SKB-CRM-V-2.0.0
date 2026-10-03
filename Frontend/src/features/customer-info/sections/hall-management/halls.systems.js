@@ -137,7 +137,7 @@ export const hallsSystemMethods = {
         }
       }
       return `
-        <div style="margin:8px 0 4px; padding:8px 10px; border:1px solid #e8edf3; border-radius:8px; background:#fbfdff;">
+        <div style="margin:8px 0 4px; padding:8px 10px; border:1px solid var(--c-e8edf3, #e8edf3); border-radius:8px; background:var(--c-fbfdff, #fbfdff);">
           <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap;">
             <div style="font-weight:700; font-size:12px; color:var(--text-slate-strong, #334155);">${meta.title}</div>
             <span class="sys-cat-total" style="font-size:10.5px; color:var(--primary, #2c7a6e); background:var(--success-mist-2, #ecfdf5); border:1px solid var(--success-mist-4, #a7f3d0); padding:1px 10px; border-radius:999px; font-weight:600;">مجموع: ۰</span>

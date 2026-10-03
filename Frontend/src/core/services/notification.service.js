@@ -199,7 +199,7 @@ class NotificationService {
       const errorList = message
         .map(
           (err, index) => `
-                <div style="padding: 6px 0; font-size: 13px; color: #991b1b; border-bottom: 1px solid var(--danger-mist, #fecaca); display: flex; align-items: flex-start; gap: 8px;">
+                <div style="padding: 6px 0; font-size: 13px; color: var(--c-991b1b, #991b1b); border-bottom: 1px solid var(--danger-mist, #fecaca); display: flex; align-items: flex-start; gap: 8px;">
                     <span style="color: var(--danger, #dc2626); font-weight: bold;">${index + 1}.</span>
                     <span style="flex: 1;">${err}</span>
                 </div>

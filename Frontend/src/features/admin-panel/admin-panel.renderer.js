@@ -90,11 +90,11 @@ export const adminPanelRenderer = {
                 <tr>
                     <td>${index + 1}</td>
                     <td>
-                        <div class="customer-avatar ${onlineClass}" style="width:35px;height:35px;margin:0 auto;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#f0f0f0;">
+                        <div class="customer-avatar ${onlineClass}" style="width:35px;height:35px;margin:0 auto;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--c-f0f0f0, #f0f0f0);">
                             ${
                               user.profile_image
                                 ? `<img src="${window.API_URL}${user.profile_image}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
-                                : `<i class="fas fa-user" style="color:#888;font-size:16px;"></i>`
+                                : `<i class="fas fa-user" style="color:var(--c-888, #888);font-size:16px;"></i>`
                             }
                         </div>
                     </td>

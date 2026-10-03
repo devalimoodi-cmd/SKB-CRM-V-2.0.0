@@ -8,92 +8,92 @@
   "note2": "خروجی به locale/ICU و منطقهٔ زمانی محیط Node وابسته است (ارقام فارسی و تاریخ/ساعت شمسی در سند)؛ هارنس ساعت را تثبیت و TZ را روی Asia/Tehran قفل می‌کند، پس مقایسه فقط در همان محیطی معنا دارد که اسنپ‌شات گرفته شده است.",
   "cases": {
     "J1.گزارش-کامل-تک‌پیامک": {
-      "bytes": 10394,
-      "sha256": "bad73b1bf82a28e1f9b3f1d1b079e964d0165b79ea267b993e00f74bc43bdad3"
+      "bytes": 10411,
+      "sha256": "3f38b442fe69cbbf6b3181623a5697172ac739eda46c55b4de322dbd220cbc57"
     },
     "J2.بدون-پیامک-آرایهٔ-خالی": {
-      "bytes": 9635,
-      "sha256": "c3757c901e8986fc568fc5e00c96ba229fbef559be0af03aa21efa962bce72a2"
+      "bytes": 9652,
+      "sha256": "08b2c4ed854989bee8b25d695a46fda29993d7e55bb768d702cd79bec9fc971f"
     },
     "J3.logs-null-پرتاب-خطا": {
       "bytes": 164,
       "sha256": "1039e0d2ce66d8187224fe0eae0747cc341272166e2fbd0ca143659f2f53bdbb"
     },
     "J4.چهار-پیامک-با-وضعیت‌های-مختلف": {
-      "bytes": 12947,
-      "sha256": "a37cf5677ce12ea40c6b23a895f760db12755c721dae5b6070820542d083ead6"
+      "bytes": 12964,
+      "sha256": "f8fdb4f5178735aed5b5d52b8c3bc6c90077f9bf095c5077f3bf14719969a2b2"
     },
     "J5.delivery_state-نامعتبر": {
-      "bytes": 13781,
-      "sha256": "f3893062f7f94896d134afc3b65906dd962c537ea1556f0c344afdca1f3b9fb2"
+      "bytes": 13798,
+      "sha256": "d3432bea8916c1ecbfe4d6648552101a425771bf315a614383d0a10eeadc7ad3"
     },
     "J6.scope-سالن-و-ناشناخته": {
-      "bytes": 11260,
-      "sha256": "3d37a6f01c26939b2fe3166f4e6c566e8c524ab6756387d2bacce8930155c11e"
+      "bytes": 11277,
+      "sha256": "451299a7d23dd2962b20089b676d945732c9ed570de27d370d200a2fb6df555c"
     },
     "J7.تاریخ-ارسال-نامعتبر-شاخهٔ-catch": {
-      "bytes": 10370,
-      "sha256": "37d260eed72924aa436552e423c10820af2eda0d296065ab4d8a9117140dd24d"
+      "bytes": 10387,
+      "sha256": "32cdd6862471fe86580063fe468db069b04abeed68f5e051aae2b0bbecb84f11"
     },
     "J8.تاریخ-تحویل-خالی": {
-      "bytes": 10370,
-      "sha256": "7947ce85e2433ee83d7a75f5e69f21a3945e176df0d51f2228d449d71cb9b573"
+      "bytes": 10387,
+      "sha256": "5eed5324727fc36d5d640a16294526cc18369e10959735f1f186ecb146831274"
     },
     "J9.اسکیپ-HTML-در-پیام-و-هدف": {
-      "bytes": 10412,
-      "sha256": "b07d1bb269e4644876007b58e56580edea259fb5b482ccb76db96e9c25b1eaaa"
+      "bytes": 10429,
+      "sha256": "7a9414b42fa9572809e10abcf23491104336f095db1badc3d9ef09e79686b046"
     },
     "J10.فرستندهٔ-غایب": {
-      "bytes": 10398,
-      "sha256": "deab7a0f6237bdf2eb2023b6efb366ac99786eb0c9f9c2ccaa0ce59ed78269ec"
+      "bytes": 10415,
+      "sha256": "1e9edd5d67ad46ffc7c237269c5a31d162ea7b3b54eaf9921890820a108d31dd"
     },
     "J11.فرستنده-بدون-نام-با-یوزرنیم": {
-      "bytes": 10379,
-      "sha256": "66e050250d821b55ded492ffbe5c5fc55ec9c5b0f2fc87d4d9f82e60e749bfe1"
+      "bytes": 10396,
+      "sha256": "cd5a1416e23a06cd034934021d39f6933e601e96f20e7b47c95b2017d0b8c816"
     },
     "J12.کاربر-بدون-localStorage-کاربر-ناشناس": {
-      "bytes": 10400,
-      "sha256": "e91595fcc9030c6309ea29ef7187e6b0a93825ed45cd2495218686d4978bfa0d"
+      "bytes": 10417,
+      "sha256": "482e4851923da835f11c449564bd92a45e890a5e1dc4718b6c44a90e1e9f7328"
     },
     "J13.کاربر-با-fullName-نقش-کارشناس": {
-      "bytes": 10417,
-      "sha256": "bd278850669435bfc522e6593956e8acf30c99aae119aa538453410c5d3f9cec"
+      "bytes": 10434,
+      "sha256": "37b7c139423872825eb4210bbc0c3f4346042d42cc029f70590a2e81538fcacb"
     },
     "J14.کاربر-با-نام-و-فامیل": {
-      "bytes": 10405,
-      "sha256": "2d59005b7cb49eefc20be83577c91e82edac18f53854f48090ce8e86fdd54b27"
+      "bytes": 10422,
+      "sha256": "db405900386b23b0afb32523e7ead6194d04bdb1cfe1f7cac99539dd2d693e82"
     },
     "J15.کاربر-فقط-یوزرنیم-نقش-ناشناس": {
-      "bytes": 10379,
-      "sha256": "c04c5d048549fe2ae15070fd14c7acf5c2cc79bd0f0a6289f597f6fa4d40a7bb"
+      "bytes": 10396,
+      "sha256": "0b3078e6c05ccc16dbc7ff68cb36dad9a93f1770cc07a71d9c57d5e190ff3eaa"
     },
     "J16.شماره-گله-غایب": {
-      "bytes": 10389,
-      "sha256": "d3bb35ad864449ca462634f66cd2764cb58f0ca90da64ac4bdb0eaefe0c037a2"
+      "bytes": 10406,
+      "sha256": "00d6c77f148f2056d51c440dfda3dff8eccd4f846d4362eab76ea43bf32f75ae"
     },
     "J17.واحد-از-unit_name": {
-      "bytes": 10388,
-      "sha256": "defe1e07534d3a302ce9181c94c89300f956348a9fe8dac4026677733042d760"
+      "bytes": 10405,
+      "sha256": "4b6a5e42740e0e05c03ec498e2cda0a6fd898dbdd5f071592aa6e4a4513a805e"
     },
     "J18.سالن-فقط-با-hall_id": {
-      "bytes": 10379,
-      "sha256": "778a548923bec12c1dbc6f0a9e8826aa4dd45bc6ad80574f91712934bf30e3ee"
+      "bytes": 10396,
+      "sha256": "73e9cb39c5952f865f8b6d7b31fe77ae7880f7b3a03927f67b229e6987ddf734"
     },
     "J19.بدون-سالن-عضو": {
-      "bytes": 10370,
-      "sha256": "594917d3e8c0ecc3c59aec738acdd4910e5079cfdfa450081ba1933e4304d3e8"
+      "bytes": 10387,
+      "sha256": "1d12abf3a95f1df1bac5a6e8d4601978e5398a43b748f6c22bd5c13080ab08e0"
     },
     "J20.بدون-تاریخ-جوجه‌ریزی": {
-      "bytes": 10377,
-      "sha256": "91f0ca17df9524e4f75f9c603ac85cc40218c734464193c773a8a6f3c417914f"
+      "bytes": 10394,
+      "sha256": "4bf8082302bff4165479234bf8fee938639ab80c2a9a306811e1be32d4a283c6"
     },
     "J21.مشتری-null": {
-      "bytes": 10337,
-      "sha256": "a02c09dceb6f27dac637549b1065eb0531be6c164d62de2402a15398457b498d"
+      "bytes": 10354,
+      "sha256": "a71d0664b66967f245537193ba1d16942630c6a70568bff929df0b49c90ab5d8"
     },
     "J22.وضعیت-ناشناخته-در-ردیف": {
-      "bytes": 10383,
-      "sha256": "219238e09201ac51bf876e332d7ad17822ddd0958ac84b2060d0c570288077ee"
+      "bytes": 10400,
+      "sha256": "c461c2439112b528299567a678aa96f86aa5269e7dac2e766ce1c452ce3aca97"
     }
   }
 }

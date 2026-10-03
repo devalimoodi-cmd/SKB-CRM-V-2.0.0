@@ -110,6 +110,61 @@ check(
   chartDashSrc.includes("chartThemeService.tokens().grid"),
 );
 
+// ===== موج ۷: هیچ رنگ «حساس به تمِ» باقی‌مانده‌ای نباشد =====
+// (به‌جز سفیدِ متن و رنگ‌های گرادیانی/تزئینیِ allowlist)
+const THEME_EXCLUDE = new Set([
+  "#fff",
+  "#ffffff",
+  "#00f2fe",
+  "#4facfe",
+  "#43e97b",
+  "#38f9d7",
+  "#f093fb",
+  "#f5576c",
+  "#764ba2",
+  "#4a90e2",
+]);
+
+const stripForGuard = (text) =>
+  String(text)
+    .replace(/var\(--[a-z0-9-]+,\s*#[0-9a-fA-F]{3,8}\)/g, "")
+    .replace(/^\s*--[a-z0-9-]+\s*:[^;]*;/gm, "");
+
+const hexesOf = (text) =>
+  [...stripForGuard(text).matchAll(/#[0-9a-fA-F]{3,8}\b/g)].map((m) =>
+    m[0].toLowerCase(),
+  );
+
+const collectRemaining = () => {
+  const out = [];
+  const walk = (dir) => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const abs = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        walk(abs);
+      } else if (entry.name.endsWith(".css")) {
+        hexesOf(fs.readFileSync(abs, "utf8")).forEach((h) => out.push(h));
+      } else if (entry.name.endsWith(".js")) {
+        const src = fs.readFileSync(abs, "utf8");
+        const parts =
+          src.match(/<style\b[^>]*>[\s\S]*?<\/style>|style="[^"]*"/gi) || [];
+        parts.forEach((p) => hexesOf(p).forEach((h) => out.push(h)));
+      }
+    }
+  };
+  walk(path.join(here, "src"));
+  return out.filter((h) => !THEME_EXCLUDE.has(h));
+};
+
+const remainingHex = collectRemaining();
+check(
+  "موج ۷: هیچ رنگ حساسِ باقی‌مانده‌ای در CSS/JS نیست",
+  remainingHex.length === 0,
+  `remaining=${remainingHex.length}${
+    remainingHex.length ? " → " + [...new Set(remainingHex)].slice(0, 8).join(",") : ""
+  }`,
+);
+
 // ============================================================
 //  بخش ۲) بررسی زمان اجرا: تزریق بوت‌استرپ در HTML سروشده
 // ============================================================

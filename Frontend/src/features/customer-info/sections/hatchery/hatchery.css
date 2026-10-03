@@ -125,7 +125,7 @@
   display: flex;
   gap: 4px;
   flex-wrap: wrap;
-  border-bottom: 2px solid #e9ecef;
+  border-bottom: 2px solid var(--c-e9ecef, #e9ecef);
   margin-bottom: 20px;
   padding-bottom: 4px;
 }
@@ -147,7 +147,7 @@
 }
 
 .tab-btn:hover {
-  background: #f8f9fa;
+  background: var(--c-f8f9fa, #f8f9fa);
   color: var(--text-dark, #1e293b);
 }
 
@@ -220,7 +220,7 @@
 .form-group select,
 .form-group textarea {
   padding: 10px 12px;
-  border: 1px solid #dee2e6;
+  border: 1px solid var(--c-dee2e6, #dee2e6);
   border-radius: 8px;
   font-family: "Vazir", sans-serif;
   font-size: 14px;
@@ -241,7 +241,7 @@
 .form-group input:disabled,
 .form-group select:disabled,
 .form-group input[readonly] {
-  background: #f8f9fa;
+  background: var(--c-f8f9fa, #f8f9fa);
   cursor: not-allowed;
   opacity: 0.8;
 }
@@ -310,12 +310,12 @@
 }
 
 .btn-secondary {
-  background: #dee2e6;
+  background: var(--c-dee2e6, #dee2e6);
   color: var(--text-dark, #1e293b);
 }
 
 .btn-secondary:hover {
-  background: #ced4da;
+  background: var(--c-ced4da, #ced4da);
   transform: translateY(-2px);
 }
 
@@ -566,29 +566,29 @@
 
 /* گزارش پایان دوره گله */
 .action-btn.report-completion {
-  background: #e0f2fe;
-  color: #0369a1;
+  background: var(--c-e0f2fe, #e0f2fe);
+  color: var(--c-0369a1, #0369a1);
 }
 
 .action-btn.report-completion:hover {
-  background: #0369a1;
+  background: var(--c-0369a1, #0369a1);
   color: #ffffff;
 }
 
 /* گزارش پیامک‌های گله */
 .action-btn.report-sms {
-  background: #ccfbf1;
-  color: #0f766e;
+  background: var(--c-ccfbf1, #ccfbf1);
+  color: var(--c-0f766e, #0f766e);
 }
 
 .action-btn.report-sms:hover {
-  background: #0f766e;
+  background: var(--c-0f766e, #0f766e);
   color: #ffffff;
 }
 
 /* ثبت اتمام دوره / پایان گله */
 .action-btn.complete {
-  background: #ede9fe;
+  background: var(--c-ede9fe, #ede9fe);
   color: var(--violet-deep, #7c3aed);
 }
 
@@ -687,8 +687,8 @@
 }
 
 .flock-panel {
-  background: linear-gradient(135deg, #ffffff 0%, #f0fdfa 100%);
-  border: 1px solid #99f6e4;
+  background: linear-gradient(135deg, #ffffff 0%, var(--c-f0fdfa, #f0fdfa) 100%);
+  border: 1px solid var(--c-99f6e4, #99f6e4);
   border-radius: 12px;
   padding: 14px 16px;
   font-family: Vazir, Tahoma, sans-serif;
@@ -707,7 +707,7 @@
   gap: 8px;
   font-size: 14px;
   font-weight: 700;
-  color: #134e4a;
+  color: var(--c-134e4a, #134e4a);
   margin-bottom: 10px;
 }
 
@@ -721,7 +721,7 @@
   align-items: center;
   gap: 8px 20px;
   padding-bottom: 10px;
-  border-bottom: 1px dashed #99f6e4;
+  border-bottom: 1px dashed var(--c-99f6e4, #99f6e4);
   margin-bottom: 10px;
 }
 
@@ -736,9 +736,9 @@
 
 .flock-end-btn {
   margin-inline-start: auto;
-  background: #fff1f2;
-  color: #e11d48;
-  border: 1px solid #fecdd3;
+  background: var(--c-fff1f2, #fff1f2);
+  color: var(--c-e11d48, #e11d48);
+  border: 1px solid var(--c-fecdd3, #fecdd3);
   border-radius: 8px;
   padding: 6px 12px;
   font-family: inherit;
@@ -748,9 +748,9 @@
 }
 
 .flock-end-btn:hover {
-  background: #e11d48;
+  background: var(--c-e11d48, #e11d48);
   color: #fff;
-  border-color: #e11d48;
+  border-color: var(--c-e11d48, #e11d48);
 }
 
 .flock-bookmark-btn {
@@ -779,7 +779,7 @@
 .flock-sms-btn {
   background: var(--info-soft, #eff6ff);
   color: var(--info-strong, #2563eb);
-  border: 1px solid #bfdbfe;
+  border: 1px solid var(--c-bfdbfe, #bfdbfe);
   border-radius: 8px;
   padding: 6px 12px;
   font-family: inherit;
@@ -802,7 +802,7 @@
 .flock-hall-sms {
   background: var(--info-soft, #eff6ff);
   color: var(--info-strong, #2563eb);
-  border: 1px solid #bfdbfe;
+  border: 1px solid var(--c-bfdbfe, #bfdbfe);
   border-radius: 6px;
   padding: 4px 8px;
   font-size: 11px;
@@ -860,7 +860,7 @@
 
 .flock-badge-active {
   background: var(--success-bg, #dcfce7);
-  color: #15803d;
+  color: var(--c-15803d, #15803d);
 }
 
 .flock-badge-ended {
@@ -878,8 +878,8 @@
   align-items: flex-start;
   gap: 6px;
   font-size: 11.5px;
-  color: #0f766e;
-  background: #f0fdfa;
+  color: var(--c-0f766e, #0f766e);
+  background: var(--c-f0fdfa, #f0fdfa);
   border-radius: 8px;
   padding: 8px 10px;
 }
@@ -907,7 +907,7 @@
 }
 
 .flock-extra-section .form-section-title {
-  color: #134e4a;
+  color: var(--c-134e4a, #134e4a);
 }
 
 .flock-extra-hint {
@@ -936,8 +936,8 @@
 }
 
 .flock-extra-item:hover {
-  border-color: #5eead4;
-  background: #f0fdfa;
+  border-color: var(--c-5eead4, #5eead4);
+  background: var(--c-f0fdfa, #f0fdfa);
 }
 
 .flock-extra-item input[type="checkbox"] {

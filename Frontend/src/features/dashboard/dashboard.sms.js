@@ -979,7 +979,7 @@ const buildSmsStatusModalHtml = ({ records, rows, totalChecked, updatedCount }) 
                   <div style="font-size:18px; font-weight:700; color:var(--danger, #dc2626);">${failedCount}</div>
                   <div style="font-size:10px; color:var(--text-light, #94a3b8);">❌ ناموفق</div>
                 </div>
-                <div style="background:var(--warning-soft, #fffbeb); border:1px solid #fde68a; border-radius:8px; padding:8px; text-align:center;">
+                <div style="background:var(--warning-soft, #fffbeb); border:1px solid var(--c-fde68a, #fde68a); border-radius:8px; padding:8px; text-align:center;">
                   <div style="font-size:18px; font-weight:700; color:var(--warning-deep-2, #d97706);">${pendingCount}</div>
                   <div style="font-size:10px; color:var(--text-light, #94a3b8);">⏳ در انتظار</div>
                 </div>

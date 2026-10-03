@@ -1,0 +1,482 @@
+{
+  "#022e2a": {
+    "token": "--c-022e2a",
+    "dark": "#6cefe3"
+  },
+  "#033d3a": {
+    "token": "--c-033d3a",
+    "dark": "#6cefe8"
+  },
+  "#0369a1": {
+    "token": "--c-0369a1",
+    "dark": "#6cc0ef"
+  },
+  "#059669": {
+    "token": "--c-059669",
+    "dark": "#6cefc6"
+  },
+  "#064e3b": {
+    "token": "--c-064e3b",
+    "dark": "#6cefcc"
+  },
+  "#0b1220": {
+    "token": "--c-0b1220",
+    "dark": "#86a0d5"
+  },
+  "#0b7c72": {
+    "token": "--c-0b7c72",
+    "dark": "#6cefe3"
+  },
+  "#0e7490": {
+    "token": "--c-0e7490",
+    "dark": "#6cd3ef"
+  },
+  "#0ea5e9": {
+    "token": "--c-0ea5e9",
+    "dark": "#6cc6ef"
+  },
+  "#0f766e": {
+    "token": "--c-0f766e",
+    "dark": "#6eede3"
+  },
+  "#134e4a": {
+    "token": "--c-134e4a",
+    "dark": "#7cdfd8"
+  },
+  "#14b8a6": {
+    "token": "--c-14b8a6",
+    "dark": "#6cefe0"
+  },
+  "#15803d": {
+    "token": "--c-15803d",
+    "dark": "#73e89f"
+  },
+  "#166534": {
+    "token": "--c-166534",
+    "dark": "#79e2a1"
+  },
+  "#1a5c52": {
+    "token": "--c-1a5c52",
+    "dark": "#80dbcd"
+  },
+  "#1e40af": {
+    "token": "--c-1e40af",
+    "dark": "#748fe7"
+  },
+  "#22c55e": {
+    "token": "--c-22c55e",
+    "dark": "#74e79e"
+  },
+  "#34d399": {
+    "token": "--c-34d399",
+    "dark": "#60dcaf"
+  },
+  "#374151": {
+    "token": "--c-374151",
+    "dark": "#9eaabd"
+  },
+  "#4f46e5": {
+    "token": "--c-4f46e5",
+    "dark": "#625ae2"
+  },
+  "#555": {
+    "token": "--c-555",
+    "dark": "#cbd5e1"
+  },
+  "#5b6b7f": {
+    "token": "--c-5b6b7f",
+    "dark": "#a0acbb"
+  },
+  "#5eead4": {
+    "token": "--c-5eead4",
+    "dark": "#5ae2cd"
+  },
+  "#60a5fa": {
+    "token": "--c-60a5fa",
+    "dark": "#5a97e2"
+  },
+  "#666": {
+    "token": "--c-666",
+    "dark": "#cbd5e1"
+  },
+  "#6d28d9": {
+    "token": "--c-6d28d9",
+    "dark": "#8f5ae2"
+  },
+  "#6ee7b7": {
+    "token": "--c-6ee7b7",
+    "dark": "#5ae2ac"
+  },
+  "#7c2d12": {
+    "token": "--c-7c2d12",
+    "dark": "#ea9070"
+  },
+  "#86efac": {
+    "token": "--c-86efac",
+    "dark": "#5ae28b"
+  },
+  "#888": {
+    "token": "--c-888",
+    "dark": "#94a3b8"
+  },
+  "#8a99ad": {
+    "token": "--c-8a99ad",
+    "dark": "#8d9caf"
+  },
+  "#8c1d18": {
+    "token": "--c-8c1d18",
+    "dark": "#e77974"
+  },
+  "#991b1b": {
+    "token": "--c-991b1b",
+    "dark": "#e77474"
+  },
+  "#999": {
+    "token": "--c-999",
+    "dark": "#94a3b8"
+  },
+  "#99c9c3": {
+    "token": "--c-99c9c3",
+    "dark": "#80bcb4"
+  },
+  "#99f6e4": {
+    "token": "--c-99f6e4",
+    "dark": "#165a4d"
+  },
+  "#9a3412": {
+    "token": "--c-9a3412",
+    "dark": "#ee8d6d"
+  },
+  "#a21caf": {
+    "token": "--c-a21caf",
+    "dark": "#de72e8"
+  },
+  "#a5f3fc": {
+    "token": "--c-a5f3fc",
+    "dark": "#16535a"
+  },
+  "#b0c4d8": {
+    "token": "--c-b0c4d8",
+    "dark": "#25384b"
+  },
+  "#b3261e": {
+    "token": "--c-b3261e",
+    "dark": "#e87973"
+  },
+  "#b9d6d1": {
+    "token": "--c-b9d6d1",
+    "dark": "#294742"
+  },
+  "#bae6fd": {
+    "token": "--c-bae6fd",
+    "dark": "#16435a"
+  },
+  "#bbb": {
+    "token": "--c-bbb",
+    "dark": "#334155"
+  },
+  "#be185d": {
+    "token": "--c-be185d",
+    "dark": "#ed6ea3"
+  },
+  "#bfdbfe": {
+    "token": "--c-bfdbfe",
+    "dark": "#16345a"
+  },
+  "#c2410c": {
+    "token": "--c-c2410c",
+    "dark": "#ef926c"
+  },
+  "#c7d5e5": {
+    "token": "--c-c7d5e5",
+    "dark": "#24374d"
+  },
+  "#c7e3dd": {
+    "token": "--c-c7e3dd",
+    "dark": "#254b43"
+  },
+  "#ccfbf1": {
+    "token": "--c-ccfbf1",
+    "dark": "#165a4b"
+  },
+  "#ced4da": {
+    "token": "--c-ced4da",
+    "dark": "#334155"
+  },
+  "#d1d5db": {
+    "token": "--c-d1d5db",
+    "dark": "#334155"
+  },
+  "#d8f5ec": {
+    "token": "--c-d8f5ec",
+    "dark": "#1c4035"
+  },
+  "#d9f3ec": {
+    "token": "--c-d9f3ec",
+    "dark": "#1c4036"
+  },
+  "#db2777": {
+    "token": "--c-db2777",
+    "dark": "#e25a97"
+  },
+  "#dbe4ea": {
+    "token": "--c-dbe4ea",
+    "dark": "#293b47"
+  },
+  "#ddd": {
+    "token": "--c-ddd",
+    "dark": "#334155"
+  },
+  "#ddd6fe": {
+    "token": "--c-ddd6fe",
+    "dark": "#221c40"
+  },
+  "#dee2e6": {
+    "token": "--c-dee2e6",
+    "dark": "#334155"
+  },
+  "#e0e0e0": {
+    "token": "--c-e0e0e0",
+    "dark": "#334155"
+  },
+  "#e0e7ff": {
+    "token": "--c-e0e7ff",
+    "dark": "#1c2440"
+  },
+  "#e0f2fe": {
+    "token": "--c-e0f2fe",
+    "dark": "#1c3240"
+  },
+  "#e11d48": {
+    "token": "--c-e11d48",
+    "dark": "#ec6e8a"
+  },
+  "#e6ebf1": {
+    "token": "--c-e6ebf1",
+    "dark": "#212d3b"
+  },
+  "#e6edf3": {
+    "token": "--c-e6edf3",
+    "dark": "#1e2f3e"
+  },
+  "#e8edf3": {
+    "token": "--c-e8edf3",
+    "dark": "#1f2d3c"
+  },
+  "#e8f5e9": {
+    "token": "--c-e8f5e9",
+    "dark": "#1c401f"
+  },
+  "#e8f5f0": {
+    "token": "--c-e8f5f0",
+    "dark": "#1c4032"
+  },
+  "#e8f5f3": {
+    "token": "--c-e8f5f3",
+    "dark": "#1c403a"
+  },
+  "#e8fbf5": {
+    "token": "--c-e8fbf5",
+    "dark": "#1c4035"
+  },
+  "#e8fcf5": {
+    "token": "--c-e8fcf5",
+    "dark": "#1c4033"
+  },
+  "#e9a7a3": {
+    "token": "--c-e9a7a3",
+    "dark": "#5a1a16"
+  },
+  "#e9d5ff": {
+    "token": "--c-e9d5ff",
+    "dark": "#2d1c40"
+  },
+  "#e9ecef": {
+    "token": "--c-e9ecef",
+    "dark": "#0f1729"
+  },
+  "#ea580c": {
+    "token": "--c-ea580c",
+    "dark": "#ef996c"
+  },
+  "#ecfeff": {
+    "token": "--c-ecfeff",
+    "dark": "#1c3e40"
+  },
+  "#ede9fe": {
+    "token": "--c-ede9fe",
+    "dark": "#231c40"
+  },
+  "#edf1f6": {
+    "token": "--c-edf1f6",
+    "dark": "#1f2c3d"
+  },
+  "#eee": {
+    "token": "--c-eee",
+    "dark": "#0f1729"
+  },
+  "#eef2f7": {
+    "token": "--c-eef2f7",
+    "dark": "#1d2c3e"
+  },
+  "#eef6f4": {
+    "token": "--c-eef6f4",
+    "dark": "#203c35"
+  },
+  "#eef7f5": {
+    "token": "--c-eef7f5",
+    "dark": "#1d3e37"
+  },
+  "#f0f0f0": {
+    "token": "--c-f0f0f0",
+    "dark": "#0f1729"
+  },
+  "#f0f2f5": {
+    "token": "--c-f0f2f5",
+    "dark": "#252c37"
+  },
+  "#f0f9ff": {
+    "token": "--c-f0f9ff",
+    "dark": "#1c3240"
+  },
+  "#f0fdf9": {
+    "token": "--c-f0fdf9",
+    "dark": "#1c4035"
+  },
+  "#f0fdfa": {
+    "token": "--c-f0fdfa",
+    "dark": "#1c4038"
+  },
+  "#f1f7f6": {
+    "token": "--c-f1f7f6",
+    "dark": "#213a36"
+  },
+  "#f3c6c4": {
+    "token": "--c-f3c6c4",
+    "dark": "#5a1916"
+  },
+  "#f3e8ff": {
+    "token": "--c-f3e8ff",
+    "dark": "#2d1c40"
+  },
+  "#f3f8f7": {
+    "token": "--c-f3f8f7",
+    "dark": "#223a35"
+  },
+  "#f5f3ff": {
+    "token": "--c-f5f3ff",
+    "dark": "#221c40"
+  },
+  "#f5f5f5": {
+    "token": "--c-f5f5f5",
+    "dark": "#0f1729"
+  },
+  "#f6f8fa": {
+    "token": "--c-f6f8fa",
+    "dark": "#212e3b"
+  },
+  "#f6f9fc": {
+    "token": "--c-f6f9fc",
+    "dark": "#1c2e40"
+  },
+  "#f87171": {
+    "token": "--c-f87171",
+    "dark": "#e25a5a"
+  },
+  "#f8f9fa": {
+    "token": "--c-f8f9fa",
+    "dark": "#0f1729"
+  },
+  "#fae8ff": {
+    "token": "--c-fae8ff",
+    "dark": "#381c40"
+  },
+  "#faf5ff": {
+    "token": "--c-faf5ff",
+    "dark": "#2e1c40"
+  },
+  "#fafafa": {
+    "token": "--c-fafafa",
+    "dark": "#0f1729"
+  },
+  "#fafcff": {
+    "token": "--c-fafcff",
+    "dark": "#1c2a40"
+  },
+  "#fbbf24": {
+    "token": "--c-fbbf24",
+    "dark": "#e2bc5a"
+  },
+  "#fbcfe8": {
+    "token": "--c-fbcfe8",
+    "dark": "#5a163d"
+  },
+  "#fbfcfd": {
+    "token": "--c-fbfcfd",
+    "dark": "#1f2e3d"
+  },
+  "#fbfdfc": {
+    "token": "--c-fbfdfc",
+    "dark": "#1f3d2e"
+  },
+  "#fbfdfd": {
+    "token": "--c-fbfdfd",
+    "dark": "#1f3d3d"
+  },
+  "#fbfdfe": {
+    "token": "--c-fbfdfe",
+    "dark": "#1c3440"
+  },
+  "#fbfdff": {
+    "token": "--c-fbfdff",
+    "dark": "#1c2e40"
+  },
+  "#fce7f3": {
+    "token": "--c-fce7f3",
+    "dark": "#401c31"
+  },
+  "#fde68a": {
+    "token": "--c-fde68a",
+    "dark": "#5a4c16"
+  },
+  "#fdeceb": {
+    "token": "--c-fdeceb",
+    "dark": "#401e1c"
+  },
+  "#fdf2f8": {
+    "token": "--c-fdf2f8",
+    "dark": "#401c30"
+  },
+  "#fecdd3": {
+    "token": "--c-fecdd3",
+    "dark": "#401c20"
+  },
+  "#fed7aa": {
+    "token": "--c-fed7aa",
+    "dark": "#5a3b16"
+  },
+  "#feeceb": {
+    "token": "--c-feeceb",
+    "dark": "#401d1c"
+  },
+  "#fef7f6": {
+    "token": "--c-fef7f6",
+    "dark": "#40201c"
+  },
+  "#fefce8": {
+    "token": "--c-fefce8",
+    "dark": "#403d1c"
+  },
+  "#fff1f2": {
+    "token": "--c-fff1f2",
+    "dark": "#401c1e"
+  },
+  "#fff5f5": {
+    "token": "--c-fff5f5",
+    "dark": "#401c1c"
+  },
+  "#fff7ed": {
+    "token": "--c-fff7ed",
+    "dark": "#40301c"
+  }
+}

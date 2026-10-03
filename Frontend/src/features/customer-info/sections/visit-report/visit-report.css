@@ -40,7 +40,7 @@
    ============================================ */
 
 .skb-visit-form {
-  background: #f8f9fa;
+  background: var(--c-f8f9fa, #f8f9fa);
   border-radius: 12px;
   padding: 24px;
   border: 1px solid var(--border-light, #eef2f6);
@@ -66,7 +66,7 @@
   position: relative;
   display: flex;
   align-items: center;
-  border: 1px solid #dee2e6;
+  border: 1px solid var(--c-dee2e6, #dee2e6);
   border-radius: 8px;
   background: var(--bg-surface, #fff);
   transition: all 0.3s ease;
@@ -180,7 +180,7 @@
 .skb-visit-subsection {
   margin-top: 20px;
   padding-top: 20px;
-  border-top: 2px solid #e9ecef;
+  border-top: 2px solid var(--c-e9ecef, #e9ecef);
 }
 
 .skb-visit-subtitle {
@@ -202,7 +202,7 @@
 
 .skb-attach-btn {
   padding: 8px 18px;
-  border: 1px solid #dee2e6;
+  border: 1px solid var(--c-dee2e6, #dee2e6);
   border-radius: 8px;
   background: var(--bg-surface, #fff);
   cursor: pointer;
@@ -250,7 +250,7 @@
   padding: 6px 14px;
   background: var(--bg-surface, #fff);
   border-radius: 8px;
-  border: 1px solid #dee2e6;
+  border: 1px solid var(--c-dee2e6, #dee2e6);
   font-size: 12px;
   transition: all 0.2s ease;
 }
@@ -311,12 +311,12 @@
 }
 
 .skb-visit-reset {
-  background: #dee2e6;
+  background: var(--c-dee2e6, #dee2e6);
   color: var(--text-dark, #1e293b);
 }
 
 .skb-visit-reset:hover {
-  background: #ced4da;
+  background: var(--c-ced4da, #ced4da);
   transform: translateY(-2px);
 }
 
@@ -533,7 +533,7 @@
 
 .skb-modal-footer {
   padding: 16px 24px;
-  border-top: 1px solid #e9ecef;
+  border-top: 1px solid var(--c-e9ecef, #e9ecef);
   display: flex;
   justify-content: flex-end;
   gap: 12px;
@@ -851,7 +851,7 @@
 }
 
 .skb-modal-download-all {
-  background: linear-gradient(135deg, var(--success, #10b981), #059669);
+  background: linear-gradient(135deg, var(--success, #10b981), var(--c-059669, #059669));
   color: #ffffff;
   border: none;
   border-radius: 8px;
@@ -950,7 +950,7 @@
 
 /* ===== دکمه‌های مودال ===== */
 .skb-print-btn {
-  background: linear-gradient(135deg, var(--success, #10b981), #059669);
+  background: linear-gradient(135deg, var(--success, #10b981), var(--c-059669, #059669));
   color: white;
   border: none;
   padding: 10px 24px;

@@ -86,7 +86,7 @@ class WhatsNewManager {
       </div>
 
       <div id="wnReadOnlyNotice"
-        style="display:${this.isSuperAdmin ? "none" : "block"};background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;border-radius:10px;padding:10px 14px;font-size:12.5px;margin-bottom:14px;">
+        style="display:${this.isSuperAdmin ? "none" : "block"};background:var(--c-fff7ed, #fff7ed);border:1px solid var(--c-fed7aa, #fed7aa);color:var(--c-9a3412, #9a3412);border-radius:10px;padding:10px 14px;font-size:12.5px;margin-bottom:14px;">
         <i class="fas fa-lock"></i>
         شما در حالت <strong>فقط خواندن</strong> هستید — ساخت/ویرایش/انتشار تغییرات فقط برای <strong>سوپر ادمین</strong> مجاز است.
       </div>
@@ -95,7 +95,7 @@ class WhatsNewManager {
 
         <!-- ستون فرم -->
         <div id="wnFormColumn" style="display:${this.isSuperAdmin ? "block" : "none"};">
-          <div style="background:var(--bg-surface, #fff);border:1px solid #e8edf3;border-radius:12px;padding:16px;margin-bottom:16px;">
+          <div style="background:var(--bg-surface, #fff);border:1px solid var(--c-e8edf3, #e8edf3);border-radius:12px;padding:16px;margin-bottom:16px;">
             <h4 style="margin:0 0 12px;font-size:14px;color:var(--ink, #0f172a);">
               <i class="fas fa-tag" style="color:var(--primary, #2c7a6e);"></i> تنظیمات نسخه
               <span id="wnModeBadge" style="font-size:11px;font-weight:700;background:var(--gray-100, #f1f5f9);color:var(--text-gray, #64748b);padding:2px 10px;border-radius:999px;margin-inline-start:6px;">نسخهٔ جدید</span>
@@ -132,7 +132,7 @@ class WhatsNewManager {
             </div>
           </div>
 
-          <div style="background:var(--bg-surface, #fff);border:1px solid #e8edf3;border-radius:12px;padding:16px;margin-bottom:16px;">
+          <div style="background:var(--bg-surface, #fff);border:1px solid var(--c-e8edf3, #e8edf3);border-radius:12px;padding:16px;margin-bottom:16px;">
             <h4 style="margin:0 0 12px;font-size:14px;color:var(--ink, #0f172a);">
               <i class="fas fa-plus-circle" style="color:var(--primary, #2c7a6e);"></i>
               <span id="wnItemFormTitle">افزودن آیتم</span>
@@ -175,7 +175,7 @@ class WhatsNewManager {
             </div>
           </div>
 
-          <div style="background:var(--bg-surface, #fff);border:1px solid #e8edf3;border-radius:12px;padding:16px;margin-bottom:16px;">
+          <div style="background:var(--bg-surface, #fff);border:1px solid var(--c-e8edf3, #e8edf3);border-radius:12px;padding:16px;margin-bottom:16px;">
             <h4 style="margin:0 0 12px;font-size:14px;color:var(--ink, #0f172a);">
               <i class="fas fa-list" style="color:var(--primary, #2c7a6e);"></i> آیتم‌های این نسخه
               <span id="wnItemsCount" style="font-size:11px;font-weight:700;background:var(--gray-100, #f1f5f9);color:var(--text-gray, #64748b);padding:2px 10px;border-radius:999px;margin-inline-start:6px;">۰ مورد</span>
@@ -183,7 +183,7 @@ class WhatsNewManager {
             <div id="wnItemsList" style="display:flex;flex-direction:column;gap:8px;"></div>
           </div>
 
-          <div style="background:var(--bg-surface, #fff);border:1px solid #e8edf3;border-radius:12px;padding:16px;">
+          <div style="background:var(--bg-surface, #fff);border:1px solid var(--c-e8edf3, #e8edf3);border-radius:12px;padding:16px;">
             <div style="display:flex;gap:8px;flex-wrap:wrap;">
               <button type="button" class="btn-primary-info" data-wn-act="save" style="margin-top:0;">
                 <i class="fas fa-save"></i> <span id="wnSaveText">ذخیرهٔ پیش‌نویس</span>
@@ -216,7 +216,7 @@ class WhatsNewManager {
       </div>
 
       <!-- فهرست نسخه‌ها -->
-      <div style="background:var(--bg-surface, #fff);border:1px solid #e8edf3;border-radius:12px;padding:16px;margin-top:16px;">
+      <div style="background:var(--bg-surface, #fff);border:1px solid var(--c-e8edf3, #e8edf3);border-radius:12px;padding:16px;margin-top:16px;">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
           <h4 style="margin:0;font-size:14px;color:var(--ink, #0f172a);">
             <i class="fas fa-clock-rotate-left" style="color:var(--primary, #2c7a6e);"></i> نسخه‌های ثبت‌شده

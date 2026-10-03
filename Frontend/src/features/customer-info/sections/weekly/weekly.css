@@ -15,7 +15,7 @@
    ============================================ */
 
 .filter-section {
-  background: #f8f9fa;
+  background: var(--c-f8f9fa, #f8f9fa);
   border-radius: 12px;
   padding: 14px 18px;
   margin-bottom: 20px;
@@ -55,7 +55,7 @@
 
 .filter-select {
   padding: 7px 10px;
-  border: 1px solid #dee2e6;
+  border: 1px solid var(--c-dee2e6, #dee2e6);
   border-radius: 6px;
   font-family: "Vazir", sans-serif;
   font-size: 12px;
@@ -93,7 +93,7 @@
   color: var(--primary, #2c7a6e);
   margin: 0 0 6px;
   padding-bottom: 4px;
-  border-bottom: 1px solid #e8f5f0;
+  border-bottom: 1px solid var(--c-e8f5f0, #e8f5f0);
 }
 
 .week-edit-form .form-row {
@@ -136,7 +136,7 @@
 }
 
 .week-edit-form input:disabled {
-  background: #f8f9fa;
+  background: var(--c-f8f9fa, #f8f9fa);
   color: var(--text-light, #94a3b8);
 }
 
@@ -269,12 +269,12 @@
 }
 
 .btn-collapse-all {
-  background: #dee2e6;
+  background: var(--c-dee2e6, #dee2e6);
   color: var(--text-dark, #1e293b);
 }
 
 .btn-collapse-all:hover {
-  background: #ced4da;
+  background: var(--c-ced4da, #ced4da);
   transform: translateY(-2px);
 }
 
@@ -325,7 +325,7 @@
 }
 
 .flock-card-header:hover {
-  background: linear-gradient(135deg, var(--primary-dark, #035552) 0%, #022e2a 100%);
+  background: linear-gradient(135deg, var(--primary-dark, #035552) 0%, var(--c-022e2a, #022e2a) 100%);
 }
 
 .flock-info {
@@ -520,7 +520,7 @@
 .empty-state {
   text-align: center;
   padding: 40px 20px;
-  background: #f8f9fa;
+  background: var(--c-f8f9fa, #f8f9fa);
   border-radius: 12px;
   color: var(--text-light, #94a3b8);
   font-size: 14px;
@@ -530,7 +530,7 @@
   font-size: 40px;
   display: block;
   margin-bottom: 14px;
-  color: #ced4da;
+  color: var(--c-ced4da, #ced4da);
 }
 
 .empty-state p {
@@ -816,7 +816,7 @@
 .weekly-feed-daily.feed-auto-calc,
 .weekly-feed-weekly.feed-auto-calc {
   background: var(--success-mist-2, #ecfdf5);
-  border-color: #6ee7b7 !important;
+  border-color: var(--c-6ee7b7, #6ee7b7) !important;
   color: var(--success-deeper, #065f46);
   cursor: not-allowed;
 }
@@ -842,11 +842,11 @@
 
 .wc-card.wc-primary {
   border-color: var(--primary, #2c7a6e);
-  background: linear-gradient(135deg, #f0fdf9, #ffffff);
+  background: linear-gradient(135deg, var(--c-f0fdf9, #f0fdf9), #ffffff);
 }
 
 .wc-card.wc-ok {
-  border-color: #22c55e;
+  border-color: var(--c-22c55e, #22c55e);
   background: var(--success-soft, #f0fdf4);
 }
 
@@ -877,7 +877,7 @@
 }
 
 .wc-card.wc-primary .wc-value {
-  color: #0f766e;
+  color: var(--c-0f766e, #0f766e);
   font-size: 22px;
 }
 
@@ -962,10 +962,10 @@
    ============================================================ */
 .flock-group {
   margin-bottom: 14px;
-  border: 1px solid #99f6e4;
+  border: 1px solid var(--c-99f6e4, #99f6e4);
   border-radius: 12px;
   overflow: hidden;
-  background: #f0fdfa;
+  background: var(--c-f0fdfa, #f0fdfa);
 }
 
 .flock-group-header {
@@ -982,7 +982,7 @@
 }
 
 .flock-group-header:hover {
-  background: linear-gradient(135deg, #022e2a 0%, #0b7c72 100%);
+  background: linear-gradient(135deg, var(--c-022e2a, #022e2a) 0%, var(--c-0b7c72, #0b7c72) 100%);
 }
 
 .flock-group-info {
@@ -993,7 +993,7 @@
 }
 
 .flock-group-info i {
-  color: #5eead4;
+  color: var(--c-5eead4, #5eead4);
 }
 
 .flock-group-title {
@@ -1038,7 +1038,7 @@
 .btn-show-more-weeks {
   background: var(--bg-surface, #ffffff);
   color: var(--primary, #2c7a6e);
-  border: 2px dashed #99c9c3;
+  border: 2px dashed var(--c-99c9c3, #99c9c3);
   border-radius: 10px;
   padding: 9px 22px;
   font-family: "Vazir", sans-serif;
@@ -1295,7 +1295,7 @@
 
 /* ✅ ردیف انتخاب‌شده در مودال‌های انتخاب (گله‌های تاریخچه و گروه‌های شاخص گزارش) */
 .wh-item:has(.wh-item-check:checked) {
-  background: #f0fdf9;
+  background: var(--c-f0fdf9, #f0fdf9);
   border-color: var(--success-mist-4, #a7f3d0);
 }
 
@@ -1412,7 +1412,7 @@
 }
 
 .wk-flock-status.is-custom {
-  color: #6d28d9;
+  color: var(--c-6d28d9, #6d28d9);
 }
 
 .wk-flock-status.is-excluded {
