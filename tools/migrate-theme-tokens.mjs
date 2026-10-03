@@ -56,6 +56,17 @@ const HEX_MAP = [
   ["#f59e0b", "--warning"],
   ["#dc2626", "--danger"],
   ["#3b82f6", "--info"],
+  // ✅ توکن‌های تکمیلی (موج ۵ — استایل‌های inline در JS)
+  ["#475569", "--text-slate"],
+  ["#334155", "--text-slate-strong"],
+  ["#16a34a", "--success-strong"],
+  ["#dcfce7", "--success-bg"],
+  ["#ef4444", "--danger-strong"],
+  ["#fee2e2", "--danger-bg"],
+  ["#fef3c7", "--warning-bg"],
+  ["#dbeafe", "--info-bg"],
+  ["#f1f5f9", "--gray-100"],
+  ["#e5e7eb", "--gray-200"],
 ];
 
 const maskBlocks = (css) => {
@@ -106,8 +117,99 @@ const migrate = (src) => {
   return out;
 };
 
-const files = process.argv.slice(2).map((p) => path.resolve(p));
-const targets = files.length ? files : SHARED_FILES;
+// ============================================================
+//  حالت JS: تبدیل رنگ‌ها فقط داخل اتریبیوت‌های style="..."
+// ------------------------------------------------------------
+//  • از یک پیمایشگر ساده استفاده می‌کند تا محتوای ${...} (که ممکن است
+//    شامل " باشد) درست مدیریت شود.
+//  • هرگز به منطق/رنگ‌های Chart.js (خارج از style) دست نمی‌زند.
+// ============================================================
+const mapInnerStyle = (inner) => {
+  let out = inner;
+  out = out.replace(
+    /(background(?:-color)?\s*:\s*)(#ffffff|#fff|white)\b/gi,
+    (_m, prop, color) =>
+      `${prop}var(--bg-surface, ${
+        color.toLowerCase() === "white" ? "#fff" : color
+      })`,
+  );
+  for (const [hex, token] of HEX_MAP) {
+    out = out.replace(new RegExp(hex, "gi"), `var(${token}, ${hex})`);
+  }
+  return out;
+};
+
+const migrateJsInline = (src) => {
+  const OPEN = 'style="';
+  let out = "";
+  let i = 0;
+
+  while (i < src.length) {
+    const idx = src.indexOf(OPEN, i);
+    if (idx === -1) {
+      out += src.slice(i);
+      break;
+    }
+    out += src.slice(i, idx + OPEN.length);
+
+    let j = idx + OPEN.length;
+    let depth = 0;
+    let inner = "";
+    while (j < src.length) {
+      const ch = src[j];
+      if (ch === "$" && src[j + 1] === "{") {
+        depth++;
+        inner += "${";
+        j += 2;
+        continue;
+      }
+      if (ch === "}" && depth > 0) {
+        depth--;
+        inner += "}";
+        j++;
+        continue;
+      }
+      if (ch === '"' && depth === 0) break;
+      inner += ch;
+      j++;
+    }
+
+    out += mapInnerStyle(inner);
+    if (src[j] === '"') {
+      out += '"';
+      j++;
+    }
+    i = j;
+  }
+  return out;
+};
+
+const args = process.argv.slice(2);
+const jsMode = args.includes("--js-inline");
+const fileArgs = args
+  .filter((a) => a !== "--js-inline")
+  .map((p) => path.resolve(p));
+// اسکن فایل‌های JS که اتریبیوت style="..." با رنگ دارند
+const scanJs = () => {
+  const rootDir = path.join(ROOT, "Frontend", "src");
+  const found = [];
+  const walk = (dir) => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const abs = path.join(dir, entry.name);
+      if (entry.isDirectory()) walk(abs);
+      else if (entry.name.endsWith(".js")) {
+        const text = fs.readFileSync(abs, "utf8");
+        if (text.includes('style="') && /#[0-9a-fA-F]{3,8}\b/.test(text)) {
+          found.push(abs);
+        }
+      }
+    }
+  };
+  walk(rootDir);
+  return found;
+};
+
+const targets = fileArgs.length ? fileArgs : jsMode ? scanJs() : SHARED_FILES;
 
 let changed = 0;
 for (const file of targets) {
@@ -116,7 +218,7 @@ for (const file of targets) {
     continue;
   }
   const src = fs.readFileSync(file, "utf8");
-  const out = migrate(src);
+  const out = jsMode ? migrateJsInline(src) : migrate(src);
   if (out === src) {
     console.log(`  ok (no change): ${path.relative(ROOT, file)}`);
     continue;

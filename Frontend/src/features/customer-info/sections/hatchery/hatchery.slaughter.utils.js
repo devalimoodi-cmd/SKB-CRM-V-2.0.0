@@ -41,19 +41,19 @@ export const slaughterShipmentsHtml = (completion, opts = {}) => {
   const listRows = rows
     .map(
       (r) => `<tr>
-        <td style="padding:4px 8px;border:1px solid #e2e8f0;">${r.age_days ?? "-"}</td>
-        <td style="padding:4px 8px;border:1px solid #e2e8f0;">${r.quantity != null ? Number(r.quantity).toLocaleString("fa-IR") : "-"}</td>
-        <td style="padding:4px 8px;border:1px solid #e2e8f0;">${r.date ? convertToPersianDate(r.date) : "-"}</td>
+        <td style="padding:4px 8px;border:1px solid var(--border-color, #e2e8f0);">${r.age_days ?? "-"}</td>
+        <td style="padding:4px 8px;border:1px solid var(--border-color, #e2e8f0);">${r.quantity != null ? Number(r.quantity).toLocaleString("fa-IR") : "-"}</td>
+        <td style="padding:4px 8px;border:1px solid var(--border-color, #e2e8f0);">${r.date ? convertToPersianDate(r.date) : "-"}</td>
       </tr>`,
     )
     .join("");
   return `<div style="margin-top:8px;">
-    <div style="font-size:11.5px;font-weight:700;color:#334155;margin-bottom:4px;">جزئیات ارسال‌ها به کشتارگاه:</div>
+    <div style="font-size:11.5px;font-weight:700;color:var(--text-slate-strong, #334155);margin-bottom:4px;">جزئیات ارسال‌ها به کشتارگاه:</div>
     <table style="border-collapse:collapse;width:100%;font-size:11.5px;">
       <thead><tr>
-        <th style="padding:4px 8px;border:1px solid #cbd5e1;background:#f1f5f9;">سن (روز)</th>
-        <th style="padding:4px 8px;border:1px solid #cbd5e1;background:#f1f5f9;">تعداد (قطعه)</th>
-        <th style="padding:4px 8px;border:1px solid #cbd5e1;background:#f1f5f9;">تاریخ</th>
+        <th style="padding:4px 8px;border:1px solid var(--border-strong, #cbd5e1);background:var(--gray-100, #f1f5f9);">سن (روز)</th>
+        <th style="padding:4px 8px;border:1px solid var(--border-strong, #cbd5e1);background:var(--gray-100, #f1f5f9);">تعداد (قطعه)</th>
+        <th style="padding:4px 8px;border:1px solid var(--border-strong, #cbd5e1);background:var(--gray-100, #f1f5f9);">تاریخ</th>
       </tr></thead>
       <tbody>${listRows}</tbody>
     </table>

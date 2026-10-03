@@ -642,8 +642,8 @@ class AppService {
       container.innerHTML = `
                 <div style="text-align: center; padding: 80px 20px;">
                     <div style="font-size: 80px; font-weight: bold; color: #667eea;">۴۰۴</div>
-                    <h2 style="color: #333; margin: 20px 0;">⛔ صفحه یافت نشد</h2>
-                    <p style="color: #666; margin-bottom: 30px;">متأسفیم، صفحه‌ای که به دنبال آن هستید وجود ندارد.</p>
+                    <h2 style="color: var(--text-dark, #333); margin: 20px 0;">⛔ صفحه یافت نشد</h2>
+                    <p style="color: var(--text-gray, #666); margin-bottom: 30px;">متأسفیم، صفحه‌ای که به دنبال آن هستید وجود ندارد.</p>
                     <a href="/" class="btn btn-primary" style="display: inline-block;">بازگشت به صفحه اصلی</a>
                 </div>
             `;

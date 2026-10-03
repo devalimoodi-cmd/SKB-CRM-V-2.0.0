@@ -42,10 +42,10 @@ export const dashboardRenderer = {
                  style="border-right-color: ${borderColor}; background: ${bgColor}; cursor: pointer;">
                 
                 <div class="task-card-info">
-                    <div class="customer-name" style="font-weight: 600; color: #1e293b;">${escapeHtml(customer.name)}</div>
-                    <div class="customer-farm" style="font-size: 13px; color: #64748b;">${escapeHtml(customer.farmName)} | ${escapeHtml(customer.city)}</div>
+                    <div class="customer-name" style="font-weight: 600; color: var(--text-dark, #1e293b);">${escapeHtml(customer.name)}</div>
+                    <div class="customer-farm" style="font-size: 13px; color: var(--text-gray, #64748b);">${escapeHtml(customer.farmName)} | ${escapeHtml(customer.city)}</div>
                     
-                    <div class="week-info" style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 4px; font-size: 13px; color: #475569;">
+                    <div class="week-info" style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 4px; font-size: 13px; color: var(--text-slate, #475569);">
                         <span>🐣 گله ${flock.flockNumber}</span>
                         <span>📅 هفته ${flock.weekNumber}</span>
                         <span>📆 ${weekStartDate} - ${weekEndDate}</span>
@@ -53,7 +53,7 @@ export const dashboardRenderer = {
                         <span class="status-text" style="color: ${borderColor}; font-weight: 600; background: ${bgColor}; padding: 2px 10px; border-radius: 12px;">
                             ${statusInfo.icon} ${statusInfo.text}
                         </span>
-                        ${daysInfo ? `<span class="days-info" style="color: ${borderColor}; font-weight: 500; background: ${statusInfo.type === "danger" ? "#fee2e2" : "#dcfce7"}; padding: 2px 10px; border-radius: 12px;">${daysInfo}</span>` : ""}
+                        ${daysInfo ? `<span class="days-info" style="color: ${borderColor}; font-weight: 500; background: ${statusInfo.type === "danger" ? "var(--danger-bg, #fee2e2)" : "var(--success-bg, #dcfce7)"}; padding: 2px 10px; border-radius: 12px;">${daysInfo}</span>` : ""}
                     </div>
                     
                     ${
@@ -219,7 +219,7 @@ export const dashboardRenderer = {
     ].sort((a, b) => a - b);
     const headerWeekStatus =
       flock?.status === "danger" && flockOverdue.length
-        ? `<span class="days-info overdue-pill" style="color:#dc2626; font-weight:600;"><i class="fas fa-exclamation-circle"></i> هفته‌های معوق: ${flockOverdue.join("، ")} — پس از ثبت کامل هفتگی حذف می‌شود</span>`
+        ? `<span class="days-info overdue-pill" style="color:var(--danger, #dc2626); font-weight:600;"><i class="fas fa-exclamation-circle"></i> هفته‌های معوق: ${flockOverdue.join("، ")} — پس از ثبت کامل هفتگی حذف می‌شود</span>`
         : this.daysInfoHTML(flock?.weekEndDate, flock?.status);
 
     const hallRows = activeHalls.length
@@ -254,7 +254,7 @@ export const dashboardRenderer = {
             <div class="fc-headline">
               <div style="flex:1; min-width:0;">
                 <div class="customer-name" style="font-weight:700; color:#0f172a;">${escapeHtml(customer?.name || "نامشخص")}</div>
-                <div class="customer-farm" style="font-size:12px; color:#64748b;">${escapeHtml(customer?.farmName || "")}${customer?.city ? " | " + escapeHtml(customer.city) : ""}</div>
+                <div class="customer-farm" style="font-size:12px; color:var(--text-gray, #64748b);">${escapeHtml(customer?.farmName || "")}${customer?.city ? " | " + escapeHtml(customer.city) : ""}</div>
               </div>
               <span class="status-text" style="color:${st.color}; font-weight:700;">${st.text}</span>
             </div>
@@ -344,7 +344,7 @@ export const dashboardRenderer = {
       : [];
     const hallDaysHTML =
       hall.status === "danger" && hallOverdue.length
-        ? `<span class="days-info overdue-pill" style="color:#dc2626; font-weight:600;"><i class="fas fa-exclamation-circle"></i> معوق: هفته ${this.formatWeekList(hallOverdue)}</span>`
+        ? `<span class="days-info overdue-pill" style="color:var(--danger, #dc2626); font-weight:600;"><i class="fas fa-exclamation-circle"></i> معوق: هفته ${this.formatWeekList(hallOverdue)}</span>`
         : this.daysInfoHTML(hall.weekEndDate, hall.status);
 
     return `
@@ -358,7 +358,7 @@ export const dashboardRenderer = {
         <div class="th-head">
         <div class="th-main">
           <span class="th-selected-tag"><i class="fas fa-eye"></i> در حال نمایش</span>
-          <span class="th-hall" style="font-weight:600; color:#1e293b;"><i class="fas fa-warehouse"></i> ${escapeHtml(hname)}</span>
+          <span class="th-hall" style="font-weight:600; color:var(--text-dark, #1e293b);"><i class="fas fa-warehouse"></i> ${escapeHtml(hname)}</span>
           ${hall.breedName ? `<span class="th-info"><i class="fas fa-dna"></i> ${escapeHtml(hall.breedName)}</span>` : ""}
           <span class="th-info"><i class="fas fa-calendar-week"></i> هفته ${hall.weekNumber ?? "-"}</span>
           ${
@@ -513,14 +513,14 @@ export const dashboardRenderer = {
     today.setHours(0, 0, 0, 0);
     const diff = Math.ceil((end - today) / (1000 * 60 * 60 * 24));
     if (diff <= 0) {
-      return `<span class="days-info" style="color:#dc2626; font-weight:600;"><i class="fas fa-exclamation-triangle"></i> ${
+      return `<span class="days-info" style="color:var(--danger, #dc2626); font-weight:600;"><i class="fas fa-exclamation-triangle"></i> ${
         Math.abs(diff) === 0
           ? "امروز سررسید است"
           : `${Math.abs(diff)} روز از سررسید گذشته`
       }</span>`;
     }
     if (status === "danger" || status === "success") {
-      return `<span class="days-info" style="color:#16a34a; font-weight:600;"><i class="fas fa-hourglass-half"></i> ${diff} روز تا سررسید</span>`;
+      return `<span class="days-info" style="color:var(--success-strong, #16a34a); font-weight:600;"><i class="fas fa-hourglass-half"></i> ${diff} روز تا سررسید</span>`;
     }
     return "";
   },

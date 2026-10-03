@@ -386,7 +386,7 @@ export const hatcheryRenderer = {
                     <td>${g.period_number || "—"}</td>
                     <td title="${hallsText}">${hallsText}${
                       g.hallCount > 1
-                        ? ` <small style="color:#94a3b8;">(${g.hallCount} سالن)</small>`
+                        ? ` <small style="color:var(--text-light, #94a3b8);">(${g.hallCount} سالن)</small>`
                         : ""
                     }</td>
                     <td>${g.placement_date ? convertToPersianDate(g.placement_date) : "—"}</td>

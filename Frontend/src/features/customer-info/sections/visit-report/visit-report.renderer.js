@@ -329,7 +329,7 @@ export const visitReportRenderer = {
         <!-- ===== هدر خلاصه ===== -->
         <div class="skb-report-summary-bar">
           <div class="skb-summary-item">
-            <div class="skb-summary-icon" style="background:#2c7a6e18; color:#2c7a6e;">
+            <div class="skb-summary-icon" style="background:var(--primary, #2c7a6e)18; color:var(--primary, #2c7a6e);">
               <i class="fas fa-calendar-check"></i>
             </div>
             <div class="skb-summary-text">
@@ -338,7 +338,7 @@ export const visitReportRenderer = {
             </div>
           </div>
           <div class="skb-summary-item">
-            <div class="skb-summary-icon" style="background:#3b82f618; color:#3b82f6;">
+            <div class="skb-summary-icon" style="background:var(--info, #3b82f6)18; color:var(--info, #3b82f6);">
               <i class="fas fa-warehouse"></i>
             </div>
             <div class="skb-summary-text">
@@ -356,7 +356,7 @@ export const visitReportRenderer = {
             </div>
           </div>
           <div class="skb-summary-item">
-            <div class="skb-summary-icon" style="background:#10b98118; color:#10b981;">
+            <div class="skb-summary-icon" style="background:var(--success, #10b981)18; color:var(--success, #10b981);">
               <i class="fas fa-paperclip"></i>
             </div>
             <div class="skb-summary-text">
@@ -368,7 +368,7 @@ export const visitReportRenderer = {
 
         <!-- ===== جزئیات ===== -->
         <div class="skb-report-info-grid">
-          <div class="skb-report-info-card" style="--accent:#2c7a6e;">
+          <div class="skb-report-info-card" style="--accent:var(--primary, #2c7a6e);">
             <div class="skb-report-info-icon"><i class="fas fa-warehouse"></i></div>
             <div class="skb-report-info-content">
               <span class="skb-report-info-label">سالن‌های بازدید شده</span>
@@ -382,21 +382,21 @@ export const visitReportRenderer = {
               <span class="skb-report-info-value">${expertsName.join("، ") || "-"}</span>
             </div>
           </div>
-          <div class="skb-report-info-card" style="--accent:#f59e0b;">
+          <div class="skb-report-info-card" style="--accent:var(--warning, #f59e0b);">
             <div class="skb-report-info-icon"><i class="fas fa-share"></i></div>
             <div class="skb-report-info-content">
               <span class="skb-report-info-label">ارجاع به</span>
               <span class="skb-report-info-value">${this.getForwardName(visit.forward_to)}</span>
             </div>
           </div>
-          <div class="skb-report-info-card" style="--accent:#64748b;">
+          <div class="skb-report-info-card" style="--accent:var(--text-gray, #64748b);">
             <div class="skb-report-info-icon"><i class="fas fa-user-edit"></i></div>
             <div class="skb-report-info-content">
               <span class="skb-report-info-label">ثبت‌کننده</span>
               <span class="skb-report-info-value">${createdByName}</span>
             </div>
           </div>
-          <div class="skb-report-info-card" style="--accent:#64748b;">
+          <div class="skb-report-info-card" style="--accent:var(--text-gray, #64748b);">
             <div class="skb-report-info-icon"><i class="fas fa-clock"></i></div>
             <div class="skb-report-info-content">
               <span class="skb-report-info-label">تاریخ و ساعت ثبت</span>

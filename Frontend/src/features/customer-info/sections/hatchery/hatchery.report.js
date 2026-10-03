@@ -208,7 +208,7 @@ class HatcheryReport {
                   <tr><td>تعداد ارسالی به کشتارگاه</td><td>${completion.total_sent != null ? Number(completion.total_sent).toLocaleString("fa-IR") : "-"}</td></tr>
                   <tr><td>درآمد کل</td><td>${completion.income_total != null ? `${Number(completion.income_total).toLocaleString("fa-IR")} تومان` : "-"}</td></tr>
                   <tr><td>جمع هزینه‌ها</td><td>${completion.total_cost != null ? `${Number(completion.total_cost).toLocaleString("fa-IR")} تومان` : "-"}</td></tr>
-                  <tr><td>سود خالص</td><td><strong style="color:${Number(completion.net_profit) >= 0 ? "#16a34a" : "#dc2626"};">${completion.net_profit != null ? `${Number(completion.net_profit).toLocaleString("fa-IR")} تومان` : "-"}</strong></td></tr>
+                  <tr><td>سود خالص</td><td><strong style="color:${Number(completion.net_profit) >= 0 ? "var(--success-strong, #16a34a)" : "var(--danger, #dc2626)"};">${completion.net_profit != null ? `${Number(completion.net_profit).toLocaleString("fa-IR")} تومان` : "-"}</strong></td></tr>
                   <tr><td>درصد سود</td><td>${completion.profit_percent != null ? `${completion.profit_percent}٪` : "-"}</td></tr>
                   <tr><td>سن کشتار</td><td>${formatAgeRange(completion)}</td></tr>
                   ${
@@ -224,7 +224,7 @@ class HatcheryReport {
                   completion.slaughter_age_method === "weighted" &&
                   Array.isArray(completion.slaughter_shipments) &&
                   completion.slaughter_shipments.length
-                    ? `<div style="margin-top:8px;font-size:11px;color:#334155;">
+                    ? `<div style="margin-top:8px;font-size:11px;color:var(--text-slate-strong, #334155);">
                         <strong>جزئیات ارسال‌ها به کشتارگاه:</strong>
                         <table class="report-table compact" style="margin-top:4px;">
                           <thead><tr><th>سن (روز)</th><th>تعداد (قطعه)</th><th>تاریخ</th></tr></thead>
@@ -340,7 +340,7 @@ class HatcheryReport {
         ? flocks
             .map((f) => this.buildFlockHTML(f, mode, completionsMap[f.id]))
             .join('<hr class="report-divider">')
-        : '<p style="text-align:center;color:#94a3b8;">گله‌ای برای نمایش وجود ندارد</p>';
+        : '<p style="text-align:center;color:var(--text-light, #94a3b8);">گله‌ای برای نمایش وجود ندارد</p>';
 
     const customerHTML = customer
       ? `

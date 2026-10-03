@@ -60,15 +60,15 @@ export function openSmsModal({
     const recipientRows = available
       .map(
         (r, i) => `
-          <label class="sms-recipient-row" style="display:flex; align-items:center; gap:8px; padding:7px 10px; border:1px solid #e2e8f0; border-radius:8px; margin-bottom:6px; cursor:pointer; background:#fff;">
+          <label class="sms-recipient-row" style="display:flex; align-items:center; gap:8px; padding:7px 10px; border:1px solid var(--border-color, #e2e8f0); border-radius:8px; margin-bottom:6px; cursor:pointer; background:var(--bg-surface, #fff);">
             <input type="checkbox" class="sms-recipient-check" value="${i}" ${
               i === 0 ? "checked" : ""
-            } style="width:16px; height:16px; accent-color:#2c7a6e; flex-shrink:0;">
-            <span style="flex:1; font-size:13px; color:#1e293b;">
+            } style="width:16px; height:16px; accent-color:var(--primary, #2c7a6e); flex-shrink:0;">
+            <span style="flex:1; font-size:13px; color:var(--text-dark, #1e293b);">
               <b>${roleLabel(r)}</b>
-              ${r.name ? ` <span style="color:#475569;">(${r.name})</span>` : ""}
-              ${r.note ? ` <span style="color:#94a3b8; font-size:11px;">(${r.note})</span>` : ""}
-              <span style="direction:ltr; display:block; text-align:left; color:#64748b; font-size:11px;">${r.mobile}</span>
+              ${r.name ? ` <span style="color:var(--text-slate, #475569);">(${r.name})</span>` : ""}
+              ${r.note ? ` <span style="color:var(--text-light, #94a3b8); font-size:11px;">(${r.note})</span>` : ""}
+              <span style="direction:ltr; display:block; text-align:left; color:var(--text-gray, #64748b); font-size:11px;">${r.mobile}</span>
             </span>
           </label>`,
       )
@@ -96,7 +96,7 @@ export function openSmsModal({
                 ? `<div style="background:#f0fdfa; border:1px solid #99f6e4; color:#0f766e; padding:8px 12px; border-radius:8px; font-size:12px; margin-bottom:12px;">${subtitle}</div>`
                 : ""
             }
-            <div style="margin-bottom: 10px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:8px 12px; font-size:12px; color:#334155;">
+            <div style="margin-bottom: 10px; background:var(--bg-surface-2, #f8fafc); border:1px solid var(--border-color, #e2e8f0); border-radius:8px; padding:8px 12px; font-size:12px; color:var(--text-slate-strong, #334155);">
               <b>محدوده:</b> ${scopeLabel}
               ${
                 flockNumber ? ` &nbsp;|&nbsp; <b>گله:</b> ${flockNumber}` : ""
@@ -106,22 +106,22 @@ export function openSmsModal({
               }
             </div>
             <div style="margin-bottom: 12px;">
-              <label style="display:block; margin-bottom:6px; font-weight:700; font-size:13px; color:#1e293b;">گیرنده‌ها (هرکدام را می‌خواهید انتخاب کنید)</label>
+              <label style="display:block; margin-bottom:6px; font-weight:700; font-size:13px; color:var(--text-dark, #1e293b);">گیرنده‌ها (هرکدام را می‌خواهید انتخاب کنید)</label>
               ${recipientRows}
             </div>
             <div style="margin-bottom: 12px;">
-              <label style="display:block; margin-bottom:6px; font-weight:700; font-size:13px; color:#1e293b;">انتخاب قالب پیامک</label>
-              <select id="smsTemplateSelect" style="width:100%; padding:10px 12px; border:1.5px solid #e2e8f0; border-radius:8px; font-family:'Vazir'; font-size:13px; background:#fff; cursor:pointer;">
+              <label style="display:block; margin-bottom:6px; font-weight:700; font-size:13px; color:var(--text-dark, #1e293b);">انتخاب قالب پیامک</label>
+              <select id="smsTemplateSelect" style="width:100%; padding:10px 12px; border:1.5px solid var(--border-color, #e2e8f0); border-radius:8px; font-family:'Vazir'; font-size:13px; background:var(--bg-surface, #fff); cursor:pointer;">
                 <option value="custom">متن آزاد</option>
                 ${templateOptions}
               </select>
             </div>
             <div style="margin-bottom: 6px;">
-              <label style="display:block; margin-bottom:6px; font-weight:700; font-size:13px; color:#1e293b;">متن پیامک</label>
-              <textarea id="smsMessage" rows="8" style="width:100%; padding:12px; border:1.5px solid #e2e8f0; border-radius:8px; font-family:'Vazir'; font-size:13px; resize:vertical; box-sizing:border-box; background:#fff; color:#0f172a;">${buildDefaultRaw().replace(/"/g, "&quot;")}</textarea>
+              <label style="display:block; margin-bottom:6px; font-weight:700; font-size:13px; color:var(--text-dark, #1e293b);">متن پیامک</label>
+              <textarea id="smsMessage" rows="8" style="width:100%; padding:12px; border:1.5px solid var(--border-color, #e2e8f0); border-radius:8px; font-family:'Vazir'; font-size:13px; resize:vertical; box-sizing:border-box; background:var(--bg-surface, #fff); color:#0f172a;">${buildDefaultRaw().replace(/"/g, "&quot;")}</textarea>
               <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
-                <span style="font-size:10px; color:#94a3b8;">برای شخصی‌سازی خودکار نام/نقش هر گیرنده، توکن‌های <b>#FULLNAME#</b> و <b>#ROLE#</b> را در متن نگه دارید.</span>
-                <span id="smsCharCount" style="font-size:11px; color:#2c7a6e; font-weight:700;">0</span>
+                <span style="font-size:10px; color:var(--text-light, #94a3b8);">برای شخصی‌سازی خودکار نام/نقش هر گیرنده، توکن‌های <b>#FULLNAME#</b> و <b>#ROLE#</b> را در متن نگه دارید.</span>
+                <span id="smsCharCount" style="font-size:11px; color:var(--primary, #2c7a6e); font-weight:700;">0</span>
               </div>
             </div>
           </div>

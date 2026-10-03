@@ -514,8 +514,8 @@ const cases = [
       }),
     }),
     anchors: [
-      "color:#16a34a;\">2</div>",
-      "color:#dc2626;\">1</div>",
+      "color:var(--success-strong, #16a34a);\">2</div>",
+      "color:var(--danger, #dc2626);\">1</div>",
       "color:#d97706;\">1</div>",
     ],
   },

@@ -366,7 +366,7 @@ class HallsReport {
                 `<tr><td>کارشناس</td><td><strong>${e.expert_name || "-"}</strong>${e.expert_role ? ` (${e.expert_role})` : ""}${e.expert_phone ? ` — ${e.expert_phone}` : ""}</td></tr>`,
             )
             .join("")
-        : '<tr><td>کارشناس</td><td style="color:#94a3b8;">ثبت نشده</td></tr>';
+        : '<tr><td>کارشناس</td><td style="color:var(--text-light, #94a3b8);">ثبت نشده</td></tr>';
 
     return `
       <div class="unit-details-section">

@@ -8,52 +8,52 @@
   "note2": "خروجی به locale/ICU و منطقهٔ زمانی محیط Node وابسته است (ارقام فارسی، جداکنندهٔ هزارگان، تاریخ شمسی)؛ هارنس ساعت را تثبیت و TZ را روی Asia/Tehran قفل می‌کند، پس مقایسه در همان محیطی معنا دارد که اسنپ‌شات گرفته شده است.",
   "cases": {
     "W1.renderFullReport-گزارش-کامل-دو-سالن": {
-      "bytes": 34187,
-      "sha256": "d4d2a2bef89a52fb482a07d3c399e496aed36efa11b65e8d28f3952ecd570ed5"
+      "bytes": 34241,
+      "sha256": "24b111c35b461bd89f1baa47615e51861292134afdfa165d1a3f50262e5fba1d"
     },
     "W2.renderFullReport-بدون-گروه": {
-      "bytes": 43463,
-      "sha256": "ea21a8b70a27c113b9eb171208b1ed9690f1a6963e28f872f56c4367646d91d7"
+      "bytes": 43535,
+      "sha256": "1c1bcb9a55233f44ce210095c02bbbdfc861f8ba7f7e70597ee5fe7640b9026a"
     },
     "W3.renderFullReport-گپ-و-هفتهٔ-ناقص": {
-      "bytes": 25837,
-      "sha256": "4b13c46f66d06f691f3d31f9eeb943ce7bdbcea27ce76f8537ea8a07e1a1b383"
+      "bytes": 25855,
+      "sha256": "bb6ac5d84517e24e8ddf0b316045449859efc4ebcbad5232bca6746515540702"
     },
     "W4.renderFullReport-فقط-وزن": {
-      "bytes": 20554,
-      "sha256": "f96d40e0365dcb4af6d5ce18a7555d3d10c1ffaec2e7d768bba292f2b4e5f3ff"
+      "bytes": 20572,
+      "sha256": "02bbf350d21e1c9302b0590f7f737238aef6cc8338101b344eca608f40c3677e"
     },
     "W5.renderFullReport-همهٔ-گروه‌ها-صریح": {
-      "bytes": 25837,
-      "sha256": "4b13c46f66d06f691f3d31f9eeb943ce7bdbcea27ce76f8537ea8a07e1a1b383"
+      "bytes": 25855,
+      "sha256": "bb6ac5d84517e24e8ddf0b316045449859efc4ebcbad5232bca6746515540702"
     },
     "W6.renderFullReport-بازهٔ-هفته": {
-      "bytes": 24657,
-      "sha256": "804a3b47a073510321025f7aee732988d4d3756ed87e72cbca2f656fa6aac482"
+      "bytes": 24675,
+      "sha256": "3402c11f0e9f4a8e4ae5b852999c731f3063e26672e57e05db46e8c0cf973cd6"
     },
     "W7.renderFullReport-گلهٔ-بدون-هفتهٔ-انتخابی": {
       "bytes": 16560,
       "sha256": "464ef5a49c5aec5495bf1b7d589426ce4b9076558415144275da62f4c21010bc"
     },
     "W8.renderFullReport-انتخاب-هرگله": {
-      "bytes": 43889,
-      "sha256": "08857c25c9f79fd9db30443efb7598a0afd3f6e0ea7a2a11a3959c6de1eaefa5"
+      "bytes": 43961,
+      "sha256": "921bdddce172ec67fe9a187887e5996d157c26f166494c7581ce7ae6db594b34"
     },
     "W9.renderFullReport-ترتیب-سالن‌های-معکوس": {
-      "bytes": 45598,
-      "sha256": "9e9dd3da7e32eefade604d1df5d9172edea140ee055ccc6a8a0328aad74cea95"
+      "bytes": 45670,
+      "sha256": "c0f419d5c610bf81a52f6d4d905930c49b3bafe8e8d934e8bc738bb5e8d98b4b"
     },
     "W10.renderFullReport-حالت-خالی": {
-      "bytes": 15406,
-      "sha256": "c8f63fa0e898e1ad74dcddcb100f896729c436d0856c6b13c51e86860f1c37e6"
+      "bytes": 15462,
+      "sha256": "b7c4e2c4bdc890a9fa9e0ac31d37fab0d7db346a778d8ef7a65fef3a50427d07"
     },
     "W11.renderFullReport-کاربر-ناشناس": {
-      "bytes": 23263,
-      "sha256": "1ae73a1e81b839929a8d021343d9550867664a08e2fc83775440e4149b74578b"
+      "bytes": 23281,
+      "sha256": "e9ba44896db88ce7a199021ecd9249405f2b43852544666dc4daa009576f7cf7"
     },
     "W12.renderFullReport-مشتری-ناقص": {
-      "bytes": 23228,
-      "sha256": "4e2e3dc08c8711934750830084b6209ac61f76394fff6cc0135e033a7de53fe9"
+      "bytes": 23246,
+      "sha256": "c33b697c9db1ba0fce587089870958cde32be4221d0a87032fc55d2f471d838f"
     }
   }
 }

@@ -8,8 +8,8 @@
   "note2": "خروجی به locale/ICU و منطقهٔ زمانی محیط Node وابسته است (کلوژر formatDateTime از Intl fa-IR استفاده می‌کند)؛ هارنس ساعت را تثبیت و TZ را روی Asia/Tehran قفل می‌کند.",
   "cases": {
     "M1.مودال-پایه-با-سه-پیامک": {
-      "bytes": 10118,
-      "sha256": "6ab2d944187bbe7a6f2c961985bb83db965a1c895c65df55c5d8e677e5a5d044"
+      "bytes": 11169,
+      "sha256": "3000be604df6dd031b90194faff0f484eb5c4b3dd5d8db7de01551183a5e0a90"
     },
     "M2.بی‌صدا-بدون-مودال": {
       "bytes": 550,
@@ -20,60 +20,60 @@
       "sha256": "43e2bc7abf26267e2f3edcf4ddd12328564c39f08b883148c5978172d4f91ea1"
     },
     "M4.خطای-بروزرسانی-سمت-سرور": {
-      "bytes": 5923,
-      "sha256": "c5c67a2da58561db4db21c0c9d8e955c232b16b31a7b6e322c7978ebf31d890f"
+      "bytes": 6486,
+      "sha256": "dea709a4d3fabb408b7bd4b28479b0a8d85c9500717c874884d3498240418e04"
     },
     "M5.خطای-واکشی-تاریخچه": {
-      "bytes": 3894,
-      "sha256": "ce6cbe6c61e1aa05b9ef213b87b5ce8840664e8ad579c963e47e7a0342ba69b1"
+      "bytes": 4197,
+      "sha256": "318c7bf385d08cd424d45a345cc8e1805854aa26cc9827e95932e978d0ec35b3"
     },
     "M6.history-success-false": {
-      "bytes": 3829,
-      "sha256": "61f4bd7aad3b430eed69add7d10c6c3fe52ebdf5c33b5006331bad73696d72e2"
+      "bytes": 4132,
+      "sha256": "1de5d68fb9ca9d61c922c27a3b99b9483d602f23fe31af8479e3edb8e70bb95f"
     },
     "M7.data-آرایهٔ-مستقیم": {
-      "bytes": 5944,
-      "sha256": "d9ef19019c4c6614ef5bff612bebae99df8514f274f9329955dd7bc28dec851d"
+      "bytes": 6507,
+      "sha256": "81f2c13301dca6640aa61f73110c45c3fc128691df6ce0c4be8f1cdfb3f65cfd"
     },
     "M8.Swal-غایب": {
       "bytes": 936,
       "sha256": "f5961a8d9fefc5d48b44f14e192a557d40567b33063fa7023b1b18928033ae40"
     },
     "M9.لودر-نشان-داده-نشده": {
-      "bytes": 5944,
-      "sha256": "926eed0336b19ea91aaa5d3e0aed7899dfd523b3d573f12f999cf4f8273604df"
+      "bytes": 6507,
+      "sha256": "0154fded77a868654f2b5b73c4ccc3e323020eb80ea29bb189c314240b8f0ef2"
     },
     "M10.وضعیت‌های-تحویل-مرزی": {
-      "bytes": 20550,
-      "sha256": "537aa2dd57d84b7cbab323ccabfdaa7ec3f5cda463d2e9490aaf7ecd6000c8df"
+      "bytes": 22933,
+      "sha256": "8965652cfc9c9669b2f6f175746d316246c3c1a5c68082795e9a72a9f6d2667d"
     },
     "M11.وضعیت-ناشناخته-در-ردیف": {
-      "bytes": 5910,
-      "sha256": "bb5a8e405e8fdbc45875419c8b032bd540c0b1bcd9d3130d62d55de2c1854088"
+      "bytes": 6450,
+      "sha256": "a93a0ca832e210875c6668faaedf1874e53114c22f0ebb2bae611b6b2257d753"
     },
     "M12.دامنهٔ-سالن-و-گله": {
-      "bytes": 8031,
-      "sha256": "5da9fc3cfab968e2397067f4d37cddf4d5f2ce6a3f37e331c5b6494ee5fd3395"
+      "bytes": 8854,
+      "sha256": "3ed862c0a7235a78750de15f205e7585e5e9d79811559d3b6255f85bba9cc664"
     },
     "M13.شمارهٔ-گله-و-هفته-تودرتو": {
-      "bytes": 7943,
-      "sha256": "065e41ea60c983433ba820c50fffb2e3db0751b9f1cde2ef573963df3bbc0fcf"
+      "bytes": 8747,
+      "sha256": "01474a12034c6954f2ccbf62af145f0aafc1199b8444d1b6b535e99d734d0969"
     },
     "M14.تاریخ‌های-نامعتبر": {
-      "bytes": 5916,
-      "sha256": "2ccb373854bf93e1504fd6e61ce5b677bc8c09e5cced040b6cdd3358cb460763"
+      "bytes": 6479,
+      "sha256": "9f704a72b5c76b1eff31e1778af39759449bed0b1d9ac41a9f7c5fa4308a19b4"
     },
     "M15.پیام-خالی-و-برچسپ‌های-جایگزین": {
-      "bytes": 5912,
-      "sha256": "d410e6e5c418f1cd62fdd20139ad47622223d5937400ada531f865c56a608d87"
+      "bytes": 6475,
+      "sha256": "bfa3263f7368f4f4bcaa5b3b1f8e15809472efd3e6d2c8d426d7a7755c7db34b"
     },
     "M16.شمارنده‌های-خلاصه": {
-      "bytes": 12141,
-      "sha256": "9129dc3ce5190bd853f740ac4e955f6e7d61077233a9d3f81bf641deb723a23b"
+      "bytes": 13452,
+      "sha256": "7b83d421cc21b5433abd1925ad37fb67a729004770d5f1d0db6a3f7554c8b9af"
     },
     "M17.فرستنده‌های-مختلف": {
-      "bytes": 10113,
-      "sha256": "0d037e1fbdb5fda20ce4649a411a53d832b8bed84fcb0f3e201f008ea74509b8"
+      "bytes": 11196,
+      "sha256": "b6ffbb339c76136a05320eb081e968fd30867c91f2c112913076816e4d0a11bd"
     },
     "M18.خطای-میزبان-مسیر-catch": {
       "bytes": 954,
@@ -84,12 +84,12 @@
       "sha256": "1707d9a97c318b0f41c3e53df6a151ad89d4d769d021641b2b4be81602eaa54b"
     },
     "M20.openModal-پیش‌فرض": {
-      "bytes": 5948,
-      "sha256": "d285dbcf717bc289ae0da377a4b4c05370492ffad1e4d28bbdc342ff23142d96"
+      "bytes": 6511,
+      "sha256": "620fc7cd49267bb8d5deecb0c5d2bf545e7b79fe4fd7ff1fa9787abcedda156f"
     },
     "M21.delivery_state-خالی-رشته‌ای": {
-      "bytes": 8014,
-      "sha256": "1b49f9c153d9af29820b780208b59b27f5ebc36435af601e47c2c2022bf5ebbc"
+      "bytes": 8837,
+      "sha256": "c35a2873faab2adfec3cfc2eaf04749a321f27eacc3c869652c79b8ab8be4304"
     },
     "M22.بدون-هیچ-آرگومانی-خطای-مرزی": {
       "bytes": 948,

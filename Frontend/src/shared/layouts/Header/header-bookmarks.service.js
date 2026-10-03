@@ -68,10 +68,10 @@ class HeaderBookmarksService {
 
     if (this.bookmarks.length === 0) {
       container.innerHTML = `
-        <div style="padding: 30px 20px; text-align: center; color: #94a3b8;">
-          <i class="fas fa-bookmark" style="font-size: 36px; display: block; margin-bottom: 12px; color: #cbd5e1;"></i>
+        <div style="padding: 30px 20px; text-align: center; color: var(--text-light, #94a3b8);">
+          <i class="fas fa-bookmark" style="font-size: 36px; display: block; margin-bottom: 12px; color: var(--border-strong, #cbd5e1);"></i>
           <p style="font-size: 14px;">هیچ بوکمارکی وجود ندارد</p>
-          <button onclick="window.showCreateBookmarkModal()" style="margin-top: 12px; padding: 8px 20px; background: #2c7a6e; color: white; border: none; border-radius: 8px; cursor: pointer; font-family: 'Vazir'; font-size: 13px;">
+          <button onclick="window.showCreateBookmarkModal()" style="margin-top: 12px; padding: 8px 20px; background: var(--primary, #2c7a6e); color: white; border: none; border-radius: 8px; cursor: pointer; font-family: 'Vazir'; font-size: 13px;">
             <i class="fas fa-plus"></i> جدید
           </button>
         </div>
@@ -86,11 +86,11 @@ class HeaderBookmarksService {
     );
 
     let html = `
-      <div style="padding: 12px 16px; border-bottom: 1px solid #eef2f6; display: flex; justify-content: space-between; align-items: center;">
-        <span style="font-weight: 600; color: #1e293b; font-size: 14px;">
-          <i class="fas fa-bookmark" style="color: #f59e0b;"></i> بوکمارک‌ها
+      <div style="padding: 12px 16px; border-bottom: 1px solid var(--border-light, #eef2f6); display: flex; justify-content: space-between; align-items: center;">
+        <span style="font-weight: 600; color: var(--text-dark, #1e293b); font-size: 14px;">
+          <i class="fas fa-bookmark" style="color: var(--warning, #f59e0b);"></i> بوکمارک‌ها
         </span>
-        <span style="font-size: 12px; color: #64748b;">📌 ${this.bookmarks.length} کل</span>
+        <span style="font-size: 12px; color: var(--text-gray, #64748b);">📌 ${this.bookmarks.length} کل</span>
       </div>
     `;
 
@@ -104,15 +104,15 @@ class HeaderBookmarksService {
 
       html += `
         <div onclick="window.viewBookmarkDetail(${bookmark.id})" 
-             style="display: flex; align-items: center; gap: 12px; padding: 12px 16px; cursor: pointer; transition: all 0.2s ease; border-bottom: 1px solid #f8fafc;">
+             style="display: flex; align-items: center; gap: 12px; padding: 12px 16px; cursor: pointer; transition: all 0.2s ease; border-bottom: 1px solid var(--bg-surface-2, #f8fafc);">
           <div style="width: 36px; height: 36px; border-radius: 50%; background: ${priorityColor}20; color: ${priorityColor}; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
             <i class="fas fa-${bookmark.type === "reminder" ? "bell" : "bookmark"}"></i>
           </div>
           <div style="flex: 1; min-width: 0;">
-            <div style="font-size: 13px; font-weight: 500; color: #1e293b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+            <div style="font-size: 13px; font-weight: 500; color: var(--text-dark, #1e293b); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
               ${bookmark.title || "بدون عنوان"}
             </div>
-            <div style="display: flex; gap: 6px; margin-top: 2px; flex-wrap: wrap; align-items: center; font-size: 11px; color: #64748b;">
+            <div style="display: flex; gap: 6px; margin-top: 2px; flex-wrap: wrap; align-items: center; font-size: 11px; color: var(--text-gray, #64748b);">
               <span style="background: ${priorityColor}15; color: ${priorityColor}; padding: 0 8px; border-radius: 4px; font-size: 10px;">
                 ${priorityText}
               </span>
@@ -120,7 +120,7 @@ class HeaderBookmarksService {
               ${
                 bookmark.due_date
                   ? `
-                <span style="color: ${isDue ? "#dc2626" : "#64748b"};">
+                <span style="color: ${isDue ? "var(--danger, #dc2626)" : "var(--text-gray, #64748b)"};">
                   ${isDue ? "⚠️" : "📅"} ${convertToPersianDate(bookmark.due_date)}
                 </span>
               `
@@ -128,7 +128,7 @@ class HeaderBookmarksService {
               }
             </div>
           </div>
-          <div style="color: #94a3b8; font-size: 12px;">
+          <div style="color: var(--text-light, #94a3b8); font-size: 12px;">
             <i class="fas fa-chevron-left"></i>
           </div>
         </div>
@@ -198,19 +198,19 @@ class HeaderBookmarksService {
         </div>
 
         <!-- عنوان -->
-        <div style="font-size:20px; font-weight:800; color:#1e293b; margin-bottom:4px;">${bookmark.title || "بدون عنوان"}</div>
+        <div style="font-size:20px; font-weight:800; color:var(--text-dark, #1e293b); margin-bottom:4px;">${bookmark.title || "بدون عنوان"}</div>
         <div style="display:flex; align-items:center; justify-content:center; gap:8px; flex-wrap:wrap; margin-bottom:20px;">
-          <span style="font-size:11px; padding:2px 12px; border-radius:20px; background:rgba(44,122,110,0.08); color:#2c7a6e; font-weight:600; display:inline-flex; align-items:center; gap:4px;">
+          <span style="font-size:11px; padding:2px 12px; border-radius:20px; background:rgba(44,122,110,0.08); color:var(--primary, #2c7a6e); font-weight:600; display:inline-flex; align-items:center; gap:4px;">
             <i class="fas fa-tag"></i> ${typeText}
           </span>
-          <span style="color:#e2e8f0;">|</span>
-          <span style="font-size:11px; padding:2px 10px; border-radius:20px; background:#f8fafc; color:#64748b; display:inline-flex; align-items:center; gap:4px;">
+          <span style="color:var(--border-color, #e2e8f0);">|</span>
+          <span style="font-size:11px; padding:2px 10px; border-radius:20px; background:var(--bg-surface-2, #f8fafc); color:var(--text-gray, #64748b); display:inline-flex; align-items:center; gap:4px;">
             <i class="fas fa-hashtag"></i> #${bookmark.id}
           </span>
           ${
             dueDate
-              ? `<span style="color:#e2e8f0;">|</span>
-                 <span style="font-size:11px; color:${isOverdue ? "#dc2626" : "#94a3b8"};"><i class="fas fa-clock"></i> ${dueDate} ${isOverdue ? "⚠️" : ""}</span>`
+              ? `<span style="color:var(--border-color, #e2e8f0);">|</span>
+                 <span style="font-size:11px; color:${isOverdue ? "var(--danger, #dc2626)" : "var(--text-light, #94a3b8)"};"><i class="fas fa-clock"></i> ${dueDate} ${isOverdue ? "⚠️" : ""}</span>`
               : ""
           }
         </div>
@@ -218,14 +218,14 @@ class HeaderBookmarksService {
         <!-- اطلاعات -->
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px; text-align:right;">
           <div style="background:#fafbfc; border-radius:14px; padding:12px 16px; border:1px solid transparent;">
-            <div style="font-size:11px; font-weight:600; color:#64748b; display:flex; align-items:center; gap:6px; margin-bottom:2px;">
-              <i class="fas fa-user" style="color:#2c7a6e;"></i> مشتری
+            <div style="font-size:11px; font-weight:600; color:var(--text-gray, #64748b); display:flex; align-items:center; gap:6px; margin-bottom:2px;">
+              <i class="fas fa-user" style="color:var(--primary, #2c7a6e);"></i> مشتری
             </div>
-            <div style="font-size:15px; font-weight:600; color:#2c7a6e; padding-right:4px;">${customerName}</div>
+            <div style="font-size:15px; font-weight:600; color:var(--primary, #2c7a6e); padding-right:4px;">${customerName}</div>
           </div>
           <div style="background:#fafbfc; border-radius:14px; padding:12px 16px; border:1px solid transparent;">
-            <div style="font-size:11px; font-weight:600; color:#64748b; display:flex; align-items:center; gap:6px; margin-bottom:2px;">
-              <i class="fas fa-flag" style="color:#2c7a6e;"></i> اولویت
+            <div style="font-size:11px; font-weight:600; color:var(--text-gray, #64748b); display:flex; align-items:center; gap:6px; margin-bottom:2px;">
+              <i class="fas fa-flag" style="color:var(--primary, #2c7a6e);"></i> اولویت
             </div>
             <div style="font-size:15px; font-weight:600; padding-right:4px;">
               <span style="font-size:12px; padding:2px 14px; border-radius:20px; font-weight:700; background:${pr.bg}; color:${pr.color}; display:inline-flex; align-items:center; gap:6px;">
@@ -234,43 +234,43 @@ class HeaderBookmarksService {
             </div>
           </div>
           <div style="background:#fafbfc; border-radius:14px; padding:12px 16px; border:1px solid transparent;">
-            <div style="font-size:11px; font-weight:600; color:#64748b; display:flex; align-items:center; gap:6px; margin-bottom:2px;">
-              <i class="fas fa-tag" style="color:#2c7a6e;"></i> نوع
+            <div style="font-size:11px; font-weight:600; color:var(--text-gray, #64748b); display:flex; align-items:center; gap:6px; margin-bottom:2px;">
+              <i class="fas fa-tag" style="color:var(--primary, #2c7a6e);"></i> نوع
             </div>
-            <div style="font-size:15px; font-weight:600; color:#1e293b; padding-right:4px;">
+            <div style="font-size:15px; font-weight:600; color:var(--text-dark, #1e293b); padding-right:4px;">
               ${bookmark.type === "reminder" ? "🔔 یادآوری" : "📌 بوکمارک"}
             </div>
           </div>
           ${
             dueDate
               ? `<div style="background:#fafbfc; border-radius:14px; padding:12px 16px; border:1px solid transparent;">
-                  <div style="font-size:11px; font-weight:600; color:#64748b; display:flex; align-items:center; gap:6px; margin-bottom:2px;">
-                    <i class="fas fa-calendar-alt" style="color:#2c7a6e;"></i> تاریخ سررسید
+                  <div style="font-size:11px; font-weight:600; color:var(--text-gray, #64748b); display:flex; align-items:center; gap:6px; margin-bottom:2px;">
+                    <i class="fas fa-calendar-alt" style="color:var(--primary, #2c7a6e);"></i> تاریخ سررسید
                   </div>
-                  <div style="font-size:15px; font-weight:600; padding-right:4px; color:${isOverdue ? "#dc2626" : "#1e293b"}; display:flex; align-items:center; gap:6px;">
+                  <div style="font-size:15px; font-weight:600; padding-right:4px; color:${isOverdue ? "var(--danger, #dc2626)" : "var(--text-dark, #1e293b)"}; display:flex; align-items:center; gap:6px;">
                     <i class="fas ${isOverdue ? "fa-exclamation-circle" : "fa-calendar-check"}"></i> ${dueDate}
                     ${
                       isOverdue
-                        ? '<span style="font-size:11px; font-weight:400; color:#dc2626; background:#fee2e2; padding:0 8px; border-radius:12px;">تأخیر</span>'
+                        ? '<span style="font-size:11px; font-weight:400; color:var(--danger, #dc2626); background:var(--danger-bg, #fee2e2); padding:0 8px; border-radius:12px;">تأخیر</span>'
                         : ""
                     }
                   </div>
                 </div>`
               : `<div style="background:#fafbfc; border-radius:14px; padding:12px 16px; border:1px solid transparent;">
-                  <div style="font-size:11px; font-weight:600; color:#64748b; display:flex; align-items:center; gap:6px; margin-bottom:2px;">
-                    <i class="fas fa-calendar-alt" style="color:#2c7a6e;"></i> تاریخ سررسید
+                  <div style="font-size:11px; font-weight:600; color:var(--text-gray, #64748b); display:flex; align-items:center; gap:6px; margin-bottom:2px;">
+                    <i class="fas fa-calendar-alt" style="color:var(--primary, #2c7a6e);"></i> تاریخ سررسید
                   </div>
-                  <div style="font-size:15px; font-weight:600; color:#94a3b8; padding-right:4px;">بدون تاریخ</div>
+                  <div style="font-size:15px; font-weight:600; color:var(--text-light, #94a3b8); padding-right:4px;">بدون تاریخ</div>
                 </div>`
           }
         </div>
 
         <!-- توضیحات -->
-        <div style="background:linear-gradient(135deg,#fafbfc,#f8fafc); border-radius:14px; padding:14px 18px; border:1px solid #f1f5f9; text-align:right;">
-          <div style="font-size:11px; font-weight:600; color:#64748b; display:flex; align-items:center; gap:6px; margin-bottom:4px;">
-            <i class="fas fa-align-left" style="color:#2c7a6e;"></i> توضیحات
+        <div style="background:linear-gradient(135deg,#fafbfc,var(--bg-surface-2, #f8fafc)); border-radius:14px; padding:14px 18px; border:1px solid var(--gray-100, #f1f5f9); text-align:right;">
+          <div style="font-size:11px; font-weight:600; color:var(--text-gray, #64748b); display:flex; align-items:center; gap:6px; margin-bottom:4px;">
+            <i class="fas fa-align-left" style="color:var(--primary, #2c7a6e);"></i> توضیحات
           </div>
-          <div style="font-size:14px; color:#1e293b; line-height:1.7; padding-right:4px; word-wrap:break-word; text-align:right;">${
+          <div style="font-size:14px; color:var(--text-dark, #1e293b); line-height:1.7; padding-right:4px; word-wrap:break-word; text-align:right;">${
             bookmark.description || "—"
           }</div>
         </div>
@@ -334,8 +334,8 @@ class HeaderBookmarksService {
         html: `
           <div style="text-align:right; direction:rtl; font-size:13.5px; line-height:2;">
             <div>${bookmark.description || "بدون توضیح"}</div>
-            <div style="margin-top:10px; color:#475569;">👤 ${customerName}</div>
-            <div style="color:#475569;">📅 ${dueDate || "بدون تاریخ"}</div>
+            <div style="margin-top:10px; color:var(--text-slate, #475569);">👤 ${customerName}</div>
+            <div style="color:var(--text-slate, #475569);">📅 ${dueDate || "بدون تاریخ"}</div>
           </div>`,
         confirmButtonText: "بستن",
         confirmButtonColor: "#2c7a6e",

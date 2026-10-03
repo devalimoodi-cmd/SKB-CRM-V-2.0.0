@@ -91,7 +91,7 @@ export const hallsFormMethods = {
               .filter(Boolean)
               .map(
                 (item) =>
-                  `<li style="padding:3px 8px; background:#f8fafc; margin:3px 0; border-radius:4px; font-size:12px;">✅ ${item}</li>`,
+                  `<li style="padding:3px 8px; background:var(--bg-surface-2, #f8fafc); margin:3px 0; border-radius:4px; font-size:12px;">✅ ${item}</li>`,
               )
               .join("")}</ul></div>`,
             confirmButtonText: "باشه",
@@ -196,7 +196,7 @@ export const hallsFormMethods = {
               .filter(Boolean)
               .map(
                 (i) =>
-                  `<li style="padding:3px 8px; background:#f8fafc; margin:3px 0; border-radius:4px; font-size:12px;">✅ ${i}</li>`,
+                  `<li style="padding:3px 8px; background:var(--bg-surface-2, #f8fafc); margin:3px 0; border-radius:4px; font-size:12px;">✅ ${i}</li>`,
               )
               .join("")}</ul></div>`,
             confirmButtonText: "باشه",
@@ -306,7 +306,7 @@ export const hallsFormMethods = {
               .filter(Boolean)
               .map(
                 (i) =>
-                  `<li style="padding:3px 8px; background:#f8fafc; margin:3px 0; border-radius:4px; font-size:12px;">✅ ${i}</li>`,
+                  `<li style="padding:3px 8px; background:var(--bg-surface-2, #f8fafc); margin:3px 0; border-radius:4px; font-size:12px;">✅ ${i}</li>`,
               )
               .join("")}</ul></div>`,
             confirmButtonText: "باشه",

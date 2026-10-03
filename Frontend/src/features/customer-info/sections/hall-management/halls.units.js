@@ -452,7 +452,7 @@ function computeUnitCapacityView(halls, unit) {
     unitCapacity > 0
       ? freeCapacity >= 0
         ? `<span class="value">${freeCapacity.toLocaleString()} قطعه</span>`
-        : `<span class="value" style="color:#dc2626;font-weight:700;">مازاد ${Math.abs(
+        : `<span class="value" style="color:var(--danger, #dc2626);font-weight:700;">مازاد ${Math.abs(
               freeCapacity,
             ).toLocaleString()} قطعه</span>`
       : `<span class="value">—</span>`;

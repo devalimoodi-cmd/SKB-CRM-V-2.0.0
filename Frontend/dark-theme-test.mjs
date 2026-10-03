@@ -31,12 +31,20 @@ let globalCss = "";
 let themeServiceSrc = "";
 let serverSrc = "";
 let settingsServiceSrc = "";
+let chartDashSrc = "";
+let hatcherySrc = "";
 
 try {
   globalCss = read("src/styles/global.css");
   themeServiceSrc = read("src/core/services/theme.service.js");
   serverSrc = read("server.js");
   settingsServiceSrc = read("src/features/settings/settings.service.js");
+  chartDashSrc = read(
+    "src/features/customer-info/sections/chart-dashboard/chart-dashboard.service.js",
+  );
+  hatcherySrc = read(
+    "src/features/customer-info/sections/hatchery/hatchery.service.js",
+  );
 } catch (error) {
   check("فایل‌های تم قابل خواندن هستند", false, error.message);
 }
@@ -80,6 +88,26 @@ check(
   "settings.service.js: از themeService استفاده می‌کند (تک‌منبع حقیقت)",
   /import\s*\{\s*themeService\s*\}/.test(settingsServiceSrc) &&
     /themeService\.apply\(/.test(settingsServiceSrc),
+);
+
+// ===== موج ۵: توکن‌های تکمیلی + استایل‌های inline داخل JS + تم نمودار =====
+check(
+  "global.css: توکن‌های تکمیلی موج ۵ موجودند",
+  [
+    "--text-slate",
+    "--success-bg",
+    "--danger-bg",
+    "--info-bg",
+    "--gray-100",
+  ].every((t) => globalCss.includes(t)),
+);
+check(
+  "JS inline: استایل‌های رنگی داخل JS به توکن تبدیل شده‌اند (نمونهٔ hatchery)",
+  hatcherySrc.includes('style="') && hatcherySrc.includes("var(--"),
+);
+check(
+  "chart-dashboard: رنگ grid از توکن خوانده می‌شود",
+  chartDashSrc.includes("chartThemeService.tokens().grid"),
 );
 
 // ============================================================

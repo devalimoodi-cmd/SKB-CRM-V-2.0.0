@@ -312,7 +312,7 @@ export function renderHistoryWeekMatrix(
     .slice()
     .sort((a, b) => a.week_number - b.week_number);
   if (list.length === 0) {
-    return '<p style="color:#94a3b8;padding:4px 2px;">ثبت هفتگی‌ای برای این سالن موجود نیست</p>';
+    return '<p style="color:var(--text-light, #94a3b8);padding:4px 2px;">ثبت هفتگی‌ای برای این سالن موجود نیست</p>';
   }
   const m = (w) => w.metrics || {};
   const pct = (v) => fmtPct(v);
@@ -432,7 +432,7 @@ export function renderHistoryWeekMatrix(
     .filter(Boolean);
 
   if (groups.length === 0) {
-    return '<p style="color:#94a3b8;padding:4px 2px;">گروه شاخصی برای نمایش انتخاب نشده است</p>';
+    return '<p style="color:var(--text-light, #94a3b8);padding:4px 2px;">گروه شاخصی برای نمایش انتخاب نشده است</p>';
   }
 
   return `<div class="history-groups">${groups.join("")}</div>`;
@@ -871,9 +871,9 @@ export const weeklyRenderer = {
                   totalFlocks > 0
                     ? flocksHTML
                     : `
-                    <div style="text-align: center; padding: 60px 20px; background: white; border-radius: 10px; color: #94a3b8;">
+                    <div style="text-align: center; padding: 60px 20px; background: var(--bg-surface, #fff); border-radius: 10px; color: var(--text-light, #94a3b8);">
                         <span style="font-size: 60px; display: block; margin-bottom: 15px;">📭</span>
-                        <h3 style="font-size: 20px; color: #475569; margin-bottom: 10px;">هیچ گله فعالی وجود ندارد</h3>
+                        <h3 style="font-size: 20px; color: var(--text-slate, #475569); margin-bottom: 10px;">هیچ گله فعالی وجود ندارد</h3>
                         <p>برای مشاهده گزارش، ابتدا یک گله جدید در بخش مدیریت جوجه‌ریزی ثبت کنید.</p>
                     </div>
                 `
@@ -1209,7 +1209,7 @@ const buildFlockSectionHtml = ({
                     <div class="flock-header">
                         <div>
                             <div class="flock-title">🐔 گله ${flock.flock_number}</div>
-                            <div style="font-size: 13px; color: #64748b;">
+                            <div style="font-size: 13px; color: var(--text-gray, #64748b);">
                                 ${flock.hall_name} | ${flock.breed_name || "-"} | ${toPersianDate(flock.placement_date)}
                             </div>
                         </div>
@@ -1277,7 +1277,7 @@ const buildFlockSectionHtml = ({
                     `
                         : visibleWeeks.length === 0
                           ? `
-                        <div style="text-align: center; padding: 20px; color: #94a3b8;">
+                        <div style="text-align: center; padding: 20px; color: var(--text-light, #94a3b8);">
                             <p>هیچ داده‌ای برای این گله ثبت نشده است</p>
                         </div>
                     `
@@ -1348,7 +1348,7 @@ const buildGroupSectionHtml = (group, aggregate, { selected, options }) => {
                     <div class="flock-header">
                         <div>
                             <div class="flock-title">🐔 گله ${group.flockNumber ?? "—"} — کل ${group.halls.length} سالن</div>
-                            <div style="font-size: 13px; color: #64748b;">
+                            <div style="font-size: 13px; color: var(--text-gray, #64748b);">
                                 ${hallNames || "-"} | ${group.breed_name || "-"} | ${toPersianDate(group.placement_date)}
                             </div>
                         </div>
@@ -1656,7 +1656,7 @@ const buildFlockReportHtml = ({
                     <div class="flock-header">
                         <div>
                             <div class="flock-title">🐔 گله ${flock.flock_number}</div>
-                            <div style="font-size: 13px; color: #64748b;">
+                            <div style="font-size: 13px; color: var(--text-gray, #64748b);">
                                 ${flock.hall_name} | ${flock.breed_name || "-"} | جوجه‌ریزی: ${toPersian(flock.placement_date)} | سن: ${ageInDays} روز
                             </div>
                         </div>
@@ -1687,8 +1687,8 @@ const buildFlockReportHtml = ({
                   weekBlocks || missingBlocks
                     ? `${weekBlocks}${missingBlocks}`
                     : Array.isArray(weekNumbers) && weekNumbers.length === 0
-                      ? '<div style="text-align:center; padding:40px; background:#fff; border-radius:10px; color:#94a3b8;">هیچ هفته‌ای برای این گزارش انتخاب نشده است</div>'
-                      : '<div style="text-align:center; padding:40px; background:#fff; border-radius:10px; color:#94a3b8;">هیچ هفته‌ای برای این گله ثبت نشده است</div>'
+                      ? '<div style="text-align:center; padding:40px; background:var(--bg-surface, #fff); border-radius:10px; color:var(--text-light, #94a3b8);">هیچ هفته‌ای برای این گزارش انتخاب نشده است</div>'
+                      : '<div style="text-align:center; padding:40px; background:var(--bg-surface, #fff); border-radius:10px; color:var(--text-light, #94a3b8);">هیچ هفته‌ای برای این گله ثبت نشده است</div>'
                 }
 
                 <div class="report-footer">

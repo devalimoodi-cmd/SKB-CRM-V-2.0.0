@@ -979,7 +979,7 @@ SKB-CRM.IR`,
       if (!existing) {
         title.insertAdjacentHTML(
           "beforeend",
-          `<span class="no-flock-badge" style="margin-inline-start:8px; font-size:10px; font-weight:600; color:#f59e0b; background:#fef3c7; padding:2px 10px; border-radius:12px;">⚠️ گله‌ای انتخاب نشده</span>`,
+          `<span class="no-flock-badge" style="margin-inline-start:8px; font-size:10px; font-weight:600; color:var(--warning, #f59e0b); background:var(--warning-bg, #fef3c7); padding:2px 10px; border-radius:12px;">⚠️ گله‌ای انتخاب نشده</span>`,
         );
       }
     });
@@ -991,7 +991,7 @@ SKB-CRM.IR`,
         const overlay = document.createElement("div");
         overlay.className = "chart-empty-overlay";
         overlay.innerHTML = `
-          <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; min-height:150px; color:#94a3b8; text-align:center; padding:20px;">
+          <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; min-height:150px; color:var(--text-light, #94a3b8); text-align:center; padding:20px;">
             <i class="fas fa-chart-line" style="font-size:28px; margin-bottom:10px; opacity:0.4;"></i>
             <span style="font-size:13px; font-weight:600;">برای مشاهده نمودارها، ابتدا یک گله را انتخاب کنید</span>
             <span style="font-size:11px; margin-top:6px; opacity:0.8;">از لیست تسک‌ها یک گله را انتخاب کنید</span>
@@ -1021,7 +1021,7 @@ SKB-CRM.IR`,
       "display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin-top:6px; width:100%;";
     wrap.innerHTML = `
       <button type="button" id="addCompareBtn"
-        style="padding:4px 12px; border:1px dashed #2c7a6e; background:#ecfdf5; color:#047857; border-radius:999px; font-size:11px; font-weight:600; cursor:pointer;"
+        style="padding:4px 12px; border:1px dashed var(--primary, #2c7a6e); background:#ecfdf5; color:#047857; border-radius:999px; font-size:11px; font-weight:600; cursor:pointer;"
         onclick="window.openChartComparePicker()"><i class="fas fa-plus"></i> مقایسه با گله/سالن دیگر</button>
       <span id="compareChips" style="display:inline-flex; flex-wrap:wrap; gap:4px;"></span>`;
     header.appendChild(wrap);
@@ -1870,8 +1870,8 @@ SKB-CRM.IR`,
         title: "⏳ لطفاً صبر کنید...",
         html: `
           <div style="display:flex; align-items:center; justify-content:center; gap:10px; direction:rtl; font-family:'Vazir', sans-serif; padding:8px 0;">
-            <i class="fas fa-circle-notch fa-spin" style="font-size:22px; color:#2c7a6e;"></i>
-            <span style="font-size:13px; color:#334155;">${text}</span>
+            <i class="fas fa-circle-notch fa-spin" style="font-size:22px; color:var(--primary, #2c7a6e);"></i>
+            <span style="font-size:13px; color:var(--text-slate-strong, #334155);">${text}</span>
           </div>`,
         allowOutsideClick: false,
         allowEscapeKey: false,

@@ -186,7 +186,7 @@ class CustomerListService {
     if (this.customers.length === 0) {
       tbody.innerHTML = `
                 <tr>
-                    <td colspan="14" style="text-align: center; padding: 40px; color: #94a3b8;">
+                    <td colspan="14" style="text-align: center; padding: 40px; color: var(--text-light, #94a3b8);">
                         <i class="fas fa-users" style="font-size: 32px; display: block; margin-bottom: 10px;"></i>
                         <span>هیچ مشتری‌ای ثبت نشده است</span>
                         <p style="font-size: 12px; margin-top: 8px;">برای شروع، یک مشتری جدید ثبت کنید</p>
@@ -376,7 +376,7 @@ class CustomerListService {
       });
       tbody.innerHTML = `
         <tr>
-          <td colspan="14" style="text-align:center;padding:26px;color:#94a3b8;">
+          <td colspan="14" style="text-align:center;padding:26px;color:var(--text-light, #94a3b8);">
             ${markup}
           </td>
         </tr>`;
@@ -602,12 +602,12 @@ class CustomerListService {
     if (!note) return;
     if (this.autoWelcomeSms) {
       note.innerHTML =
-        '<i class="fas fa-circle" style="font-size:6px;color:#10b981;"></i> ارسال خودکار پیامک خوش‌آمدگویی پس از ثبت مشتری فعال است';
+        '<i class="fas fa-circle" style="font-size:6px;color:var(--success, #10b981);"></i> ارسال خودکار پیامک خوش‌آمدگویی پس از ثبت مشتری فعال است';
       note.title =
         "این قابلیت فقط از بخش «تنظیمات سیستم» پنل مدیریت قابل تغییر است";
     } else {
       note.innerHTML =
-        '<i class="fas fa-circle" style="font-size:6px;color:#cbd5e1;"></i> ارسال خودکار پیامک خوش‌آمدگویی پس از ثبت مشتری غیرفعال است';
+        '<i class="fas fa-circle" style="font-size:6px;color:var(--border-strong, #cbd5e1);"></i> ارسال خودکار پیامک خوش‌آمدگویی پس از ثبت مشتری غیرفعال است';
       note.title =
         "برای فعال‌سازی به «تنظیمات سیستم» در پنل مدیریت مراجعه کنید";
     }

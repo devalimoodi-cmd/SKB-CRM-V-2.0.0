@@ -42,8 +42,8 @@
       "sha256": "9d2a0011b41ad62946097d1345be452ab67342e82521ada9c576fc6e18cb6ab2"
     },
     "D3.renderUnitDetailsPanel-مازاد": {
-      "bytes": 6665,
-      "sha256": "b3c93c3bbaa2ef2496814df49ff150049ff8969d5eae913112c703f392cadc0c"
+      "bytes": 6680,
+      "sha256": "18f9082aec44096e8bd50838824a8a0b81842e77aa7981744f145c000bdf3a64"
     },
     "D4.renderUnitDetailsPanel-ورودی-null": {
       "bytes": 0,
@@ -54,8 +54,8 @@
       "sha256": "ae3c233d54d8b7794f61ac4da4eed1f2f8db3b5a238cb0c66cf389df50502358"
     },
     "C2.saveBasicInfo-ویرایش-موفق": {
-      "bytes": 1865,
-      "sha256": "089e050c9ad6f78fc7d3e6fd17d09a16efb1bbefaf87e73a629a7fff1de35b64"
+      "bytes": 1949,
+      "sha256": "aa5b3f85333e6baa5790e285861ce2ac8849002a3ad4923a1fcd85e5b72b003d"
     },
     "C3.saveBasicInfo-خطای-اعتبارسنجی": {
       "bytes": 822,
