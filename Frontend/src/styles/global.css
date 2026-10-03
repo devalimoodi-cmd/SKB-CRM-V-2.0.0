@@ -1226,3 +1226,50 @@ button {
   font-size: 13px;
   color: var(--text-gray, #64748b);
 }
+
+/* ================================================================
+   ✅ صیقل تم تیره (موج ۴.۵)
+   ================================================================ */
+html[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+html[data-theme="dark"] body {
+  background: var(--bg-body);
+  color: var(--text-dark);
+}
+
+html[data-theme="dark"] ::selection {
+  background: var(--primary-soft);
+  color: var(--text-dark);
+}
+
+/* اسکرول‌بار تیره */
+html[data-theme="dark"] ::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+html[data-theme="dark"] ::-webkit-scrollbar-track {
+  background: var(--bg-surface-2);
+}
+
+html[data-theme="dark"] ::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 8px;
+}
+
+html[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+  background: var(--primary);
+}
+
+/* SweetAlert2 در حالت تیره */
+html[data-theme="dark"] .swal2-popup {
+  background: var(--bg-surface) !important;
+  color: var(--text-dark) !important;
+}
+
+html[data-theme="dark"] .swal2-title,
+html[data-theme="dark"] .swal2-html-container {
+  color: var(--text-dark) !important;
+}
