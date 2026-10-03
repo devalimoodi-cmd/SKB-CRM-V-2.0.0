@@ -118,7 +118,7 @@ html[data-loader="logo"] .skb-loader--logo {
 .skb-logo-ring-3 {
   position: absolute;
   inset: 28px;
-  border: 1.5px dashed rgba(44, 122, 110, 0.2);
+  border: 1.5px dashed rgba(var(--primary-rgb), 0.2);
   border-radius: 50%;
   animation: skb-spin 8s linear infinite;
 }
@@ -131,7 +131,7 @@ html[data-loader="logo"] .skb-loader--logo {
   border-radius: 50%;
   background: radial-gradient(
     circle,
-    rgba(44, 122, 110, 0.2) 0%,
+    rgba(var(--primary-rgb), 0.2) 0%,
     transparent 70%
   );
   animation: skb-glow 2.5s ease-in-out infinite;
@@ -144,7 +144,7 @@ html[data-loader="logo"] .skb-loader--logo {
   z-index: 2;
   position: relative;
   animation: skb-pulse 2.5s ease-in-out infinite;
-  filter: drop-shadow(0 4px 16px rgba(44, 122, 110, 0.3));
+  filter: drop-shadow(0 4px 16px rgba(var(--primary-rgb), 0.3));
 }
 
 .skb-logo-svg path {
@@ -200,11 +200,11 @@ html[data-loader="logo"] .skb-loader--logo {
   0%,
   100% {
     transform: scale(1);
-    filter: drop-shadow(0 4px 16px rgba(44, 122, 110, 0.3));
+    filter: drop-shadow(0 4px 16px rgba(var(--primary-rgb), 0.3));
   }
   50% {
     transform: scale(1.06);
-    filter: drop-shadow(0 8px 24px rgba(44, 122, 110, 0.5));
+    filter: drop-shadow(0 8px 24px rgba(var(--primary-rgb), 0.5));
   }
 }
 

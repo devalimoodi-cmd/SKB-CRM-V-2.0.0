@@ -139,7 +139,7 @@
 .analysis-week-input:focus {
   outline: none;
   border-color: var(--primary, #2c7a6e);
-  box-shadow: 0 0 0 3px rgba(44, 122, 110, 0.1);
+  box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.1);
 }
 
 .analysis-hint {
@@ -364,7 +364,7 @@
 }
 
 .analysis-table-wrap tbody tr:hover {
-  background: rgba(44, 122, 110, 0.04);
+  background: rgba(var(--primary-rgb), 0.04);
 }
 
 /* ===== ریسپانسیو ===== */

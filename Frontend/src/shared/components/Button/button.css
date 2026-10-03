@@ -30,7 +30,7 @@
 
 .btn:focus {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(44, 122, 110, 0.2);
+  box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.2);
 }
 
 /* ===== انواع ===== */
@@ -44,7 +44,7 @@
 .btn-primary:hover:not(:disabled) {
   background: var(--primary-dark, #035552);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(44, 122, 110, 0.3);
+  box-shadow: 0 4px 12px rgba(var(--primary-rgb), 0.3);
 }
 
 /* Secondary */
@@ -67,7 +67,7 @@
 .btn-success:hover:not(:disabled) {
   background: var(--c-059669, #059669);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  box-shadow: 0 4px 12px rgba(var(--success-rgb), 0.3);
 }
 
 /* Danger */
@@ -79,7 +79,7 @@
 .btn-danger:hover:not(:disabled) {
   background: var(--danger-deep, #b91c1c);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+  box-shadow: 0 4px 12px rgba(var(--danger-rgb), 0.3);
 }
 
 /* Warning */
@@ -91,7 +91,7 @@
 .btn-warning:hover:not(:disabled) {
   background: var(--warning-deep-2, #d97706);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+  box-shadow: 0 4px 12px rgba(var(--warning-rgb), 0.3);
 }
 
 /* Info */
@@ -103,7 +103,7 @@
 .btn-info:hover:not(:disabled) {
   background: var(--info-strong, #2563eb);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  box-shadow: 0 4px 12px rgba(var(--info-rgb), 0.3);
 }
 
 /* Outline */
@@ -117,7 +117,7 @@
   background: var(--primary, #2c7a6e);
   color: white;
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(44, 122, 110, 0.3);
+  box-shadow: 0 4px 12px rgba(var(--primary-rgb), 0.3);
 }
 
 /* Ghost */
@@ -188,14 +188,14 @@
   position: absolute;
   width: 20px;
   height: 20px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
+  border: 2px solid rgba(var(--surface-rgb), 0.3);
   border-top-color: white;
   border-radius: 50%;
   animation: btnSpin 0.8s linear infinite;
 }
 
 .btn-loading.btn-outline::after {
-  border: 2px solid rgba(44, 122, 110, 0.3);
+  border: 2px solid rgba(var(--primary-rgb), 0.3);
   border-top-color: var(--primary, #2c7a6e);
 }
 

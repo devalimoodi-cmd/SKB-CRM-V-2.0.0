@@ -127,27 +127,59 @@ walk(SRC, (file) => {
   const text = fs.readFileSync(file, "utf8");
   if (file.endsWith(".css")) {
     hexesIn(strip(text)).forEach((h) => found.add(h));
-  } else if (file.endsWith(".js")) {
+  } else if (file.endsWith(".js") || file.endsWith(".html")) {
     hexesIn(strip(jsStyleText(text))).forEach((h) => found.add(h));
   }
 });
 
 const targets = [...found].filter((h) => !EXCLUDE.has(h)).sort();
 
-// ===== ساخت نقشه =====
-const map = {};
-targets.forEach((hex) => {
-  map[hex] = { token: `--c-${hex.replace("#", "")}`, dark: darkFor(hex) };
+// ===== جمع‌آوری توکن‌های موجود از ارجاع‌های var(--c-xxxxxx, #hex) =====
+// (خودترمیمی: توکن‌هایی که قبلاً ساخته و در کد ارجاع شده‌اند، حفظ می‌شوند)
+const refs = new Map(); // hex → token
+walk(SRC, (file) => {
+  if (!/\.(css|js|html)$/i.test(file)) return;
+  const text = fs.readFileSync(file, "utf8");
+  for (const m of text.matchAll(
+    /var\(--c-([0-9a-f]{3,8}),\s*(#[0-9a-fA-F]{3,8})\)/gi,
+  )) {
+    refs.set(m[2].toLowerCase(), `--c-${m[1].toLowerCase()}`);
+  }
 });
-fs.writeFileSync(MAP_OUT, JSON.stringify(map, null, 2) + "\n", "utf8");
-console.log(`✅ ${targets.length} توکن ساخته شد → tools/theme-token-map.json`);
 
-// ===== نوشتن بلوک‌ها در global.css =====
+// ===== ساخت نقشه (ادغام: موجود + ارجاع‌ها + جدیدها) =====
+let existing = {};
+try {
+  if (fs.existsSync(MAP_OUT)) {
+    existing = JSON.parse(fs.readFileSync(MAP_OUT, "utf8"));
+  }
+} catch {
+  existing = {};
+}
+
+const map = { ...existing };
+const ensure = (hex, token) => {
+  const h = hex.toLowerCase();
+  if (!map[h]) map[h] = { token };
+  if (!map[h].dark) map[h].dark = darkFor(h);
+};
+refs.forEach((token, hex) => ensure(hex, token));
+targets.forEach((hex) => ensure(hex, `--c-${hex.replace("#", "")}`));
+
+const allHexes = Object.keys(map).sort();
+fs.writeFileSync(MAP_OUT, JSON.stringify(map, null, 2) + "\n", "utf8");
+console.log(
+  `✅ ${allHexes.length} توکن در نقشه (${refs.size} از ارجاع‌ها، ${targets.length} یافت‌شده)`,
+);
+
+// ===== نوشتن بلوک‌ها در global.css (همهٔ توکن‌های نقشه) =====
 const START = "/* @@WAVE7-TOKENS-START@@ */";
 const END = "/* @@WAVE7-TOKENS-END@@ */";
 
-const lightLines = targets.map((hex) => `  ${map[hex].token}: ${hex};`);
-const darkLines = targets.map((hex) => `  ${map[hex].token}: ${map[hex].dark};`);
+const lightLines = allHexes.map((hex) => `  ${map[hex].token}: ${hex};`);
+const darkLines = allHexes.map(
+  (hex) => `  ${map[hex].token}: ${map[hex].dark};`,
+);
 
 const block = [
   START,

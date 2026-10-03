@@ -28,7 +28,7 @@
 
 .accordion-item.open {
   border-color: var(--primary, #2c7a6e);
-  box-shadow: 0 4px 20px rgba(44, 122, 110, 0.12);
+  box-shadow: 0 4px 20px rgba(var(--primary-rgb), 0.12);
 }
 
 /* ===== هدر آکاردئون ===== */
@@ -62,7 +62,7 @@
 }
 
 .accordion-item.open .accordion-header .accordion-badge {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(var(--surface-rgb), 0.2);
   color: white;
 }
 
@@ -88,7 +88,7 @@
 }
 
 .accordion-badge {
-  background: rgba(44, 122, 110, 0.1);
+  background: rgba(var(--primary-rgb), 0.1);
   color: var(--primary, #2c7a6e);
   padding: 2px 12px;
   border-radius: 20px;
@@ -162,7 +162,7 @@
   color: white;
   border-color: var(--primary, #2c7a6e);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(44, 122, 110, 0.3);
+  box-shadow: 0 4px 12px rgba(var(--primary-rgb), 0.3);
 }
 
 .accordion-control-btn i {

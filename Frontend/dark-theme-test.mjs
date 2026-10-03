@@ -144,7 +144,7 @@ const collectRemaining = () => {
         walk(abs);
       } else if (entry.name.endsWith(".css")) {
         hexesOf(fs.readFileSync(abs, "utf8")).forEach((h) => out.push(h));
-      } else if (entry.name.endsWith(".js")) {
+      } else if (entry.name.endsWith(".js") || entry.name.endsWith(".html")) {
         const src = fs.readFileSync(abs, "utf8");
         const parts =
           src.match(/<style\b[^>]*>[\s\S]*?<\/style>|style="[^"]*"/gi) || [];

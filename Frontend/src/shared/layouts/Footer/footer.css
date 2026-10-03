@@ -98,7 +98,7 @@
   color: #ffffff;
   border-color: var(--primary, #2c7a6e);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(44, 122, 110, 0.3);
+  box-shadow: 0 4px 12px rgba(var(--primary-rgb), 0.3);
 }
 
 /* ===== نسخه ===== */

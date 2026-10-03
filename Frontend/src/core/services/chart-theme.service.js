@@ -48,9 +48,10 @@ export const chartThemeService = {
       Chart.defaults.plugins.legend.labels.color = t.strong;
     }
     if (Chart.defaults.plugins?.tooltip) {
-      Chart.defaults.plugins.tooltip.backgroundColor = t.surface;
-      Chart.defaults.plugins.tooltip.titleColor = t.strong;
-      Chart.defaults.plugins.tooltip.bodyColor = t.text;
+      // ✅ تولتیپ همیشه تیره با متن روشن ⇒ در هر دو تم خوانا (مستقل از overrides نمودارها)
+      Chart.defaults.plugins.tooltip.backgroundColor = "rgba(15, 23, 42, 0.94)";
+      Chart.defaults.plugins.tooltip.titleColor = "#ffffff";
+      Chart.defaults.plugins.tooltip.bodyColor = "#e2e8f0";
       Chart.defaults.plugins.tooltip.borderColor = t.grid;
     }
     return true;

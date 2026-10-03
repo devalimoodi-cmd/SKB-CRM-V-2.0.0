@@ -68,7 +68,7 @@
 .filter-select:focus {
   outline: none;
   border-color: var(--primary, #2c7a6e);
-  box-shadow: 0 0 0 3px rgba(44, 122, 110, 0.1);
+  box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.1);
 }
 
 /* ============================================
@@ -132,7 +132,7 @@
 .week-edit-form select:focus {
   outline: none;
   border-color: var(--primary, #2c7a6e);
-  box-shadow: 0 0 0 2px rgba(44, 122, 110, 0.1);
+  box-shadow: 0 0 0 2px rgba(var(--primary-rgb), 0.1);
 }
 
 .week-edit-form input:disabled {
@@ -165,7 +165,7 @@
 .week-edit-form textarea:focus {
   outline: none;
   border-color: var(--primary, #2c7a6e);
-  box-shadow: 0 0 0 2px rgba(44, 122, 110, 0.1);
+  box-shadow: 0 0 0 2px rgba(var(--primary-rgb), 0.1);
 }
 
 /* دکمه‌های فرم */
@@ -217,7 +217,7 @@
   gap: 12px;
   margin-bottom: 14px;
   padding: 10px 14px;
-  background: linear-gradient(135deg, #ffffff 0%, var(--bg-surface-2, #f8fafc) 100%);
+  background: linear-gradient(135deg, var(--bg-surface, #ffffff) 0%, var(--bg-surface-2, #f8fafc) 100%);
   border: 1px solid var(--border-color, #e2e8f0);
   border-radius: 10px;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
@@ -265,7 +265,7 @@
 .btn-expand-all:hover {
   background: var(--primary-dark, #035552);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(44, 122, 110, 0.3);
+  box-shadow: 0 4px 12px rgba(var(--primary-rgb), 0.3);
 }
 
 .btn-collapse-all {
@@ -286,7 +286,7 @@
 .btn-Report-All-week:hover {
   background: var(--violet-deep, #7c3aed);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+  box-shadow: 0 4px 12px rgba(var(--violet-rgb), 0.3);
 }
 
 /* ============================================
@@ -350,7 +350,7 @@
 .flock-age {
   font-size: 0.7rem;
   opacity: 0.9;
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(var(--surface-rgb), 0.15);
   padding: 3px 10px;
   border-radius: 20px;
 }
@@ -405,7 +405,7 @@
 
 .week-accordion-item.open {
   border-color: var(--primary, #2c7a6e);
-  box-shadow: 0 4px 20px rgba(44, 122, 110, 0.12);
+  box-shadow: 0 4px 20px rgba(var(--primary-rgb), 0.12);
 }
 
 .week-accordion-header {
@@ -443,7 +443,7 @@
   font-weight: 700;
   font-size: 14px;
   color: var(--primary, #2c7a6e);
-  background: rgba(44, 122, 110, 0.1);
+  background: rgba(var(--primary-rgb), 0.1);
   padding: 3px 12px;
   border-radius: 30px;
   min-width: 70px;
@@ -760,7 +760,7 @@
   transform: translateY(-50%) translateX(4px);
   transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
   z-index: 9999;
-  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.25);
+  box-shadow: 0 8px 20px rgba(var(--ink-rgb), 0.25);
   pointer-events: none;
   white-space: normal;
 }
@@ -836,13 +836,13 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+  box-shadow: 0 1px 3px rgba(var(--ink-rgb), 0.06);
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .wc-card.wc-primary {
   border-color: var(--primary, #2c7a6e);
-  background: linear-gradient(135deg, var(--c-f0fdf9, #f0fdf9), #ffffff);
+  background: linear-gradient(135deg, var(--c-f0fdf9, #f0fdf9), var(--bg-surface, #ffffff));
 }
 
 .wc-card.wc-ok {
@@ -893,9 +893,9 @@
   font-size: 0.7rem;
   font-weight: 600;
   opacity: 0.95;
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(var(--surface-rgb), 0.15);
   color: #ffffff;
-  border: 1px solid rgba(255, 255, 255, 0.25);
+  border: 1px solid rgba(var(--surface-rgb), 0.25);
   padding: 3px 10px;
   border-radius: 20px;
   letter-spacing: 0.3px;
@@ -1002,7 +1002,7 @@
 }
 
 .flock-group-meta {
-  background: rgba(255, 255, 255, 0.18);
+  background: rgba(var(--surface-rgb), 0.18);
   padding: 2px 12px;
   border-radius: 999px;
   font-size: 11.5px;
@@ -1056,7 +1056,7 @@
   color: #ffffff;
   border-style: solid;
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(44, 122, 110, 0.25);
+  box-shadow: 0 4px 12px rgba(var(--primary-rgb), 0.25);
 }
 
 
@@ -1266,7 +1266,7 @@
 
 .wh-search:focus {
   border-color: var(--primary, #2c7a6e);
-  box-shadow: 0 0 0 2px rgba(44, 122, 110, 0.12);
+  box-shadow: 0 0 0 2px rgba(var(--primary-rgb), 0.12);
 }
 
 .wh-list {
