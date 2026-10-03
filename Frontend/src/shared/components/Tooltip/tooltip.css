@@ -14,7 +14,7 @@
 .tooltip {
   position: absolute;
   padding: 6px 12px;
-  background: #1e293b;
+  background: var(--text-dark, #1e293b);
   color: #ffffff;
   font-family: "Vazir", sans-serif;
   font-size: 12px;
@@ -52,7 +52,7 @@
   left: 50%;
   transform: translateX(-50%);
   border: 6px solid transparent;
-  border-top-color: #1e293b;
+  border-top-color: var(--text-dark, #1e293b);
 }
 
 /* پایین */
@@ -73,7 +73,7 @@
   left: 50%;
   transform: translateX(-50%);
   border: 6px solid transparent;
-  border-bottom-color: #1e293b;
+  border-bottom-color: var(--text-dark, #1e293b);
 }
 
 /* راست */
@@ -94,7 +94,7 @@
   top: 50%;
   transform: translateY(-50%);
   border: 6px solid transparent;
-  border-right-color: #1e293b;
+  border-right-color: var(--text-dark, #1e293b);
 }
 
 /* چپ */
@@ -115,7 +115,7 @@
   top: 50%;
   transform: translateY(-50%);
   border: 6px solid transparent;
-  border-left-color: #1e293b;
+  border-left-color: var(--text-dark, #1e293b);
 }
 
 /* ===== انواع ===== */
@@ -141,84 +141,84 @@
 
 /* رنگی */
 .tooltip-primary {
-  background: #2c7a6e;
+  background: var(--primary, #2c7a6e);
 }
 
 .tooltip-primary::after {
-  border-top-color: #2c7a6e;
+  border-top-color: var(--primary, #2c7a6e);
 }
 
 .tooltip-primary.tooltip-bottom::after {
-  border-bottom-color: #2c7a6e;
+  border-bottom-color: var(--primary, #2c7a6e);
 }
 
 .tooltip-primary.tooltip-right::after {
-  border-right-color: #2c7a6e;
+  border-right-color: var(--primary, #2c7a6e);
 }
 
 .tooltip-primary.tooltip-left::after {
-  border-left-color: #2c7a6e;
+  border-left-color: var(--primary, #2c7a6e);
 }
 
 .tooltip-danger {
-  background: #dc2626;
+  background: var(--danger, #dc2626);
 }
 
 .tooltip-danger::after {
-  border-top-color: #dc2626;
+  border-top-color: var(--danger, #dc2626);
 }
 
 .tooltip-danger.tooltip-bottom::after {
-  border-bottom-color: #dc2626;
+  border-bottom-color: var(--danger, #dc2626);
 }
 
 .tooltip-danger.tooltip-right::after {
-  border-right-color: #dc2626;
+  border-right-color: var(--danger, #dc2626);
 }
 
 .tooltip-danger.tooltip-left::after {
-  border-left-color: #dc2626;
+  border-left-color: var(--danger, #dc2626);
 }
 
 .tooltip-success {
-  background: #10b981;
+  background: var(--success, #10b981);
 }
 
 .tooltip-success::after {
-  border-top-color: #10b981;
+  border-top-color: var(--success, #10b981);
 }
 
 .tooltip-success.tooltip-bottom::after {
-  border-bottom-color: #10b981;
+  border-bottom-color: var(--success, #10b981);
 }
 
 .tooltip-success.tooltip-right::after {
-  border-right-color: #10b981;
+  border-right-color: var(--success, #10b981);
 }
 
 .tooltip-success.tooltip-left::after {
-  border-left-color: #10b981;
+  border-left-color: var(--success, #10b981);
 }
 
 .tooltip-warning {
-  background: #f59e0b;
-  color: #1e293b;
+  background: var(--warning, #f59e0b);
+  color: var(--text-dark, #1e293b);
 }
 
 .tooltip-warning::after {
-  border-top-color: #f59e0b;
+  border-top-color: var(--warning, #f59e0b);
 }
 
 .tooltip-warning.tooltip-bottom::after {
-  border-bottom-color: #f59e0b;
+  border-bottom-color: var(--warning, #f59e0b);
 }
 
 .tooltip-warning.tooltip-right::after {
-  border-right-color: #f59e0b;
+  border-right-color: var(--warning, #f59e0b);
 }
 
 .tooltip-warning.tooltip-left::after {
-  border-left-color: #f59e0b;
+  border-left-color: var(--warning, #f59e0b);
 }
 
 /* ===== با تاخیر ===== */

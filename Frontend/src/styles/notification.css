@@ -52,7 +52,7 @@
   font-family: "Vazir", sans-serif !important;
   font-size: 18px !important;
   font-weight: 600 !important;
-  color: #1e293b !important;
+  color: var(--text-dark, #1e293b) !important;
 }
 
 .swal2-popup:not(.swal2-toast) .swal2-html-container {
@@ -78,21 +78,21 @@
 }
 
 .swal2-popup:not(.swal2-toast) .swal2-confirm {
-  background: #2c7a6e !important;
+  background: var(--primary, #2c7a6e) !important;
 }
 
 .swal2-popup:not(.swal2-toast) .swal2-confirm:hover {
-  background: #035552 !important;
+  background: var(--primary-dark, #035552) !important;
   transform: translateY(-2px) !important;
 }
 
 .swal2-popup:not(.swal2-toast) .swal2-cancel {
-  background: #e2e8f0 !important;
+  background: var(--border-color, #e2e8f0) !important;
   color: #475569 !important;
 }
 
 .swal2-popup:not(.swal2-toast) .swal2-cancel:hover {
-  background: #cbd5e1 !important;
+  background: var(--border-strong, #cbd5e1) !important;
 }
 
 /* ===== Loading ===== */

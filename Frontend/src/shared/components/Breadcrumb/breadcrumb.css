@@ -10,10 +10,10 @@
 
 .breadcrumb_wraper {
   width: 100%;
-  background: #ffffff;
+  background: var(--bg-surface, #ffffff);
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-  border: 1px solid #eef2f6;
+  border: 1px solid var(--border-light, #eef2f6);
   overflow: hidden;
 }
 
@@ -25,7 +25,7 @@
   padding: 12px 20px;
   margin: 0;
   list-style: none;
-  background: #ffffff;
+  background: var(--bg-surface, #ffffff);
   direction: rtl;
 }
 
@@ -35,23 +35,23 @@
   align-items: center;
   gap: 8px;
   font-size: 13px;
-  color: #64748b;
+  color: var(--text-gray, #64748b);
 }
 
 .breadcrumb-item:not(:last-child)::after {
   content: "›";
   font-size: 16px;
-  color: #cbd5e1;
+  color: var(--border-strong, #cbd5e1);
   margin-right: 8px;
 }
 
 .breadcrumb-item:last-child .breadcrumb-item-link {
-  color: #2c7a6e;
+  color: var(--primary, #2c7a6e);
   font-weight: 500;
 }
 
 .breadcrumb-item:last-child .breadcrumb-item-link i {
-  color: #2c7a6e;
+  color: var(--primary, #2c7a6e);
 }
 
 /* ===== لینک بردکام ===== */
@@ -60,22 +60,22 @@
   align-items: center;
   gap: 6px;
   text-decoration: none;
-  color: #64748b;
+  color: var(--text-gray, #64748b);
   transition: all 0.3s ease;
 }
 
 .breadcrumb-item-link i {
   font-size: 14px;
-  color: #94a3b8;
+  color: var(--text-light, #94a3b8);
   transition: all 0.3s ease;
 }
 
 .breadcrumb-item-link:hover {
-  color: #2c7a6e;
+  color: var(--primary, #2c7a6e);
 }
 
 .breadcrumb-item-link:hover i {
-  color: #2c7a6e;
+  color: var(--primary, #2c7a6e);
 }
 
 .breadcrumb-item_text {

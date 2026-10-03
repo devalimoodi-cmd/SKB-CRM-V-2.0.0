@@ -10,12 +10,12 @@
 
 /* ===== آیتم آکاردئون ===== */
 .accordion-item {
-  border: 1px solid #eef2f6;
+  border: 1px solid var(--border-light, #eef2f6);
   border-radius: 12px;
   margin-bottom: 8px;
   overflow: hidden;
   transition: all 0.3s ease;
-  background: #ffffff;
+  background: var(--bg-surface, #ffffff);
 }
 
 .accordion-item:last-child {
@@ -27,7 +27,7 @@
 }
 
 .accordion-item.open {
-  border-color: #2c7a6e;
+  border-color: var(--primary, #2c7a6e);
   box-shadow: 0 4px 20px rgba(44, 122, 110, 0.12);
 }
 
@@ -49,7 +49,7 @@
 }
 
 .accordion-item.open .accordion-header {
-  background: linear-gradient(135deg, #2c7a6e 0%, #035552 100%);
+  background: linear-gradient(135deg, var(--primary, #2c7a6e) 0%, var(--primary-dark, #035552) 100%);
   border-radius: 12px 12px 0 0;
 }
 
@@ -77,19 +77,19 @@
   gap: 12px;
   font-weight: 600;
   font-size: 15px;
-  color: #1e293b;
+  color: var(--text-dark, #1e293b);
   transition: color 0.3s ease;
 }
 
 .accordion-title i {
   font-size: 18px;
-  color: #2c7a6e;
+  color: var(--primary, #2c7a6e);
   transition: color 0.3s ease;
 }
 
 .accordion-badge {
   background: rgba(44, 122, 110, 0.1);
-  color: #2c7a6e;
+  color: var(--primary, #2c7a6e);
   padding: 2px 12px;
   border-radius: 20px;
   font-size: 11px;
@@ -100,7 +100,7 @@
 /* ===== آیکون ===== */
 .accordion-icon {
   transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  color: #94a3b8;
+  color: var(--text-light, #94a3b8);
   font-size: 16px;
   flex-shrink: 0;
 }
@@ -113,8 +113,8 @@
 .accordion-body {
   display: none;
   padding: 20px;
-  background: #ffffff;
-  border-top: 1px solid #eef2f6;
+  background: var(--bg-surface, #ffffff);
+  border-top: 1px solid var(--border-light, #eef2f6);
   animation: accordionSlideDown 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -143,9 +143,9 @@
 
 .accordion-control-btn {
   padding: 8px 18px;
-  border: 1px solid #eef2f6;
+  border: 1px solid var(--border-light, #eef2f6);
   border-radius: 8px;
-  background: white;
+  background: var(--bg-surface, #fff);
   cursor: pointer;
   font-family: "Vazir", sans-serif;
   font-size: 13px;
@@ -154,13 +154,13 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  color: #1e293b;
+  color: var(--text-dark, #1e293b);
 }
 
 .accordion-control-btn:hover {
-  background: #2c7a6e;
+  background: var(--primary, #2c7a6e);
   color: white;
-  border-color: #2c7a6e;
+  border-color: var(--primary, #2c7a6e);
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(44, 122, 110, 0.3);
 }
@@ -185,16 +185,16 @@
 
 .accordion-borderless .accordion-header {
   background: transparent;
-  border-bottom: 1px solid #eef2f6;
+  border-bottom: 1px solid var(--border-light, #eef2f6);
 }
 
 .accordion-borderless .accordion-item.open .accordion-header {
   background: transparent;
-  border-bottom: 2px solid #2c7a6e;
+  border-bottom: 2px solid var(--primary, #2c7a6e);
 }
 
 .accordion-borderless .accordion-item.open .accordion-header .accordion-title {
-  color: #2c7a6e;
+  color: var(--primary, #2c7a6e);
 }
 
 .accordion-borderless
@@ -202,7 +202,7 @@
   .accordion-header
   .accordion-title
   i {
-  color: #2c7a6e;
+  color: var(--primary, #2c7a6e);
 }
 
 /* نوع کوچک (compact) */

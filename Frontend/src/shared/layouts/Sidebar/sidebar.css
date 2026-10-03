@@ -3,10 +3,10 @@
    ============================================ */
 
 .sidebar {
-  background: #ffffff;
+  background: var(--bg-surface, #ffffff);
   border-radius: 12px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-  border: 1px solid #eef2f6;
+  border: 1px solid var(--border-light, #eef2f6);
   padding: 16px 12px;
   position: sticky;
   top: 80px;
@@ -25,7 +25,7 @@
 }
 
 .sidebar::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: var(--border-strong, #cbd5e1);
   border-radius: 10px;
 }
 
@@ -46,13 +46,13 @@
 
 .sidebar-item:hover {
   background: #f1f5f9;
-  border-right-color: #2c7a6e;
+  border-right-color: var(--primary, #2c7a6e);
   transform: translateX(-4px);
 }
 
 .sidebar-item.active {
-  background: #2c7a6e;
-  border-right-color: #2c7a6e;
+  background: var(--primary, #2c7a6e);
+  border-right-color: var(--primary, #2c7a6e);
   border-color: transparent;
 }
 
@@ -79,7 +79,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: white;
+  background: var(--bg-surface, #fff);
   border-radius: 10px;
   flex-shrink: 0;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
@@ -87,7 +87,7 @@
 
 .sidebar-icon {
   font-size: 20px;
-  color: #2c7a6e;
+  color: var(--primary, #2c7a6e);
   transition: all 0.3s ease;
 }
 
@@ -105,19 +105,19 @@
   display: block;
   font-size: 13px;
   font-weight: 600;
-  color: #1e293b;
+  color: var(--text-dark, #1e293b);
   transition: all 0.3s ease;
 }
 
 .sidebar-description {
   display: block;
   font-size: 11px;
-  color: #64748b;
+  color: var(--text-gray, #64748b);
   transition: all 0.3s ease;
 }
 
 .sidebar-arrow {
-  color: #94a3b8;
+  color: var(--text-light, #94a3b8);
   font-size: 12px;
   transition: all 0.3s ease;
   flex-shrink: 0;
@@ -135,7 +135,7 @@
 .sidebar-group-title {
   font-size: 11px;
   font-weight: 600;
-  color: #94a3b8;
+  color: var(--text-light, #94a3b8);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   padding: 8px 14px 4px;
@@ -203,14 +203,14 @@
 .sidebar-empty {
   text-align: center;
   padding: 30px 20px;
-  color: #94a3b8;
+  color: var(--text-light, #94a3b8);
 }
 
 .sidebar-empty i {
   font-size: 36px;
   display: block;
   margin-bottom: 12px;
-  color: #cbd5e1;
+  color: var(--border-strong, #cbd5e1);
 }
 
 /* ===== ریسپانسیو ===== */

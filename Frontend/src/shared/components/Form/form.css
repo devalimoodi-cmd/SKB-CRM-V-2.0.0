@@ -19,23 +19,23 @@
 .form-group label {
   font-size: 13px;
   font-weight: 500;
-  color: #1e293b;
+  color: var(--text-dark, #1e293b);
 }
 
 .form-group label .required {
-  color: #dc2626;
+  color: var(--danger, #dc2626);
   margin-right: 2px;
 }
 
 .form-group .help-text {
   font-size: 12px;
-  color: #94a3b8;
+  color: var(--text-light, #94a3b8);
   margin-top: 4px;
 }
 
 .form-group .error-text {
   font-size: 12px;
-  color: #dc2626;
+  color: var(--danger, #dc2626);
   margin-top: 4px;
   display: none;
 }
@@ -45,7 +45,7 @@
 }
 
 .form-group.has-error .form-control {
-  border-color: #dc2626;
+  border-color: var(--danger, #dc2626);
 }
 
 /* ===== کنترل‌های فرم ===== */
@@ -57,13 +57,13 @@
   font-family: "Vazir", sans-serif;
   font-size: 13px;
   transition: all 0.3s ease;
-  background: white;
-  color: #1e293b;
+  background: var(--bg-surface, #fff);
+  color: var(--text-dark, #1e293b);
   outline: none;
 }
 
 .form-control:focus {
-  border-color: #2c7a6e;
+  border-color: var(--primary, #2c7a6e);
   box-shadow: 0 0 0 3px rgba(44, 122, 110, 0.1);
 }
 
@@ -73,7 +73,7 @@
 }
 
 .form-control::placeholder {
-  color: #94a3b8;
+  color: var(--text-light, #94a3b8);
 }
 
 /* ===== فیلدهای خاص ===== */
@@ -92,12 +92,12 @@
   right: 12px;
   top: 50%;
   transform: translateY(-50%);
-  color: #94a3b8;
+  color: var(--text-light, #94a3b8);
   font-size: 16px;
 }
 
 .form-input .form-control:focus + .input-icon {
-  color: #2c7a6e;
+  color: var(--primary, #2c7a6e);
 }
 
 /* فیلد با دکمه */
@@ -124,7 +124,7 @@
   left: 12px;
   top: 50%;
   transform: translateY(-50%);
-  color: #94a3b8;
+  color: var(--text-light, #94a3b8);
   pointer-events: none;
 }
 
@@ -155,7 +155,7 @@
 .form-check input[type="radio"] {
   width: 18px;
   height: 18px;
-  accent-color: #2c7a6e;
+  accent-color: var(--primary, #2c7a6e);
   cursor: pointer;
 }
 
@@ -177,7 +177,7 @@
   gap: 12px;
   margin-top: 8px;
   padding-top: 16px;
-  border-top: 1px solid #eef2f6;
+  border-top: 1px solid var(--border-light, #eef2f6);
   flex-wrap: wrap;
 }
 

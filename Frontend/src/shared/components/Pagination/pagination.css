@@ -17,7 +17,7 @@
   height: 36px;
   padding: 0 12px;
   border: 1px solid #e5e7eb;
-  background: white;
+  background: var(--bg-surface, #fff);
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -31,9 +31,9 @@
 }
 
 .pagination-btn:hover:not(:disabled) {
-  background: #2c7a6e;
+  background: var(--primary, #2c7a6e);
   color: white;
-  border-color: #2c7a6e;
+  border-color: var(--primary, #2c7a6e);
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(44, 122, 110, 0.3);
 }
@@ -45,9 +45,9 @@
 }
 
 .pagination-btn.active {
-  background: #2c7a6e;
+  background: var(--primary, #2c7a6e);
   color: white;
-  border-color: #2c7a6e;
+  border-color: var(--primary, #2c7a6e);
   box-shadow: 0 2px 8px rgba(44, 122, 110, 0.3);
 }
 
@@ -58,14 +58,14 @@
   justify-content: center;
   min-width: 36px;
   height: 36px;
-  color: #94a3b8;
+  color: var(--text-light, #94a3b8);
   font-size: 14px;
 }
 
 /* ===== اطلاعات ===== */
 .pagination-info {
   font-size: 13px;
-  color: #64748b;
+  color: var(--text-gray, #64748b);
   background: #f1f5f9;
   padding: 6px 16px;
   border-radius: 20px;
@@ -76,7 +76,7 @@
 
 .pagination-info .highlight {
   font-weight: 600;
-  color: #2c7a6e;
+  color: var(--primary, #2c7a6e);
 }
 
 /* ===== انتخابگر تعداد ===== */
@@ -85,22 +85,22 @@
   align-items: center;
   gap: 8px;
   font-size: 13px;
-  color: #64748b;
+  color: var(--text-gray, #64748b);
 }
 
 .pagination-size select {
   padding: 6px 12px;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
-  background: white;
+  background: var(--bg-surface, #fff);
   font-family: "Vazir", sans-serif;
   cursor: pointer;
-  color: #1e293b;
+  color: var(--text-dark, #1e293b);
   transition: all 0.3s ease;
 }
 
 .pagination-size select:hover {
-  border-color: #2c7a6e;
+  border-color: var(--primary, #2c7a6e);
 }
 
 /* ===== انواع مختلف ===== */
@@ -141,12 +141,12 @@
 
 .pagination-simple .pagination-btn:hover:not(:disabled) {
   background: #f1f5f9;
-  color: #2c7a6e;
+  color: var(--primary, #2c7a6e);
   box-shadow: none;
 }
 
 .pagination-simple .pagination-btn.active {
-  background: #2c7a6e;
+  background: var(--primary, #2c7a6e);
   color: white;
 }
 
