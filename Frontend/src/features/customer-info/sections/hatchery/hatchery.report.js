@@ -814,7 +814,7 @@ const buildFlockSmsReportDocument = (params) => {
           .sms-chip.chip-flock { background: var(--success-mist-2, #ecfdf5); color: var(--success-deep, #047857); }
           .sms-chip.chip-hall { background: var(--info-soft, #eff6ff); color: var(--info-deep, #1d4ed8); }
           .status-chip { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 10.5px; font-weight: 700; white-space: nowrap; }
-          .status-chip.status-delivered { background: var(--success-bg, #dcfce7); color: #15803d; }
+          .status-chip.status-delivered { background: var(--success-bg, #dcfce7); color: var(--c-15803d, #15803d); }
           .status-chip.status-sent { background: var(--info-bg, #dbeafe); color: var(--info-strong, #2563eb); }
           .status-chip.status-failed { background: var(--danger-bg, #fee2e2); color: var(--danger, #dc2626); }
           .status-chip.status-pending { background: var(--warning-bg, #fef3c7); color: var(--warning-deep, #b45309); }

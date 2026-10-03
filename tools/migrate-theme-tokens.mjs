@@ -97,6 +97,19 @@ const HEX_MAP = [
   ["#d8e0e8", "--slate-border"],
 ];
 
+// ✅ توکن‌های تولیدشده (موج ۷) از فایل نقشه بارگذاری می‌شوند
+try {
+  const mapPath = path.join(ROOT, "tools", "theme-token-map.json");
+  if (fs.existsSync(mapPath)) {
+    const genMap = JSON.parse(fs.readFileSync(mapPath, "utf8"));
+    for (const [hex, def] of Object.entries(genMap)) {
+      if (def && def.token) HEX_MAP.push([hex, def.token]);
+    }
+  }
+} catch {
+  /* بی‌صدا */
+}
+
 const maskBlocks = (css) => {
   const saved = [];
   const keep = (block) => {

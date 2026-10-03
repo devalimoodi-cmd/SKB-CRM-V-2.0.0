@@ -17,7 +17,7 @@
 
 .skb-form-header {
   padding-bottom: 16px;
-  border-bottom: 2px solid #e9ecef;
+  border-bottom: 2px solid var(--c-e9ecef, #e9ecef);
   margin-bottom: 24px;
 }
 
@@ -74,7 +74,7 @@
   position: relative;
   display: flex;
   align-items: center;
-  border: 1px solid #dee2e6;
+  border: 1px solid var(--c-dee2e6, #dee2e6);
   border-radius: 8px;
   background: var(--bg-surface, #fff);
   transition: all 0.3s ease;
@@ -116,7 +116,7 @@
 }
 
 .skb-input-field.profile-field {
-  background: #f8f9fa;
+  background: var(--c-f8f9fa, #f8f9fa);
 }
 
 .skb-input-field.profile-field:focus {
@@ -146,7 +146,7 @@
 }
 
 .skb-input-field.profile-field ~ .skb-input-label {
-  background: #f8f9fa;
+  background: var(--c-f8f9fa, #f8f9fa);
 }
 
 .skb-input-field.profile-field:focus ~ .skb-input-label {
@@ -214,7 +214,7 @@
 }
 
 .skb-select-container .skb-input-field.profile-field ~ .skb-input-label {
-  background: #f8f9fa;
+  background: var(--c-f8f9fa, #f8f9fa);
 }
 
 .skb-select-container .skb-input-field.profile-field:focus ~ .skb-input-label {
@@ -228,7 +228,7 @@
 .skb-form-footer {
   margin-top: 24px;
   padding-top: 20px;
-  border-top: 2px solid #e9ecef;
+  border-top: 2px solid var(--c-e9ecef, #e9ecef);
 }
 
 .skb-form-actions {
@@ -277,12 +277,12 @@
 }
 
 .skb-cancel-btn {
-  background: #dee2e6;
+  background: var(--c-dee2e6, #dee2e6);
   color: var(--text-dark, #1e293b);
 }
 
 .skb-cancel-btn:hover {
-  background: #ced4da;
+  background: var(--c-ced4da, #ced4da);
   transform: translateY(-2px);
 }
 

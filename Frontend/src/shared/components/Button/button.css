@@ -49,12 +49,12 @@
 
 /* Secondary */
 .btn-secondary {
-  background: #dee2e6;
+  background: var(--c-dee2e6, #dee2e6);
   color: var(--text-dark, #1e293b);
 }
 
 .btn-secondary:hover:not(:disabled) {
-  background: #ced4da;
+  background: var(--c-ced4da, #ced4da);
   transform: translateY(-2px);
 }
 
@@ -65,7 +65,7 @@
 }
 
 .btn-success:hover:not(:disabled) {
-  background: #059669;
+  background: var(--c-059669, #059669);
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
 }

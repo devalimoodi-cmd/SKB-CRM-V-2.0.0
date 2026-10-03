@@ -51,7 +51,7 @@ html[data-theme="dark"] .account-page {
 }
 
 html[data-theme="dark"] body {
-  background: #0b1220;
+  background: var(--c-0b1220, #0b1220);
 }
 
 /* ===== سرصفحهٔ حساب ===== */

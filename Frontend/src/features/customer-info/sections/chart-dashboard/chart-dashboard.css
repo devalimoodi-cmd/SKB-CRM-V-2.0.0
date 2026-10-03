@@ -88,7 +88,7 @@
 }
 
 .skb-charts-accordion-header:hover {
-  background: #f8f9fa;
+  background: var(--c-f8f9fa, #f8f9fa);
 }
 
 .skb-charts-accordion-header.open {
@@ -197,7 +197,7 @@
    ============================================ */
 
 .skb-chart-card {
-  background: #f8f9fa;
+  background: var(--c-f8f9fa, #f8f9fa);
   border-radius: 12px;
   padding: 18px 16px 16px;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -267,7 +267,7 @@
 .charts-empty-state {
   text-align: center;
   padding: 60px 20px;
-  background: #f8f9fa;
+  background: var(--c-f8f9fa, #f8f9fa);
   border-radius: 12px;
   color: var(--text-light, #94a3b8);
 }
@@ -276,7 +276,7 @@
   font-size: 48px;
   display: block;
   margin-bottom: 16px;
-  color: #ced4da;
+  color: var(--c-ced4da, #ced4da);
 }
 
 .charts-empty-state h4 {

@@ -93,7 +93,7 @@ export function openSmsModal({
           <div style="text-align: right; font-family: 'Vazir', sans-serif; padding: 5px;">
             ${
               subtitle
-                ? `<div style="background:#f0fdfa; border:1px solid #99f6e4; color:#0f766e; padding:8px 12px; border-radius:8px; font-size:12px; margin-bottom:12px;">${subtitle}</div>`
+                ? `<div style="background:var(--c-f0fdfa, #f0fdfa); border:1px solid var(--c-99f6e4, #99f6e4); color:var(--c-0f766e, #0f766e); padding:8px 12px; border-radius:8px; font-size:12px; margin-bottom:12px;">${subtitle}</div>`
                 : ""
             }
             <div style="margin-bottom: 10px; background:var(--bg-surface-2, #f8fafc); border:1px solid var(--border-color, #e2e8f0); border-radius:8px; padding:8px 12px; font-size:12px; color:var(--text-slate-strong, #334155);">

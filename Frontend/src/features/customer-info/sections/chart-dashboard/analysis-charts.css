@@ -636,7 +636,7 @@
   color: var(--ink, #0f172a);
   padding: 6px 10px;
   margin: 6px 0 4px;
-  background: linear-gradient(135deg, #f0fdfa, var(--border-light, #eef2f6));
+  background: linear-gradient(135deg, var(--c-f0fdfa, #f0fdfa), var(--border-light, #eef2f6));
   border-right: 3px solid var(--primary, #2c7a6e);
   border-radius: 8px;
 }
@@ -731,7 +731,7 @@
 
 .analysis-cmp-btn {
   border-color: var(--violet, #8b5cf6) !important;
-  color: #6d28d9 !important;
+  color: var(--c-6d28d9, #6d28d9) !important;
 }
 
 .analysis-cmp-btn:hover {
@@ -851,12 +851,12 @@
 }
 
 .analysis-breed-btn {
-  border-color: #0ea5e9 !important;
-  color: #0369a1 !important;
+  border-color: var(--c-0ea5e9, #0ea5e9) !important;
+  color: var(--c-0369a1, #0369a1) !important;
 }
 
 .analysis-breed-btn:hover {
-  background: #0ea5e9 !important;
+  background: var(--c-0ea5e9, #0ea5e9) !important;
   color: #fff !important;
 }
 

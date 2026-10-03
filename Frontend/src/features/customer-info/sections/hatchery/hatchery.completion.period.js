@@ -287,7 +287,7 @@ export const hatcheryCompletionPeriodMethods = {
         <div style="margin-top:10px; display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:8px;">
           <div>
             <label class="ue-label">سن کشتار نهایی (روز)</label>
-            <div class="ue-field" id="ue_out_age" style="background:#faf5ff;border-color:#e9d5ff;color:var(--violet-deep, #7c3aed);font-weight:800;font-size:15px;padding-top:10px;">${c.slaughter_age_days != null ? Number(c.slaughter_age_days).toLocaleString("fa-IR") : "۰"}</div>
+            <div class="ue-field" id="ue_out_age" style="background:var(--c-faf5ff, #faf5ff);border-color:var(--c-e9d5ff, #e9d5ff);color:var(--violet-deep, #7c3aed);font-weight:800;font-size:15px;padding-top:10px;">${c.slaughter_age_days != null ? Number(c.slaughter_age_days).toLocaleString("fa-IR") : "۰"}</div>
           </div>
         </div>
       </div>`;

@@ -155,7 +155,7 @@
 .filter-input {
   width: 100%;
   padding: 10px 40px 10px 14px;
-  border: 1px solid #dee2e6;
+  border: 1px solid var(--c-dee2e6, #dee2e6);
   border-radius: 8px;
   font-family: "Vazir", sans-serif;
   font-size: 13px;
@@ -182,7 +182,7 @@
 .filter-select {
   width: 100%;
   padding: 10px 14px;
-  border: 1px solid #dee2e6;
+  border: 1px solid var(--c-dee2e6, #dee2e6);
   border-radius: 8px;
   font-family: "Vazir", sans-serif;
   font-size: 13px;
@@ -250,7 +250,7 @@
 .sms-send-form .form-control {
   width: 100%;
   padding: 10px 14px;
-  border: 1px solid #dee2e6;
+  border: 1px solid var(--c-dee2e6, #dee2e6);
   border-radius: 8px;
   font-family: "Vazir", sans-serif;
   font-size: 13px;
@@ -266,7 +266,7 @@
 }
 
 .sms-send-form .form-control:disabled {
-  background: #f8f9fa;
+  background: var(--c-f8f9fa, #f8f9fa);
   cursor: not-allowed;
 }
 
@@ -299,7 +299,7 @@
   border-radius: 8px;
   padding: 16px;
   min-height: 80px;
-  border: 1px dashed #dee2e6;
+  border: 1px dashed var(--c-dee2e6, #dee2e6);
   display: flex;
   align-items: center;
   justify-content: center;

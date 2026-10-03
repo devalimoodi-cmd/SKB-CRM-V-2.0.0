@@ -841,7 +841,7 @@
 .wn-item-tag.new,
 .wn-chip.new {
   background: var(--success-bg, #dcfce7);
-  color: #15803d;
+  color: var(--c-15803d, #15803d);
 }
 
 .wn-section-icon.improved,
@@ -861,7 +861,7 @@
 .wn-section-icon.security,
 .wn-item-tag.security,
 .wn-chip.security {
-  background: #f3e8ff;
+  background: var(--c-f3e8ff, #f3e8ff);
   color: var(--violet, #8b5cf6);
 }
 
@@ -1085,7 +1085,7 @@
 
 .wn-status.published {
   background: var(--success-bg, #dcfce7);
-  color: #15803d;
+  color: var(--c-15803d, #15803d);
 }
 
 .wn-status.archived {
