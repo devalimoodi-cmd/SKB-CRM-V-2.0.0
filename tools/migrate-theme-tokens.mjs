@@ -67,6 +67,9 @@ const maskBlocks = (css) => {
   let out = css
     .replace(/:root\s*\{[^}]*\}/g, keep)
     .replace(/html\[data-theme="dark"\]\s*\{[^}]*\}/g, keep);
+  // ✅ محافظت از تعریف متغیرهای CSS (اعم از سراسری یا محلی)
+  // تا «مقدارِ تعریف» هرگز به var() تبدیل نشود (جلوگیری از خودارجاعی)
+  out = out.replace(/^[ \t]*--[a-z0-9-]+\s*:[^;]*;[ \t]*$/gim, keep);
   return { out, saved };
 };
 
