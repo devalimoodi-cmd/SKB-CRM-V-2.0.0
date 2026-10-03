@@ -10,6 +10,7 @@ import { userAccountApi } from "../user-account/user-account.api.js";
 import { settingsRenderer } from "./settings.renderer.js";
 import { authService } from "../../core/services/auth.service.js";
 import { notificationService } from "../../core/services/notification.service.js";
+import { themeService } from "../../core/services/theme.service.js";
 
 // کلیدهای localStorage (هم‌خوان با سرویس‌های موجود پروژه)
 const LS = {
@@ -33,10 +34,6 @@ class SettingsService {
     this.initialized = false;
     this.prefs = { ...DEFAULT_PREFS };
     this.serverBacked = false;
-    this._mediaListenerBound = false;
-    this._onSystemThemeChange = () => {
-      if (this.prefs.theme === "system") this.applyTheme("system");
-    };
   }
 
   async init() {
@@ -158,26 +155,9 @@ class SettingsService {
     }
   }
 
-  // ===== اعمال تم =====
+  // ===== اعمال تم (واگذاری به themeService — تک‌منبع حقیقت) =====
   applyTheme(theme) {
-    const prefersDark =
-      typeof window !== "undefined" &&
-      window.matchMedia &&
-      window.matchMedia("(prefers-color-scheme: dark)").matches;
-    const resolved =
-      theme === "dark" || (theme === "system" && prefersDark) ? "dark" : "light";
-
-    if (typeof document !== "undefined") {
-      document.documentElement.setAttribute("data-theme", resolved);
-    }
-
-    if (!this._mediaListenerBound && typeof window !== "undefined" && window.matchMedia) {
-      this._mediaListenerBound = true;
-      const mq = window.matchMedia("(prefers-color-scheme: dark)");
-      if (mq.addEventListener) {
-        mq.addEventListener("change", this._onSystemThemeChange);
-      }
-    }
+    return themeService.apply(theme);
   }
 
   // ===== رویدادها =====

@@ -350,8 +350,50 @@ ${loaderMarkup}
   return output;
 };
 
+// ============================================================
+// ✅ بوت‌استرپ تم (روشن/تیره) — بدون فلاش
+// ------------------------------------------------------------
+// یک اسکریپت کوچک بلافاصله بعد از <head> تزریق می‌شود تا **قبل از**
+// اعمال CSS اجرا شود و data-theme را از localStorage روی <html> بگذارد.
+// (انتخاب تم از سمت کاربر است؛ سرور رنگ را تعیین نمی‌کند.)
+// ============================================================
+const THEME_BOOTSTRAP = `<script>
+  // ✅ تم روشن/تیره — بدون فلاش (قبل از CSS اجرا می‌شود)
+  (function () {
+    try {
+      var KEY = "skb_theme";
+      var chosen = localStorage.getItem(KEY) || "system";
+      var mql = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)");
+      var resolve = function (v) {
+        return v === "dark" || (v === "system" && mql && mql.matches) ? "dark" : "light";
+      };
+      document.documentElement.setAttribute("data-theme", resolve(chosen));
+      if (mql && mql.addEventListener) {
+        mql.addEventListener("change", function () {
+          var cur = localStorage.getItem(KEY) || "system";
+          if (cur === "system") {
+            document.documentElement.setAttribute("data-theme", resolve("system"));
+          }
+        });
+      }
+    } catch (e) {
+      /* حالت خصوصی مرورگر — پیش‌فرض روشن می‌ماند */
+    }
+  })();
+</script>`;
+
+const injectThemeBootstrap = (html) => {
+  if (html.includes("skb_theme")) return html; // قبلاً تزریق شده
+  if (!/<head\b[^>]*>/i.test(html)) return html;
+  return html.replace(/<head\b[^>]*>/i, (match) => `${match}\n${THEME_BOOTSTRAP}`);
+};
+
 const renderPageHtml = (html, filePath, overrideStyle) =>
-  injectPageLoader(rewriteAssetUrls(html), filePath, overrideStyle);
+  injectPageLoader(
+    injectThemeBootstrap(rewriteAssetUrls(html)),
+    filePath,
+    overrideStyle,
+  );
 
 app.use((req, res, next) => {
   const originalSendFile = res.sendFile.bind(res);
@@ -371,7 +413,7 @@ app.use((req, res, next) => {
             res.status(404);
             res.setHeader("Content-Type", "text/html; charset=utf-8");
             res.setHeader("Cache-Control", "no-cache");
-            return res.send(rewriteAssetUrls(fallbackHtml));
+            return res.send(injectThemeBootstrap(rewriteAssetUrls(fallbackHtml)));
           });
         }
         return originalSendFile(filePath, options, callback);
