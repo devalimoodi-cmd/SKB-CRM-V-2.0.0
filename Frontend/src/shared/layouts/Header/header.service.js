@@ -4,6 +4,7 @@ import { headerDropdownService } from "./header-dropdown.service.js";
 import { messagesService } from "../../../features/messages/messages.service.js";
 // ✅ «تغییرات جدید / What's New» (مودال اطلاع‌رسانی نسخه‌ها)
 import { whatsNewService } from "../../../features/whats-new/whats-new.service.js";
+import { themeService } from "../../../core/services/theme.service.js";
 
 class HeaderService {
   constructor() {
@@ -76,6 +77,9 @@ class HeaderService {
 
     // ===== 8. دکمهٔ «تغییرات جدید / What's New» =====
     this.initWhatsNewButton();
+
+    // ===== 9. دکمهٔ سریع «تم روشن/تیره» =====
+    this.initThemeToggle();
 
     this.initialized = true;
     console.log("✅ HeaderService initialized");
@@ -428,6 +432,41 @@ class HeaderService {
 
     // ✅ بررسی خودکار «نسخهٔ جدید» + بج شمارنده (داخل سرویس، بی‌صدا)
     whatsNewService.init();
+  }
+
+  // ===== دکمهٔ سریع «تم روشن/تیره» =====
+  initThemeToggle() {
+    const btn = document.getElementById("headerThemeToggle");
+    if (!btn || btn.dataset.bound === "1") return;
+    btn.dataset.bound = "1";
+
+    this.renderThemeIcon();
+
+    btn.addEventListener("click", () => {
+      const next = themeService.currentResolved() === "dark" ? "light" : "dark";
+      themeService.setTheme(next);
+      this.renderThemeIcon();
+
+      // همگام‌سازی بی‌صدا با سرور (در صورت لاگین بودن) — بدون توقف UI
+      import("../../../features/user-account/user-account.api.js")
+        .then(({ userAccountApi }) => userAccountApi.updatePreferences({ theme: next }))
+        .catch(() => {
+          /* بی‌صدا */
+        });
+    });
+
+    themeService.onChange(() => this.renderThemeIcon());
+  }
+
+  renderThemeIcon() {
+    const icon = document.getElementById("headerThemeIcon");
+    if (!icon) return;
+    const isDark = themeService.currentResolved() === "dark";
+    icon.className = isDark ? "fas fa-sun" : "fas fa-moon";
+    const btn = document.getElementById("headerThemeToggle");
+    if (btn) {
+      btn.title = isDark ? "تغییر به تم روشن" : "تغییر به تم تیره";
+    }
   }
 
   // ===== توابع کمکی =====
