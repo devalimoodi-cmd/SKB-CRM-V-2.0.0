@@ -3,11 +3,11 @@
    ============================================ */
 
 .skb-customer-form {
-  background: #ffffff;
+  background: var(--bg-surface, #ffffff);
   border-radius: 16px;
   padding: 24px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-  border: 1px solid #eef2f6;
+  border: 1px solid var(--border-light, #eef2f6);
   margin-bottom: 20px;
 }
 
@@ -24,14 +24,14 @@
 .skb-form-title {
   font-size: 18px;
   font-weight: 700;
-  color: #1e293b;
+  color: var(--text-dark, #1e293b);
   display: flex;
   align-items: center;
   gap: 10px;
 }
 
 .skb-form-title i {
-  color: #2c7a6e;
+  color: var(--primary, #2c7a6e);
   font-size: 20px;
 }
 
@@ -76,27 +76,27 @@
   align-items: center;
   border: 1px solid #dee2e6;
   border-radius: 8px;
-  background: white;
+  background: var(--bg-surface, #fff);
   transition: all 0.3s ease;
   padding: 0 12px;
   min-height: 44px;
 }
 
 .skb-input-container:focus-within {
-  border-color: #2c7a6e;
+  border-color: var(--primary, #2c7a6e);
   box-shadow: 0 0 0 3px rgba(44, 122, 110, 0.1);
 }
 
 .skb-input-icon {
   font-size: 14px;
-  color: #94a3b8;
+  color: var(--text-light, #94a3b8);
   margin-left: 10px;
   flex-shrink: 0;
   transition: color 0.3s ease;
 }
 
 .skb-input-container:focus-within .skb-input-icon {
-  color: #2c7a6e;
+  color: var(--primary, #2c7a6e);
 }
 
 .skb-input-field {
@@ -107,7 +107,7 @@
   font-size: 13px;
   padding: 12px 0;
   font-family: "Vazir", sans-serif;
-  color: #1e293b;
+  color: var(--text-dark, #1e293b);
   width: 100%;
 }
 
@@ -120,7 +120,7 @@
 }
 
 .skb-input-field.profile-field:focus {
-  background: white;
+  background: var(--bg-surface, #fff);
 }
 
 .skb-input-label {
@@ -128,9 +128,9 @@
   right: 36px;
   top: 50%;
   transform: translateY(-50%);
-  background: white;
+  background: var(--bg-surface, #fff);
   padding: 0 4px;
-  color: #94a3b8;
+  color: var(--text-light, #94a3b8);
   font-size: 12px;
   transition: all 0.3s ease;
   pointer-events: none;
@@ -141,7 +141,7 @@
 .skb-input-field:not(:placeholder-shown) ~ .skb-input-label {
   top: 0;
   font-size: 10px;
-  color: #2c7a6e;
+  color: var(--primary, #2c7a6e);
   transform: translateY(-50%);
 }
 
@@ -150,7 +150,7 @@
 }
 
 .skb-input-field.profile-field:focus ~ .skb-input-label {
-  background: white;
+  background: var(--bg-surface, #fff);
 }
 
 /* ============================================
@@ -174,7 +174,7 @@
   left: 12px;
   top: 50%;
   transform: translateY(-50%);
-  color: #94a3b8;
+  color: var(--text-light, #94a3b8);
   font-size: 12px;
   pointer-events: none;
   transition: transform 0.3s ease;
@@ -182,7 +182,7 @@
 
 .skb-select-container:focus-within .skb-select-arrow {
   transform: translateY(-50%) rotate(180deg);
-  color: #2c7a6e;
+  color: var(--primary, #2c7a6e);
 }
 
 .skb-select option {
@@ -200,8 +200,8 @@
   top: 0;
   transform: translateY(-50%);
   font-size: 10px;
-  color: #2c7a6e;
-  background: white;
+  color: var(--primary, #2c7a6e);
+  background: var(--bg-surface, #fff);
 }
 
 .skb-select-container
@@ -209,7 +209,7 @@
   ~ .skb-input-label {
   top: 50%;
   font-size: 12px;
-  color: #94a3b8;
+  color: var(--text-light, #94a3b8);
   transform: translateY(-50%);
 }
 
@@ -218,7 +218,7 @@
 }
 
 .skb-select-container .skb-input-field.profile-field:focus ~ .skb-input-label {
-  background: white;
+  background: var(--bg-surface, #fff);
 }
 
 /* ============================================
@@ -255,18 +255,18 @@
 }
 
 .skb-edit-btn {
-  background: #2c7a6e;
+  background: var(--primary, #2c7a6e);
   color: white;
 }
 
 .skb-edit-btn:hover {
-  background: #035552;
+  background: var(--primary-dark, #035552);
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(44, 122, 110, 0.3);
 }
 
 .skb-submit-btn {
-  background: #f59e0b;
+  background: var(--warning, #f59e0b);
   color: white;
 }
 
@@ -278,7 +278,7 @@
 
 .skb-cancel-btn {
   background: #dee2e6;
-  color: #1e293b;
+  color: var(--text-dark, #1e293b);
 }
 
 .skb-cancel-btn:hover {

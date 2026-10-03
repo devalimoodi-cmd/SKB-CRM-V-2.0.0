@@ -18,8 +18,8 @@
   gap: 12px;
   padding: 16px 22px;
   margin-bottom: 20px;
-  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-  border: 1px solid #e2e8f0;
+  background: linear-gradient(135deg, #ffffff 0%, var(--bg-surface-2, #f8fafc) 100%);
+  border: 1px solid var(--border-color, #e2e8f0);
   border-radius: 14px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   transition: all 0.3s ease;
@@ -27,7 +27,7 @@
 
 .weekly-card__header:hover {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
-  border-color: #cbd5e1;
+  border-color: var(--border-strong, #cbd5e1);
 }
 
 .weekly-card__title {
@@ -46,13 +46,13 @@
   transform: translateY(-50%);
   width: 4px;
   height: 24px;
-  background: #2c7a6e;
+  background: var(--primary, #2c7a6e);
   border-radius: 2px;
 }
 
 .weekly-card__title i {
   font-size: 22px;
-  color: #2c7a6e;
+  color: var(--primary, #2c7a6e);
   margin-right: 4px;
 }
 
@@ -60,12 +60,12 @@
   margin: 0;
   font-size: 16px;
   font-weight: 700;
-  color: #1e293b;
+  color: var(--text-dark, #1e293b);
 }
 
 .week-badge {
   background: rgba(44, 122, 110, 0.1);
-  color: #2c7a6e;
+  color: var(--primary, #2c7a6e);
   padding: 3px 12px;
   border-radius: 20px;
   font-size: 11px;
@@ -114,11 +114,11 @@
    ============================================ */
 
 .tabs-container {
-  background: #ffffff;
+  background: var(--bg-surface, #ffffff);
   border-radius: 16px;
   padding: 20px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-  border: 1px solid #eef2f6;
+  border: 1px solid var(--border-light, #eef2f6);
 }
 
 .tabs-header {
@@ -138,7 +138,7 @@
   font-family: "Vazir", sans-serif;
   font-size: 13px;
   font-weight: 500;
-  color: #64748b;
+  color: var(--text-gray, #64748b);
   border-radius: 8px 8px 0 0;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   display: inline-flex;
@@ -148,11 +148,11 @@
 
 .tab-btn:hover {
   background: #f8f9fa;
-  color: #1e293b;
+  color: var(--text-dark, #1e293b);
 }
 
 .tab-btn.active {
-  background: #2c7a6e;
+  background: var(--primary, #2c7a6e);
   color: white;
   box-shadow: 0 4px 12px rgba(44, 122, 110, 0.3);
 }
@@ -181,10 +181,10 @@
 .form-section-title {
   font-size: 16px;
   font-weight: 600;
-  color: #1e293b;
+  color: var(--text-dark, #1e293b);
   margin-bottom: 16px;
   padding-bottom: 10px;
-  border-bottom: 3px solid #2c7a6e;
+  border-bottom: 3px solid var(--primary, #2c7a6e);
   display: inline-flex;
   align-items: center;
   gap: 10px;
@@ -209,11 +209,11 @@
 .form-group label {
   font-size: 13px;
   font-weight: 500;
-  color: #1e293b;
+  color: var(--text-dark, #1e293b);
 }
 
 .form-group label .required {
-  color: #dc2626;
+  color: var(--danger, #dc2626);
 }
 
 .form-group input,
@@ -225,8 +225,8 @@
   font-family: "Vazir", sans-serif;
   font-size: 14px;
   transition: all 0.2s ease;
-  background: white;
-  color: #1e293b;
+  background: var(--bg-surface, #fff);
+  color: var(--text-dark, #1e293b);
   width: 100%;
 }
 
@@ -234,7 +234,7 @@
 .form-group select:focus,
 .form-group textarea:focus {
   outline: none;
-  border-color: #2c7a6e;
+  border-color: var(--primary, #2c7a6e);
   box-shadow: 0 0 0 3px rgba(44, 122, 110, 0.1);
 }
 
@@ -268,7 +268,7 @@
   left: 12px;
   top: 50%;
   transform: translateY(-50%);
-  color: #94a3b8;
+  color: var(--text-light, #94a3b8);
   pointer-events: none;
   font-size: 16px;
 }
@@ -299,19 +299,19 @@
 }
 
 .btn-primary {
-  background: #2c7a6e;
+  background: var(--primary, #2c7a6e);
   color: white;
 }
 
 .btn-primary:hover {
-  background: #035552;
+  background: var(--primary-dark, #035552);
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(44, 122, 110, 0.3);
 }
 
 .btn-secondary {
   background: #dee2e6;
-  color: #1e293b;
+  color: var(--text-dark, #1e293b);
 }
 
 .btn-secondary:hover {
@@ -324,10 +324,10 @@
    ============================================ */
 
 .table-container {
-  background: white;
+  background: var(--bg-surface, #fff);
   border-radius: 14px;
   overflow: hidden;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-color, #e2e8f0);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   transition: box-shadow 0.3s ease;
 }
@@ -341,15 +341,15 @@
   justify-content: space-between;
   align-items: center;
   padding: 16px 22px;
-  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-  border-bottom: 1px solid #eef2f6;
+  background: linear-gradient(135deg, #ffffff 0%, var(--bg-surface-2, #f8fafc) 100%);
+  border-bottom: 1px solid var(--border-light, #eef2f6);
 }
 
 .table-header h3 {
   margin: 0;
   font-size: 15px;
   font-weight: 700;
-  color: #1e293b;
+  color: var(--text-dark, #1e293b);
   display: flex;
   align-items: center;
   gap: 10px;
@@ -365,12 +365,12 @@
   transform: translateY(-50%);
   width: 4px;
   height: 22px;
-  background: #2c7a6e;
+  background: var(--primary, #2c7a6e);
   border-radius: 2px;
 }
 
 .table-header h3 i {
-  color: #2c7a6e;
+  color: var(--primary, #2c7a6e);
   font-size: 18px;
   margin-right: 4px;
 }
@@ -387,7 +387,7 @@
 }
 
 .skb-data-table thead th {
-  background: linear-gradient(135deg, #2c7a6e 0%, #035552 100%);
+  background: linear-gradient(135deg, var(--primary, #2c7a6e) 0%, var(--primary-dark, #035552) 100%);
   padding: 12px 16px;
   text-align: center;
   font-weight: 500;
@@ -406,7 +406,7 @@
   border-bottom: 1px solid #f1f5f9;
   vertical-align: middle;
   text-align: center;
-  color: #1e293b;
+  color: var(--text-dark, #1e293b);
   font-size: 12.5px;
 }
 
@@ -415,7 +415,7 @@
 }
 
 .skb-data-table tbody tr:hover {
-  background: #f8fafc;
+  background: var(--bg-surface-2, #f8fafc);
 }
 
 .skb-data-table tbody tr:last-child td {
@@ -439,7 +439,7 @@
 
 .skb-data-table .status-badge.inactive {
   background: #fee2e2;
-  color: #dc2626;
+  color: var(--danger, #dc2626);
 }
 
 .skb-data-table .status-badge.info {
@@ -466,7 +466,7 @@
 
 .status-badge.inactive {
   background: #fee2e2;
-  color: #dc2626;
+  color: var(--danger, #dc2626);
 }
 
 .status-badge.success {
@@ -476,7 +476,7 @@
 
 .status-badge.danger {
   background: #fee2e2;
-  color: #dc2626;
+  color: var(--danger, #dc2626);
 }
 
 .status-badge.info {
@@ -486,7 +486,7 @@
 
 .status-badge.secondary {
   background: #f1f5f9;
-  color: #64748b;
+  color: var(--text-gray, #64748b);
 }
 
 /* ============================================
@@ -533,13 +533,13 @@
 }
 
 .action-btn.completion-edit:hover {
-  background: #f59e0b;
+  background: var(--warning, #f59e0b);
   color: #ffffff;
 }
 
 /* بوردر زرد مودال در حالت ویرایش اطلاعات پایان دوره */
 .swal2-popup.pc-popup-edit {
-  border: 3px solid #f59e0b !important;
+  border: 3px solid var(--warning, #f59e0b) !important;
   box-shadow:
     0 0 0 5px rgba(245, 158, 11, 0.18),
     0 24px 60px rgba(15, 23, 42, 0.35) !important;
@@ -551,7 +551,7 @@
 
 .action-btn.delete {
   background: #fee2e2;
-  color: #dc2626;
+  color: var(--danger, #dc2626);
 }
 
 .action-btn.disable {
@@ -669,7 +669,7 @@
 .flock-join-hint {
   display: block;
   margin-top: 4px;
-  color: #64748b;
+  color: var(--text-gray, #64748b);
   font-size: 11.5px;
   line-height: 1.8;
 }
@@ -680,9 +680,9 @@
   gap: 8px;
   padding: 16px 18px;
   background: #f1f5f9;
-  border: 1px dashed #cbd5e1;
+  border: 1px dashed var(--border-strong, #cbd5e1);
   border-radius: 10px;
-  color: #64748b;
+  color: var(--text-gray, #64748b);
   font-size: 13px;
 }
 
@@ -695,8 +695,8 @@
 }
 
 .flock-panel.flock-empty {
-  background: #f8fafc;
-  border: 1px dashed #cbd5e1;
+  background: var(--bg-surface-2, #f8fafc);
+  border: 1px dashed var(--border-strong, #cbd5e1);
   border-radius: 10px;
   padding: 14px 16px;
 }
@@ -826,8 +826,8 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
+  background: var(--bg-surface, #ffffff);
+  border: 1px solid var(--border-color, #e2e8f0);
   border-radius: 8px;
   padding: 7px 12px;
   font-size: 12.5px;
@@ -865,11 +865,11 @@
 
 .flock-badge-ended {
   background: #f1f5f9;
-  color: #64748b;
+  color: var(--text-gray, #64748b);
 }
 
 .flock-halls-empty {
-  color: #94a3b8;
+  color: var(--text-light, #94a3b8);
   font-size: 12px;
 }
 
@@ -900,8 +900,8 @@
 
 /* ===== بخش افزودن سالن‌های هم‌گله ===== */
 .flock-extra-section {
-  background: #f8fafc !important;
-  border: 1px solid #e2e8f0;
+  background: var(--bg-surface-2, #f8fafc) !important;
+  border: 1px solid var(--border-color, #e2e8f0);
   border-radius: 10px;
   margin-top: 12px;
 }
@@ -912,7 +912,7 @@
 
 .flock-extra-hint {
   font-size: 12px;
-  color: #64748b;
+  color: var(--text-gray, #64748b);
   margin: 0 0 10px;
   line-height: 1.9;
 }
@@ -927,8 +927,8 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
+  background: var(--bg-surface, #ffffff);
+  border: 1px solid var(--border-color, #e2e8f0);
   border-radius: 8px;
   padding: 8px 12px;
   cursor: pointer;
@@ -950,7 +950,7 @@
 .flock-extra-name {
   flex: 1;
   font-size: 13px;
-  color: #1e293b;
+  color: var(--text-dark, #1e293b);
   font-weight: 600;
 }
 
@@ -964,7 +964,7 @@
 
 .flock-extra-count input {
   width: 110px;
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--border-strong, #cbd5e1);
   border-radius: 6px;
   padding: 5px 8px;
   font-family: inherit;

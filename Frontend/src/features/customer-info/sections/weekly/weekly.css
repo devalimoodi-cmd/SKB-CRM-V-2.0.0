@@ -3,11 +3,11 @@
    ============================================ */
 
 .weekly-card {
-  background: #ffffff;
+  background: var(--bg-surface, #ffffff);
   border-radius: 16px;
   padding: 20px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-  border: 1px solid #eef2f6;
+  border: 1px solid var(--border-light, #eef2f6);
 }
 
 /* ============================================
@@ -19,13 +19,13 @@
   border-radius: 12px;
   padding: 14px 18px;
   margin-bottom: 20px;
-  border: 1px solid #eef2f6;
+  border: 1px solid var(--border-light, #eef2f6);
 }
 
 .filter-title {
   font-size: 13px;
   font-weight: 600;
-  color: #2c7a6e;
+  color: var(--primary, #2c7a6e);
   margin-bottom: 12px;
   display: flex;
   align-items: center;
@@ -47,7 +47,7 @@
 .filter-group label {
   font-size: 11px;
   font-weight: 500;
-  color: #64748b;
+  color: var(--text-gray, #64748b);
   display: flex;
   align-items: center;
   gap: 4px;
@@ -59,15 +59,15 @@
   border-radius: 6px;
   font-family: "Vazir", sans-serif;
   font-size: 12px;
-  background: white;
-  color: #1e293b;
+  background: var(--bg-surface, #fff);
+  color: var(--text-dark, #1e293b);
   transition: all 0.2s ease;
   cursor: pointer;
 }
 
 .filter-select:focus {
   outline: none;
-  border-color: #2c7a6e;
+  border-color: var(--primary, #2c7a6e);
   box-shadow: 0 0 0 3px rgba(44, 122, 110, 0.1);
 }
 
@@ -84,13 +84,13 @@
   background: #fafbfc;
   padding: 8px 10px;
   border-radius: 6px;
-  border: 1px solid #eef2f6;
+  border: 1px solid var(--border-light, #eef2f6);
 }
 
 .week-edit-form .form-section h4 {
   font-size: 11px;
   font-weight: 700;
-  color: #2c7a6e;
+  color: var(--primary, #2c7a6e);
   margin: 0 0 6px;
   padding-bottom: 4px;
   border-bottom: 1px solid #e8f5f0;
@@ -111,7 +111,7 @@
 .week-edit-form .form-group label {
   font-size: 10px;
   font-weight: 500;
-  color: #94a3b8;
+  color: var(--text-light, #94a3b8);
 }
 
 .week-edit-form input[type="text"],
@@ -119,25 +119,25 @@
 .week-edit-form select {
   width: 100%;
   padding: 5px 8px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-color, #e2e8f0);
   border-radius: 5px;
   font-family: "Vazir", sans-serif;
   font-size: 11px;
   transition: all 0.2s ease;
-  background: white;
-  color: #1e293b;
+  background: var(--bg-surface, #fff);
+  color: var(--text-dark, #1e293b);
 }
 
 .week-edit-form input:focus,
 .week-edit-form select:focus {
   outline: none;
-  border-color: #2c7a6e;
+  border-color: var(--primary, #2c7a6e);
   box-shadow: 0 0 0 2px rgba(44, 122, 110, 0.1);
 }
 
 .week-edit-form input:disabled {
   background: #f8f9fa;
-  color: #94a3b8;
+  color: var(--text-light, #94a3b8);
 }
 
 .week-edit-form select[multiple] {
@@ -154,7 +154,7 @@
   width: 100%;
   min-height: 35px;
   padding: 5px 8px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-color, #e2e8f0);
   border-radius: 5px;
   font-family: "Vazir", sans-serif;
   font-size: 11px;
@@ -164,7 +164,7 @@
 
 .week-edit-form textarea:focus {
   outline: none;
-  border-color: #2c7a6e;
+  border-color: var(--primary, #2c7a6e);
   box-shadow: 0 0 0 2px rgba(44, 122, 110, 0.1);
 }
 
@@ -174,7 +174,7 @@
   gap: 6px;
   margin-top: 4px;
   padding-top: 6px;
-  border-top: 1px solid #eef2f6;
+  border-top: 1px solid var(--border-light, #eef2f6);
 }
 
 .week-edit-form .form-actions button {
@@ -192,21 +192,21 @@
 }
 
 .btn-save-week {
-  background: #2c7a6e;
+  background: var(--primary, #2c7a6e);
   color: white;
 }
 
 .btn-save-week:hover {
-  background: #035552;
+  background: var(--primary-dark, #035552);
 }
 
 .btn-cancel-week {
-  background: #e2e8f0;
+  background: var(--border-color, #e2e8f0);
   color: #475569;
 }
 
 .btn-cancel-week:hover {
-  background: #cbd5e1;
+  background: var(--border-strong, #cbd5e1);
 }
 
 /* ===== هدر لیست هفته‌ها ===== */
@@ -217,8 +217,8 @@
   gap: 12px;
   margin-bottom: 14px;
   padding: 10px 14px;
-  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-  border: 1px solid #e2e8f0;
+  background: linear-gradient(135deg, #ffffff 0%, var(--bg-surface-2, #f8fafc) 100%);
+  border: 1px solid var(--border-color, #e2e8f0);
   border-radius: 10px;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
 }
@@ -226,14 +226,14 @@
 .weeks-header span {
   font-size: 14px;
   font-weight: 600;
-  color: #1e293b;
+  color: var(--text-dark, #1e293b);
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
 .weeks-header span i {
-  color: #2c7a6e;
+  color: var(--primary, #2c7a6e);
   font-size: 16px;
 }
 
@@ -258,19 +258,19 @@
 }
 
 .btn-expand-all {
-  background: #2c7a6e;
+  background: var(--primary, #2c7a6e);
   color: white;
 }
 
 .btn-expand-all:hover {
-  background: #035552;
+  background: var(--primary-dark, #035552);
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(44, 122, 110, 0.3);
 }
 
 .btn-collapse-all {
   background: #dee2e6;
-  color: #1e293b;
+  color: var(--text-dark, #1e293b);
 }
 
 .btn-collapse-all:hover {
@@ -294,10 +294,10 @@
    ============================================ */
 
 .flock-card {
-  background: #ffffff;
+  background: var(--bg-surface, #ffffff);
   border-radius: 12px;
   margin-bottom: 16px;
-  border: 1px solid #eef2f6;
+  border: 1px solid var(--border-light, #eef2f6);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
@@ -312,7 +312,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 14px 18px;
-  background: linear-gradient(135deg, #2c7a6e 0%, #035552 100%);
+  background: linear-gradient(135deg, var(--primary, #2c7a6e) 0%, var(--primary-dark, #035552) 100%);
   color: white;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -325,7 +325,7 @@
 }
 
 .flock-card-header:hover {
-  background: linear-gradient(135deg, #035552 0%, #022e2a 100%);
+  background: linear-gradient(135deg, var(--primary-dark, #035552) 0%, #022e2a 100%);
 }
 
 .flock-info {
@@ -369,8 +369,8 @@
 .flock-card-body {
   display: none;
   padding: 0;
-  background: #f8fafc;
-  border-top: 1px solid #eef2f6;
+  background: var(--bg-surface-2, #f8fafc);
+  border-top: 1px solid var(--border-light, #eef2f6);
   border-radius: 0 0 12px 12px;
 }
 
@@ -387,10 +387,10 @@
    ============================================ */
 
 .week-accordion-item {
-  background: #ffffff;
+  background: var(--bg-surface, #ffffff);
   border-radius: 10px;
   margin-bottom: 10px;
-  border: 1px solid #eef2f6;
+  border: 1px solid var(--border-light, #eef2f6);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
 }
@@ -400,11 +400,11 @@
 }
 
 .week-accordion-item:hover {
-  border-color: #cbd5e1;
+  border-color: var(--border-strong, #cbd5e1);
 }
 
 .week-accordion-item.open {
-  border-color: #2c7a6e;
+  border-color: var(--primary, #2c7a6e);
   box-shadow: 0 4px 20px rgba(44, 122, 110, 0.12);
 }
 
@@ -414,7 +414,7 @@
   align-items: center;
   padding: 12px 16px;
   cursor: pointer;
-  background: #ffffff;
+  background: var(--bg-surface, #ffffff);
   border-radius: 10px;
   transition: all 0.3s ease;
   user-select: none;
@@ -422,7 +422,7 @@
 }
 
 .week-accordion-header:hover {
-  background: #f8fafc;
+  background: var(--bg-surface-2, #f8fafc);
 }
 
 .week-accordion-item.open .week-accordion-header {
@@ -442,7 +442,7 @@
 .week-number {
   font-weight: 700;
   font-size: 14px;
-  color: #2c7a6e;
+  color: var(--primary, #2c7a6e);
   background: rgba(44, 122, 110, 0.1);
   padding: 3px 12px;
   border-radius: 30px;
@@ -452,7 +452,7 @@
 
 .week-date {
   font-size: 12px;
-  color: #64748b;
+  color: var(--text-gray, #64748b);
   display: flex;
   align-items: center;
   gap: 4px;
@@ -480,21 +480,21 @@
 
 .week-accordion-icon {
   transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  color: #94a3b8;
+  color: var(--text-light, #94a3b8);
   font-size: 13px;
   flex-shrink: 0;
 }
 
 .week-accordion-item.open .week-accordion-icon {
   transform: rotate(180deg);
-  color: #2c7a6e;
+  color: var(--primary, #2c7a6e);
 }
 
 .week-accordion-body {
   display: none;
   padding: 0;
-  background: #ffffff;
-  border-top: 1px solid #eef2f6;
+  background: var(--bg-surface, #ffffff);
+  border-top: 1px solid var(--border-light, #eef2f6);
 }
 
 .week-accordion-item.open .week-accordion-body {
@@ -522,7 +522,7 @@
   padding: 40px 20px;
   background: #f8f9fa;
   border-radius: 12px;
-  color: #94a3b8;
+  color: var(--text-light, #94a3b8);
   font-size: 14px;
 }
 
@@ -710,7 +710,7 @@
    ============================================================ */
 
 .wc-required {
-  color: #dc2626;
+  color: var(--danger, #dc2626);
   margin-inline-start: 2px;
 }
 
@@ -722,7 +722,7 @@
   width: 17px;
   height: 17px;
   border-radius: 50%;
-  background: #e2e8f0;
+  background: var(--border-color, #e2e8f0);
   color: #475569;
   font-size: 11px;
   font-weight: 800;
@@ -735,7 +735,7 @@
 
 .field-help:hover,
 .field-help:focus {
-  background: #2c7a6e;
+  background: var(--primary, #2c7a6e);
   color: #fff;
   outline: none;
 }
@@ -745,8 +745,8 @@
   position: absolute;
   top: 50%;
   right: calc(100% + 8px);
-  background: #1e293b;
-  color: #f8fafc;
+  background: var(--text-dark, #1e293b);
+  color: var(--bg-surface-2, #f8fafc);
   font-size: 11px;
   font-weight: 400;
   line-height: 1.7;
@@ -771,7 +771,7 @@
   top: 50%;
   right: calc(100% + 2px);
   border: 6px solid transparent;
-  border-left-color: #1e293b;
+  border-left-color: var(--text-dark, #1e293b);
   opacity: 0;
   visibility: hidden;
   transform: translateY(-50%);
@@ -805,8 +805,8 @@
 }
 
 .weekly-input-section {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
+  background: var(--bg-surface-2, #f8fafc);
+  border: 1px solid var(--border-color, #e2e8f0);
   border-radius: 10px;
   padding: 12px;
   margin-bottom: 14px;
@@ -829,8 +829,8 @@
 }
 
 .wc-card {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
+  background: var(--bg-surface, #ffffff);
+  border: 1px solid var(--border-color, #e2e8f0);
   border-radius: 12px;
   padding: 12px;
   display: flex;
@@ -841,7 +841,7 @@
 }
 
 .wc-card.wc-primary {
-  border-color: #2c7a6e;
+  border-color: var(--primary, #2c7a6e);
   background: linear-gradient(135deg, #f0fdf9, #ffffff);
 }
 
@@ -851,7 +851,7 @@
 }
 
 .wc-card.wc-warn {
-  border-color: #f59e0b;
+  border-color: var(--warning, #f59e0b);
   background: #fffbeb;
 }
 
@@ -863,14 +863,14 @@
 .wc-label {
   font-size: 11px;
   font-weight: 700;
-  color: #64748b;
+  color: var(--text-gray, #64748b);
   line-height: 1.5;
 }
 
 .wc-value {
   font-size: 19px;
   font-weight: 800;
-  color: #1e293b;
+  color: var(--text-dark, #1e293b);
   line-height: 1.2;
   direction: ltr;
   text-align: center;
@@ -883,7 +883,7 @@
 
 .wc-sub {
   font-size: 10.5px;
-  color: #94a3b8;
+  color: var(--text-light, #94a3b8);
   line-height: 1.4;
   text-align: center;
   min-height: 14px;
@@ -926,8 +926,8 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: #ffffff;
-  color: #2c7a6e;
+  background: var(--bg-surface, #ffffff);
+  color: var(--primary, #2c7a6e);
   border: none;
   border-radius: 20px;
   padding: 6px 14px;
@@ -974,7 +974,7 @@
   justify-content: space-between;
   gap: 10px;
   padding: 10px 16px;
-  background: linear-gradient(135deg, #035552 0%, #0d9488 100%);
+  background: linear-gradient(135deg, var(--primary-dark, #035552) 0%, #0d9488 100%);
   color: #fff;
   cursor: pointer;
   user-select: none;
@@ -1021,7 +1021,7 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-  background: #ffffff;
+  background: var(--bg-surface, #ffffff);
 }
 
 
@@ -1036,8 +1036,8 @@
 }
 
 .btn-show-more-weeks {
-  background: #ffffff;
-  color: #2c7a6e;
+  background: var(--bg-surface, #ffffff);
+  color: var(--primary, #2c7a6e);
   border: 2px dashed #99c9c3;
   border-radius: 10px;
   padding: 9px 22px;
@@ -1052,7 +1052,7 @@
 }
 
 .btn-show-more-weeks:hover {
-  background: #2c7a6e;
+  background: var(--primary, #2c7a6e);
   color: #ffffff;
   border-style: solid;
   transform: translateY(-1px);
@@ -1157,7 +1157,7 @@
 
 .wc-sub {
   font-size: 11.5px;
-  color: #64748b;
+  color: var(--text-gray, #64748b);
 }
 
 @media (max-width: 480px) {
@@ -1196,7 +1196,7 @@
 
 .wh-stat {
   background: #f1f5f9;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-color, #e2e8f0);
   border-radius: 10px;
   padding: 8px 10px;
   display: flex;
@@ -1208,12 +1208,12 @@
 .wh-stat-val {
   font-size: 18px;
   font-weight: 800;
-  color: #2c7a6e;
+  color: var(--primary, #2c7a6e);
 }
 
 .wh-stat-lbl {
   font-size: 11px;
-  color: #64748b;
+  color: var(--text-gray, #64748b);
 }
 
 .wh-toolbar {
@@ -1244,20 +1244,20 @@
 }
 
 .wh-tool-btn.ghost {
-  border-color: #e2e8f0;
-  background: #f8fafc;
+  border-color: var(--border-color, #e2e8f0);
+  background: var(--bg-surface-2, #f8fafc);
   color: #475569;
 }
 
 .wh-tool-btn.ghost:hover {
-  background: #eef2f6;
+  background: var(--border-light, #eef2f6);
 }
 
 .wh-search {
   flex: 1;
   min-width: 160px;
   padding: 6px 12px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-color, #e2e8f0);
   border-radius: 999px;
   font-family: "Vazir", sans-serif;
   font-size: 12px;
@@ -1265,17 +1265,17 @@
 }
 
 .wh-search:focus {
-  border-color: #2c7a6e;
+  border-color: var(--primary, #2c7a6e);
   box-shadow: 0 0 0 2px rgba(44, 122, 110, 0.12);
 }
 
 .wh-list {
   max-height: 320px;
   overflow-y: auto;
-  border: 1px solid #eef2f6;
+  border: 1px solid var(--border-light, #eef2f6);
   border-radius: 12px;
   padding: 6px;
-  background: #ffffff;
+  background: var(--bg-surface, #ffffff);
 }
 
 .wh-item {
@@ -1290,7 +1290,7 @@
 }
 
 .wh-item:hover {
-  background: #f8fafc;
+  background: var(--bg-surface-2, #f8fafc);
 }
 
 /* ✅ ردیف انتخاب‌شده در مودال‌های انتخاب (گله‌های تاریخچه و گروه‌های شاخص گزارش) */
@@ -1308,7 +1308,7 @@
 .wk-section {
   margin-top: 12px;
   padding-top: 10px;
-  border-top: 1px dashed #e2e8f0;
+  border-top: 1px dashed var(--border-color, #e2e8f0);
 }
 
 .wk-section-title {
@@ -1325,8 +1325,8 @@
 }
 
 .wk-chip {
-  border: 1px solid #cbd5e1;
-  background: #fff;
+  border: 1px solid var(--border-strong, #cbd5e1);
+  background: var(--bg-surface, #fff);
   color: #334155;
   border-radius: 20px;
   padding: 5px 12px;
@@ -1337,13 +1337,13 @@
 }
 
 .wk-chip:hover {
-  border-color: #2c7a6e;
-  color: #2c7a6e;
+  border-color: var(--primary, #2c7a6e);
+  color: var(--primary, #2c7a6e);
 }
 
 .wk-chip.is-active {
-  background: #2c7a6e;
-  border-color: #2c7a6e;
+  background: var(--primary, #2c7a6e);
+  border-color: var(--primary, #2c7a6e);
   color: #fff;
 }
 
@@ -1359,7 +1359,7 @@
 .wk-input {
   width: 70px;
   padding: 4px 8px;
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--border-strong, #cbd5e1);
   border-radius: 8px;
   text-align: center;
 }
@@ -1376,7 +1376,7 @@
 }
 
 .wk-flock {
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-color, #e2e8f0);
   border-radius: 10px;
   margin-bottom: 8px;
   overflow: hidden;
@@ -1388,18 +1388,18 @@
   gap: 10px;
   flex-wrap: wrap;
   padding: 8px 10px;
-  background: #f8fafc;
+  background: var(--bg-surface-2, #f8fafc);
 }
 
 .wk-flock-title {
   font-size: 12.5px;
   font-weight: 700;
-  color: #1e293b;
+  color: var(--text-dark, #1e293b);
 }
 
 .wk-flock-meta {
   font-size: 11px;
-  color: #64748b;
+  color: var(--text-gray, #64748b);
 }
 
 .wk-flock-status {
@@ -1425,8 +1425,8 @@
 
 .wk-flock-weeks {
   padding: 8px 10px;
-  border-top: 1px solid #eef2f6;
-  background: #fff;
+  border-top: 1px solid var(--border-light, #eef2f6);
+  background: var(--bg-surface, #fff);
 }
 
 .wk-week-list {
@@ -1450,7 +1450,7 @@
 }
 
 .wk-week-item:hover {
-  background: #f8fafc;
+  background: var(--bg-surface-2, #f8fafc);
 }
 
 .wk-week-item.missing {
@@ -1464,7 +1464,7 @@
 .wk-week-check {
   width: 15px;
   height: 15px;
-  accent-color: #2c7a6e;
+  accent-color: var(--primary, #2c7a6e);
 }
 
 .wk-week-name {
@@ -1473,7 +1473,7 @@
 }
 
 .wk-week-date {
-  color: #64748b;
+  color: var(--text-gray, #64748b);
 }
 
 .wk-week-status {
@@ -1497,7 +1497,7 @@
   width: 16px;
   height: 16px;
   margin-top: 3px;
-  accent-color: #2c7a6e;
+  accent-color: var(--primary, #2c7a6e);
   cursor: pointer;
   flex: 0 0 auto;
 }
@@ -1513,12 +1513,12 @@
 .wh-item-title {
   font-size: 13px;
   font-weight: 700;
-  color: #1e293b;
+  color: var(--text-dark, #1e293b);
 }
 
 .wh-item-unit {
   font-weight: 600;
-  color: #2c7a6e;
+  color: var(--primary, #2c7a6e);
 }
 
 .wh-item-meta {
@@ -1526,21 +1526,21 @@
   flex-wrap: wrap;
   gap: 10px;
   font-size: 11px;
-  color: #64748b;
+  color: var(--text-gray, #64748b);
 }
 
 .wh-item-meta i {
-  color: #94a3b8;
+  color: var(--text-light, #94a3b8);
 }
 
 .wh-hint {
   margin: 8px 0 0;
   font-size: 11px;
-  color: #94a3b8;
+  color: var(--text-light, #94a3b8);
 }
 
 .wh-hint i {
-  color: #f59e0b;
+  color: var(--warning, #f59e0b);
 }
 
 @media (max-width: 560px) {
