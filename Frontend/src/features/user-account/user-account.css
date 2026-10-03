@@ -74,7 +74,7 @@ html[data-theme="dark"] body {
   border-radius: 50%;
   overflow: hidden;
   border: 3px solid rgba(255, 255, 255, 0.7);
-  background: #ffffff;
+  background: var(--bg-surface, #ffffff);
 }
 
 .account-hero__avatar img {
@@ -413,7 +413,7 @@ html[data-theme="dark"] body {
   height: 20px;
   right: 3px;
   top: 3px;
-  background: #fff;
+  background: var(--bg-surface, #fff);
   border-radius: 50%;
   transition: transform 0.2s ease;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);

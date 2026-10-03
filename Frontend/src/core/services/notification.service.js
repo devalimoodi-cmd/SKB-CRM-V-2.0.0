@@ -199,7 +199,7 @@ class NotificationService {
       const errorList = message
         .map(
           (err, index) => `
-                <div style="padding: 6px 0; font-size: 13px; color: #991b1b; border-bottom: 1px solid #fecaca; display: flex; align-items: flex-start; gap: 8px;">
+                <div style="padding: 6px 0; font-size: 13px; color: #991b1b; border-bottom: 1px solid var(--danger-mist, #fecaca); display: flex; align-items: flex-start; gap: 8px;">
                     <span style="color: var(--danger, #dc2626); font-weight: bold;">${index + 1}.</span>
                     <span style="flex: 1;">${err}</span>
                 </div>
@@ -215,7 +215,7 @@ class NotificationService {
                         <p style="font-size: 14px; color: var(--text-slate, #475569); margin-bottom: 16px;">
                             لطفاً موارد زیر را اصلاح کنید:
                         </p>
-                        <div style="background: #fef2f2; border-right: 4px solid var(--danger, #dc2626); padding: 12px 16px; border-radius: 8px; text-align: right; max-height: 300px; overflow-y: auto;">
+                        <div style="background: var(--danger-soft, #fef2f2); border-right: 4px solid var(--danger, #dc2626); padding: 12px 16px; border-radius: 8px; text-align: right; max-height: 300px; overflow-y: auto;">
                             ${errorList}
                         </div>
                     </div>

@@ -96,7 +96,7 @@ class WhatsNewManager {
         <!-- ستون فرم -->
         <div id="wnFormColumn" style="display:${this.isSuperAdmin ? "block" : "none"};">
           <div style="background:var(--bg-surface, #fff);border:1px solid #e8edf3;border-radius:12px;padding:16px;margin-bottom:16px;">
-            <h4 style="margin:0 0 12px;font-size:14px;color:#0f172a;">
+            <h4 style="margin:0 0 12px;font-size:14px;color:var(--ink, #0f172a);">
               <i class="fas fa-tag" style="color:var(--primary, #2c7a6e);"></i> تنظیمات نسخه
               <span id="wnModeBadge" style="font-size:11px;font-weight:700;background:var(--gray-100, #f1f5f9);color:var(--text-gray, #64748b);padding:2px 10px;border-radius:999px;margin-inline-start:6px;">نسخهٔ جدید</span>
             </h4>
@@ -104,36 +104,36 @@ class WhatsNewManager {
             <div style="display:flex;flex-direction:column;gap:10px;">
               <label style="font-size:12px;color:var(--text-slate, #475569);">شماره نسخه <span style="color:var(--danger, #dc2626);">*</span>
                 <input type="text" id="wnVersion" placeholder="مثال: 2.1.0" dir="ltr"
-                  style="width:100%;margin-top:4px;padding:8px 10px;border:1px solid #d8e0e8;border-radius:8px;font-family:inherit;font-size:13px;box-sizing:border-box;">
+                  style="width:100%;margin-top:4px;padding:8px 10px;border:1px solid var(--slate-border, #d8e0e8);border-radius:8px;font-family:inherit;font-size:13px;box-sizing:border-box;">
               </label>
 
               <label style="font-size:12px;color:var(--text-slate, #475569);">عنوان مودال
                 <input type="text" id="wnTitle" maxlength="150" placeholder="تغییرات جدید"
-                  style="width:100%;margin-top:4px;padding:8px 10px;border:1px solid #d8e0e8;border-radius:8px;font-family:inherit;font-size:13px;box-sizing:border-box;">
+                  style="width:100%;margin-top:4px;padding:8px 10px;border:1px solid var(--slate-border, #d8e0e8);border-radius:8px;font-family:inherit;font-size:13px;box-sizing:border-box;">
               </label>
 
               <label style="font-size:12px;color:var(--text-slate, #475569);">توضیح کوتاه
                 <textarea id="wnDescription" maxlength="2000" rows="2" placeholder="ما همیشه در حال بهبود سیستم هستیم..."
-                  style="width:100%;margin-top:4px;padding:8px 10px;border:1px solid #d8e0e8;border-radius:8px;font-family:inherit;font-size:13px;box-sizing:border-box;"></textarea>
+                  style="width:100%;margin-top:4px;padding:8px 10px;border:1px solid var(--slate-border, #d8e0e8);border-radius:8px;font-family:inherit;font-size:13px;box-sizing:border-box;"></textarea>
               </label>
 
               <div style="display:flex;gap:10px;flex-wrap:wrap;">
                 <label style="font-size:12px;color:var(--text-slate, #475569);flex:1;min-width:130px;">مخاطب
                   <select id="wnAudience"
-                    style="width:100%;margin-top:4px;padding:8px 10px;border:1px solid #d8e0e8;border-radius:8px;font-family:inherit;font-size:13px;">
+                    style="width:100%;margin-top:4px;padding:8px 10px;border:1px solid var(--slate-border, #d8e0e8);border-radius:8px;font-family:inherit;font-size:13px;">
                     ${AUDIENCES.map((key) => `<option value="${key}">${audienceLabel(key)}</option>`).join("")}
                   </select>
                 </label>
                 <label style="font-size:12px;color:var(--text-slate, #475569);flex:1;min-width:130px;">زمان انتشار (اختیاری)
                   <input type="datetime-local" id="wnPublishAt"
-                    style="width:100%;margin-top:4px;padding:8px 10px;border:1px solid #d8e0e8;border-radius:8px;font-family:inherit;font-size:13px;box-sizing:border-box;">
+                    style="width:100%;margin-top:4px;padding:8px 10px;border:1px solid var(--slate-border, #d8e0e8);border-radius:8px;font-family:inherit;font-size:13px;box-sizing:border-box;">
                 </label>
               </div>
             </div>
           </div>
 
           <div style="background:var(--bg-surface, #fff);border:1px solid #e8edf3;border-radius:12px;padding:16px;margin-bottom:16px;">
-            <h4 style="margin:0 0 12px;font-size:14px;color:#0f172a;">
+            <h4 style="margin:0 0 12px;font-size:14px;color:var(--ink, #0f172a);">
               <i class="fas fa-plus-circle" style="color:var(--primary, #2c7a6e);"></i>
               <span id="wnItemFormTitle">افزودن آیتم</span>
             </h4>
@@ -142,7 +142,7 @@ class WhatsNewManager {
               ${CATEGORY_ORDER.map(
                 (key) => `
                 <button type="button" class="wn-cat-btn" data-cat="${key}"
-                  style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border:1.5px solid #d8e0e8;background:var(--bg-surface, #fff);border-radius:10px;font-family:inherit;font-size:12px;font-weight:600;color:var(--text-gray, #64748b);cursor:pointer;">
+                  style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border:1.5px solid var(--slate-border, #d8e0e8);background:var(--bg-surface, #fff);border-radius:10px;font-family:inherit;font-size:12px;font-weight:600;color:var(--text-gray, #64748b);cursor:pointer;">
                   <i class="fas ${CATEGORY_META[key].icon}"></i> ${escapeHtml(CATEGORY_META[key].short)}
                 </button>`,
               ).join("")}
@@ -151,17 +151,17 @@ class WhatsNewManager {
             <div style="display:flex;flex-direction:column;gap:10px;">
               <label style="font-size:12px;color:var(--text-slate, #475569);">عنوان آیتم <span style="color:var(--danger, #dc2626);">*</span>
                 <input type="text" id="wnItemTitle" maxlength="200" placeholder="مثال: سیستم نظرات و پیشنهادات"
-                  style="width:100%;margin-top:4px;padding:8px 10px;border:1px solid #d8e0e8;border-radius:8px;font-family:inherit;font-size:13px;box-sizing:border-box;">
+                  style="width:100%;margin-top:4px;padding:8px 10px;border:1px solid var(--slate-border, #d8e0e8);border-radius:8px;font-family:inherit;font-size:13px;box-sizing:border-box;">
               </label>
 
               <label style="font-size:12px;color:var(--text-slate, #475569);">توضیحات
                 <textarea id="wnItemDescription" maxlength="2000" rows="2" placeholder="توضیح کوتاه دربارهٔ این تغییر..."
-                  style="width:100%;margin-top:4px;padding:8px 10px;border:1px solid #d8e0e8;border-radius:8px;font-family:inherit;font-size:13px;box-sizing:border-box;"></textarea>
+                  style="width:100%;margin-top:4px;padding:8px 10px;border:1px solid var(--slate-border, #d8e0e8);border-radius:8px;font-family:inherit;font-size:13px;box-sizing:border-box;"></textarea>
               </label>
 
               <label style="font-size:12px;color:var(--text-slate, #475569);">برچسب
                 <input type="text" id="wnItemTag" maxlength="50" placeholder="مثال: جدید، بهبود"
-                  style="width:100%;margin-top:4px;padding:8px 10px;border:1px solid #d8e0e8;border-radius:8px;font-family:inherit;font-size:13px;box-sizing:border-box;">
+                  style="width:100%;margin-top:4px;padding:8px 10px;border:1px solid var(--slate-border, #d8e0e8);border-radius:8px;font-family:inherit;font-size:13px;box-sizing:border-box;">
               </label>
 
               <div style="display:flex;gap:8px;flex-wrap:wrap;">
@@ -176,7 +176,7 @@ class WhatsNewManager {
           </div>
 
           <div style="background:var(--bg-surface, #fff);border:1px solid #e8edf3;border-radius:12px;padding:16px;margin-bottom:16px;">
-            <h4 style="margin:0 0 12px;font-size:14px;color:#0f172a;">
+            <h4 style="margin:0 0 12px;font-size:14px;color:var(--ink, #0f172a);">
               <i class="fas fa-list" style="color:var(--primary, #2c7a6e);"></i> آیتم‌های این نسخه
               <span id="wnItemsCount" style="font-size:11px;font-weight:700;background:var(--gray-100, #f1f5f9);color:var(--text-gray, #64748b);padding:2px 10px;border-radius:999px;margin-inline-start:6px;">۰ مورد</span>
             </h4>
@@ -207,7 +207,7 @@ class WhatsNewManager {
         <!-- ستون پیش‌نمایش -->
         <div>
           <div style="background:var(--bg-surface, #fff);border:2px dashed rgba(44,122,110,.25);border-radius:12px;padding:16px;">
-            <h4 style="margin:0 0 12px;font-size:14px;color:#0f172a;">
+            <h4 style="margin:0 0 12px;font-size:14px;color:var(--ink, #0f172a);">
               <i class="fas fa-eye" style="color:var(--primary, #2c7a6e);"></i> پیش‌نمایش زندهٔ مودال کاربر
             </h4>
             <div class="wn-modal" id="wnPreviewBox" style="max-height:none;box-shadow:0 8px 30px rgba(0,0,0,.08);"></div>
@@ -218,7 +218,7 @@ class WhatsNewManager {
       <!-- فهرست نسخه‌ها -->
       <div style="background:var(--bg-surface, #fff);border:1px solid #e8edf3;border-radius:12px;padding:16px;margin-top:16px;">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
-          <h4 style="margin:0;font-size:14px;color:#0f172a;">
+          <h4 style="margin:0;font-size:14px;color:var(--ink, #0f172a);">
             <i class="fas fa-clock-rotate-left" style="color:var(--primary, #2c7a6e);"></i> نسخه‌های ثبت‌شده
             <span id="wnCounts" style="font-size:11px;font-weight:700;color:var(--text-gray, #64748b);margin-inline-start:8px;"></span>
           </h4>
@@ -476,12 +476,12 @@ class WhatsNewManager {
       .map((item, index) => {
         const meta = CATEGORY_META[item.category] || CATEGORY_META.new;
         return `
-          <div style="display:flex;align-items:flex-start;gap:10px;background:#fafbfc;border:1px solid var(--border-light, #eef2f6);border-radius:10px;padding:10px 12px;">
+          <div style="display:flex;align-items:flex-start;gap:10px;background:var(--slate-mist, #fafbfc);border:1px solid var(--border-light, #eef2f6);border-radius:10px;padding:10px 12px;">
             <span class="wn-section-icon ${item.category}" style="flex-shrink:0;">
               <i class="fas ${meta.icon}"></i>
             </span>
             <div style="flex:1;min-width:0;">
-              <div style="font-size:13px;font-weight:600;color:#0f172a;">${escapeHtml(item.title)}</div>
+              <div style="font-size:13px;font-weight:600;color:var(--ink, #0f172a);">${escapeHtml(item.title)}</div>
               ${item.description ? `<div style="font-size:11.5px;color:var(--text-gray, #64748b);line-height:1.7;">${escapeHtml(item.description)}</div>` : ""}
               ${item.tag ? `<span class="wn-item-tag ${item.category}">${escapeHtml(item.tag)}</span>` : ""}
             </div>

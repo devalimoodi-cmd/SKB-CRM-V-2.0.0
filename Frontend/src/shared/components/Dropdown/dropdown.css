@@ -25,7 +25,7 @@
 }
 
 .dropdown-toggle:hover {
-  background: #f1f5f9;
+  background: var(--gray-100, #f1f5f9);
   border-color: var(--border-strong, #cbd5e1);
 }
 
@@ -87,7 +87,7 @@
 }
 
 .dropdown-item.active {
-  background: #f1f5f9;
+  background: var(--gray-100, #f1f5f9);
   color: var(--primary, #2c7a6e);
 }
 

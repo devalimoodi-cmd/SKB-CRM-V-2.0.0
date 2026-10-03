@@ -81,7 +81,7 @@
 
 .week-edit-form .form-section {
   margin-bottom: 10px;
-  background: #fafbfc;
+  background: var(--slate-mist, #fafbfc);
   padding: 8px 10px;
   border-radius: 6px;
   border: 1px solid var(--border-light, #eef2f6);
@@ -202,7 +202,7 @@
 
 .btn-cancel-week {
   background: var(--border-color, #e2e8f0);
-  color: #475569;
+  color: var(--text-slate, #475569);
 }
 
 .btn-cancel-week:hover {
@@ -279,12 +279,12 @@
 }
 
 .btn-Report-All-week {
-  background: #8b5cf6;
+  background: var(--violet, #8b5cf6);
   color: white;
 }
 
 .btn-Report-All-week:hover {
-  background: #7c3aed;
+  background: var(--violet-deep, #7c3aed);
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
 }
@@ -426,8 +426,8 @@
 }
 
 .week-accordion-item.open .week-accordion-header {
-  background: #f0fdf4;
-  border-bottom: 1px solid #bbf7d0;
+  background: var(--success-soft, #f0fdf4);
+  border-bottom: 1px solid var(--success-mist-3, #bbf7d0);
   border-radius: 10px 10px 0 0;
 }
 
@@ -469,13 +469,13 @@
 }
 
 .week-status.saved {
-  background: #dcfce7;
-  color: #16a34a;
+  background: var(--success-bg, #dcfce7);
+  color: var(--success-strong, #16a34a);
 }
 
 .week-status.pending {
-  background: #fef3c7;
-  color: #d97706;
+  background: var(--warning-bg, #fef3c7);
+  color: var(--warning-deep-2, #d97706);
 }
 
 .week-accordion-icon {
@@ -723,7 +723,7 @@
   height: 17px;
   border-radius: 50%;
   background: var(--border-color, #e2e8f0);
-  color: #475569;
+  color: var(--text-slate, #475569);
   font-size: 11px;
   font-weight: 800;
   cursor: help;
@@ -797,8 +797,8 @@
   grid-column: 1 / -1;
   font-size: 12px;
   font-weight: 800;
-  color: #475569;
-  background: #f1f5f9;
+  color: var(--text-slate, #475569);
+  background: var(--gray-100, #f1f5f9);
   border-radius: 8px;
   padding: 6px 10px;
   margin-top: 4px;
@@ -815,9 +815,9 @@
 /* فیلد محاسبه‌شده خودکار دان */
 .weekly-feed-daily.feed-auto-calc,
 .weekly-feed-weekly.feed-auto-calc {
-  background: #ecfdf5;
+  background: var(--success-mist-2, #ecfdf5);
   border-color: #6ee7b7 !important;
-  color: #065f46;
+  color: var(--success-deeper, #065f46);
   cursor: not-allowed;
 }
 
@@ -847,17 +847,17 @@
 
 .wc-card.wc-ok {
   border-color: #22c55e;
-  background: #f0fdf4;
+  background: var(--success-soft, #f0fdf4);
 }
 
 .wc-card.wc-warn {
   border-color: var(--warning, #f59e0b);
-  background: #fffbeb;
+  background: var(--warning-soft, #fffbeb);
 }
 
 .wc-card.wc-bad {
-  border-color: #ef4444;
-  background: #fef2f2;
+  border-color: var(--danger-strong, #ef4444);
+  background: var(--danger-soft, #fef2f2);
 }
 
 .wc-label {
@@ -941,7 +941,7 @@
 }
 
 .btn-flock-report:hover {
-  background: #ecfdf5;
+  background: var(--success-mist-2, #ecfdf5);
   transform: translateY(-1px);
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.22);
 }
@@ -974,7 +974,7 @@
   justify-content: space-between;
   gap: 10px;
   padding: 10px 16px;
-  background: linear-gradient(135deg, var(--primary-dark, #035552) 0%, #0d9488 100%);
+  background: linear-gradient(135deg, var(--primary-dark, #035552) 0%, var(--accent-teal, #0d9488) 100%);
   color: #fff;
   cursor: pointer;
   user-select: none;
@@ -1089,7 +1089,7 @@
 
 .week-edit-form .form-group label {
   font-size: 12.5px;
-  color: #475569;
+  color: var(--text-slate, #475569);
 }
 
 .week-edit-form input[type="text"],
@@ -1195,7 +1195,7 @@
 }
 
 .wh-stat {
-  background: #f1f5f9;
+  background: var(--gray-100, #f1f5f9);
   border: 1px solid var(--border-color, #e2e8f0);
   border-radius: 10px;
   padding: 8px 10px;
@@ -1229,9 +1229,9 @@
   gap: 5px;
   padding: 6px 12px;
   border-radius: 999px;
-  border: 1px solid #a7f3d0;
-  background: #ecfdf5;
-  color: #047857;
+  border: 1px solid var(--success-mist-4, #a7f3d0);
+  background: var(--success-mist-2, #ecfdf5);
+  color: var(--success-deep, #047857);
   font-family: "Vazir", sans-serif;
   font-size: 12px;
   font-weight: 700;
@@ -1240,13 +1240,13 @@
 }
 
 .wh-tool-btn:hover {
-  background: #d1fae5;
+  background: var(--success-mist, #d1fae5);
 }
 
 .wh-tool-btn.ghost {
   border-color: var(--border-color, #e2e8f0);
   background: var(--bg-surface-2, #f8fafc);
-  color: #475569;
+  color: var(--text-slate, #475569);
 }
 
 .wh-tool-btn.ghost:hover {
@@ -1296,7 +1296,7 @@
 /* ✅ ردیف انتخاب‌شده در مودال‌های انتخاب (گله‌های تاریخچه و گروه‌های شاخص گزارش) */
 .wh-item:has(.wh-item-check:checked) {
   background: #f0fdf9;
-  border-color: #a7f3d0;
+  border-color: var(--success-mist-4, #a7f3d0);
 }
 
 /* ===== مودال انتخاب هفته‌های گزارش (ترکیبی) ===== */
@@ -1314,7 +1314,7 @@
 .wk-section-title {
   font-size: 12px;
   font-weight: 800;
-  color: #065f46;
+  color: var(--success-deeper, #065f46);
   margin-bottom: 8px;
 }
 
@@ -1327,7 +1327,7 @@
 .wk-chip {
   border: 1px solid var(--border-strong, #cbd5e1);
   background: var(--bg-surface, #fff);
-  color: #334155;
+  color: var(--text-slate-strong, #334155);
   border-radius: 20px;
   padding: 5px 12px;
   font-size: 12px;
@@ -1353,7 +1353,7 @@
   gap: 14px;
   margin-top: 10px;
   font-size: 12px;
-  color: #475569;
+  color: var(--text-slate, #475569);
 }
 
 .wk-input {
@@ -1408,7 +1408,7 @@
 }
 
 .wk-flock-status.is-shared {
-  color: #065f46;
+  color: var(--success-deeper, #065f46);
 }
 
 .wk-flock-status.is-custom {
@@ -1416,7 +1416,7 @@
 }
 
 .wk-flock-status.is-excluded {
-  color: #b91c1c;
+  color: var(--danger-deep, #b91c1c);
 }
 
 .wk-edit-btn {
@@ -1445,7 +1445,7 @@
   padding: 4px 6px;
   border-radius: 8px;
   font-size: 11.5px;
-  color: #334155;
+  color: var(--text-slate-strong, #334155);
   cursor: pointer;
 }
 
@@ -1454,11 +1454,11 @@
 }
 
 .wk-week-item.missing {
-  background: #fef2f2;
+  background: var(--danger-soft, #fef2f2);
 }
 
 .wk-week-item.partial {
-  background: #fffbeb;
+  background: var(--warning-soft, #fffbeb);
 }
 
 .wk-week-check {
@@ -1482,15 +1482,15 @@
 }
 
 .wk-week-status.complete {
-  color: #065f46;
+  color: var(--success-deeper, #065f46);
 }
 
 .wk-week-status.partial {
-  color: #b45309;
+  color: var(--warning-deep, #b45309);
 }
 
 .wk-week-status.missing {
-  color: #b91c1c;
+  color: var(--danger-deep, #b91c1c);
 }
 
 .wh-item-check {

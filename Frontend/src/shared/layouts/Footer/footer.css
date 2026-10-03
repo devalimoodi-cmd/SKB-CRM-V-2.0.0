@@ -115,7 +115,7 @@
 /* فوتر تیره */
 .footer-dark {
   background: var(--text-dark, #1e293b);
-  border-top-color: #334155;
+  border-top-color: var(--text-slate-strong, #334155);
 }
 
 .footer-dark .footer-description {
@@ -143,9 +143,9 @@
 }
 
 .footer-dark .footer-social-icon {
-  background: #334155;
+  background: var(--text-slate-strong, #334155);
   color: var(--text-light, #94a3b8);
-  border-color: #475569;
+  border-color: var(--text-slate, #475569);
 }
 
 .footer-dark .footer-social-icon:hover {

@@ -83,7 +83,7 @@
   padding: 16px 20px;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  background: #fafbfc;
+  background: var(--slate-mist, #fafbfc);
   user-select: none;
 }
 
@@ -426,7 +426,7 @@
 }
 
 .analysis-toggle input:checked + .analysis-toggle-slider {
-  background: #d97706;
+  background: var(--warning-deep-2, #d97706);
 }
 
 .analysis-toggle input:checked + .analysis-toggle-slider::before {
@@ -436,21 +436,21 @@
 .analysis-toggle-label {
   font-size: 12.5px;
   font-weight: 700;
-  color: #334155;
+  color: var(--text-slate-strong, #334155);
   display: inline-flex;
   align-items: center;
   gap: 6px;
 }
 
 .analysis-toggle-label i {
-  color: #d97706;
+  color: var(--warning-deep-2, #d97706);
 }
 
 .analysis-history-note {
   font-size: 11px;
-  color: #92400e;
-  background: #fffbeb;
-  border: 1px dashed #fcd34d;
+  color: var(--warning-deep-3, #92400e);
+  background: var(--warning-soft, #fffbeb);
+  border: 1px dashed var(--warning-brd, #fcd34d);
   border-radius: 8px;
   padding: 4px 10px;
 }
@@ -459,9 +459,9 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  background: #fffbeb;
-  border: 1.5px solid #fcd34d;
-  color: #92400e;
+  background: var(--warning-soft, #fffbeb);
+  border: 1.5px solid var(--warning-brd, #fcd34d);
+  color: var(--warning-deep-3, #92400e);
   font-size: 12.5px;
   font-weight: 700;
   border-radius: 10px;
@@ -470,7 +470,7 @@
 }
 
 .analysis-past-banner i {
-  color: #d97706;
+  color: var(--warning-deep-2, #d97706);
   font-size: 14px;
 }
 

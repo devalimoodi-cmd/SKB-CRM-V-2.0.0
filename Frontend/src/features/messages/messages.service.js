@@ -409,7 +409,7 @@ class MessagesService {
       const items = response.data?.items || [];
       container.innerHTML = `
         <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; padding:6px 4px;">
-          <strong style="font-size:13px; color:#0f172a;">
+          <strong style="font-size:13px; color:var(--ink, #0f172a);">
             <i class="fas fa-comments"></i> نظرات و پیشنهادات
           </strong>
           <button type="button" class="btn-ghost-info" id="messageNewBtn"

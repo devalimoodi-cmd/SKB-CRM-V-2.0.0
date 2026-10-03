@@ -1021,7 +1021,7 @@ SKB-CRM.IR`,
       "display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin-top:6px; width:100%;";
     wrap.innerHTML = `
       <button type="button" id="addCompareBtn"
-        style="padding:4px 12px; border:1px dashed var(--primary, #2c7a6e); background:#ecfdf5; color:#047857; border-radius:999px; font-size:11px; font-weight:600; cursor:pointer;"
+        style="padding:4px 12px; border:1px dashed var(--primary, #2c7a6e); background:var(--success-mist-2, #ecfdf5); color:var(--success-deep, #047857); border-radius:999px; font-size:11px; font-weight:600; cursor:pointer;"
         onclick="window.openChartComparePicker()"><i class="fas fa-plus"></i> مقایسه با گله/سالن دیگر</button>
       <span id="compareChips" style="display:inline-flex; flex-wrap:wrap; gap:4px;"></span>`;
     header.appendChild(wrap);
@@ -1361,6 +1361,9 @@ SKB-CRM.IR`,
   }
 
   updateCharts(data) {
+    // ✅ آخرین داده برای بازسازی نمودارها روی تغییر تم نگه داشته می‌شود
+    this._lastChartData = data;
+
     // وقتی داده واقعی وجود دارد، پیام «گله‌ای انتخاب نشده» را مخفی کن
     if (data && data.flocks && data.flocks.length > 0) {
       this.hideNoFlockSelectedMessage();
@@ -2244,6 +2247,21 @@ SKB-CRM.IR`,
 Object.assign(DashboardService.prototype, dashboardSmsMethods);
 Object.assign(DashboardService.prototype, dashboardBookmarkMethods);
 export const dashboardService = new DashboardService();
+
+// ✅ موج ۶: روی تغییر تم، نمودارهای داشبورد با رنگ‌های تازه بازسازی شوند
+// (Chart.js مقدار var() را نمی‌فهمد؛ لذا باید نمودار از نو ساخته شود)
+if (typeof window !== "undefined" && typeof window.addEventListener === "function") {
+  window.addEventListener("theme:changed", () => {
+    const svc = dashboardService;
+    if (!svc.chartInstances || !Object.keys(svc.chartInstances).length) return;
+    try {
+      svc.setupCharts();
+      svc.updateCharts(svc._lastChartData || {});
+    } catch (error) {
+      console.warn("⚠️ theme chart refresh failed:", error?.message || error);
+    }
+  });
+}
 
 // ===== چسب پنجره (window.*) — منتقل‌شده به dashboard.window-glue.js (موج ۳.۲) =====
 registerDashboardWindowGlue({ dashboardService, DashboardService });

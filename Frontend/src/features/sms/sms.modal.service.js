@@ -118,7 +118,7 @@ export function openSmsModal({
             </div>
             <div style="margin-bottom: 6px;">
               <label style="display:block; margin-bottom:6px; font-weight:700; font-size:13px; color:var(--text-dark, #1e293b);">متن پیامک</label>
-              <textarea id="smsMessage" rows="8" style="width:100%; padding:12px; border:1.5px solid var(--border-color, #e2e8f0); border-radius:8px; font-family:'Vazir'; font-size:13px; resize:vertical; box-sizing:border-box; background:var(--bg-surface, #fff); color:#0f172a;">${buildDefaultRaw().replace(/"/g, "&quot;")}</textarea>
+              <textarea id="smsMessage" rows="8" style="width:100%; padding:12px; border:1.5px solid var(--border-color, #e2e8f0); border-radius:8px; font-family:'Vazir'; font-size:13px; resize:vertical; box-sizing:border-box; background:var(--bg-surface, #fff); color:var(--ink, #0f172a);">${buildDefaultRaw().replace(/"/g, "&quot;")}</textarea>
               <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
                 <span style="font-size:10px; color:var(--text-light, #94a3b8);">برای شخصی‌سازی خودکار نام/نقش هر گیرنده، توکن‌های <b>#FULLNAME#</b> و <b>#ROLE#</b> را در متن نگه دارید.</span>
                 <span id="smsCharCount" style="font-size:11px; color:var(--primary, #2c7a6e); font-weight:700;">0</span>

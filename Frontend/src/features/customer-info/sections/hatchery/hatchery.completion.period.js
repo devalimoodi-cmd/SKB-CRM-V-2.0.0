@@ -287,7 +287,7 @@ export const hatcheryCompletionPeriodMethods = {
         <div style="margin-top:10px; display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:8px;">
           <div>
             <label class="ue-label">سن کشتار نهایی (روز)</label>
-            <div class="ue-field" id="ue_out_age" style="background:#faf5ff;border-color:#e9d5ff;color:#7c3aed;font-weight:800;font-size:15px;padding-top:10px;">${c.slaughter_age_days != null ? Number(c.slaughter_age_days).toLocaleString("fa-IR") : "۰"}</div>
+            <div class="ue-field" id="ue_out_age" style="background:#faf5ff;border-color:#e9d5ff;color:var(--violet-deep, #7c3aed);font-weight:800;font-size:15px;padding-top:10px;">${c.slaughter_age_days != null ? Number(c.slaughter_age_days).toLocaleString("fa-IR") : "۰"}</div>
           </div>
         </div>
       </div>`;
@@ -382,7 +382,7 @@ export const hatcheryCompletionPeriodMethods = {
               <td style="padding:8px; text-align:center;">${mortalityRate}٪</td>
               <td style="padding:8px; text-align:center;">${c.system_total_feed ?? "-"}</td>
               <td style="padding:8px; text-align:center;">${c.system_last_weight ?? "-"}</td>
-              <td style="padding:8px; text-align:center;"><strong style="color:#d97706;">${c.final_fcr ?? c.system_fcr ?? "-"} / ${c.farmer_fcr ?? "-"}</strong></td>
+              <td style="padding:8px; text-align:center;"><strong style="color:var(--warning-deep-2, #d97706);">${c.final_fcr ?? c.system_fcr ?? "-"} / ${c.farmer_fcr ?? "-"}</strong></td>
               <td style="padding:8px; text-align:center;">${c.system_epi ?? c.epi ?? "-"} / ${c.farmer_epi ?? "-"}</td>
               <td style="padding:8px; text-align:center;">${c.system_adg_grams ?? c.adg_grams ?? "-"} / ${c.farmer_adg_grams ?? "-"}</td>
               <td style="padding:8px; text-align:center;">${fmtNum(incomeValue)}</td>
@@ -643,7 +643,7 @@ const buildCompletionEditFormHtml = ({
 
           <div style="display:flex; justify-content:flex-end; margin-bottom:12px;">
             <button type="button" id="ueRecomputeBtn"
-              style="padding:8px 18px; background:#d97706; color:#fff; border:none; border-radius:10px; font-family:'Vazir'; font-size:12.5px; font-weight:600; cursor:pointer; transition:all .3s; display:flex; align-items:center; gap:6px;">
+              style="padding:8px 18px; background:var(--warning-deep-2, #d97706); color:#fff; border:none; border-radius:10px; font-family:'Vazir'; font-size:12.5px; font-weight:600; cursor:pointer; transition:all .3s; display:flex; align-items:center; gap:6px;">
               <i class="fas fa-sync-alt" id="ueRecomputeIcon"></i> محاسبه مجدد فیلدهای سیستمی
             </button>
           </div>

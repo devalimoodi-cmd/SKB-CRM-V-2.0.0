@@ -347,7 +347,7 @@ export const visitReportRenderer = {
             </div>
           </div>
           <div class="skb-summary-item">
-            <div class="skb-summary-icon" style="background:#8b5cf618; color:#8b5cf6;">
+            <div class="skb-summary-icon" style="background:var(--violet, #8b5cf6)18; color:var(--violet, #8b5cf6);">
               <i class="fas fa-user-tie"></i>
             </div>
             <div class="skb-summary-text">
@@ -375,7 +375,7 @@ export const visitReportRenderer = {
               <span class="skb-report-info-value">${hallsName.join("، ") || "-"}</span>
             </div>
           </div>
-          <div class="skb-report-info-card" style="--accent:#8b5cf6;">
+          <div class="skb-report-info-card" style="--accent:var(--violet, #8b5cf6);">
             <div class="skb-report-info-icon"><i class="fas fa-user-check"></i></div>
             <div class="skb-report-info-content">
               <span class="skb-report-info-label">کارشناسان بازدید کننده</span>
@@ -503,22 +503,22 @@ export const visitReportRenderer = {
                         font-weight: 900;
                     }
                     * { margin: 0; padding: 0; box-sizing: border-box; }
-                    body { font-family: 'Vazir', 'Tahoma', sans-serif; padding: 20px; line-height: 1.8; color: #1e293b; background: white; }
-                    .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #667eea; padding-bottom: 20px; }
-                    .header h2 { font-size: 22px; color: #2c7a6e; }
-                    .header .sub { font-size: 13px; color: #64748b; margin-top: 5px; }
-                    .header .report-info { font-size: 12px; color: #475569; margin-top: 10px; background: #f1f5f9; padding: 5px 20px; border-radius: 8px; display: inline-block; }
-                    .header .meta-info { font-size: 13px; color: #475569; margin-top: 8px; padding: 8px 16px; background: #f8fafc; border-radius: 8px; display: inline-block; }
+                    body { font-family: 'Vazir', 'Tahoma', sans-serif; padding: 20px; line-height: 1.8; color: var(--text-dark, #1e293b); background: var(--bg-surface, #fff); }
+                    .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid var(--indigo, #667eea); padding-bottom: 20px; }
+                    .header h2 { font-size: 22px; color: var(--primary, #2c7a6e); }
+                    .header .sub { font-size: 13px; color: var(--text-gray, #64748b); margin-top: 5px; }
+                    .header .report-info { font-size: 12px; color: var(--text-slate, #475569); margin-top: 10px; background: var(--gray-100, #f1f5f9); padding: 5px 20px; border-radius: 8px; display: inline-block; }
+                    .header .meta-info { font-size: 13px; color: var(--text-slate, #475569); margin-top: 8px; padding: 8px 16px; background: var(--bg-surface-2, #f8fafc); border-radius: 8px; display: inline-block; }
                     .section { margin: 20px 0; }
-                    .section-title { font-size: 16px; font-weight: 700; color: #2c7a6e; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; margin-bottom: 15px; }
+                    .section-title { font-size: 16px; font-weight: 700; color: var(--primary, #2c7a6e); border-bottom: 2px solid var(--border-color, #e2e8f0); padding-bottom: 8px; margin-bottom: 15px; }
                     .info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; margin: 15px 0; }
-                    .info-item { background: #f8fafc; padding: 12px 15px; border-radius: 8px; border-right: 3px solid #667eea; }
-                    .info-label { font-weight: 600; color: #64748b; font-size: 12px; display: block; margin-bottom: 3px; }
-                    .info-value { font-size: 14px; color: #1e293b; }
-                    .description { background: #f8fafc; padding: 15px 20px; border-radius: 8px; margin: 15px 0; border-right: 3px solid #667eea; }
+                    .info-item { background: var(--bg-surface-2, #f8fafc); padding: 12px 15px; border-radius: 8px; border-right: 3px solid var(--indigo, #667eea); }
+                    .info-label { font-weight: 600; color: var(--text-gray, #64748b); font-size: 12px; display: block; margin-bottom: 3px; }
+                    .info-value { font-size: 14px; color: var(--text-dark, #1e293b); }
+                    .description { background: var(--bg-surface-2, #f8fafc); padding: 15px 20px; border-radius: 8px; margin: 15px 0; border-right: 3px solid var(--indigo, #667eea); }
                     .description p { margin: 0; text-align: justify; }
-                    .footer { text-align: center; font-size: 11px; color: #94a3b8; border-top: 2px solid #e2e8f0; padding-top: 20px; margin-top: 30px; }
-                    .footer .report-by { background: #f1f5f9; padding: 5px 20px; border-radius: 8px; display: inline-block; font-size: 12px; color: #1e293b; margin-top: 10px; }
+                    .footer { text-align: center; font-size: 11px; color: var(--text-light, #94a3b8); border-top: 2px solid var(--border-color, #e2e8f0); padding-top: 20px; margin-top: 30px; }
+                    .footer .report-by { background: var(--gray-100, #f1f5f9); padding: 5px 20px; border-radius: 8px; display: inline-block; font-size: 12px; color: var(--text-dark, #1e293b); margin-top: 10px; }
                     @media print { body { padding: 20px; } }
                 </style>
             </head>

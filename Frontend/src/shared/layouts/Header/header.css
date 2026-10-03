@@ -102,7 +102,7 @@
 }
 
 .accuont-wrapper:hover {
-  background: #f1f5f9;
+  background: var(--gray-100, #f1f5f9);
 }
 
 .account-wra_image {
@@ -171,7 +171,7 @@
 }
 
 .wra_button_items:hover {
-  background: #f1f5f9;
+  background: var(--gray-100, #f1f5f9);
   color: var(--text-dark, #1e293b);
 }
 
@@ -253,7 +253,7 @@
 .wra_bookmarks_content::-webkit-scrollbar-track,
 .reminder-wra::-webkit-scrollbar-track,
 .wra_alert_content::-webkit-scrollbar-track {
-  background: #f1f5f9;
+  background: var(--gray-100, #f1f5f9);
   border-radius: 10px;
 }
 
@@ -565,7 +565,7 @@
 }
 
 .dropdown-item .bookmark-item-header:hover {
-  background: #f1f5f9;
+  background: var(--gray-100, #f1f5f9);
   border-color: var(--border-strong, #cbd5e1);
 }
 
@@ -621,12 +621,12 @@
 
 .bookmark-item-header .bookmark-info .meta .due-date.overdue {
   color: var(--danger, #dc2626);
-  background: #fee2e2;
+  background: var(--danger-bg, #fee2e2);
 }
 
 .bookmark-item-header .bookmark-info .meta .due-date.normal {
   color: var(--text-gray, #64748b);
-  background: #f1f5f9;
+  background: var(--gray-100, #f1f5f9);
 }
 
 .bookmark-item-header .arrow-icon {
@@ -647,7 +647,7 @@
 }
 
 .wn-header-btn .quantity {
-  background: #ef4444;
+  background: var(--danger-strong, #ef4444);
   color: #fff;
 }
 
@@ -748,7 +748,7 @@
   margin: 0 0 4px;
   font-size: 17px;
   font-weight: 800;
-  color: #0f172a;
+  color: var(--ink, #0f172a);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -788,7 +788,7 @@
 }
 
 .wn-close:hover {
-  background: #fee2e2;
+  background: var(--danger-bg, #fee2e2);
   color: var(--danger, #dc2626);
 }
 
@@ -823,7 +823,7 @@
   align-items: center;
   gap: 8px;
   padding-bottom: 8px;
-  border-bottom: 1.5px solid #f1f5f9;
+  border-bottom: 1.5px solid var(--gray-100, #f1f5f9);
 }
 
 .wn-section-icon {
@@ -840,42 +840,42 @@
 .wn-section-icon.new,
 .wn-item-tag.new,
 .wn-chip.new {
-  background: #dcfce7;
+  background: var(--success-bg, #dcfce7);
   color: #15803d;
 }
 
 .wn-section-icon.improved,
 .wn-item-tag.improved,
 .wn-chip.improved {
-  background: #dbeafe;
+  background: var(--info-bg, #dbeafe);
   color: var(--info, #3b82f6);
 }
 
 .wn-section-icon.fixed,
 .wn-item-tag.fixed,
 .wn-chip.fixed {
-  background: #fef3c7;
-  color: #b45309;
+  background: var(--warning-bg, #fef3c7);
+  color: var(--warning-deep, #b45309);
 }
 
 .wn-section-icon.security,
 .wn-item-tag.security,
 .wn-chip.security {
   background: #f3e8ff;
-  color: #8b5cf6;
+  color: var(--violet, #8b5cf6);
 }
 
 .wn-section-title {
   font-size: 13px;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--ink, #0f172a);
 }
 
 .wn-section-count {
   margin-inline-start: auto;
   font-size: 10.5px;
   font-weight: 700;
-  background: #f1f5f9;
+  background: var(--gray-100, #f1f5f9);
   color: var(--text-gray, #64748b);
   padding: 2px 10px;
   border-radius: 999px;
@@ -892,8 +892,8 @@
   align-items: flex-start;
   gap: 10px;
   padding: 10px 12px;
-  background: #fafbfc;
-  border: 1px solid #f1f5f9;
+  background: var(--slate-mist, #fafbfc);
+  border: 1px solid var(--gray-100, #f1f5f9);
   border-radius: 12px;
   transition: all 0.2s ease;
 }
@@ -921,7 +921,7 @@
 .wn-item-title {
   font-size: 13px;
   font-weight: 600;
-  color: #0f172a;
+  color: var(--ink, #0f172a);
   line-height: 1.6;
 }
 
@@ -1014,7 +1014,7 @@
 }
 
 .wn-btn-ghost:not(:disabled):hover {
-  background: #f1f5f9;
+  background: var(--gray-100, #f1f5f9);
 }
 
 /* ===== حالت خالی ===== */
@@ -1051,7 +1051,7 @@
   gap: 8px;
   flex-wrap: wrap;
   font-size: 13px;
-  color: #0f172a;
+  color: var(--ink, #0f172a);
 }
 
 .wn-summary-chips {
@@ -1065,7 +1065,7 @@
   font-weight: 700;
   padding: 2px 9px;
   border-radius: 999px;
-  background: #f1f5f9;
+  background: var(--gray-100, #f1f5f9);
   color: var(--text-gray, #64748b);
 }
 
@@ -1074,23 +1074,23 @@
   font-weight: 700;
   padding: 2px 10px;
   border-radius: 999px;
-  background: #f1f5f9;
+  background: var(--gray-100, #f1f5f9);
   color: var(--text-gray, #64748b);
 }
 
 .wn-status.draft {
-  background: #fef3c7;
-  color: #b45309;
+  background: var(--warning-bg, #fef3c7);
+  color: var(--warning-deep, #b45309);
 }
 
 .wn-status.published {
-  background: #dcfce7;
+  background: var(--success-bg, #dcfce7);
   color: #15803d;
 }
 
 .wn-status.archived {
   background: var(--border-color, #e2e8f0);
-  color: #475569;
+  color: var(--text-slate, #475569);
 }
 
 /* ===== Responsive ===== */

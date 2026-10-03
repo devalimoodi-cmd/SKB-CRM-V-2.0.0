@@ -168,9 +168,9 @@ function renderModal(records, notice = null) {
               <td style="padding:8px; border-bottom:1px solid var(--gray-100, #f1f5f9); text-align:center; max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${r.message || "-"}</td>
               <td style="padding:8px; border-bottom:1px solid var(--gray-100, #f1f5f9); text-align:center; min-width:140px;">
                 <div><span style="display:inline-block; padding:1px 8px; border-radius:999px; font-size:9.5px; font-weight:700; background:${
-                  r.scope === "hall" ? "#eff6ff" : "#ecfdf5"
+                  r.scope === "hall" ? "var(--info-soft, #eff6ff)" : "var(--success-mist-2, #ecfdf5)"
                 }; color:${
-                  r.scope === "hall" ? "#1d4ed8" : "#047857"
+                  r.scope === "hall" ? "var(--info-deep, #1d4ed8)" : "var(--success-deep, #047857)"
                 };">${r.scope === "hall" ? "سالن" : "کل گله"}</span></div>
                 <div style="font-size:10.5px; font-weight:700; color:var(--text-slate-strong, #334155); margin-top:2px;">${r.targetLabel || r.target_title || "—"}</div>
                 <div style="font-size:10px; color:var(--text-gray, #64748b);">${r.roleLabel || "—"}</div>
@@ -198,8 +198,8 @@ function renderModal(records, notice = null) {
                     : r.status === "failed"
                       ? "var(--danger, #dc2626)"
                       : r.status === "sent"
-                        ? "#2563eb"
-                        : "#d97706"
+                        ? "var(--info-strong, #2563eb)"
+                        : "var(--warning-deep-2, #d97706)"
                 };">${getSmsStatusInfo(r.status || "pending").text}</span>
               </td>
               <td style="padding:8px; border-bottom:1px solid var(--gray-100, #f1f5f9); text-align:center;">${getSenderName(r.sender)}</td>

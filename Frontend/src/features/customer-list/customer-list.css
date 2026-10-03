@@ -280,12 +280,12 @@
 .search-box-input {
   width: 100%;
   padding: 10px 45px 10px 15px;
-  border: 1.5px solid #e5e7eb;
+  border: 1.5px solid var(--gray-200, #e5e7eb);
   border-radius: 8px;
   font-family: "Vazir", sans-serif;
   font-size: 14px;
   transition: all 0.3s ease;
-  background: #fafbfc;
+  background: var(--slate-mist, #fafbfc);
   color: var(--text-dark, #1e293b);
 }
 
@@ -343,11 +343,11 @@
 
 .search-column-select {
   padding: 10px 14px;
-  border: 1.5px solid #e5e7eb;
+  border: 1.5px solid var(--gray-200, #e5e7eb);
   border-radius: 8px;
   font-family: "Vazir", sans-serif;
   font-size: 13px;
-  background: #fafbfc;
+  background: var(--slate-mist, #fafbfc);
   cursor: pointer;
   transition: all 0.3s ease;
   color: var(--text-dark, #1e293b);
@@ -453,7 +453,7 @@
 
 .data-table tbody tr {
   transition: all 0.2s ease;
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid var(--gray-100, #f1f5f9);
 }
 
 .data-table tbody tr:hover {
@@ -628,18 +628,18 @@
 }
 
 .status-badge.active {
-  background: #dcfce7;
-  color: #16a34a;
+  background: var(--success-bg, #dcfce7);
+  color: var(--success-strong, #16a34a);
 }
 
 .status-badge.inactive {
-  background: #fee2e2;
+  background: var(--danger-bg, #fee2e2);
   color: var(--danger, #dc2626);
 }
 
 .status-badge.pending {
-  background: #fef3c7;
-  color: #d97706;
+  background: var(--warning-bg, #fef3c7);
+  color: var(--warning-deep-2, #d97706);
 }
 
 /* ===== دکمه‌های عملیات ===== */
@@ -668,28 +668,28 @@
 }
 
 .action-btn.view {
-  background: #dbeafe;
-  color: #2563eb;
+  background: var(--info-bg, #dbeafe);
+  color: var(--info-strong, #2563eb);
 }
 
 .action-btn.edit {
-  background: #dcfce7;
-  color: #16a34a;
+  background: var(--success-bg, #dcfce7);
+  color: var(--success-strong, #16a34a);
 }
 
 .action-btn.delete {
-  background: #fee2e2;
+  background: var(--danger-bg, #fee2e2);
   color: var(--danger, #dc2626);
 }
 
 .action-btn.disable {
-  background: #fef3c7;
-  color: #d97706;
+  background: var(--warning-bg, #fef3c7);
+  color: var(--warning-deep-2, #d97706);
 }
 
 .action-btn.enable {
-  background: #dbeafe;
-  color: #2563eb;
+  background: var(--info-bg, #dbeafe);
+  color: var(--info-strong, #2563eb);
 }
 
 /* ===== فوتر جدول ===== */
@@ -724,7 +724,7 @@
   min-width: 36px;
   height: 36px;
   padding: 0 12px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--gray-200, #e5e7eb);
   background: var(--bg-surface, #fff);
   border-radius: 8px;
   cursor: pointer;
@@ -734,7 +734,7 @@
   justify-content: center;
   font-family: "Vazir", sans-serif;
   font-size: 13px;
-  color: #475569;
+  color: var(--text-slate, #475569);
 }
 
 .pagination-btn:hover:not(:disabled) {
@@ -758,18 +758,18 @@
 .page-num {
   min-width: 36px;
   height: 36px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--gray-200, #e5e7eb);
   background: var(--bg-surface, #fff);
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
   font-family: "Vazir", sans-serif;
   font-size: 13px;
-  color: #475569;
+  color: var(--text-slate, #475569);
 }
 
 .page-num:hover {
-  background: #f1f5f9;
+  background: var(--gray-100, #f1f5f9);
   border-color: var(--primary, #2c7a6e);
 }
 
@@ -800,7 +800,7 @@
 
 .page-size-selector select {
   padding: 6px 12px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--gray-200, #e5e7eb);
   border-radius: 8px;
   background: var(--bg-surface, #fff);
   font-family: "Vazir", sans-serif;
@@ -1021,7 +1021,7 @@
   height: 17px;
   border-radius: 50%;
   background: var(--border-color, #e2e8f0);
-  color: #475569;
+  color: var(--text-slate, #475569);
   font-size: 11px;
   font-weight: 800;
   display: inline-flex;

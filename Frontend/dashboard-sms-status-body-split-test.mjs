@@ -516,7 +516,7 @@ const cases = [
     anchors: [
       "color:var(--success-strong, #16a34a);\">2</div>",
       "color:var(--danger, #dc2626);\">1</div>",
-      "color:#d97706;\">1</div>",
+      "color:var(--warning-deep-2, #d97706);\">1</div>",
     ],
   },
   {

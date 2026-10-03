@@ -20,7 +20,7 @@
 }
 
 .sidebar::-webkit-scrollbar-track {
-  background: #f1f5f9;
+  background: var(--gray-100, #f1f5f9);
   border-radius: 10px;
 }
 
@@ -39,13 +39,13 @@
   transition: all 0.3s ease;
   gap: 12px;
   border-right: 3px solid transparent;
-  background: #fafbfc;
-  border: 1px solid #e5e7eb;
+  background: var(--slate-mist, #fafbfc);
+  border: 1px solid var(--gray-200, #e5e7eb);
   margin-bottom: 4px;
 }
 
 .sidebar-item:hover {
-  background: #f1f5f9;
+  background: var(--gray-100, #f1f5f9);
   border-right-color: var(--primary, #2c7a6e);
   transform: translateX(-4px);
 }

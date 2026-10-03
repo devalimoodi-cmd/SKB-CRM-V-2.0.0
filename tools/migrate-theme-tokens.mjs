@@ -67,6 +67,34 @@ const HEX_MAP = [
   ["#dbeafe", "--info-bg"],
   ["#f1f5f9", "--gray-100"],
   ["#e5e7eb", "--gray-200"],
+  // ✅ پالت تکمیلی (موج ۶)
+  ["#0f172a", "--ink"],
+  ["#0d9488", "--accent-teal"],
+  ["#047857", "--success-deep"],
+  ["#065f46", "--success-deeper"],
+  ["#d1fae5", "--success-mist"],
+  ["#ecfdf5", "--success-mist-2"],
+  ["#bbf7d0", "--success-mist-3"],
+  ["#a7f3d0", "--success-mist-4"],
+  ["#f0fdf4", "--success-soft"],
+  ["#b91c1c", "--danger-deep"],
+  ["#fecaca", "--danger-mist"],
+  ["#fca5a5", "--danger-brd"],
+  ["#fef2f2", "--danger-soft"],
+  ["#fffbeb", "--warning-soft"],
+  ["#b45309", "--warning-deep"],
+  ["#d97706", "--warning-deep-2"],
+  ["#92400e", "--warning-deep-3"],
+  ["#fcd34d", "--warning-brd"],
+  ["#eff6ff", "--info-soft"],
+  ["#2563eb", "--info-strong"],
+  ["#1d4ed8", "--info-deep"],
+  ["#93c5fd", "--info-brd"],
+  ["#8b5cf6", "--violet"],
+  ["#7c3aed", "--violet-deep"],
+  ["#667eea", "--indigo"],
+  ["#fafbfc", "--slate-mist"],
+  ["#d8e0e8", "--slate-border"],
 ];
 
 const maskBlocks = (css) => {
@@ -114,7 +142,7 @@ const migrate = (src) => {
   // بازگردانی
   out = out.replace(/@@VAR(\d+)@@/g, (_m, i) => v.saved[Number(i)]);
   out = out.replace(/@@KEEP(\d+)@@/g, (_m, i) => b.saved[Number(i)]);
-  return out;
+  return collapseNestedVars(out);
 };
 
 // ============================================================
@@ -124,8 +152,30 @@ const migrate = (src) => {
 //    شامل " باشد) درست مدیریت شود.
 //  • هرگز به منطق/رنگ‌های Chart.js (خارج از style) دست نمی‌زند.
 // ============================================================
+const VAR_RX = /var\(--[a-z0-9-]+,\s*#[0-9a-fA-F]{3,8}\)/g;
+
+// ✅ جمع‌کردن پیچش‌های تکراری: var(--x, var(--x, #hex)) → var(--x, #hex)
+const collapseNestedVars = (str) => {
+  let prev;
+  let out = str;
+  do {
+    prev = out;
+    out = out.replace(
+      /var\((--[a-z0-9-]+),\s*var\(\1,\s*(#[0-9a-fA-F]{3,8})\)\)/g,
+      "var($1, $2)",
+    );
+  } while (out !== prev);
+  return out;
+};
+
 const mapInnerStyle = (inner) => {
-  let out = inner;
+  // محافظت از var(...)های موجود تا دوباره پیچیده نشوند
+  const savedVars = [];
+  let out = inner.replace(VAR_RX, (m) => {
+    savedVars.push(m);
+    return `@@IV${savedVars.length - 1}@@`;
+  });
+
   out = out.replace(
     /(background(?:-color)?\s*:\s*)(#ffffff|#fff|white)\b/gi,
     (_m, prop, color) =>
@@ -136,28 +186,37 @@ const mapInnerStyle = (inner) => {
   for (const [hex, token] of HEX_MAP) {
     out = out.replace(new RegExp(hex, "gi"), `var(${token}, ${hex})`);
   }
-  return out;
+
+  out = out.replace(/@@IV(\d+)@@/g, (_m, i) => savedVars[Number(i)]);
+  return collapseNestedVars(out);
 };
 
 const migrateJsInline = (src) => {
+  // (۱) بلوک‌های <style>...</style> داخل رشته‌های JS = CSS واقعی → با منطق CSS مهاجرت می‌شوند
+  let withStyles = src.replace(
+    /(<style\b[^>]*>)([\s\S]*?)(<\/style>)/gi,
+    (_m, open, css, close) => `${open}${migrate(css)}${close}`,
+  );
+
+  // (۲) اتریبیوت‌های style="..." (با پیمایشگر برای مدیریت ${...})
   const OPEN = 'style="';
   let out = "";
   let i = 0;
 
-  while (i < src.length) {
-    const idx = src.indexOf(OPEN, i);
+  while (i < withStyles.length) {
+    const idx = withStyles.indexOf(OPEN, i);
     if (idx === -1) {
-      out += src.slice(i);
+      out += withStyles.slice(i);
       break;
     }
-    out += src.slice(i, idx + OPEN.length);
+    out += withStyles.slice(i, idx + OPEN.length);
 
     let j = idx + OPEN.length;
     let depth = 0;
     let inner = "";
-    while (j < src.length) {
-      const ch = src[j];
-      if (ch === "$" && src[j + 1] === "{") {
+    while (j < withStyles.length) {
+      const ch = withStyles[j];
+      if (ch === "$" && withStyles[j + 1] === "{") {
         depth++;
         inner += "${";
         j += 2;
@@ -175,7 +234,7 @@ const migrateJsInline = (src) => {
     }
 
     out += mapInnerStyle(inner);
-    if (src[j] === '"') {
+    if (withStyles[j] === '"') {
       out += '"';
       j++;
     }

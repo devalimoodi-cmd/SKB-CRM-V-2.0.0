@@ -71,7 +71,7 @@
 
 .info-card p {
   margin: 0 0 10px;
-  color: #475569;
+  color: var(--text-slate, #475569);
   font-size: 14px;
   line-height: 2;
   text-align: justify;
@@ -87,7 +87,7 @@
   position: relative;
   padding: 6px 22px 6px 0;
   font-size: 13.5px;
-  color: #334155;
+  color: var(--text-slate-strong, #334155);
   line-height: 1.9;
 }
 
@@ -96,7 +96,7 @@
   position: absolute;
   right: 0;
   top: 7px;
-  color: #16a34a;
+  color: var(--success-strong, #16a34a);
   font-size: 13px;
   font-weight: 700;
 }
@@ -124,7 +124,7 @@
 .info-stat strong {
   display: block;
   font-size: 17px;
-  color: #0f172a;
+  color: var(--ink, #0f172a);
 }
 
 .info-stat span {
@@ -166,13 +166,13 @@
 .contact-item strong {
   display: block;
   font-size: 13px;
-  color: #0f172a;
+  color: var(--ink, #0f172a);
   margin-bottom: 2px;
 }
 
 .contact-item a,
 .contact-item span {
-  color: #475569;
+  color: var(--text-slate, #475569);
   font-size: 13.5px;
   text-decoration: none;
   word-break: break-word;
@@ -187,7 +187,7 @@
 .info-form label {
   display: block;
   font-size: 13px;
-  color: #334155;
+  color: var(--text-slate-strong, #334155);
   margin: 12px 0 6px;
 }
 
@@ -196,12 +196,12 @@
 .info-form textarea {
   width: 100%;
   padding: 10px 12px;
-  border: 1px solid #d8e0e8;
+  border: 1px solid var(--slate-border, #d8e0e8);
   border-radius: 10px;
   font-family: inherit;
   font-size: 13.5px;
   background: var(--bg-surface, #fff);
-  color: #0f172a;
+  color: var(--ink, #0f172a);
   box-sizing: border-box;
 }
 
@@ -262,7 +262,7 @@
   border: 1px solid var(--border-strong, #cbd5e1);
   border-radius: 10px;
   background: var(--bg-surface, #fff);
-  color: #334155;
+  color: var(--text-slate-strong, #334155);
   font-family: inherit;
   font-size: 13px;
   cursor: pointer;
@@ -285,9 +285,9 @@
 }
 
 .info-success {
-  background: #ecfdf5;
-  border: 1px solid #a7f3d0;
-  color: #065f46;
+  background: var(--success-mist-2, #ecfdf5);
+  border: 1px solid var(--success-mist-4, #a7f3d0);
+  color: var(--success-deeper, #065f46);
   border-radius: 10px;
   padding: 10px 12px;
   font-size: 12.5px;
@@ -295,9 +295,9 @@
 }
 
 .info-error {
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  color: #b91c1c;
+  background: var(--danger-soft, #fef2f2);
+  border: 1px solid var(--danger-mist, #fecaca);
+  color: var(--danger-deep, #b91c1c);
   border-radius: 10px;
   padding: 10px 12px;
   font-size: 12.5px;
@@ -339,7 +339,7 @@
   word-break: break-word;
   border: 1px solid var(--border-color, #e2e8f0);
   background: var(--bg-surface, #fff);
-  color: #0f172a;
+  color: var(--ink, #0f172a);
 }
 
 .msg-row.mine .msg-bubble {
@@ -362,7 +362,7 @@
 }
 
 .msg-read {
-  color: #16a34a;
+  color: var(--success-strong, #16a34a);
 }
 
 /* ===== فهرست گفتگوها ===== */
@@ -404,7 +404,7 @@
 .msg-list-item .title {
   font-size: 13.5px;
   font-weight: 600;
-  color: #0f172a;
+  color: var(--ink, #0f172a);
 }
 
 .msg-list-item .snippet {
@@ -428,22 +428,22 @@
 }
 
 .badge-status.new {
-  background: #fef3c7;
-  color: #92400e;
+  background: var(--warning-bg, #fef3c7);
+  color: var(--warning-deep-3, #92400e);
 }
 
 .badge-status.in_progress {
-  background: #dbeafe;
+  background: var(--info-bg, #dbeafe);
   color: #1e40af;
 }
 
 .badge-status.answered {
-  background: #dcfce7;
+  background: var(--success-bg, #dcfce7);
   color: #166534;
 }
 
 .badge-status.closed {
-  background: #e5e7eb;
+  background: var(--gray-200, #e5e7eb);
   color: #374151;
 }
 
@@ -517,7 +517,7 @@
 .msg-modal-footer textarea {
   width: 100%;
   min-height: 70px;
-  border: 1px solid #d8e0e8;
+  border: 1px solid var(--slate-border, #d8e0e8);
   border-radius: 10px;
   padding: 10px 12px;
   font-family: inherit;

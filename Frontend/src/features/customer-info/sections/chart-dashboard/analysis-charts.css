@@ -30,7 +30,7 @@
 .analysis-control-label {
   font-weight: 600;
   font-size: 13px;
-  color: #475569;
+  color: var(--text-slate, #475569);
   display: flex;
   align-items: center;
   gap: 6px;
@@ -59,7 +59,7 @@
   border-radius: 20px;
   padding: 3px 10px;
   font-size: 11px;
-  color: #334155;
+  color: var(--text-slate-strong, #334155);
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -93,7 +93,7 @@
   background: var(--bg-surface, #fff);
   font-size: 12px;
   font-weight: 600;
-  color: #475569;
+  color: var(--text-slate, #475569);
   cursor: pointer;
   font-family: inherit;
   transition: all 0.2s ease;
@@ -111,7 +111,7 @@
   border: 1px solid var(--border-color, #e2e8f0);
   border-radius: 8px;
   background: var(--bg-surface, #fff);
-  color: #475569;
+  color: var(--text-slate, #475569);
   font-size: 15px;
   font-weight: 700;
   cursor: pointer;
@@ -133,7 +133,7 @@
   border-radius: 8px;
   font-size: 13px;
   font-family: inherit;
-  color: #0f172a;
+  color: var(--ink, #0f172a);
 }
 
 .analysis-week-input:focus {
@@ -172,7 +172,7 @@
 .analysis-chart-title {
   font-size: 16px;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--ink, #0f172a);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -193,7 +193,7 @@
   border: 1px solid var(--border-color, #e2e8f0);
   border-radius: 8px;
   background: var(--bg-surface-2, #f8fafc);
-  color: #475569;
+  color: var(--text-slate, #475569);
   font-size: 11px;
   font-weight: 600;
   cursor: pointer;
@@ -227,7 +227,7 @@
   border: 1.5px solid var(--border-color, #e2e8f0);
   border-radius: 10px;
   background: var(--bg-surface, #fff);
-  color: #475569;
+  color: var(--text-slate, #475569);
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
@@ -323,7 +323,7 @@
 .analysis-table-title {
   font-size: 14px;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--ink, #0f172a);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -358,8 +358,8 @@
 
 .analysis-table-wrap tbody td {
   padding: 7px 14px;
-  border-bottom: 1px solid #f1f5f9;
-  color: #0f172a;
+  border-bottom: 1px solid var(--gray-100, #f1f5f9);
+  color: var(--ink, #0f172a);
   white-space: nowrap;
 }
 
@@ -421,7 +421,7 @@
 .series-controls-title {
   font-size: 12px;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--ink, #0f172a);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -449,7 +449,7 @@
   border-radius: 10px;
   padding: 4px 10px;
   font-size: 11px;
-  color: #334155;
+  color: var(--text-slate-strong, #334155);
 }
 
 .series-control-row input[type="checkbox"] {
@@ -493,7 +493,7 @@
   font-size: 11px;
   font-family: inherit;
   background: var(--bg-surface, #fff);
-  color: #334155;
+  color: var(--text-slate-strong, #334155);
 }
 
 .series-linetype:focus {
@@ -503,7 +503,7 @@
 
 .series-label {
   font-weight: 600;
-  color: #0f172a;
+  color: var(--ink, #0f172a);
   white-space: nowrap;
 }
 
@@ -542,7 +542,7 @@
   border-radius: 6px;
   cursor: pointer;
   font-size: 11px;
-  color: #334155;
+  color: var(--text-slate-strong, #334155);
   transition: background 0.2s ease;
 }
 
@@ -607,13 +607,13 @@
   font-family: inherit;
   font-size: 11px;
   font-weight: 600;
-  color: #475569;
+  color: var(--text-slate, #475569);
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .analysis-seg-btn:hover {
-  color: #0f172a;
+  color: var(--ink, #0f172a);
 }
 
 .analysis-seg-btn.active {
@@ -633,7 +633,7 @@
   gap: 8px;
   font-size: 12px;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--ink, #0f172a);
   padding: 6px 10px;
   margin: 6px 0 4px;
   background: linear-gradient(135deg, #f0fdfa, var(--border-light, #eef2f6));
@@ -710,7 +710,7 @@
 
 .series-remove-btn {
   border: none;
-  background: #fee2e2;
+  background: var(--danger-bg, #fee2e2);
   color: var(--danger, #dc2626);
   width: 20px;
   height: 20px;
@@ -730,12 +730,12 @@
 }
 
 .analysis-cmp-btn {
-  border-color: #8b5cf6 !important;
+  border-color: var(--violet, #8b5cf6) !important;
   color: #6d28d9 !important;
 }
 
 .analysis-cmp-btn:hover {
-  background: #8b5cf6 !important;
+  background: var(--violet, #8b5cf6) !important;
   color: #fff !important;
 }
 
@@ -757,7 +757,7 @@
   border-radius: 8px;
   padding: 8px 10px;
   font-size: 12px;
-  color: #334155;
+  color: var(--text-slate-strong, #334155);
   cursor: pointer;
 }
 
@@ -821,7 +821,7 @@
   gap: 4px;
   font-size: 11px;
   font-weight: 700;
-  color: #334155;
+  color: var(--text-slate-strong, #334155);
   white-space: nowrap;
 }
 
@@ -846,7 +846,7 @@
   font-family: inherit;
   font-size: 11px;
   background: var(--bg-surface, #fff);
-  color: #0f172a;
+  color: var(--ink, #0f172a);
   cursor: pointer;
 }
 
