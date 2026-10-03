@@ -18,7 +18,7 @@
     <style>
         body {
             font-family: 'Vazir', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, var(--indigo, #667eea) 0%, #764ba2 100%);
             display: flex;
             justify-content: center;
             align-items: center;
@@ -28,7 +28,7 @@
         }
 
         .setup-container {
-            background: white;
+            background: var(--bg-surface, #fff);
             padding: 40px;
             border-radius: 20px;
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
@@ -43,26 +43,26 @@
 
         .setup-header .icon {
             font-size: 64px;
-            color: #667eea;
+            color: var(--indigo, #667eea);
             display: block;
             margin-bottom: 12px;
         }
 
         .setup-header h2 {
             margin: 10px 0;
-            color: #1e293b;
+            color: var(--text-dark, #1e293b);
             font-size: 22px;
         }
 
         .setup-header p {
-            color: #64748b;
+            color: var(--text-gray, #64748b);
             font-size: 14px;
             margin-top: 4px;
         }
 
         .setup-header .sub {
             font-size: 12px;
-            color: #94a3b8;
+            color: var(--text-light, #94a3b8);
             margin-top: 8px;
         }
 
@@ -74,37 +74,37 @@
             display: block;
             font-size: 13px;
             font-weight: 500;
-            color: #1e293b;
+            color: var(--text-dark, #1e293b);
             margin-bottom: 4px;
         }
 
         .form-group .form-control {
             width: 100%;
             padding: 10px 14px;
-            border: 1.5px solid #e5e7eb;
+            border: 1.5px solid var(--gray-200, #e5e7eb);
             border-radius: 10px;
             font-size: 14px;
             font-family: 'Vazir', sans-serif;
             transition: all 0.3s ease;
-            background: #f8fafc;
-            color: #1e293b;
+            background: var(--bg-surface-2, #f8fafc);
+            color: var(--text-dark, #1e293b);
         }
 
         .form-group .form-control:focus {
             outline: none;
-            border-color: #667eea;
-            background: white;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            border-color: var(--indigo, #667eea);
+            background: var(--bg-surface, #fff);
+            box-shadow: 0 0 0 3px rgba(var(--violet-rgb), 0.1);
         }
 
         .form-group .form-control::placeholder {
-            color: #94a3b8;
+            color: var(--text-light, #94a3b8);
         }
 
         .btn-submit {
             width: 100%;
             padding: 12px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, var(--indigo, #667eea) 0%, #764ba2 100%);
             color: white;
             border: none;
             border-radius: 10px;
@@ -122,7 +122,7 @@
 
         .btn-submit:hover {
             transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+            box-shadow: 0 8px 25px rgba(var(--violet-rgb), 0.4);
         }
 
         .btn-submit:disabled {
@@ -135,7 +135,7 @@
             display: none;
             width: 20px;
             height: 20px;
-            border: 2px solid rgba(255, 255, 255, 0.3);
+            border: 2px solid rgba(var(--surface-rgb), 0.3);
             border-top-color: white;
             border-radius: 50%;
             animation: spin 0.8s linear infinite;
@@ -167,16 +167,16 @@
 
         .message.error {
             display: flex;
-            background: #fee2e2;
-            color: #dc2626;
-            border: 1px solid #fecaca;
+            background: var(--danger-bg, #fee2e2);
+            color: var(--danger, #dc2626);
+            border: 1px solid var(--danger-mist, #fecaca);
         }
 
         .message.success {
             display: flex;
-            background: #dcfce7;
-            color: #16a34a;
-            border: 1px solid #bbf7d0;
+            background: var(--success-bg, #dcfce7);
+            color: var(--success-strong, #16a34a);
+            border: 1px solid var(--success-mist-3, #bbf7d0);
         }
 
         .message i {

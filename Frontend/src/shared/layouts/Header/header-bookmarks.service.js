@@ -200,7 +200,7 @@ class HeaderBookmarksService {
         <!-- عنوان -->
         <div style="font-size:20px; font-weight:800; color:var(--text-dark, #1e293b); margin-bottom:4px;">${bookmark.title || "بدون عنوان"}</div>
         <div style="display:flex; align-items:center; justify-content:center; gap:8px; flex-wrap:wrap; margin-bottom:20px;">
-          <span style="font-size:11px; padding:2px 12px; border-radius:20px; background:rgba(44,122,110,0.08); color:var(--primary, #2c7a6e); font-weight:600; display:inline-flex; align-items:center; gap:4px;">
+          <span style="font-size:11px; padding:2px 12px; border-radius:20px; background:rgba(var(--primary-rgb),0.08); color:var(--primary, #2c7a6e); font-weight:600; display:inline-flex; align-items:center; gap:4px;">
             <i class="fas fa-tag"></i> ${typeText}
           </span>
           <span style="color:var(--border-color, #e2e8f0);">|</span>

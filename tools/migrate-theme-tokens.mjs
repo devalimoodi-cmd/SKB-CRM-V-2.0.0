@@ -110,7 +110,58 @@ try {
   /* بی‌صدا */
 }
 
-const maskBlocks = (css) => {
+// ✅ نگاشت مؤثر: حذف هگزهای تکراری (نگاشتِ معنایی اولویت دارد تا دوبارپیچ نشود)
+const _seenHex = new Set();
+const EFFECTIVE_HEX_MAP = [];
+for (const [hex, token] of HEX_MAP) {
+  const k = String(hex).toLowerCase();
+  if (_seenHex.has(k)) continue;
+  _seenHex.add(k);
+  EFFECTIVE_HEX_MAP.push([hex, token]);
+}
+
+// ===== کمک‌کارهای رنگ (موج ۸) =====
+const resolveToken = (hex) => {
+  const low = String(hex).toLowerCase();
+  for (const [h, t] of EFFECTIVE_HEX_MAP) if (h.toLowerCase() === low) return t;
+  return null;
+};
+
+// سفیدِ داخل گرادیان‌ها → --bg-surface
+const mapGradientWhite = (str) =>
+  str.replace(/((?:linear|radial)-gradient\s*\([^)]*\))/gi, (grad) =>
+    grad.replace(/(#ffffff|#fff)\b/gi, (c) => `var(--bg-surface, ${c})`),
+  );
+
+// rgba(r,g,b,α) → rgba(var(--x-rgb), α)
+const RGBA_MAP = {
+  "255,255,255": "--surface-rgb",
+  "15,23,42": "--ink-rgb",
+  "44,122,110": "--primary-rgb",
+  "16,185,129": "--success-rgb",
+  "52,211,153": "--success-rgb",
+  "245,158,11": "--warning-rgb",
+  "251,191,36": "--warning-rgb",
+  "220,38,38": "--danger-rgb",
+  "239,68,68": "--danger-rgb",
+  "248,113,113": "--danger-rgb",
+  "59,130,246": "--info-rgb",
+  "96,165,250": "--info-rgb",
+  "37,99,235": "--info-rgb",
+  "139,92,246": "--violet-rgb",
+  "102,126,234": "--violet-rgb",
+};
+
+const mapRgba = (str) =>
+  str.replace(
+    /rgba\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,/g,
+    (m, r, g, b) => {
+      const token = RGBA_MAP[`${r},${g},${b}`];
+      return token ? `rgba(var(${token}),` : m;
+    },
+  );
+
+const maskBlocks = (css, protectTokenDefs) => {
   const saved = [];
   const keep = (block) => {
     saved.push(block);
@@ -118,10 +169,12 @@ const maskBlocks = (css) => {
   };
   let out = css
     .replace(/:root\s*\{[^}]*\}/g, keep)
-    .replace(/html\[data-theme="dark"\]\s*\{[^}]*\}/g, keep);
-  // ✅ محافظت از تعریف متغیرهای CSS (اعم از سراسری یا محلی)
-  // تا «مقدارِ تعریف» هرگز به var() تبدیل نشود (جلوگیری از خودارجاعی)
-  out = out.replace(/^[ \t]*--[a-z0-9-]+\s*:[^;]*;[ \t]*$/gim, keep);
+    .replace(/[^{}]*\[data-theme="dark"\][^{}]*\{[^}]*\}/g, keep);
+  // ✅ محافظت از تعریف توکن‌ها فقط در فایل مرکزی (global.css)
+  // در بقیهٔ فایل‌ها، توکن‌های محلی هم مهاجرت می‌شوند (تم‌آگاه می‌شوند).
+  if (protectTokenDefs) {
+    out = out.replace(/^[ \t]*--[a-z0-9-]+\s*:[^;]*;[ \t]*$/gim, keep);
+  }
   return { out, saved };
 };
 
@@ -134,8 +187,22 @@ const maskExistingVars = (css) => {
   return { out, saved };
 };
 
-const migrate = (src) => {
-  const b = maskBlocks(src);
+const migrate = (src, { protectTokenDefs = false } = {}) => {
+  const b = maskBlocks(src, protectTokenDefs);
+
+  // ۰) توکن‌های محلیِ تم‌آگاه:  --name: #hex  ⇒  --name: var(--token, #hex)
+  //    (فقط اگر نام توکن با توکن هدف یکسان نباشد تا خودارجاع نشود)
+  if (!protectTokenDefs) {
+    b.out = b.out.replace(
+      /^([ \t]*)(--[a-z0-9-]+)(\s*:\s*)(#[0-9a-fA-F]{3,8})(\s*;)/gim,
+      (m, ind, name, sep, hex, semi) => {
+        const token = resolveToken(hex);
+        if (!token || token === name) return m;
+        return `${ind}${name}${sep}var(${token}, ${hex})${semi}`;
+      },
+    );
+  }
+
   const v = maskExistingVars(b.out);
   let out = v.out;
 
@@ -147,10 +214,14 @@ const migrate = (src) => {
   );
 
   // ۲) نگاشت هگز → توکن
-  for (const [hex, token] of HEX_MAP) {
+  for (const [hex, token] of EFFECTIVE_HEX_MAP) {
     const re = new RegExp(hex.replace("#", "#"), "gi");
     out = out.replace(re, `var(${token}, ${hex})`);
   }
+
+  // ۳) سفیدِ گرادیان‌ها + rgba → RGB token
+  out = mapGradientWhite(out);
+  out = mapRgba(out);
 
   // بازگردانی
   out = out.replace(/@@VAR(\d+)@@/g, (_m, i) => v.saved[Number(i)]);
@@ -173,8 +244,14 @@ const collapseNestedVars = (str) => {
   let out = str;
   do {
     prev = out;
+    // پیچش هم‌نام: var(--x, var(--x, #hex)) → var(--x, #hex)
     out = out.replace(
       /var\((--[a-z0-9-]+),\s*var\(\1,\s*(#[0-9a-fA-F]{3,8})\)\)/g,
+      "var($1, $2)",
+    );
+    // پیچش نام‌متفاوت ولی هم‌منبع: var(--a, var(--b, #hex)) → var(--a, #hex)
+    out = out.replace(
+      /var\((--[a-z0-9-]+),\s*var\(--[a-z0-9-]+,\s*(#[0-9a-fA-F]{3,8})\)\)/g,
       "var($1, $2)",
     );
   } while (out !== prev);
@@ -196,9 +273,13 @@ const mapInnerStyle = (inner) => {
         color.toLowerCase() === "white" ? "#fff" : color
       })`,
   );
-  for (const [hex, token] of HEX_MAP) {
+  for (const [hex, token] of EFFECTIVE_HEX_MAP) {
     out = out.replace(new RegExp(hex, "gi"), `var(${token}, ${hex})`);
   }
+
+  // سفیدِ گرادیان‌ها + rgba → RGB token
+  out = mapGradientWhite(out);
+  out = mapRgba(out);
 
   out = out.replace(/@@IV(\d+)@@/g, (_m, i) => savedVars[Number(i)]);
   return collapseNestedVars(out);
@@ -269,9 +350,13 @@ const scanJs = () => {
     for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
       const abs = path.join(dir, entry.name);
       if (entry.isDirectory()) walk(abs);
-      else if (entry.name.endsWith(".js")) {
+      else if (
+        entry.name.endsWith(".js") ||
+        entry.name.endsWith(".html")
+      ) {
         const text = fs.readFileSync(abs, "utf8");
-        if (text.includes('style="') && /#[0-9a-fA-F]{3,8}\b/.test(text)) {
+        const hasStyle = text.includes('style="') || /<style\b/i.test(text);
+        if (hasStyle && /#[0-9a-fA-F]{3,8}\b/.test(text)) {
           found.push(abs);
         }
       }
@@ -289,8 +374,16 @@ for (const file of targets) {
     console.log(`SKIP (missing): ${path.relative(ROOT, file)}`);
     continue;
   }
+  // ⛔ global.css توسط gen-theme-tokens.mjs مدیریت میشود (پر از تعریف توکن) → مهاجرت نمیشود
+  if (/[\\/]styles[\\/]global\.css$/i.test(file)) {
+    console.log(`  skip (managed by gen): ${path.relative(ROOT, file)}`);
+    continue;
+  }
   const src = fs.readFileSync(file, "utf8");
-  const out = jsMode ? migrateJsInline(src) : migrate(src);
+  const isCss = file.toLowerCase().endsWith(".css");
+  const out = isCss
+    ? migrate(src, { protectTokenDefs: false })
+    : migrateJsInline(src);
   if (out === src) {
     console.log(`  ok (no change): ${path.relative(ROOT, file)}`);
     continue;

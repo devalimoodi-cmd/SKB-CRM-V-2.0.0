@@ -404,7 +404,7 @@ export const hatcheryCompletionPeriodMethods = {
         html: `
           <div style="text-align:right; font-family:'Vazir'; direction:rtl;">
             <div style="background:linear-gradient(135deg,var(--primary, #2c7a6e),var(--primary-dark, #035552)); color:#fff; border-radius:12px; padding:14px 16px; margin-bottom:16px; display:flex; align-items:center; gap:12px;">
-              <div style="width:42px; height:42px; border-radius:50%; background:rgba(255,255,255,0.2); display:flex; align-items:center; justify-content:center; font-size:20px;">
+              <div style="width:42px; height:42px; border-radius:50%; background:rgba(var(--surface-rgb),0.2); display:flex; align-items:center; justify-content:center; font-size:20px;">
                 <i class="fas fa-file-alt"></i>
               </div>
               <div>
@@ -632,7 +632,7 @@ const buildCompletionEditFormHtml = ({
           <style>${UE_FORM_STYLE_BLOCK}</style>
 
           <div style="background:linear-gradient(135deg,var(--primary, #2c7a6e),var(--primary-dark, #035552)); color:#fff; border-radius:12px; padding:14px 16px; margin-bottom:16px; display:flex; align-items:center; gap:12px; position:relative;">
-            <div style="width:42px; height:42px; border-radius:50%; background:rgba(255,255,255,0.2); display:flex; align-items:center; justify-content:center; font-size:20px;">
+            <div style="width:42px; height:42px; border-radius:50%; background:rgba(var(--surface-rgb),0.2); display:flex; align-items:center; justify-content:center; font-size:20px;">
               <i class="fas fa-pen"></i>
             </div>
             <div>
@@ -1008,7 +1008,7 @@ const buildCompletionFlockOptions = (periodFlocks) => {
 const buildPeriodCompletionInfoHtml = (period, periodFlocks) => {
       return `
         <div style="background:linear-gradient(135deg,var(--primary, #2c7a6e),var(--primary-dark, #035552)); color:#fff; border-radius:12px; padding:14px 16px; margin-bottom:16px; display:flex; align-items:center; gap:12px;">
-          <div style="width:42px; height:42px; border-radius:50%; background:rgba(255,255,255,0.2); display:flex; align-items:center; justify-content:center; font-size:20px;">
+          <div style="width:42px; height:42px; border-radius:50%; background:rgba(var(--surface-rgb),0.2); display:flex; align-items:center; justify-content:center; font-size:20px;">
             <i class="fas fa-flag-checkered"></i>
           </div>
           <div>

@@ -15,7 +15,7 @@
     <style>
         body {
             font-family: 'Vazir', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, var(--indigo, #667eea) 0%, #764ba2 100%);
             display: flex;
             justify-content: center;
             align-items: center;
@@ -26,7 +26,7 @@
 
         .error-container {
             text-align: center;
-            background: white;
+            background: var(--bg-surface, #fff);
             padding: 50px 60px;
             border-radius: 20px;
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
@@ -37,13 +37,13 @@
         .error-code {
             font-size: 80px;
             font-weight: 700;
-            color: #667eea;
+            color: var(--indigo, #667eea);
             line-height: 1;
         }
 
         .error-icon {
             font-size: 60px;
-            color: #f59e0b;
+            color: var(--warning, #f59e0b);
             display: block;
             margin: 10px 0;
         }
@@ -51,12 +51,12 @@
         .error-title {
             font-size: 24px;
             font-weight: 600;
-            color: #1e293b;
+            color: var(--text-dark, #1e293b);
             margin: 20px 0 10px;
         }
 
         .error-message {
-            color: #64748b;
+            color: var(--text-gray, #64748b);
             margin-bottom: 30px;
             font-size: 16px;
         }
@@ -66,7 +66,7 @@
             align-items: center;
             gap: 8px;
             padding: 12px 30px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, var(--indigo, #667eea) 0%, #764ba2 100%);
             color: white;
             border: none;
             border-radius: 10px;
@@ -80,7 +80,7 @@
 
         .btn-home:hover {
             transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+            box-shadow: 0 8px 25px rgba(var(--violet-rgb), 0.4);
         }
 
         .btn-home i {
@@ -90,13 +90,13 @@
         .error-help {
             margin-top: 20px;
             padding-top: 20px;
-            border-top: 1px solid #eef2f6;
+            border-top: 1px solid var(--border-light, #eef2f6);
             font-size: 13px;
-            color: #94a3b8;
+            color: var(--text-light, #94a3b8);
         }
 
         .error-help a {
-            color: #667eea;
+            color: var(--indigo, #667eea);
             text-decoration: none;
         }
 

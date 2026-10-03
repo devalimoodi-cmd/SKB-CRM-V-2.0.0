@@ -206,7 +206,7 @@ class WhatsNewManager {
 
         <!-- ستون پیش‌نمایش -->
         <div>
-          <div style="background:var(--bg-surface, #fff);border:2px dashed rgba(44,122,110,.25);border-radius:12px;padding:16px;">
+          <div style="background:var(--bg-surface, #fff);border:2px dashed rgba(var(--primary-rgb),.25);border-radius:12px;padding:16px;">
             <h4 style="margin:0 0 12px;font-size:14px;color:var(--ink, #0f172a);">
               <i class="fas fa-eye" style="color:var(--primary, #2c7a6e);"></i> پیش‌نمایش زندهٔ مودال کاربر
             </h4>

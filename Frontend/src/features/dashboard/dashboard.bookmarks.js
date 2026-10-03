@@ -311,7 +311,7 @@ export const dashboardBookmarkMethods = {
               <!-- عنوان -->
               <div style="font-size:20px; font-weight:800; color:var(--text-dark, #1e293b); margin-bottom:4px;">${bookmark.title}</div>
               <div style="display:flex; align-items:center; justify-content:center; gap:8px; flex-wrap:wrap; margin-bottom:20px;">
-                <span style="font-size:11px; padding:2px 12px; border-radius:20px; background:rgba(44,122,110,0.08); color:var(--primary, #2c7a6e); font-weight:600; display:inline-flex; align-items:center; gap:4px;">
+                <span style="font-size:11px; padding:2px 12px; border-radius:20px; background:rgba(var(--primary-rgb),0.08); color:var(--primary, #2c7a6e); font-weight:600; display:inline-flex; align-items:center; gap:4px;">
                   <i class="fas fa-tag"></i> ${typeText}
                 </span>
                 <span style="color:var(--border-color, #e2e8f0);">|</span>
@@ -419,7 +419,7 @@ const buildBookmarkModalHtml = ({
               <!-- ===== هدر گرافیکی ===== -->
               <div style="display:flex; align-items:center; gap:12px; background:linear-gradient(135deg,var(--primary, #2c7a6e) 0%,var(--primary-dark, #035552) 100%); border-radius:14px; padding:12px 16px; margin-bottom:16px; color:#fff; position:relative; overflow:hidden;">
                 <div style="position:absolute; top:0; left:0; right:0; height:4px; background:linear-gradient(135deg,var(--primary, #2c7a6e),var(--primary-light, #4a9e8f),var(--warning, #f59e0b)); background-size:200% 200%; animation: bmShimmer 3s ease-in-out infinite;"></div>
-                <div style="width:42px; height:42px; border-radius:12px; background:rgba(255,255,255,0.2); display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0;">
+                <div style="width:42px; height:42px; border-radius:12px; background:rgba(var(--surface-rgb),0.2); display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0;">
                   <i class="fas fa-bookmark"></i>
                 </div>
                 <div>
@@ -431,7 +431,7 @@ const buildBookmarkModalHtml = ({
               <style>
                 @keyframes bmShimmer { 0%,100%{background-position:0% 50%;} 50%{background-position:100% 50%;} }
                 .bm-field { width:100%; padding:8px 12px; border:1.5px solid var(--border-color, #e2e8f0); border-radius:10px; font-family:'Vazir','Vazirmatn',sans-serif; font-size:12.5px; transition:all 0.3s ease; background:var(--bg-surface, #fff); color:var(--text-dark, #1e293b); margin-top:4px; box-sizing:border-box; }
-                .bm-field:focus { outline:none; border-color:var(--primary, #2c7a6e); box-shadow:0 0 0 4px rgba(44,122,110,0.08); }
+                .bm-field:focus { outline:none; border-color:var(--primary, #2c7a6e); box-shadow:0 0 0 4px rgba(var(--primary-rgb),0.08); }
                 .bm-label { display:block; font-size:12px; font-weight:600; color:var(--text-dark, #1e293b); }
                 .bm-label .bm-req { color:var(--danger, #dc2626); }
                 .bm-label .bm-hint { font-weight:400; font-size:10px; color:var(--text-light, #94a3b8); }

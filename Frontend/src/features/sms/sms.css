@@ -167,7 +167,7 @@
 .filter-input:focus {
   outline: none;
   border-color: var(--primary, #2c7a6e);
-  box-shadow: 0 0 0 3px rgba(44, 122, 110, 0.1);
+  box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.1);
   background: var(--bg-surface, #fff);
 }
 
@@ -195,7 +195,7 @@
 .filter-select:focus {
   outline: none;
   border-color: var(--primary, #2c7a6e);
-  box-shadow: 0 0 0 3px rgba(44, 122, 110, 0.1);
+  box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.1);
 }
 
 .btn-reset-filters {
@@ -262,7 +262,7 @@
 .sms-send-form .form-control:focus {
   outline: none;
   border-color: var(--primary, #2c7a6e);
-  box-shadow: 0 0 0 3px rgba(44, 122, 110, 0.1);
+  box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.1);
 }
 
 .sms-send-form .form-control:disabled {
@@ -360,7 +360,7 @@
 .btn-send-sms:hover {
   background: var(--primary-dark, #035552);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(44, 122, 110, 0.3);
+  box-shadow: 0 4px 12px rgba(var(--primary-rgb), 0.3);
 }
 
 .btn-send-sms:disabled {
@@ -377,7 +377,7 @@
 .btn-send-bulk:hover {
   background: var(--violet-deep, #7c3aed);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+  box-shadow: 0 4px 12px rgba(var(--violet-rgb), 0.3);
 }
 
 .btn-clear {
@@ -579,7 +579,7 @@
   background: var(--primary, #2c7a6e);
   color: white;
   border-color: var(--primary, #2c7a6e);
-  box-shadow: 0 2px 8px rgba(44, 122, 110, 0.3);
+  box-shadow: 0 2px 8px rgba(var(--primary-rgb), 0.3);
 }
 
 .sms-pagination .page-dots {

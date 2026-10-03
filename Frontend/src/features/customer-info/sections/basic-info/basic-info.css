@@ -84,7 +84,7 @@
 
 .skb-input-container:focus-within {
   border-color: var(--primary, #2c7a6e);
-  box-shadow: 0 0 0 3px rgba(44, 122, 110, 0.1);
+  box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.1);
 }
 
 .skb-input-icon {
@@ -262,7 +262,7 @@
 .skb-edit-btn:hover {
   background: var(--primary-dark, #035552);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(44, 122, 110, 0.3);
+  box-shadow: 0 4px 12px rgba(var(--primary-rgb), 0.3);
 }
 
 .skb-submit-btn {
@@ -273,7 +273,7 @@
 .skb-submit-btn:hover {
   background: var(--warning-deep-2, #d97706);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+  box-shadow: 0 4px 12px rgba(var(--warning-rgb), 0.3);
 }
 
 .skb-cancel-btn {

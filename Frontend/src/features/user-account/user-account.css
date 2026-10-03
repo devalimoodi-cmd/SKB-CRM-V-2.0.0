@@ -9,22 +9,22 @@
 
 .account-page {
   /* ===== توکن‌های حالت روشن (پیش‌فرض) ===== */
-  --acc-primary: #2c7a6e;
-  --acc-primary-dark: #035552;
-  --acc-primary-soft: rgba(44, 122, 110, 0.1);
+  --acc-primary: var(--primary, #2c7a6e);
+  --acc-primary-dark: var(--primary-dark, #035552);
+  --acc-primary-soft: rgba(var(--primary-rgb), 0.1);
   --acc-surface: #ffffff;
-  --acc-surface-2: #f8fafc;
-  --acc-text: #1e293b;
-  --acc-muted: #64748b;
-  --acc-faint: #94a3b8;
-  --acc-border: #eef2f6;
-  --acc-border-strong: #e2e8f0;
-  --acc-danger: #dc2626;
-  --acc-danger-soft: #fef2f2;
-  --acc-success: #10b981;
-  --acc-warning: #f59e0b;
-  --acc-info: #3b82f6;
-  --acc-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+  --acc-surface-2: var(--bg-surface-2, #f8fafc);
+  --acc-text: var(--text-dark, #1e293b);
+  --acc-muted: var(--text-gray, #64748b);
+  --acc-faint: var(--text-light, #94a3b8);
+  --acc-border: var(--border-light, #eef2f6);
+  --acc-border-strong: var(--border-color, #e2e8f0);
+  --acc-danger: var(--danger, #dc2626);
+  --acc-danger-soft: var(--danger-soft, #fef2f2);
+  --acc-success: var(--success, #10b981);
+  --acc-warning: var(--warning, #f59e0b);
+  --acc-info: var(--info, #3b82f6);
+  --acc-shadow: 0 1px 3px rgba(var(--ink-rgb), 0.06);
   --acc-radius: 14px;
 
   max-width: 1080px;
@@ -63,7 +63,7 @@ html[data-theme="dark"] body {
   border-radius: var(--acc-radius);
   background: linear-gradient(135deg, var(--acc-primary) 0%, var(--acc-primary-dark) 100%);
   color: #fff;
-  box-shadow: 0 6px 18px rgba(44, 122, 110, 0.25);
+  box-shadow: 0 6px 18px rgba(var(--primary-rgb), 0.25);
 }
 
 .account-hero__avatar {
@@ -73,7 +73,7 @@ html[data-theme="dark"] body {
   flex-shrink: 0;
   border-radius: 50%;
   overflow: hidden;
-  border: 3px solid rgba(255, 255, 255, 0.7);
+  border: 3px solid rgba(var(--surface-rgb), 0.7);
   background: var(--bg-surface, #ffffff);
 }
 
@@ -119,7 +119,7 @@ html[data-theme="dark"] body {
   flex-wrap: wrap;
   gap: 8px 16px;
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.9);
+  color: rgba(var(--surface-rgb), 0.9);
 }
 
 .account-hero__meta i {
@@ -141,9 +141,9 @@ html[data-theme="dark"] body {
   padding: 3px 10px;
   font-size: 12px;
   border-radius: 20px;
-  background: rgba(255, 255, 255, 0.18);
+  background: rgba(var(--surface-rgb), 0.18);
   color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(var(--surface-rgb), 0.3);
 }
 
 /* ===== شبکه ===== */

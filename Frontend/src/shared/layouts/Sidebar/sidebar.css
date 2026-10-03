@@ -65,7 +65,7 @@
 }
 
 .sidebar-item.active .sidebar-description {
-  color: rgba(255, 255, 255, 0.8);
+  color: rgba(var(--surface-rgb), 0.8);
 }
 
 .sidebar-item.active .sidebar-arrow {

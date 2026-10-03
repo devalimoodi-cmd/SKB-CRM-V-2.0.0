@@ -132,7 +132,7 @@
   width: 40px;
   height: 40px;
   border-radius: 10px;
-  background: rgba(44, 122, 110, 0.1);
+  background: rgba(var(--primary-rgb), 0.1);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -441,7 +441,7 @@
 .retry-btn:hover {
   background: var(--primary-dark, #035552);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(44, 122, 110, 0.3);
+  box-shadow: 0 4px 12px rgba(var(--primary-rgb), 0.3);
 }
 
 .weather-activate-btn:disabled,
