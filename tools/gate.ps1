@@ -40,7 +40,7 @@ $scripts = (Get-Content -Raw $pkgPath | ConvertFrom-Json).scripts.PSObject.Prope
 # Ordered gate steps. New waves append their guard at the end.
 $steps = @(
   'lint',
-  'test:cache', 'test:denied', 'test:toast', 'test:theme', 'test:dictionary',
+  'test:cache', 'test:denied', 'test:toast', 'test:theme', 'test:dictionary', 'test:avatar',
   'test:weekly', 'test:weekly:report', 'test:weekly:groups', 'test:weekly:history',
   'test:weekly:history:body', 'test:weekly:cards:body',
   'test:weekly:surface', 'test:weekly:body',

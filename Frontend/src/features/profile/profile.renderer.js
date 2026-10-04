@@ -3,6 +3,7 @@
 // رندر بخش‌های صفحهٔ «پروفایل من»
 // ============================================================
 import { escapeHtml, toPersianNumber } from "../../core/utils/string.utils.js";
+import { applyAvatar } from "../../core/utils/avatar.utils.js";
 
 const ROLE_TEXT = {
   super_admin: "مدیر اصلی",
@@ -59,17 +60,11 @@ class ProfileRenderer {
     const lastLoginEl = document.getElementById("profileLastLogin");
     if (lastLoginEl) lastLoginEl.textContent = formatDateTime(user.last_login);
 
+    // ✅ عکس پروفایل یا آواتار پیش‌فرض (بدون ۴۰۴ و بدون حلقهٔ GET)
     const avatar = document.getElementById("profileAvatar");
     if (avatar) {
-      const url =
-        user.profile_image && String(user.profile_image).trim()
-          ? user.profile_image
-          : "/assets/images/default-avatar.png";
-      avatar.src = url;
+      applyAvatar(avatar, user, fullName);
       avatar.alt = fullName;
-      avatar.onerror = () => {
-        avatar.src = "/assets/images/default-avatar.png";
-      };
     }
 
     const badges = document.getElementById("profileBadges");

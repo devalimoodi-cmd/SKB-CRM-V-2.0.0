@@ -12,6 +12,7 @@
     "test:toast": "node toast-notification-test.mjs",
     "test:theme": "node dark-theme-test.mjs",
     "test:dictionary": "node dictionary-parity-test.mjs",
+    "test:avatar": "node avatar-fallback-test.mjs",
     "test:weekly": "node weekly-calculations-test.mjs",
     "test:weekly:report": "node weekly-report-render-smoke.mjs",
     "test:weekly:groups": "node weekly-report-groups-test.mjs",

@@ -5,6 +5,10 @@ import { messagesService } from "../../../features/messages/messages.service.js"
 // ✅ «تغییرات جدید / What's New» (مودال اطلاع‌رسانی نسخه‌ها)
 import { whatsNewService } from "../../../features/whats-new/whats-new.service.js";
 import { themeService } from "../../../core/services/theme.service.js";
+import {
+  applyAvatar,
+  resolveAvatarUrl,
+} from "../../../core/utils/avatar.utils.js";
 
 class HeaderService {
   constructor() {
@@ -118,15 +122,11 @@ class HeaderService {
       this.user.username ||
       "کاربر";
 
-    const avatarUrl = this.user.profile_image || this.getDefaultAvatar();
-
+    // ✅ آواتار حلقه‌ناپذیر: عکس کاربر یا پیش‌فرضِ data: URL
     const avatarImg = this.elements.userAvatar;
     if (avatarImg) {
-      avatarImg.src = avatarUrl;
+      applyAvatar(avatarImg, this.user, fullName);
       avatarImg.alt = fullName;
-      avatarImg.onerror = () => {
-        avatarImg.src = this.getDefaultAvatar();
-      };
     }
 
     const nameEl = this.elements.userName;
@@ -145,7 +145,7 @@ class HeaderService {
 
     const avatarImg = this.elements.userAvatar;
     if (avatarImg) {
-      avatarImg.src = this.getDefaultAvatar();
+      applyAvatar(avatarImg, null, "میهمان");
       avatarImg.alt = "میهمان";
     }
   }
@@ -170,13 +170,10 @@ class HeaderService {
       `${this.user.first_name || ""} ${this.user.last_name || ""}`.trim() ||
       this.user.username;
 
-    const avatarUrl = this.user.profile_image || this.getDefaultAvatar();
-
     dropdown.innerHTML = `
       <div style="padding: 16px 20px; border-bottom: 1px solid var(--border-light, #eef2f6); display: flex; gap: 14px; align-items: center;">
         <div style="width: 50px; height: 50px; border-radius: 50%; overflow: hidden; border: 2px solid var(--primary, #2c7a6e); flex-shrink: 0;">
-          <img src="${avatarUrl}" alt="${fullName}" style="width: 100%; height: 100%; object-fit: cover;" 
-               onerror="this.src='${this.getDefaultAvatar()}'">
+          <img id="profileDropdownAvatar" alt="${fullName}" style="width: 100%; height: 100%; object-fit: cover; display: block;">
         </div>
         <div style="flex: 1; min-width: 0;">
           <div style="font-weight: 600; color: var(--text-dark, #1e293b); font-size: 15px;">${fullName}</div>
@@ -203,6 +200,13 @@ class HeaderService {
         </button>
       </div>
     `;
+
+    // ✅ آواتار دراپ‌داون (بدون onerrorِ شکنندهٔ inline)
+    applyAvatar(
+      document.getElementById("profileDropdownAvatar"),
+      this.user,
+      fullName,
+    );
   }
 
   // ===== ناوبری =====
@@ -471,21 +475,9 @@ class HeaderService {
 
   // ===== توابع کمکی =====
 
+  // ✅ آواتار پیش‌فرض (data: URL — بدون درخواست شبکه و بدون ۴۰۴)
   getDefaultAvatar() {
-    const username = this.user?.username || "user";
-    const colors = [
-      "#2c7a6e",
-      "#667eea",
-      "#10b981",
-      "#f59e0b",
-      "#ef4444",
-      "#8b5cf6",
-    ];
-    const colorIndex = username.length % colors.length;
-    const color = colors[colorIndex];
-    const letter = username.charAt(0).toUpperCase();
-
-    return `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='${color.replace("#", "%23")}'/%3E%3Ctext x='50' y='55' text-anchor='middle' dy='.35em' fill='white' font-size='40' font-family='Arial' font-weight='bold'%3E${letter}%3C/text%3E%3C/svg%3E`;
+    return resolveAvatarUrl(null, this.user?.username || "user");
   }
 
   getRoleText(role) {

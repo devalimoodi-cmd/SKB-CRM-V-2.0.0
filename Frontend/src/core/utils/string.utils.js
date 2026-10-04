@@ -1,3 +1,5 @@
+import { DEFAULT_AVATAR } from "./avatar.utils.js";
+
 export function truncateText(text, maxLength = 50) {
   if (!text) return "";
   if (text.length <= maxLength) return text;
@@ -142,7 +144,7 @@ export function getInitials(name) {
   return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
 }
 
-// ===== ✅ تابع جدید =====
+// ===== آواتار پیش‌فرض (data: URL — بدون درخواست شبکه و بدون ۴۰۴) =====
 export function getDefaultAvatar() {
-  return "/assets/images/default-avatar.png";
+  return DEFAULT_AVATAR;
 }
