@@ -96,6 +96,17 @@ const protect = async (req, res, next) => {
       req.user.permissions = new Set();
     }
 
+    // ✅ «حضور»: ثبت آخرین فعالیت کاربر (Who's online?)
+    // • fire-and-forget ⇒ هیچ تأخیری به مسیر درخواست تحمیل نمی‌شود
+    // • خودِ سرویس، نوشتن را throttle می‌کند (PRESENCE_TOUCH_THROTTLE_SECONDS)
+    // • هر خطایی اینجا نادیده گرفته می‌شود: حضور هرگز نباید احراز هویت را بشکند
+    try {
+      // require داخل تابع تا وابستگی حلقه‌ای ایجاد نشود
+      require("../services/presenceService").touch(user.id);
+    } catch (presenceError) {
+      console.warn("⚠️ خطا در ثبت حضور:", presenceError.message);
+    }
+
     next();
   } catch (error) {
     console.error("❌ خطا در احراز هویت:", error.message);

@@ -356,6 +356,9 @@ const updateUser = async (req, res) => {
     const isAdmin = ADMIN_ROLES.includes(requesterRole);
 
     // فیلدهایی که کاربر عادی هرگز نمی‌تواند تغییر دهد (جلوگیری از ارتقای سطح دسترسی)
+    // ⚠️ نکته: «حضور» (online_status / last_seen_at) فقط توسط سرور نوشته می‌شود؛
+    //    کاربر نباید بتواند با PUT /users/:id خودش را آنلاین یا «تازه» نشان دهد.
+    //    (فیلدهای قدیمی is_online / last_seen در دیتابیس وجود نداشتند و حذف شدند)
     const protectedFields = [
       "role",
       "status",
@@ -363,8 +366,8 @@ const updateUser = async (req, res) => {
       "token_expires_at",
       "password",
       "created_by",
-      "is_online",
-      "last_seen",
+      "online_status",
+      "last_seen_at",
     ];
 
     if (!isAdmin) {
@@ -738,10 +741,13 @@ const loginUser = async (req, res) => {
     const token = user.generateToken();
     // ✅ توکن جاری در دیتابیس ذخیره می‌شود تا «خروج» بتواند نشست را واقعاً ببندد
     // (و با ENFORCE_SINGLE_SESSION=true، هر کاربر یک نشست فعال داشته باشد)
+    // ✅ «حضور»: ورود = کاربر همین حالا آنلاین است (last_seen_at تازه + شمارندهٔ آنلاین)
     await user.update({
       last_login: new Date(),
       token,
       token_expires_at: getTokenExpiryDate(),
+      last_seen_at: new Date(),
+      online_status: true,
     });
 
     successResponse(
@@ -773,7 +779,14 @@ const updateOnlineStatus = async (req, res) => {
       return errorResponse(res, "کاربر یافت نشد", 404);
     }
 
-    await user.update({ online_status });
+    // ✅ «حضور»: آنلاین‌شدن، زمان آخرین فعالیت را هم تازه می‌کند.
+    //    آفلاین‌شدن عمداً last_seen_at را دست نمی‌زند تا «آخرین فعالیت» واقعی بماند
+    //    (UI می‌تواند بگوید «آخرین فعالیت: ۵ دقیقه پیش»).
+    const patch = online_status
+      ? { online_status, last_seen_at: new Date() }
+      : { online_status };
+
+    await user.update(patch);
     successResponse(res, { online_status }, "وضعیت آنلاین بروزرسانی شد");
   } catch (error) {
     console.error("خطا:", error);
@@ -789,7 +802,14 @@ const logoutUser = async (req, res) => {
     const user = await User.findByPk(req.user.id);
     if (!user) return errorResponse(res, "کاربر یافت نشد", 404);
 
-    await user.update({ token: null, token_expires_at: null, online_status: false });
+    // ✅ خروج: توکن باطل + وضعیت آفلاین (حضور)
+    //    ⚠️ last_seen_at عمداً پاک نمی‌شود تا «آخرین فعالیت» در گزارش حضور بماند؛
+    //    نبودِ heartbeat بعدی هم کاربر را خودبه‌خود آفلاین نگه می‌دارد.
+    await user.update({
+      token: null,
+      token_expires_at: null,
+      online_status: false,
+    });
     successResponse(res, null, "با موفقیت خارج شدید");
   } catch (error) {
     console.error("خطا در خروج:", error);

@@ -1,6 +1,9 @@
 ﻿import { apiService } from "./api.service.js";
 import { API_CONSTANTS } from "./../constants/api.const.js";
 import { CONFIG } from "./../constants/config.const.js";
+// ✅ «حضور کاربران» (Presence) — چه کسی آنلاین است
+// ⚠️ direction: auth → presence (presence هرگز auth را import نمی‌کند)
+import { presenceService } from "./presence.service.js";
 class AuthService {
   constructor() {
     this.token = localStorage.getItem(CONFIG.TOKEN_KEY);
@@ -121,6 +124,9 @@ class AuthService {
         this.setUser(response.data.user);
 
         await this.updateOnlineStatus(response.data.user.id, true);
+
+        // ✅ «حضور»: حلقهٔ heartbeat شروع می‌شود (سرور هم نرخ نوشتن را می‌کاهد)
+        presenceService.start();
         return response.data;
       }
       throw new Error(response.message || "خطا در ورود");
@@ -134,6 +140,10 @@ class AuthService {
     if (user?.id) {
       this.updateOnlineStatus(user.id, false).catch(() => {});
     }
+
+    // ✅ «حضور»: اعلام آفلاین + توقف حلقهٔ heartbeat.
+    // باید قبل از پاک‌شدن توکن اجرا شود (درخواست آفلاین به توکن نیاز دارد).
+    presenceService.logout();
 
     // ✅ باطل کردن توکن در سرور (بهترین تلاش — حتی اگر شکست بخورد، خروج انجام می‌شود)
     apiService.post(API_CONSTANTS.ENDPOINTS.AUTH.LOGOUT).catch(() => {});
