@@ -220,7 +220,7 @@ export const DICTIONARY_SCHEMAS = {
 
   // ==================== سیستم ورودی آب ====================
   "water-inlet-types": {
-    title: "سیستم‌های ورودی آب",
+    title: "سیستم‌های ورودی بهداشتی (آب)",
     icon: "fa-faucet",
     canToggle: true,
     fields: [

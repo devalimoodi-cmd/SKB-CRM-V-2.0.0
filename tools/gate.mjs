@@ -36,7 +36,7 @@ const logs = path.join(root, '.gate-logs');
 // Ordered gate steps. New waves append their guard at the end.
 const STEPS = [
   'lint',
-  'test:cache', 'test:denied', 'test:toast', 'test:theme',
+  'test:cache', 'test:denied', 'test:toast', 'test:theme', 'test:dictionary',
   'test:weekly', 'test:weekly:report', 'test:weekly:groups', 'test:weekly:history',
   'test:weekly:history:body', 'test:weekly:cards:body',
   'test:weekly:surface', 'test:weekly:body',
