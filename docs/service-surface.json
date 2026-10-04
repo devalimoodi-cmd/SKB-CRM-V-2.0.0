@@ -42,6 +42,7 @@
             "getToken",
             "handleUnauthorized",
             "notifyPermissionDenied",
+            "notifyServerUnavailable",
             "patch",
             "post",
             "postFormData",
@@ -59,6 +60,7 @@
             "handleUnauthorized",
             "isRedirectingToLogin",
             "notifyPermissionDenied",
+            "notifyServerUnavailable",
             "request",
             "retryCount",
             "timeout",
@@ -219,6 +221,13 @@
         }
       },
       "windowGlobals": []
+    },
+    "src/core/services/chart-theme.service.js": {
+      "instances": {},
+      "classes": {},
+      "windowGlobals": [
+        "chartThemeService"
+      ]
     },
     "src/core/services/notification.service.js": {
       "instances": {
@@ -410,6 +419,13 @@
         "CURRENT_CUSTOMER_ID",
         "StateService",
         "stateService"
+      ]
+    },
+    "src/core/services/theme.service.js": {
+      "instances": {},
+      "classes": {},
+      "windowGlobals": [
+        "themeService"
       ]
     },
     "src/features/admin-panel/admin-panel.service.js": {
@@ -2061,6 +2077,7 @@
             "_chartLoadingTimer",
             "_chartRequestSeq",
             "_flockGroupHTML",
+            "_lastChartData",
             "_loadCompareCustomers",
             "_loadCustomerFlocksForCompare",
             "_mkSeriesDataset",
@@ -2262,6 +2279,152 @@
         "messagesService"
       ]
     },
+    "src/features/profile/profile.renderer.js": {
+      "instances": {
+        "profileRenderer": "ProfileRenderer"
+      },
+      "classes": {
+        "ProfileRenderer": {
+          "methods": [
+            "fillForm",
+            "getFullName",
+            "readForm",
+            "renderAccountInfo",
+            "renderHero",
+            "renderPermissions",
+            "setBusy",
+            "setMobileError"
+          ],
+          "properties": [
+            "getFullName"
+          ],
+          "mixins": {}
+        }
+      },
+      "windowGlobals": [
+        "profileRenderer"
+      ]
+    },
+    "src/features/profile/profile.service.js": {
+      "instances": {
+        "profileService": "ProfileService"
+      },
+      "classes": {
+        "ProfileService": {
+          "methods": [
+            "constructor",
+            "handleAvatarPicked",
+            "init",
+            "loadPermissions",
+            "loadProfile",
+            "renderAll",
+            "saveProfile",
+            "setupEvents",
+            "setupQuickLinks"
+          ],
+          "properties": [
+            "handleAvatarPicked",
+            "initialized",
+            "loadPermissions",
+            "loadProfile",
+            "renderAll",
+            "saveProfile",
+            "setupEvents",
+            "setupQuickLinks",
+            "user"
+          ],
+          "mixins": {}
+        }
+      },
+      "windowGlobals": [
+        "ProfileService",
+        "profileService"
+      ]
+    },
+    "src/features/settings/settings.renderer.js": {
+      "instances": {
+        "settingsRenderer": "SettingsRenderer"
+      },
+      "classes": {
+        "SettingsRenderer": {
+          "methods": [
+            "clearPasswordForm",
+            "renderSelect",
+            "renderTheme",
+            "renderToggles",
+            "setConfirmError",
+            "setPasswordBusy",
+            "setStorageStatus"
+          ],
+          "properties": [
+            "setConfirmError"
+          ],
+          "mixins": {}
+        }
+      },
+      "windowGlobals": [
+        "settingsRenderer"
+      ]
+    },
+    "src/features/settings/settings.service.js": {
+      "instances": {
+        "settingsService": "SettingsService"
+      },
+      "classes": {
+        "SettingsService": {
+          "methods": [
+            "applySelect",
+            "applyTheme",
+            "applyToggle",
+            "bindCheckbox",
+            "bindSelect",
+            "changePassword",
+            "constructor",
+            "init",
+            "loadServerPrefs",
+            "mirrorToLocal",
+            "notifySaved",
+            "persist",
+            "readLocalPrefs",
+            "render",
+            "resetSessions",
+            "setupEvents",
+            "setupPasswordForm",
+            "setupQuickLinks",
+            "setupResetSessions",
+            "setupThemeSeg"
+          ],
+          "properties": [
+            "applySelect",
+            "applyTheme",
+            "applyToggle",
+            "bindCheckbox",
+            "bindSelect",
+            "changePassword",
+            "initialized",
+            "loadServerPrefs",
+            "mirrorToLocal",
+            "notifySaved",
+            "persist",
+            "prefs",
+            "readLocalPrefs",
+            "render",
+            "resetSessions",
+            "serverBacked",
+            "setupEvents",
+            "setupPasswordForm",
+            "setupQuickLinks",
+            "setupResetSessions",
+            "setupThemeSeg"
+          ],
+          "mixins": {}
+        }
+      },
+      "windowGlobals": [
+        "SettingsService",
+        "settingsService"
+      ]
+    },
     "src/features/sms/sms.history.modal.js": {
       "instances": {},
       "classes": {},
@@ -2345,6 +2508,33 @@
         }
       },
       "windowGlobals": []
+    },
+    "src/features/user-account/user-account.api.js": {
+      "instances": {
+        "userAccountApi": "UserAccountApi"
+      },
+      "classes": {
+        "UserAccountApi": {
+          "methods": [
+            "changePassword",
+            "getPermissions",
+            "getPreferences",
+            "getProfile",
+            "getUserId",
+            "resetToken",
+            "updatePreferences",
+            "updateProfile"
+          ],
+          "properties": [
+            "getUserId"
+          ],
+          "mixins": {}
+        }
+      },
+      "windowGlobals": [
+        "UserAccountApi",
+        "userAccountApi"
+      ]
     },
     "src/features/whats-new/whats-new.manager.js": {
       "instances": {
@@ -2851,29 +3041,31 @@
             "initNavigation",
             "initNotificationButtons",
             "initProfileDropdown",
+            "initThemeToggle",
             "initWhatsNewButton",
             "refresh",
             "renderDefaultHeader",
             "renderGuest",
             "renderProfileDropdown",
+            "renderThemeIcon",
             "renderUserInfo"
           ],
           "properties": [
             "elements",
-            "getDefaultAvatar",
             "getRoleText",
             "initBookmarkDropdowns",
             "initManualDropdowns",
             "initNavigation",
             "initNotificationButtons",
             "initProfileDropdown",
+            "initThemeToggle",
             "initWhatsNewButton",
             "initialized",
             "renderDefaultHeader",
             "renderGuest",
             "renderProfileDropdown",
+            "renderThemeIcon",
             "renderUserInfo",
-            "src",
             "style",
             "user"
           ],
@@ -2950,11 +3142,14 @@
     "HeaderService",
     "ModalService",
     "PermissionManager",
+    "ProfileService",
     "SMS_CONST",
+    "SettingsService",
     "SidebarService",
     "StateService",
     "TableService",
     "TaskCard",
+    "UserAccountApi",
     "VisitReportService",
     "WeeklyRenderer",
     "WeeklyService",
@@ -2980,6 +3175,7 @@
     "calculateDensity",
     "cardService",
     "chartDashboardService",
+    "chartThemeService",
     "checkHasActivePeriod",
     "closeAllAccordion",
     "closeAllWeeks",
@@ -3079,6 +3275,8 @@
     "printFlockCompletionReport",
     "printFlockSmsReport",
     "printVisitReport",
+    "profileRenderer",
+    "profileService",
     "refreshAllHallsDropdowns",
     "refreshAllHallsDropdownsInPage",
     "refreshBookmarks",
@@ -3128,6 +3326,8 @@
     "sendFlockSmsHall",
     "sendSmsToCustomer",
     "setDashboardChartLayout",
+    "settingsRenderer",
+    "settingsService",
     "showBookmarkDetail",
     "showCreateBookmarkModal",
     "showCustomerDetail",
@@ -3139,6 +3339,7 @@
     "switchCustomerDetailTab",
     "syncExtraHallDates",
     "tableService",
+    "themeService",
     "toggleAccordion",
     "toggleChartSeries",
     "toggleChartValues",
@@ -3155,6 +3356,7 @@
     "toggleUnitStatus",
     "toggleWeekAccordion",
     "updateUnitInfo",
+    "userAccountApi",
     "viewAttachment",
     "viewBookmarkDetail",
     "viewCustomer",

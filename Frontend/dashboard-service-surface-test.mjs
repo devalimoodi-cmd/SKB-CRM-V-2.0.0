@@ -42,6 +42,7 @@ const LAZY_INSTANCE_MEMBERS = new Set([
   "_cardsSignature",
   "_chartLoadingTimer",
   "_chartRequestSeq",
+  "_lastChartData",
   "_valueLabelPlugin",
   "refreshInterval",
   "selectedFlockGroupId",
