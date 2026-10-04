@@ -299,7 +299,7 @@ const DICTIONARY_TABLES = [
   ["suggestion-types", "انواع پیشنهاد"],
   ["vaccines", "واکسن‌ها"],
   ["ventilation-types", "سیستم‌های تهویه"],
-  ["water-inlet-types", "سیستم‌های ورودی آب"],
+  ["water-inlet-types", "سیستم‌های ورودی بهداشتی (آب)"],
   ["waterer-types", "انواع آبخوری"],
   ["unit-statuses", "وضعیت واحد"],
   ["customer-types", "انواع مشتری"],
