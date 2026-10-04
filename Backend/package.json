@@ -20,6 +20,7 @@
     "audit:dead-exports": "node scripts/audit-dead-exports.js",
     "test:permissions": "node permissions-test.mjs",
     "test:presence:e2e": "node presence-e2e-test.mjs",
+    "test:sessions:e2e": "node session-e2e-test.mjs",
     "verify": "npm run check && npm run lint && npm run test:security",
     "backup": "node scripts/backup.js",
     "uploads:report": "node scripts/uploads-report.js",

@@ -47,6 +47,8 @@ const ReleaseNoteItem = require("./ReleaseNoteItem");
 const ReleaseNoteView = require("./ReleaseNoteView");
 // ✅ «نوع مشتری» (جدول دیکشنری)
 const CustomerType = require("./CustomerType");
+// ✅ «نشست‌های کاربران» (فاز ۱۲.۱)
+const UserSession = require("./UserSession");
 
 // ================================================================
 // ✅ ارتباطات با CASCADE برای حذف آبشاری
@@ -893,5 +895,24 @@ RolePermission.belongsTo(User, {
 PermissionAuditLog.belongsTo(User, {
   foreignKey: "actor_id",
   as: "actor",
+  constraints: false,
+});
+
+// ================================================================
+// ✅ ارتباطات «نشست‌های کاربران» (user_sessions — فاز ۱۲.۱)
+// ----------------------------------------------------------------
+// • constraints: false ⇒ هیچ FOREIGN KEY ساخته نمی‌شود؛ ردیف نشست
+//   باید بعد از حذف کاربر هم باقی بماند (username/role عکس‌برداری
+//   شده‌اند). دقیقاً همان الگوی PermissionAuditLog.actor_id.
+// • onDelete/hooks تعریف نمی‌شود ⇒ حذف کاربر نشست‌ها را پاک نمی‌کند.
+// ================================================================
+User.hasMany(UserSession, {
+  foreignKey: "user_id",
+  as: "sessions",
+  constraints: false,
+});
+UserSession.belongsTo(User, {
+  foreignKey: "user_id",
+  as: "user",
   constraints: false,
 });

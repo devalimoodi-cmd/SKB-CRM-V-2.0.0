@@ -30,8 +30,20 @@ const { requirePermission } = require("./middleware/permissions.js");
 // ============================================================
 check(
   "کاتالوگ: تعداد کلیدها و گروه‌ها طبق طراحی است",
-  catalog.TOTAL_PERMISSIONS === 163 && catalog.PERMISSION_GROUPS.length === 16,
+  catalog.TOTAL_PERMISSIONS === 164 && catalog.PERMISSION_GROUPS.length === 16,
   `keys=${catalog.TOTAL_PERMISSIONS} groups=${catalog.PERMISSION_GROUPS.length}`,
+);
+
+check(
+  "کاتالوگ: «بستن نشست کاربران» (users.sessions.revoke) برای ادمین‌ها روشن و قفل‌نشده است",
+  Boolean(catalog.PERMISSIONS["users.sessions.revoke"]) &&
+    catalog.defaultFor("super_admin", "users.sessions.revoke") === true &&
+    catalog.defaultFor("admin", "users.sessions.revoke") === true &&
+    catalog.defaultFor("sub_admin", "users.sessions.revoke") === true &&
+    catalog.defaultFor("expert", "users.sessions.revoke") === false &&
+    catalog.defaultFor("customer", "users.sessions.revoke") === false &&
+    catalog.PERMISSIONS["users.sessions.revoke"].lockedTo.length === 0,
+  `locked=${catalog.PERMISSIONS["users.sessions.revoke"]?.lockedTo?.length}`,
 );
 
 check(

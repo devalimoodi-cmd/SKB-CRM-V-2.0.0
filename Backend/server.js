@@ -58,6 +58,8 @@ const releaseNoteRoutes = require("./routes/releaseNoteRoutes");
 const publicRoutes = require("./routes/publicRoutes");
 // ✅ «حضور کاربران» (Presence) — چه کسی آنلاین است
 const presenceRoutes = require("./routes/presenceRoutes");
+// ✅ «نشست‌های کاربران» (فاز ۱۲.۱)
+const sessionRoutes = require("./routes/sessionRoutes");
 
 // ================== ###==========
 
@@ -225,6 +227,8 @@ const CRITICAL_TABLES = [
   "role_permissions",
   "user_permissions",
   "permission_audit_logs",
+  // ✅ «نشست‌های کاربران» (فاز ۱۲.۱)
+  "user_sessions",
   "SequelizeMeta",
 ];
 
@@ -319,6 +323,8 @@ app.use("/api/cities", cityRoutes);
 app.use("/api/users", userRoutes);
 // ✅ «حضور کاربران» (Presence): heartbeat / خروج صریح / خلاصهٔ آنلاین‌ها
 app.use("/api/presence", presenceRoutes);
+// ✅ «نشست‌های کاربران» (فاز ۱۲.۱): فهرست نشست‌ها + بستن یک/همهٔ دستگاه‌ها
+app.use("/api/sessions", sessionRoutes);
 
 // مسیرهای تست
 app.get("/", (req, res) => {

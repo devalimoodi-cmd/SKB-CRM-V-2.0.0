@@ -14,6 +14,7 @@
     "test:dictionary": "node dictionary-parity-test.mjs",
     "test:avatar": "node avatar-fallback-test.mjs",
     "test:presence": "node presence-guard-test.mjs",
+    "test:sessions": "node session-guard-test.mjs",
     "test:weekly": "node weekly-calculations-test.mjs",
     "test:weekly:report": "node weekly-report-render-smoke.mjs",
     "test:weekly:groups": "node weekly-report-groups-test.mjs",

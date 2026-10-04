@@ -234,13 +234,16 @@ User.prototype.comparePassword = async function (password) {
 };
 
 // تولید توکن JWT
-User.prototype.generateToken = function () {
+User.prototype.generateToken = function (extra = {}) {
   const token = jwt.sign(
     {
       id: this.id,
       username: this.username,
       email: this.email,
       role: this.role,
+      // ✅ claims افزودنی: `sid` = شناسهٔ نشست (فاز ۱۲.۱)
+      //    با آن، میدل‌ور می‌فهمد این توکن به کدام ردیف user_sessions تعلق دارد.
+      ...extra,
     },
     process.env.JWT_SECRET,
     { expiresIn: process.env.JWT_EXPIRE || "7d" },

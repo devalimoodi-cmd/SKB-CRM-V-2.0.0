@@ -149,6 +149,7 @@ bash deploy.sh --help
 | نظرات و پیشنهادات (`/api/suggestions`) | `suggestions.admin.view` · `reply` · `status` · `delete` |
 | دیکشنری‌ها (`/api/dictionary`, `/api/breed-standards`) | `dictionary.<جدول>.view` · `dictionary.<جدول>.edit` (۱۹ جدول) · `charts.standards` |
 | نقش‌ها (`/api/permissions`) | `roles.matrix.view` · `roles.permissions.edit` · `users.permissions.edit` · `roles.audit.view` |
+| نشست‌ها (`/api/sessions`) | `users.onlineStatus.view` (فهرست/خلاصه) · `users.sessions.revoke` (بستن یک نشست یا همهٔ نشست‌های یک کاربر) |
 
 > در بیشتر این مسیرها `authorize(...)` قبلی هم باقی مانده است؛ یعنی مجوز فقط می‌تواند
 > **محدودتر** کند (تا وقتی بخواهید مجوزی را به نقشی بدهید که قبلاً در `authorize` نبود،
@@ -186,7 +187,7 @@ ALLOW_DB_TESTS=true npm run test:db   # چرخهٔ کامل ساخت→انتش�
 ### فایل‌های کلیدی
 | فایل | کار |
 |---|---|
-| `config/permissions.js` | **کاتالوگ مجوزها** (۱۵۶ کلید در ۱۵ گروه) + پیش‌فرض هر ۵ نقش + کلیدهای قفل‌شده |
+| `config/permissions.js` | **کاتالوگ مجوزها** (۱۶۴ کلید در ۱۶ گروه) + پیش‌فرض هر ۵ نقش + کلیدهای قفل‌شده |
 | `services/permissionService.js` | محاسبهٔ مجوز مؤثر + کش ۳۰ ثانیه‌ای + ذخیره + گزارش تغییرات |
 | `middleware/permissions.js` | `requirePermission("customers.edit")` (دارای حالت dry-run) |
 | `middleware/auth.js` | پس از احراز هویت، `req.user.permissions` را پر می‌کند |

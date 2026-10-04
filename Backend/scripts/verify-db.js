@@ -70,6 +70,8 @@ const EXPECTED_TABLES = [
   "role_permissions",
   "user_permissions",
   "permission_audit_logs",
+  // ✅ «نشست‌های کاربران» (فاز ۱۲.۱)
+  "user_sessions",
   "SequelizeMeta",
 ];
 
@@ -163,6 +165,20 @@ const EXPECTED_COLUMNS = {
     "batch_id",
     "note",
   ],
+  // ✅ «نشست‌های کاربران» (فاز ۱۲.۱)
+  user_sessions: [
+    "user_id",
+    "username",
+    "role",
+    "sid",
+    "ip",
+    "user_agent",
+    "started_at",
+    "last_activity_at",
+    "ended_at",
+    "end_reason",
+    "ended_by",
+  ],
 };
 
 const EXPECTED_INDEXES = [
@@ -191,6 +207,10 @@ const EXPECTED_INDEXES = [
   "permission_audit_logs_actor_id",
   "permission_audit_logs_target",
   "permission_audit_logs_created_at",
+  // ✅ «نشست‌های کاربران» (فاز ۱۲.۱)
+  "user_sessions_sid_unique",
+  "user_sessions_user_id_ended_at",
+  "user_sessions_last_activity_at",
 ];
 
 const COUNT_TABLES = [
@@ -203,6 +223,8 @@ const COUNT_TABLES = [
   // ✅ «سطوح دسترسی»
   "role_permissions",
   "user_permissions",
+  // ✅ «نشست‌های کاربران» (فاز ۱۲.۱)
+  "user_sessions",
 ];
 
 // ============================================
