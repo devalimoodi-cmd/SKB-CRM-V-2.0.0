@@ -181,6 +181,18 @@ export const API_CONSTANTS = {
       // فهرست آنلاین‌ها (فقط نقش‌های مدیریتی)
       SUMMARY: "/presence/summary",
     },
+    // ===== نشست‌های کاربران (Sessions) — «کجا وارد شده‌ام؟» (فاز ۱۲.۱) =====
+    SESSIONS: {
+      // نشست‌های خودم (هر کاربر لاگین‌شده) — این دستگاه با current علامت می‌خورد
+      MINE: "/sessions/mine",
+      // مدیریت: فهرست نشست‌ها (کلید users.onlineStatus.view)
+      LIST: "/sessions",
+      SUMMARY: "/sessions/summary",
+      // مدیریت: بستن یک نشست (کلید users.sessions.revoke)
+      REVOKE: "/sessions/:id/revoke",
+      // مدیریت: بستن همهٔ نشست‌های یک کاربر
+      REVOKE_ALL: "/sessions/users/:userId/revoke-all",
+    },
   },
   TIMEOUT: 30000,
   RETRY_COUNT: 3,

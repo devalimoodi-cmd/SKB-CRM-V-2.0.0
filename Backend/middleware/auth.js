@@ -56,6 +56,29 @@ const protect = async (req, res, next) => {
       });
     }
 
+    // ✅ «نشست‌ها» (فاز ۱۲.۱): اگر توکن شناسهٔ نشست (sid) دارد، آن نشست
+    //    باید در جدول user_sessions هنوز باز باشد. اگر مدیر آن نشست را
+    //    بسته باشد (یا کاربری از دستگاه دیگری خارج شده باشد) ⇒ ۴۰۱ فوری.
+    //    ⚠️ توکن‌های قدیمی (بدون sid) دست‌نخورده کار می‌کنند ⇒ استقرار بی‌دردسر.
+    req.sessionId = decoded.sid || null;
+    if (req.sessionId) {
+      try {
+        // require داخل تابع تا وابستگی حلقه‌ای ایجاد نشود
+        const sessionService = require("../services/sessionService");
+        // touch = «زنده است؟» + تازه‌کردن آخرین فعالیت (با throttle)
+        const alive = await sessionService.touch(req.sessionId);
+        if (!alive) {
+          return res.status(401).json({
+            success: false,
+            message: "نشست شما بسته شده است. لطفاً دوباره وارد شوید.",
+          });
+        }
+      } catch (sessionError) {
+        // خطای غیرمنتظره هرگز نباید احراز هویت را بشکند
+        console.warn("⚠️ خطا در بررسی نشست:", sessionError.message);
+      }
+    }
+
     // ✅ (اختیاری) فقط یک نشست فعال برای هر کاربر
     // با ENFORCE_SINGLE_SESSION=true فعال می‌شود؛ در این حالت ورود جدید
     // نشست قبلی را باطل می‌کند و «خروج» فوراً توکن را بی‌اعتبار می‌کند.

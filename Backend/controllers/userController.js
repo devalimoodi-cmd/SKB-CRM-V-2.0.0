@@ -4,6 +4,8 @@ const path = require("path");
 const fs = require("fs");
 const { ADMIN_ROLES } = require("../middleware/auth");
 const { getTokenExpiryDate } = require("../utils/token");
+// ✅ «نشست‌های کاربران» (فاز ۱۲.۱): ثبت/بستن نشست‌ها (sid داخل توکن)
+const sessionService = require("../services/sessionService");
 const {
   verifyChallenge,
   isEnabled: isCaptchaEnabled,
@@ -435,6 +437,13 @@ const updateUser = async (req, res) => {
       updateData.role &&
       (updateData.role === "sub_admin" || updateData.role === "expert")
     ) {
+      // ✅ «نشست‌ها» (فاز ۱۲.۱): با تغییر نقش، نشست‌های بازِ آن کاربر بسته
+      //    می‌شوند تا با توکنِ قدیمی (که نقش قبلی داخلش است) ادامه ندهد.
+      await sessionService.endAllForUser(user.id, {
+        reason: "role_change",
+        endedBy: req.user?.id ?? null,
+      });
+
       const newToken = user.generateToken();
       await user.update({
         token: newToken,
@@ -492,7 +501,21 @@ const changePassword = async (req, res) => {
 
     // ✅ باطل‌کردن نشست‌های قبلی: توکن تازه صادر می‌شود
     //    (اگر ENFORCE_SINGLE_SESSION=true باشد، دستگاه‌های دیگر خارج می‌شوند)
-    const newToken = user.generateToken();
+    // ✅ «نشست‌ها» (فاز ۱۲.۱): با تغییر رمز، همهٔ نشست‌های باز بسته می‌شوند
+    //    (اگر خودِ کاربر رمزش را عوض کرده، همین دستگاه نشست تازه‌ای می‌گیرد
+    //     تا بی‌دلیل از سیستم بیرون نیفتد)
+    await sessionService.endAllForUser(user.id, {
+      reason: "password_change",
+      endedBy: req.user?.id ?? null,
+    });
+
+    const { ip, userAgent } = sessionService.fromRequest(req);
+    const session = isSelf
+      ? await sessionService.start({ user, ip, userAgent })
+      : null;
+
+    // ✅ باطل‌کردن نشست‌های قبلی: توکن تازه (با sid نشستِ تازه در حالت «خودم»)
+    const newToken = user.generateToken(session ? { sid: session.sid } : {});
     await user.update({
       token: newToken,
       token_expires_at: getTokenExpiryDate(),
@@ -639,12 +662,31 @@ const resetUserToken = async (req, res) => {
     const user = await User.findByPk(id);
     if (!user) return errorResponse(res, "کاربر یافت نشد", 404);
 
-    const newToken = user.generateToken();
+    // ✅ «نشست‌ها» (فاز ۱۲.۱): بازنشانی توکن = بستنِ واقعیِ همهٔ نشست‌های بازِ
+    //    کاربر. تا پیش از این فاز، این دکمه فقط `users.token` را عوض می‌کرد و
+    //    چون هر دستگاه توکن مستقل خودش را دارد، هیچ دستگاهی بیرون نمی‌افتاد.
+    const ended = await sessionService.endAllForUser(user.id, {
+      reason: "reset",
+      endedBy: req.user?.id ?? null,
+    });
+
+    // اگر خودِ کاربر این کار را کرده باشد، همین دستگاه نشست تازه‌ای می‌گیرد
+    const isSelf = String(req.user?.id) === String(id);
+    const { ip, userAgent } = sessionService.fromRequest(req);
+    const session = isSelf
+      ? await sessionService.start({ user, ip, userAgent })
+      : null;
+
+    const newToken = user.generateToken(session ? { sid: session.sid } : {});
     await user.update({
       token: newToken,
       token_expires_at: getTokenExpiryDate(),
     });
-    successResponse(res, { token: newToken }, "توکن با موفقیت بازنشانی شد");
+    successResponse(
+      res,
+      { token: newToken, ended_sessions: ended },
+      "توکن بازنشانی شد و همهٔ نشست‌های باز بسته شدند",
+    );
   } catch (error) {
     console.error("خطا:", error);
     errorResponse(res, error.message, 500);
@@ -738,7 +780,19 @@ const loginUser = async (req, res) => {
       await user.resetFailedAttempts();
     }
 
-    const token = user.generateToken();
+    // ✅ «نشست» (فاز ۱۲.۱): برای این ورود یک ردیف نشست ساخته می‌شود و
+    //    sid آن داخل توکن می‌رود ⇒ مدیر می‌تواند «همین دستگاه» را ببندد
+    //    و توکنش در درخواست بعدی ۴۰۱ بگیرد.
+    const { ip, userAgent } = sessionService.fromRequest(req);
+    const session = await sessionService.start({
+      user,
+      ip,
+      userAgent,
+      // با ENFORCE_SINGLE_SESSION=true نشست بازِ قبلی «جایگزین» می‌شود
+      endPrevious: process.env.ENFORCE_SINGLE_SESSION === "true",
+    });
+
+    const token = user.generateToken(session ? { sid: session.sid } : {});
     // ✅ توکن جاری در دیتابیس ذخیره می‌شود تا «خروج» بتواند نشست را واقعاً ببندد
     // (و با ENFORCE_SINGLE_SESSION=true، هر کاربر یک نشست فعال داشته باشد)
     // ✅ «حضور»: ورود = کاربر همین حالا آنلاین است (last_seen_at تازه + شمارندهٔ آنلاین)
@@ -801,6 +855,12 @@ const logoutUser = async (req, res) => {
   try {
     const user = await User.findByPk(req.user.id);
     if (!user) return errorResponse(res, "کاربر یافت نشد", 404);
+
+    // ✅ «نشست» (فاز ۱۲.۱): نشستِ همین دستگاه واقعاً بسته می‌شود
+    //    (حتی اگر همین توکن جای دیگری کپی شده باشد، در درخواست بعدی ۴۰۱ می‌گیرد)
+    if (req.sessionId) {
+      await sessionService.endBySid(req.sessionId, { reason: "logout" });
+    }
 
     // ✅ خروج: توکن باطل + وضعیت آفلاین (حضور)
     //    ⚠️ last_seen_at عمداً پاک نمی‌شود تا «آخرین فعالیت» در گزارش حضور بماند؛

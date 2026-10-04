@@ -412,6 +412,28 @@
       },
       "windowGlobals": []
     },
+    "src/core/services/session.service.js": {
+      "instances": {
+        "sessionService": "SessionService"
+      },
+      "classes": {
+        "SessionService": {
+          "methods": [
+            "list",
+            "mine",
+            "revoke",
+            "revokeAll",
+            "summary"
+          ],
+          "properties": [],
+          "mixins": {}
+        }
+      },
+      "windowGlobals": [
+        "SessionService",
+        "sessionService"
+      ]
+    },
     "src/core/services/state.service.js": {
       "instances": {
         "stateService": "StateService"
@@ -3186,6 +3208,7 @@
     "PresenceService",
     "ProfileService",
     "SMS_CONST",
+    "SessionService",
     "SettingsService",
     "SidebarService",
     "StateService",
@@ -3368,6 +3391,7 @@
     "sendFlockSmsFlock",
     "sendFlockSmsHall",
     "sendSmsToCustomer",
+    "sessionService",
     "setDashboardChartLayout",
     "settingsRenderer",
     "settingsService",
