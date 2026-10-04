@@ -54,6 +54,7 @@ $steps = @(
   'test:dashboard:sms-status:body',
   'test:chart-dashboard:all:body',
   'test:dashboard:setup-charts:body',
+  'test:presence',
   'audit:size', 'audit:dead-exports', 'audit:surface', 'audit:big-methods'
 )
 

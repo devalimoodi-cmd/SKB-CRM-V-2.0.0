@@ -172,6 +172,15 @@ export const API_CONSTANTS = {
       // گزارش تغییرات
       AUDIT: "/permissions/audit",
     },
+    // ===== حضور کاربران (Presence) — «چه کسی آنلاین است» =====
+    PRESENCE: {
+      // تازه‌کردن حضور خودم (هر چند ثانیه — PRESENCE_HEARTBEAT_SECONDS)
+      HEARTBEAT: "/presence/heartbeat",
+      // خروج صریح (بستن تب/خروج) — با fetch keepalive فرستاده می‌شود
+      OFFLINE: "/presence/offline",
+      // فهرست آنلاین‌ها (فقط نقش‌های مدیریتی)
+      SUMMARY: "/presence/summary",
+    },
   },
   TIMEOUT: 30000,
   RETRY_COUNT: 3,

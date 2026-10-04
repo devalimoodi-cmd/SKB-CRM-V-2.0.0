@@ -338,6 +338,47 @@
         "permissionService"
       ]
     },
+    "src/core/services/presence.service.js": {
+      "instances": {
+        "presenceService": "PresenceService"
+      },
+      "classes": {
+        "PresenceService": {
+          "methods": [
+            "apiUrl",
+            "beat",
+            "constructor",
+            "hasSession",
+            "headers",
+            "init",
+            "installListeners",
+            "logout",
+            "sendOffline",
+            "start",
+            "stop"
+          ],
+          "properties": [
+            "apiUrl",
+            "beat",
+            "hasSession",
+            "headers",
+            "initialized",
+            "installListeners",
+            "lastBeatAt",
+            "listenersInstalled",
+            "sendOffline",
+            "start",
+            "stop",
+            "timer"
+          ],
+          "mixins": {}
+        }
+      },
+      "windowGlobals": [
+        "PresenceService",
+        "presenceService"
+      ]
+    },
     "src/core/services/router.service.js": {
       "instances": {
         "routerService": "RouterService"
@@ -3142,6 +3183,7 @@
     "HeaderService",
     "ModalService",
     "PermissionManager",
+    "PresenceService",
     "ProfileService",
     "SMS_CONST",
     "SettingsService",
@@ -3272,6 +3314,7 @@
     "openUnitEdit",
     "permissionManager",
     "permissionService",
+    "presenceService",
     "printFlockCompletionReport",
     "printFlockSmsReport",
     "printVisitReport",

@@ -4,6 +4,7 @@ import { stateService } from "./state.service.js";
 import { notificationService } from "./notification.service.js";
 import { permissionService } from "./permission.service.js";
 import { chartThemeService } from "./chart-theme.service.js";
+import { presenceService } from "./presence.service.js";
 import { headerService } from "../../shared/layouts/Header/header.service.js";
 import { footerService } from "../../shared/layouts/Footer/footer.service.js";
 import { sidebarService } from "../../shared/layouts/Sidebar/sidebar.service.js";
@@ -149,6 +150,14 @@ class AppService {
     // بررسی وضعیت لاگین
     if (authService.isLoggedIn()) {
       console.log("👤 User logged in:", authService.getUserFullName());
+    }
+
+    // ✅ «حضور»: شروع heartbeat (فقط اگر کاربر وارد شده باشد) + نصب شنونده‌ها
+    //    (visibilitychange ⇒ حضور تازه در بازگشت به تب، pagehide ⇒ اعلام آفلاین)
+    try {
+      presenceService.init();
+    } catch (presenceError) {
+      console.warn("⚠️ راه‌اندازی حضور ناموفق بود:", presenceError?.message || presenceError);
     }
 
     console.log("✅ Core services initialized");

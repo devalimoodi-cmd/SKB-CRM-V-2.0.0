@@ -56,6 +56,8 @@ const suggestionRoutes = require("./routes/suggestionRoutes");
 // ✅ «تغییرات جدید / What's New»
 const releaseNoteRoutes = require("./routes/releaseNoteRoutes");
 const publicRoutes = require("./routes/publicRoutes");
+// ✅ «حضور کاربران» (Presence) — چه کسی آنلاین است
+const presenceRoutes = require("./routes/presenceRoutes");
 
 // ================== ###==========
 
@@ -315,6 +317,8 @@ connectDB();
 app.use("/api/customers", customerRegistrationRoutes);
 app.use("/api/cities", cityRoutes);
 app.use("/api/users", userRoutes);
+// ✅ «حضور کاربران» (Presence): heartbeat / خروج صریح / خلاصهٔ آنلاین‌ها
+app.use("/api/presence", presenceRoutes);
 
 // مسیرهای تست
 app.get("/", (req, res) => {

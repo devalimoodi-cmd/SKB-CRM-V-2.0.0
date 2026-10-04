@@ -83,6 +83,8 @@ const EXPECTED_COLUMNS = {
     "online_status",
     // ✅ تنظیمات شخصی کاربر (مایگریشن 20261003000000)
     "preferences",
+    // ✅ حضور کاربران (مایگریشن 20261004000000)
+    "last_seen_at",
   ],
   customer_personal_information: [
     "customer_code",

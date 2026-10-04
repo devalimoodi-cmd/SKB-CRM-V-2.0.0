@@ -157,6 +157,16 @@ const User = sequelize.define(
       defaultValue: false,
       field: "online_status",
     },
+    // ✅ «حضور» (Presence): آخرین لحظهٔ فعالیت دیده‌شدهٔ کاربر (heartbeat)
+    // آنلاین‌بودن = online_status صریحاً false نباشد و این زمان «تازه» باشد
+    // (پنجرهٔ آنلاین: PRESENCE_ONLINE_WINDOW_SECONDS — پیش‌فرض ۱۲۰ ثانیه)
+    // ⚠️ اگر مایگریشن 20261004000000 اجرا نشده باشد، این ستون در دیتابیس نیست
+    //    و presenceService خودش یک‌بار هشدار می‌دهد (بدون کرش).
+    last_seen_at: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      field: "last_seen_at",
+    },
     isActive: {
       type: DataTypes.BOOLEAN,
       defaultValue: true,
