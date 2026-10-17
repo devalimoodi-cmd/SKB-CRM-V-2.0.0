@@ -1,0 +1,123 @@
+
+// استخراج ip / user-agent از درخواست (v4/v6 و x-forwarded-for)
+const fromRequest = (req) => {
+  const forwarded = String(req?.headers?.["x-forwarded-for"] || "")
+    .split(",")[0]
+    .trim();
+  const ip = forwarded || req?.ip || req?.socket?.remoteAddress || null;
+  return {
+    ip: clip(ip, 64),
+    userAgent: clip(req?.headers?.["user-agent"], 500),
+  };
+};
+
+// ============================================
+// حافظهٔ sidهای باطل‌شده
+// ============================================
+const pruneRevoked = (now = Date.now()) => {
+  if (revokedSids.size === 0) return;
+  for (const [sid, until] of revokedSids) {
+    if (now >= until) revokedSids.delete(sid);
+  }
+};
+
+const markRevoked = (sid) => {
+  if (!sid) return;
+  const now = Date.now();
+  pruneRevoked(now);
+  revokedSids.set(sid, now + REVOKED_MEMORY_TTL_MS);
+};
+
+const isRevoked = (sid) => {
+  if (!sid) return false;
+  const until = revokedSids.get(sid);
+  if (!until) return false;
+  if (Date.now() >= until) {
+    revokedSids.delete(sid);
+    return false;
+  }
+  return true;
+};
+
+// ============================================
+// شروع نشست (ورود موفق / صدور توکنِ تازه برای خودِ کاربر)
+// ------------------------------------------------------------
+// خروجی: ردیف نشست (شامل sid) — یا null اگر ثبت ممکن نبود.
+// ⚠️ ورود هرگز نباید فقط به‌خاطر خطای این جدول شکست بخورد.
+// ============================================
+const start = async ({
+  user,
+  ip = null,
+  userAgent = null,
+  endPrevious = false,
+} = {}) => {
+  if (!user?.id) return null;
+
+  try {
+    // با ENFORCE_SINGLE_SESSION=true ورود جدید نشست‌های بازِ قبلی را می‌بندد
+    if (endPrevious) {
+      await endAllForUser(user.id, { reason: "replaced" });
+    }
+
+    const now = new Date();
+    const session = await UserSession.create({
+      user_id: user.id,
+      username: clip(user.username, 100),
+      role: clip(user.role, 20),
+      sid: newSid(),
+      ip: clip(ip, 64),
+      user_agent: clip(userAgent, 500),
+      started_at: now,
+      last_activity_at: now,
+    });
+
+    lastTouchAt.set(session.sid, now.getTime());
+    return session;
+  } catch (error) {
+    handleError("ثبت نشست ناموفق بود", error);
+    return null;
+  }
+};
+
+// ============================================
+// ⭐ بررسی «زنده بودن» نشست + تازه‌کردن آخرین فعالیت
+// ------------------------------------------------------------
+// خروجی:
+//   true  = نشست زنده است (و در صورت رسیدن بازه، آخرین فعالیت تازه شد)
+//   false = نشست بسته/باطل شده ⇒ میدل‌ور باید ۴۰۱ بدهد
+// ------------------------------------------------------------
+// سبکی مسیر درخواست:
+//   • داخل بازهٔ throttle (پیش‌فرض ۶۰s): فقط حافظه — هیچ کوئری‌ای نمی‌زنیم
+//   • خارج از بازه: یک UPDATE که هم‌زمان «آخرین فعالیت» را می‌نویسد و
+//     هم تعداد ردیف‌های تأثیرگرفته را برمی‌گرداند
+//     ⇒ اگر ۰ بود یعنی نشست در دیتابیس بسته شده (خروج در دستگاه دیگر /
+//       باطل‌شدن توسط مدیر) و همان لحظه باطل علامت می‌خورد.
+// ============================================
+const touch = async (sid) => {
+  // توکن‌های قدیمی (بدون sid) دست‌نخورده کار می‌کنند ⇒ استقرار بی‌دردسر
+  if (!sid) return true;
+
+  if (isRevoked(sid)) return false;
+
+  const now = Date.now();
+
+  // مایگریشن اجرا نشده ⇒ رفتار قبلی (بدون سخت‌گیری)
+  if (now < tableMissingUntil) return true;
+
+  // داخل بازهٔ throttle: حالت/بازبودن نشست از حافظه تعیین می‌شود
+  if (!rules.shouldTouch(lastTouchAt.get(sid), now)) return true;
+
+  lastTouchAt.set(sid, now);
+
+  try {
+    const [affected] = await UserSession.update(
+      { last_activity_at: new Date(now) },
+      { where: { sid, ended_at: null }, silent: true },
+    );
+
+    if (affected === 0) {
+      // ردیف نشست بسته شده (یا وجود ندارد) ⇒ توکن باید بی‌اعتبار شود
+      markRevoked(sid);
+      lastTouchAt.delete(sid);
+      return false;
+    }

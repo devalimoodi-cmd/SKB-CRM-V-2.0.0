@@ -1,0 +1,8 @@
+33:   catalog.TOTAL_PERMISSIONS === 164 && catalog.PERMISSION_GROUPS.length === 16,
+34:   `keys=${catalog.TOTAL_PERMISSIONS} groups=${catalog.PERMISSION_GROUPS.length}`,
+51:   new Set(catalog.PERMISSION_KEYS).size === catalog.PERMISSION_KEYS.length,
+74:   catalog.LOCKED_PERMISSION_KEYS.length === 7 &&
+75:     catalog.LOCKED_PERMISSION_KEYS.every((key) => {
+79:   `locked=${catalog.LOCKED_PERMISSION_KEYS.length}`,
+85:     catalog.LOCKED_PERMISSION_KEYS.every((key) => catalog.isLockedFor(role, key)),
+87:     catalog.LOCKED_PERMISSION_KEYS.every(
