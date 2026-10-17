@@ -176,6 +176,7 @@ export const basicInfoRenderer = {
       { value: "تبلیغات", text: "تبلیغات" },
       { value: "نمایشگاه", text: "نمایشگاه" },
       { value: "وبسایت", text: "وبسایت" },
+      { value: "بازاریابی و فروش", text: "بازاریابی و فروش" },
       { value: "سایر", text: "سایر" },
     ];
 
