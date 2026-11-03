@@ -52,6 +52,9 @@ const STEPS = [
   'test:dashboard:setup-charts:body',
   'test:presence',
   'test:sessions',
+  'test:activity',
+  'test:activity:panel',
+  'test:activity:history',
   'audit:size', 'audit:dead-exports', 'audit:surface', 'audit:big-methods',
 ];
 

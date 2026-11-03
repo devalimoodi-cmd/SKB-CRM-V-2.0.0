@@ -287,6 +287,98 @@ await loaderService.hydrate(container);
 
 ---
 
+## «فعالیت کاربران» (ردّ فعالیت) — پنل ادمین
+
+نمای خواندنِ جدول `activity_logs` (فاز ۱۲.۳): «چه کسی، چه زمانی، کدام رکورد را عوض کرد؟»
+(بک‌اند و اندپوینت‌ها در `Backend/README.md` و `docs/REVIEW-WAVE-12.2.md`).
+
+| فایل | کار |
+|---|---|
+| `src/features/activity-log/activity-log.view.js` | منطق خالص: ساخت کوئری، اعتبارسنجی، `timeAgo`، `buildCsv`، `deepLinkFor` |
+| `src/features/activity-log/activity-log.renderer.js` | ساخت HTML (کارت خلاصه/جدول/صفحه‌بندی/مودال) با `escapeHtml` |
+| `src/features/activity-log/activity-log.manager.js` | مدیریت بخش: فیلتر، صفحه‌بندی، CSV، مودال جزئیات |
+| `src/features/activity-log/activity-log.css` | فقط کلاس‌های `alp-*` (بدون تکرار استایل‌های پنل) |
+
+- **جای UI:** سکشن `#activity-log` داخل `src/pages/admin-panel.html` — **نه** صفحهٔ جدید
+  (بدون روت در `server.js` و بدون تغییر `LOADER_PAGES`).
+- **دسترسی:** دو کلید جدا — `admin.menu.activity` (نمایش منو) و `users.activity.view` (محتوای API).
+  اگر مدیر فقط اولی را داشته باشد، فهرست با پیام ۴۰۳ِ سرور توضیح می‌دهد.
+- **فیلترها:** نوع عمل · موفق/ناموفق (⭐ `success=false` واقعاً فرستاده می‌شود) · شناسهٔ کاربر ·
+  موجودیت و شناسهٔ موجودیت · **بازهٔ تاریخ شمسی** (تقویم جلالی؛ آنچه به API می‌رود همیشه
+  `YYYY-MM-DD` میلادی است). تعداد در صفحه: ۲۵/۵۰/۱۰۰ (سقف سرور ۱۰۰).
+- **بدون polling:** فقط دکمهٔ «به‌روزرسانی» داده را تازه می‌کند (ردّ فعالیت سنگین است).
+- **CSV:** سمت کلاینت با BOM (`\uFEFF`) تا اکسل فارسی را درست بخواند؛ ستون‌ها با escape استاندارد.
+- **لینک رکورد:** allowlist کوچک (`customers` → `/pages/customer-info.html?id=`) و همان لحظه با
+  `permissionService.can("customer.basic.view")` گیت می‌شود ⇒ **بدون لینک مرده**.
+- **حریم خصوصی:** `session_id` هرگز در UI نمی‌آید و در مودال فقط «نام فیلدها» نمایش داده می‌شود.
+- **تست:** `npm run test:activity:panel` (۹۷ بررسی) — در گیت هم اجرا می‌شود.
+
+### تقویم شمسی فیلتر تاریخ — موج ۱۲.۴.۲
+
+| فایل | کار |
+|---|---|
+| `src/core/utils/date.utils.js` | الگوریتم دقیق جلالی: `jalaliToGregorian` / `isLeapJalaliYear` / `jalaliMonthLength` (بدون وابستگی) |
+| `activity-log.view.js` | `persianDateFilterToIso` (متن شمسی ⇒ `YYYY-MM-DD`) + `validateFilters` که فقط ISO را می‌پذیرد |
+| `activity-log.manager.js` | `setupDatepickers()` (jQuery `persianDatepicker`) · `readFilters` با تبدیل · `syncFilterInputs` با نمایش شمسی |
+| `activity-log.renderer.js` | `#alpFrom` / `#alpTo` از `type="date"` به ورودی متنی با `placeholder="۱۴۰۴/۰۱/۰۱"` |
+
+- **کتابخانه:** `persian-date` و `persian-datepicker` در `admin-panel.html` **بعد از jQuery** و
+  با ترتیب درست لود می‌شوند (js + css) — همان نسخه‌ای که `dashboard.html` استفاده می‌کند.
+- **بدون کتابخانه هم کار می‌کند:** اگر `$.fn.persianDatepicker` موجود نباشد، ورودی متن شمسی
+  می‌ماند (fail-soft، بدون خطا) و تاریخ دستی تایپ می‌شود.
+- **چرا fallback تقریبی حذف شد؟** فرمول قبلی (`new Date(year - 621, month - 1, day)`) تا یک روز
+  خطا داشت و چون این صفحه کتابخانهٔ تقویم را لود نمی‌کرد، بازهٔ فیلتر **بی‌سرصدا** غلط می‌شد.
+- **تاریخ ناموجود:** «۱۴۰۴/۱۲/۳۰» (۱۴۰۴ کبیسه نیست) دیگر به روز بعد بغلتد نمی‌شود؛ `null` می‌دهد و
+  فرم خطای فارسی نشان می‌دهد.
+
+
+---
+
+## «تاریخچهٔ رکورد» (دیالوگ در بستر) — موج ۱۲.۴.۱
+
+همان ردّ فعالیت، ولی **در همان جایی که رکورد دیده می‌شود**: دکمهٔ «تاریخچه» در هر ردیف
+جداول کاربران/مدیران اصلی پنل، و دکمهٔ «تاریخچهٔ تغییرات» در هدر پروندهٔ مشتری.
+
+| فایل | کار |
+|---|---|
+| `src/features/activity-log/activity-log.history.js` | `ActivityHistoryDialog`: mount تنبل، تب‌ها، CSV، «مشاهدهٔ کامل»، دکمهٔ پروندهٔ مشتری |
+| `src/features/activity-log/activity-log.history.css` | فقط `alp-hist-*` و `customer-history-*` — **خودبسنده** (بدون وابستگی به استایل پنل) |
+| `activity-log.view.js` | `historyContext`/`historyQuery`/`historyTitle`/`historyStats`/`packHistoryHandoff`/`readHistoryHandoff` |
+| `activity-log.renderer.js` | `renderHistoryShell`/`renderHistoryTabs`/`renderHistoryList` |
+
+- **تب‌ها:** «تغییرات این رکورد» (`entity` + `entityId`) و «فعالیت‌های این کاربر» (`userId`؛ شامل
+  ورود/خروج که `entity_id` ندارند). تب دوم فقط وقتی زمینه `userId` داشته باشد ساخته می‌شود.
+- **پل به بخش کامل:** داخل پنل با صف مدیر (`activityLogManager.queueHistory` + `applyPendingHistory`،
+  بدون `setTimeout`)؛ بیرون پنل با `sessionStorage` (`skb_activity_history`، یک‌بارمصرف، allowlist
+  چهار کلیدی، سقف طول، `try/catch`) و سپس رفتن به `admin-panel.html`.
+- **دسترسی:** `users.activity.view`؛ اگر دادهٔ مجوز هنوز نرسیده باشد fail-open است و سرور تصمیم
+  نهایی را می‌گیرد. دکمهٔ پروندهٔ مشتری فقط با شناسهٔ معتبر **و** مجوز نمایان می‌شود.
+- **امنیت:** هر مقدار سرور از `escapeHtml` می‌گذرد، `tone` از whitelist می‌آید و `session_id`
+  هیچ‌جا خوانده/نمایش داده نمی‌شود.
+- **تست:** `npm run test:activity:history` (۸۵ بررسی) — در گیت هم اجرا می‌شود.
+
+### تب «همهٔ تغییرات این مشتری» — موج ۱۲.۵
+
+> قفلِ «یک رکورد / یک کاربر» باز شد: هر ردیف لاگ حالا ستون `customer_id` دارد، پس
+> می‌توان همهٔ تغییرات یک مشتری (سالن‌ها، گله‌ها، هفته‌نامه‌ها، بازدیدها، بوکمارک‌ها) را
+> یک‌جا دید.
+
+| فایل | کار |
+|---|---|
+| `activity-log.view.js` | `EMPTY_FILTERS.customerId` · `toIdInt` (پارسر سخت شناسه) · `HISTORY_MODES.customer` · `historyQuery(..., "customer")` · `customerId` در allowlist پل |
+| `activity-log.renderer.js` | ورودی «شناسهٔ مشتری» (`#alpCustomerId`) · نشان `مشتری #N` در جدول/دیالوگ/مودال · تب سوم در `renderHistoryTabs` |
+| `activity-log.manager.js` | خواندن/نوشتن فیلتر مشتری + اعمالش از زمینهٔ تاریخچه (deep link) |
+| `activity-log.history.js` | `defaultMode` (روی پروندهٔ مشتری ⇒ تب مشتری) · گارد «تب بدون فیلتر ⇒ هیچ درخواستی» · `window.showEntityHistory(entity, entityId, title, customerId)` |
+
+- **چرا `toIdInt` و نه `toInt`؟** `toInt` مقدار `1.5` را به `1` می‌بُرید ⇒ فیلتر روی
+  مشتریِ اشتباه، بی‌هیچ پیامی. حالا اعشار/کاما/منفی پیام فارسی می‌گیرد و فیلتر نمی‌شود.
+- **چرا گارد «تب بدون فیلتر»؟** زمینهٔ «فقط مشتری» معتبر است، ولی تب «تغییرات» با آن
+  فیلتری ندارد؛ بدون گارد، GET بی‌فیلتر **کل تاریخچهٔ سیستم** را به کاربر نشان می‌داد.
+- **تست:** `npm run test:activity:history` و `npm run test:activity:panel`
+  (به‌ترتیب ۸۵ و ۹۷ بررسی) + `npm run test:activity:e2e` در بک‌اند (۴۸/۴۸).
+
+---
+
 ## جدول لیست مشتریان: عرض ستون‌ها و جستجوی زنده
 
 - **ستون اول «شماره مشتری»** است (کد کسب‌وکاری `customer_code`) و نه آیدی داخلی؛ برای رکوردهای قدیمی بدون کد، به `id` برمی‌گردد.

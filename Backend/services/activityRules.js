@@ -274,6 +274,174 @@ const actorName = (actor) => {
   return full || actor.username || UNKNOWN_ACTOR;
 };
 
+// ===== هویتِ «ورود موفق» از بدنهٔ پاسخ =====
+// روت ورود عمومی است ⇒ req.user خالی می‌ماند و کاربرِ واردشده فقط داخل
+// پاسخ است: { data: { user: {...}, token } }. توکن هرگز برداشته نمی‌شود.
+const actorFromPayload = (body) => {
+  if (!body || typeof body !== "object") return null;
+  const candidates = [body.data?.user, body.user, body.data];
+  for (const candidate of candidates) {
+    if (!candidate || typeof candidate !== "object") continue;
+    const id = candidate.id ?? candidate.user_id ?? null;
+    if (!id) continue;
+    return {
+      id,
+      username: candidate.username ?? null,
+      role: candidate.role ?? null,
+    };
+  }
+  return null;
+};
+
+// ===== شناسهٔ رکوردِ ساخته‌شده از بدنهٔ پاسخ (فاز ۱۲.۴.۲) =====
+// چرا؟ برای POST هیچ شناسه‌ای در URL نیست (`POST /api/users`) ⇒ ردیف با
+// entity_id=null ذخیره می‌شد و تب «تغییرات این رکورد» برای رکورد تازه‌ساخته‌شده
+// خالی می‌ماند. پاسخِ موفق شناسه را دارد:
+//   { data: { id: 12 } } · { id: 9 } · { data: { user: { id: 3 } } } …
+// ⚠️ فقط کلیدهای شناخته‌شده خوانده می‌شود (نه هر کلیدی) تا بدنهٔ بزرگ/تصادفی
+//    ستون entity_id را آلوده نکند؛ و مقدار باید «عدد مثبت» یا UUID باشد.
+const ENTITY_ID_KEYS = [
+  "id",
+  "entity_id",
+  "user_id",
+  "customer_id",
+  "hall_id",
+  "flock_id",
+];
+const ENTITY_ID_CONTAINERS = ["user", "customer", "hall", "flock", "unit"];
+
+const normalizeEntityId = (value) => {
+  if (value === undefined || value === null) return null;
+  if (typeof value === "number") {
+    return Number.isInteger(value) && value > 0 ? String(value) : null;
+  }
+  // آبجکت/آرایه/تابع هرگز شناسه نیست (بدنهٔ نامعتبر نباید ستون را آلوده کند)
+  if (typeof value !== "string") return null;
+  const text = value.trim();
+  if (!text || text.length > MAX_ENTITY_ID) return null;
+  if (/^\d+$/.test(text)) return Number(text) > 0 ? text : null;
+  if (
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(text)
+  ) {
+    return text;
+  }
+  return null;
+};
+
+const entityIdFromPayload = (body) => {
+  if (!body || typeof body !== "object" || Array.isArray(body)) return null;
+
+  // صریح‌ترین شکل: { entity_id } / { data: { entity_id } }
+  const explicit = normalizeEntityId(body.entity_id ?? body.data?.entity_id);
+  if (explicit) return explicit;
+
+  const containers = [body, body.data];
+  for (const container of containers) {
+    if (!container || typeof container !== "object" || Array.isArray(container)) {
+      continue;
+    }
+
+    for (const key of ENTITY_ID_KEYS) {
+      const candidate = normalizeEntityId(container[key]);
+      if (candidate) return candidate;
+    }
+
+    for (const key of ENTITY_ID_CONTAINERS) {
+      const nested = container[key];
+      if (!nested || typeof nested !== "object" || Array.isArray(nested)) continue;
+      const candidate = normalizeEntityId(nested.id);
+      if (candidate) return candidate;
+    }
+  }
+
+  return null;
+};
+
+// ===== شناسهٔ مشتریِ مرتبط (موج ۱۲.۵) =====
+// چرا؟ «همهٔ تغییرات این مشتری» بدون ستون customer_id ممکن نبود: ردیف سالن/
+// گله/هفته‌نامه فقط entity_id خودش را داشت. این تابع همان انتساب را از
+// بدنهٔ درخواست (که فرانت‌اند از قبل customer_id را می‌فرستد) می‌گیرد.
+//   ⚠️ خودانتسابی: روی خودِ مشتری (entity=customers) ⇒ customer_id=entity_id
+//   ⚠️ فقط عدد صحیح مثبت؛ UUID/رشته/آبجکت ⇒ null (ستون INTEGER است)
+const CUSTOMER_ID_KEYS = ["customer_id", "customerId"];
+const MAX_CUSTOMER_ID = 2147483647; // سقف INTEGER پستگرس
+
+const normalizeCustomerId = (value) => {
+  if (value === undefined || value === null || value === "") return null;
+  if (typeof value === "number") {
+    return Number.isInteger(value) && value > 0 && value <= MAX_CUSTOMER_ID
+      ? value
+      : null;
+  }
+  if (typeof value !== "string") return null;
+  const text = value.trim();
+  if (!text || !/^\d+$/.test(text)) return null;
+  const parsed = Number(text);
+  return Number.isInteger(parsed) && parsed > 0 && parsed <= MAX_CUSTOMER_ID
+    ? parsed
+    : null;
+};
+
+// اولین شناسهٔ مشتریِ معتبر از یک آبجکت (بدنه/پارام/کوئری)
+const customerIdFromContainer = (container) => {
+  if (!container || typeof container !== "object" || Array.isArray(container)) {
+    return null;
+  }
+  for (const key of CUSTOMER_ID_KEYS) {
+    const candidate = normalizeCustomerId(container[key]);
+    if (candidate) return candidate;
+  }
+  // شکل تودرتو: { customer: { id } }
+  const nested = container.customer;
+  if (nested && typeof nested === "object" && !Array.isArray(nested)) {
+    const candidate = normalizeCustomerId(nested.id);
+    if (candidate) return candidate;
+  }
+  return null;
+};
+
+/**
+ * انتساب ردیف به مشتری.
+ * اولویت (مستند و ثابت):
+ *   ۱) خودِ مشتری  : entity==="customers" ⇒ entity_id یا entityIdHint
+ *   ۲) بدنهٔ درخواست: customer_id / customerId / customer.id
+ *   ۳) پارامتر مسیر : customerId / customer_id
+ *   ۴) query        : customer_id / customerId
+ *   ۵) بدنهٔ پاسخ   : customer_id / customerId (برای POST که بدنه ندارد)
+ * هر مقدار نامعتبر ⇒ null (نه استثنا).
+ */
+const customerIdFromRequest = ({
+  body = null,
+  params = null,
+  query = null,
+  responseBody = null,
+  entity = null,
+  entityId = null,
+} = {}) => {
+  if (String(entity || "") === "customers") {
+    const self = normalizeCustomerId(entityId);
+    if (self) return self;
+  }
+
+  const fromBody = customerIdFromContainer(body);
+  if (fromBody) return fromBody;
+
+  const fromParams = customerIdFromContainer(params);
+  if (fromParams) return fromParams;
+
+  const fromQuery = customerIdFromContainer(query);
+  if (fromQuery) return fromQuery;
+
+  const fromResponse = customerIdFromContainer(
+    responseBody?.data && typeof responseBody.data === "object"
+      ? responseBody.data
+      : responseBody,
+  );
+  if (fromResponse) return fromResponse;
+
+  return null;
+};
+
 // ===== ساخت ردیف آمادهٔ ذخیره (نرمال‌سازی + برش) =====
 const buildEntry = ({
   method,
@@ -288,14 +456,31 @@ const buildEntry = ({
   durationMs = null,
   details = null,
   authEvent = null,
+  entityIdHint = null,
+  customerId = null,
 }) => {
   const { path, entity, entityId } = parsePath(originalUrl);
   const normalizedMethod = normalizeMethod(method) || "GET";
-  const action = actionFor(normalizedMethod, authEvent);
+  // ⭐ اگر فراخوان رویداد ورود/خروج را پاس نداد، خودمان از مسیر تشخیص می‌دهیم
+  //    (یک منبع حقیقت: isAuthEvent) — وگرنه ورود با action="create" ثبت می‌شد.
+  const resolvedAuthEvent = authEvent || isAuthEvent(path);
+  const action = actionFor(normalizedMethod, resolvedAuthEvent);
   const success = isSuccess(statusCode);
+
+  // ⭐ شناسهٔ رکورد: اولویت با مسیر (PUT/DELETE مثل قبل) و اگر مسیر شناسه
+  //    نداشت (POST) از بدنهٔ پاسخ گرفته می‌شود (فاز ۱۲.۴.۲).
+  const resolvedEntityId = entityId
+    ? clip(entityId, MAX_ENTITY_ID)
+    : normalizeEntityId(entityIdHint);
 
   // برای ورود ناموفق (یا درخواست بدون هویت) نامِ تلاش‌شده را نگه می‌داریم
   const username = actor?.username || actorHint || null;
+
+  // ⭐ انتساب به مشتری (موج ۱۲.۵): مقدارِ آماده از میدل‌ور می‌آید؛ اگر
+  //    نرسید، خودمان از همین مسیر/بدنه تلاش می‌کنیم (خودانتسابی مشتری).
+  const resolvedCustomerId =
+    normalizeCustomerId(customerId) ||
+    (entity === "customers" ? normalizeCustomerId(resolvedEntityId) : null);
 
   return {
     user_id: actor?.id ?? null,
@@ -306,7 +491,8 @@ const buildEntry = ({
     path: clip(path, MAX_PATH),
     route: clip(routePath, MAX_ROUTE),
     entity: clip(entity, MAX_ENTITY),
-    entity_id: clip(entityId, MAX_ENTITY_ID),
+    entity_id: resolvedEntityId,
+    customer_id: resolvedCustomerId,
     status_code: Number.isFinite(Number(statusCode)) ? Number(statusCode) : null,
     success,
     ip: clip(ip, MAX_IP),
@@ -316,7 +502,7 @@ const buildEntry = ({
     summary: describeEvent({
       action,
       entity,
-      entityId,
+      entityId: resolvedEntityId,
       success,
       statusCode,
     }),
@@ -327,7 +513,10 @@ const buildEntry = ({
 // ===== نمایش یک ردیف برای API (⚠️ session_id هرگز بیرون نمی‌رود) =====
 const buildItem = (row, now = Date.now()) => {
   const plain = row?.toJSON ? row.toJSON() : row || {};
-  const createdAt = plain.created_at ? new Date(plain.created_at) : null;
+  // ⚠️ نمونهٔ Sequelize کلید `createdAt` می‌دهد (underscored فقط نام ستون است)
+  //    و ردیف خام دیتابیس `created_at` ⇒ هر دو پوشش داده می‌شوند.
+  const rawCreatedAt = plain.created_at ?? plain.createdAt ?? null;
+  const createdAt = rawCreatedAt ? new Date(rawCreatedAt) : null;
   const success = plain.success === true;
 
   return {
@@ -344,6 +533,8 @@ const buildItem = (row, now = Date.now()) => {
     entity: plain.entity,
     entity_title: entityTitle(plain.entity),
     entity_id: plain.entity_id,
+    // ⭐ موج ۱۲.۵: مشتریِ مرتبط (برای تب «همهٔ تغییرات این مشتری» و deep-link)
+    customer_id: normalizeCustomerId(plain.customer_id),
     status_code: plain.status_code,
     success,
     status_label: statusLabel(success),
@@ -481,6 +672,11 @@ module.exports = {
   clip,
   buildDetails,
   describeEvent,
+  actorFromPayload,
+  entityIdFromPayload,
+  normalizeEntityId,
+  normalizeCustomerId,
+  customerIdFromRequest,
   buildEntry,
   buildItem,
   buildSummary,

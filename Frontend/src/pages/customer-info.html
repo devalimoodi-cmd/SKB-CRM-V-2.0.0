@@ -32,6 +32,8 @@
 
     <!-- ===== Feature Styles ===== -->
     <link rel="stylesheet" href="./../features/customer-info/section-header/section-header.css">
+    <!-- ✅ موج ۱۲.۴.۱ — استایل دیالوگ «تاریخچهٔ تغییرات» (خودبسنده؛ استایل پنل را لازم ندارد) -->
+    <link rel="stylesheet" href="./../features/activity-log/activity-log.history.css">
     <link rel="stylesheet" href="./../features/customer-info/sections/basic-info/basic-info.css">
     <link rel="stylesheet" href="./../features/customer-info/sections/chart-dashboard/chart-dashboard.css">
     <link rel="stylesheet" href="./../features/customer-info/sections/chart-dashboard/analysis-charts.css">
@@ -216,6 +218,16 @@
                                         <span id="customerLocation">.....</span>
                                     </div>
                                     <div class="customer-meta-info"></div>
+                                    <!-- ✅ موج ۱۲.۴.۱ — «تاریخچهٔ تغییرات» همین مشتری
+                                         ⚠️ به‌صورت hidden رندر می‌شود و فقط با
+                                         شناسهٔ معتبر + مجوز users.activity.view نمایان می‌شود -->
+                                    <div class="customer-history-row">
+                                        <button type="button" class="customer-history-btn" id="customerHistoryBtn"
+                                            title="چه کسی این پرونده را تغییر داده است؟" hidden>
+                                            <i class="fas fa-clock-rotate-left"></i>
+                                            تاریخچهٔ تغییرات
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
 
@@ -1262,6 +1274,9 @@
 
     <!-- 7. App Service (آخرین بار لود شود) -->
     <script type="module" src="./../core/services/app.service.js"></script>
+
+    <!-- ✅ موج ۱۲.۴.۱ — دیالوگ «تاریخچهٔ رکورد» + دکمهٔ هدر پروندهٔ مشتری -->
+    <script type="module" src="./../features/activity-log/activity-log.history.js"></script>
 
     <!-- 8. Init (بعد از app.service.js) -->
     <script type="module">

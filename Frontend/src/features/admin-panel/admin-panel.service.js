@@ -11,6 +11,10 @@ import {
 } from "../messages/messages.service.js";
 import { escapeHtml } from "../../core/utils/string.utils.js";
 import { loaderService } from "../../shared/components/Loader/loader.service.js";
+import {
+  HISTORY_HANDOFF_KEY,
+  readHistoryHandoff,
+} from "../activity-log/activity-log.view.js";
 import "../../core/services/state.service.js";
 import "../../core/utils/date.utils.js";
 
@@ -39,7 +43,13 @@ class AdminPanelService {
     const hasAccess = await authService.checkAdminPageAccess();
     if (!hasAccess) return;
 
+    // ✅ موج ۱۲.۴.۱ — اگر از «پروندهٔ مشتری» با درخواست تاریخچه
+    //    آمده‌ایم، پیش از رسم سایدبار منوی هدف را انتخاب می‌کنیم
+    //    (بدون setTimeout؛ صف مدیر نیز پیش از init پر می‌شود).
+    const pendingHistory = this.takePendingHistory();
+
     await this.loadData();
+    if (pendingHistory) this.selectedMenu = "activity-log";
     this.setupSidebar();
 
     // ✅ هم‌راستا کردن سایدبار با سطوح دسترسی (data-permission)
@@ -57,6 +67,9 @@ class AdminPanelService {
 
     // ✅ لودر سیستمی این صفحه تا آماده شدن پنل نمایش داده می‌شود
     if (typeof window.hidePageLoader === "function") window.hidePageLoader();
+
+    // ✅ موج ۱۲.۴.۱ — اعمال درخواست تاریخچهٔ آمده از صفحهٔ پروندهٔ مشتری
+    await this.applyPendingHistory(pendingHistory);
   }
 
   async loadData() {
@@ -644,6 +657,9 @@ class AdminPanelService {
       "system-settings": "admin.menu.settings",
       suggestions: "admin.menu.suggestions",
       "release-notes": "admin.menu.releases",
+      // فاز ۱۲.۳ — «فعالیت کاربران» (کلید منو جدا از کلید محتوایی
+      // users.activity.view است که سرور روی /api/activity اعمال می‌کند)
+      "activity-log": "admin.menu.activity",
     };
   }
 
@@ -687,6 +703,12 @@ class AdminPanelService {
         // ✅ «تغییرات جدید / What's New» — اطلاع‌رسانی نسخه‌ها
         this.stopSuggestionsPolling();
         await this.initReleaseNotesManager();
+        break;
+      case "activity-log":
+        // ✅ «فعالیت کاربران» (ردّ فعالیت) — فاز ۱۲.۳
+        //    ⚠️ هیچ pollingای نداریم؛ مدیر با دکمهٔ «به‌روزرسانی» تازه می‌کند
+        this.stopSuggestionsPolling();
+        await this.initActivityLogManager();
         break;
       default:
         console.log("📌 بخش:", menuId);
@@ -754,6 +776,129 @@ class AdminPanelService {
       notificationService.error("خطا در راه‌اندازی بخش تغییرات");
     }
   }
+
+  // ===== «فعالیت کاربران» (ردّ فعالیت) — فاز ۱۲.۳ =====
+
+  async initActivityLogManager() {
+    try {
+      // اگر ماژول ردّ فعالیت هنوز لود نشده، به‌صورت داینامیک لود کن
+      if (!window.activityLogManager) {
+        await import("../activity-log/activity-log.manager.js");
+      }
+
+      if (window.activityLogManager) {
+        await window.activityLogManager.init("#activityLogContainer");
+      } else {
+        console.warn("⚠️ ActivityLogManager در دسترس نیست");
+        notificationService.error("ماژول فعالیت کاربران یافت نشد");
+      }
+    } catch (error) {
+      console.error("❌ Error initializing activity-log manager:", error);
+      notificationService.error("خطا در راه‌اندازی بخش فعالیت کاربران");
+    }
+  }
+  // ===== موج ۱۲.۴.۱ — پل «پروندهٔ مشتری → تاریخچهٔ همان رکورد» =====
+  //   ⚠️ کلید sessionStorage یک‌بارمصرف است: همان‌جا خوانده و پاک
+  //      می‌شود تا رفرش بعدی ناخواسته همان فیلتر را تحمیل نکند.
+
+  takePendingHistory() {
+    try {
+      const raw = window.sessionStorage?.getItem(HISTORY_HANDOFF_KEY);
+      if (!raw) return null;
+
+      window.sessionStorage.removeItem(HISTORY_HANDOFF_KEY);
+      return readHistoryHandoff(raw);
+    } catch {
+      return null;
+    }
+  }
+
+  async applyPendingHistory(context) {
+    if (!context) return;
+
+    const menuItem = document.querySelector(
+      '.sidebar-menu-item[data-menu="activity-log"]',
+    );
+    const menuKey = this.menuPermissions["activity-log"];
+    const hidden = Boolean(menuItem) && menuItem.style.display === "none";
+    const denied =
+      menuKey && permissionService.hasData() && !permissionService.can(menuKey);
+
+    // ⚠️ بدون منو/مجوز، رفتن به آن بخش بی‌فایده است ⇒ پیام روشن
+    if (!menuItem || hidden || denied) {
+      notificationService.warning(
+        "بخش «فعالیت کاربران» برای نقش شما فعال نیست",
+      );
+      return;
+    }
+
+    const manager = await this.ensureActivityLogManager();
+    if (!manager) return;
+
+    manager.queueHistory(context);
+
+    // بخش از قبل باز و آماده است ⇒ همان‌جا فیلتر را اعمال کن
+    if (manager.initialized) {
+      await manager.applyPendingHistory();
+      return;
+    }
+
+    // بخش هنوز init نشده ⇒ init خودش صف را اعمال می‌کند
+    menuItem.click();
+  }
+
+  async ensureActivityLogManager() {
+    if (!window.activityLogManager) {
+      try {
+        await import("../activity-log/activity-log.manager.js");
+      } catch (error) {
+        console.error("❌ خطا در لود مدیر فعالیت کاربران:", error);
+        return null;
+      }
+    }
+
+    return window.activityLogManager || null;
+  }
+
+  // ===== موج ۱۲.۴.۱ — دیالوگ «تاریخچهٔ این کاربر» =====
+  //   ⭐ نقطهٔ ورود جدول کاربران/مدیران اصلی: همان اطلاعاتی که در
+  //      ردیف دیده می‌شود به عنوان عنوان دیالوگ می‌رود.
+
+  async showUserHistory(id) {
+    const userId = Number(id);
+    if (!Number.isFinite(userId) || userId <= 0) return;
+
+    const user = [...this.users, ...this.superAdmins].find(
+      (item) => Number(item?.id) === userId,
+    );
+    const fullName = [user?.first_name, user?.last_name]
+      .filter(Boolean)
+      .join(" ")
+      .trim();
+
+    try {
+      if (!window.activityHistoryDialog) {
+        await import("../activity-log/activity-log.history.js");
+      }
+
+      if (!window.activityHistoryDialog) {
+        notificationService.error("ماژول تاریخچهٔ فعالیت یافت نشد");
+        return;
+      }
+
+      await window.activityHistoryDialog.open({
+        entity: "users",
+        entityId: String(userId),
+        userId,
+        title: fullName || user?.username || `کاربر #${userId}`,
+      });
+    } catch (error) {
+      console.error("❌ خطا در نمایش تاریخچهٔ کاربر:", error);
+      notificationService.error("نمایش تاریخچهٔ این کاربر ناموفق بود");
+    }
+  }
+
+
 
   // ===== مشاهده کاربر =====
 
@@ -1431,4 +1576,6 @@ if (typeof window !== "undefined") {
   window.resetUserToken = (id) => adminPanelService.resetUserToken(id);
   window.viewUserToken = (id) => adminPanelService.viewUserToken(id);
   window.closeTokenModal = () => adminPanelService.closeTokenModal();
+  // ✅ موج ۱۲.۴.۱ — «تاریخچهٔ تغییرات این کاربر» (دکمهٔ هر ردیف)
+  window.showUserHistory = (id) => adminPanelService.showUserHistory(id);
 }

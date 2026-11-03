@@ -23,6 +23,12 @@
 
     <!-- ===== Feature Styles ===== -->
     <link rel="stylesheet" href="/features/admin-panel/admin-panel.css">
+<!-- ✅ فاز ۱۲.۳ — استایل بخش «فعالیت کاربران» (فقط هرچه admin-panel.css ندارد) -->
+<link rel="stylesheet" href="/features/activity-log/activity-log.css">
+<!-- ✅ موج ۱۲.۴.۱ — استایل دیالوگ «تاریخچهٔ رکورد» (خودبسنده، بدون وابستگی به پنل) -->
+<link rel="stylesheet" href="/features/activity-log/activity-log.history.css">
+<!-- ✅ موج ۱۲.۴.۲ — تقویم شمسی فیلترهای تاریخ (همان کتابخانهٔ dashboard/customer-list) -->
+<link rel="stylesheet" href="./../../node_modules/persian-datepicker/dist/css/persian-datepicker.min.css">
 
     <link rel="icon" type="image/png" href="/assets/images/favicon.ico">
 </head>
@@ -249,6 +255,20 @@
                                         style="display:none;background:var(--danger-strong, #ef4444);color:var(--c-fff, #fff);border-radius:999px;padding:0 7px;font-size:11px;margin-inline-start:6px;">0</span>
                                 </span>
                                 <span class="menu-description">اعلام نسخه‌های جدید به کاربران (مودال تغییرات)</span>
+                            </div>
+                            <i class="fas fa-chevron-left menu-arrow"></i>
+                        </div>
+
+                        <!-- ✅ «فعالیت کاربران» — ردّ فعالیت (فاز ۱۲.۳) -->
+                        <!--    کلید «منو» جدا از کلید محتوایی (users.activity.view) است -->
+                        <div class="sidebar-menu-item" data-menu="activity-log"
+                            data-permission="admin.menu.activity">
+                            <div class="menu-icon-wrapper">
+                                <i class="fas fa-history menu-icon"></i>
+                            </div>
+                            <div class="menu-content">
+                                <span class="menu-title">فعالیت کاربران</span>
+                                <span class="menu-description">چه کسی، چه زمانی، کدام رکورد را تغییر داد</span>
                             </div>
                             <i class="fas fa-chevron-left menu-arrow"></i>
                         </div>
@@ -548,6 +568,17 @@
                         <div id="dictionaryManagementContainer"></div>
                     </div>
 
+                    <!-- ✅ «فعالیت کاربران» (ردّ فعالیت) — فاز ۱۲.۳ -->
+                    <div id="activity-log" class="content-section">
+                        <div id="activityLogContainer">
+                            <div
+                                style="background:var(--bg-surface, #fff);border:1px solid var(--c-e8edf3, #e8edf3);border-radius:12px;padding:24px;text-align:center;color:var(--text-light, #94a3b8);">
+                                <i class="fas fa-history" style="font-size:28px;"></i>
+                                <p style="margin:8px 0 0;font-size:13px;">در حال بارگذاری بخش فعالیت کاربران…</p>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
             </div>
         </div>
@@ -696,6 +727,11 @@
     <script src="./../../node_modules/jquery/dist/jquery.min.js"></script>
     <script src="./../../node_modules/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="./../../node_modules/sweetalert2/dist/sweetalert2.all.min.js"></script>
+
+    <!-- ✅ موج ۱۲.۴.۲ — تقویم شمسی فیلتر تاریخ (jQuery باید قبلش لود شود؛
+         persian-date هم باید قبل از persian-datepicker باشد) -->
+    <script src="./../../node_modules/persian-date/dist/persian-date.min.js"></script>
+    <script src="./../../node_modules/persian-datepicker/dist/js/persian-datepicker.min.js"></script>
 
 
     <!-- ✅ Core Scripts (همه با type="module") -->

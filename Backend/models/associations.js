@@ -49,6 +49,8 @@ const ReleaseNoteView = require("./ReleaseNoteView");
 const CustomerType = require("./CustomerType");
 // ✅ «نشست‌های کاربران» (فاز ۱۲.۱)
 const UserSession = require("./UserSession");
+// ✅ «ردّ فعالیت» (فاز ۱۲.۲)
+const ActivityLog = require("./ActivityLog");
 
 // ================================================================
 // ✅ ارتباطات با CASCADE برای حذف آبشاری
@@ -916,3 +918,24 @@ UserSession.belongsTo(User, {
   as: "user",
   constraints: false,
 });
+
+// ================================================================
+// ✅ ارتباطات «ردّ فعالیت» (activity_logs — فاز ۱۲.۲)
+// ----------------------------------------------------------------
+// • constraints: false ⇒ هیچ FOREIGN KEY ساخته نمی‌شود؛ ردیف لاگ باید
+//   بعد از حذف کاربر هم باقی بماند (username/role عکس‌برداری شده‌اند).
+//   دقیقاً همان الگوی PermissionAuditLog.actor_id و UserSession.
+// • onDelete/hooks تعریف نمی‌شود ⇒ حذف کاربر لاگ‌ها را پاک نمی‌کند
+//   (پاک‌سازی فقط با سیاست نگهداشت ACTIVITY_RETENTION_DAYS انجام می‌شود).
+// ================================================================
+User.hasMany(ActivityLog, {
+  foreignKey: "user_id",
+  as: "activities",
+  constraints: false,
+});
+ActivityLog.belongsTo(User, {
+  foreignKey: "user_id",
+  as: "user",
+  constraints: false,
+});
+

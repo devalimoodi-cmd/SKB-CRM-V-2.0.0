@@ -1,7 +1,7 @@
 # گزارش موج ۱۲ — «حضور کاربران، نشست‌ها و ردّ فعالیت»
 
-> برنچ: `chore/wave-12.1-sessions` · زیرفازهای انجام‌شده: **۱۲.۰ (Presence)** و **۱۲.۱ (Sessions)**
-> زیرفازهای بعدی: ۱۲.۲ `activity_logs` · ۱۲.۳ پنل مدیریت «فعالیت کاربران»
+> برنچ: `chore/wave-12.1-sessions` · زیرفازهای انجام‌شده: **۱۲.۰ (Presence)** · **۱۲.۱ (Sessions)** · **۱۲.۲ (`activity_logs` — ردّ فعالیت)**
+> زیرفاز بعدی: ۱۲.۳ پنل مدیریت «فعالیت کاربران»
 
 ## ۱) ریشهٔ باگ (چرا این موج شروع شد)
 
@@ -111,7 +111,7 @@ E2E دستی: test:presence:e2e ⇒ ✅ ALL PASS (۱۲ بررسی روی دیت�
 
 ## ۷) ادامهٔ موج ۱۲ (زیرفازهای بعدی)
 1. **۱۲.۱ `user_sessions`:** جدول نشست‌ها (ورود/خروج/دستگاه/آی‌پی/آخرین فعالیت) + «خروج از نشست» + گزارش.
-2. **۱۲.۲ `activity_logs`:** ردّ فعالیت سراسری (چه کسی، چه زمانی، کدام رکورد) + میدل‌ور ثبت + سیاست نگهداری.
+2. **۱۲.۲ `activity_logs`:** ✅ **انجام شد** — ردّ فعالیت سراسری (چه کسی، چه زمانی، کدام رکورد) + میدل‌ور ثبت + سیاست نگهداری. جزئیات: [`REVIEW-WAVE-12.2.md`](./REVIEW-WAVE-12.2.md)
 3. **۱۲.۳ پنل مدیریت:** منوی «فعالیت کاربران» با ۳ تب (آنلاین‌ها / نشست‌ها / ردّ فعالیت)،
    Polling ۱۵ ثانیه‌ای و خروجی CSV.
 
@@ -175,4 +175,106 @@ Frontend: lint صفر خطا ✅ · test:sessions ⇒ ✅ ALL PASS (۳۹ برر�
 - اگر مایگریشن اجرا نشود، سرویس نشست کرش نمی‌کند: یک‌بار هشدار می‌دهد، با backoff از کوئری صرف‌نظر می‌کند و درخواست‌ها مثل قبل کار می‌کنند.
 - توکن‌هایی که سرور برای «کاربرِ دیگری» صادر می‌کند (`setup-admin` · `register` · `reset-token` توسط ادمین روی کاربر دیگر · تغییر نقش) عمداً ردیف نشست نمی‌سازند؛ آن کاربر با اولین ورود خودش نشست می‌گیرد. در «خودِ کاربر» (تغییر رمز/بازنشانی توکن از صفحهٔ تنظیمات) همان دستگاه نشست تازه می‌گیرد تا بی‌دلیل بیرون نیفتد.
 - `purgeExpired()` آماده است ولی در این فاز زمان‌بندی خودکار ندارد (سیاست نگهداری: `SESSION_RETENTION_DAYS` — کار ۱۲.۳).
+
+## ۹) زیرفاز ۱۲.۲ — جدول `activity_logs` («چه کسی چه چیزی را تغییر داد»)
+
+خلاصهٔ یک‌خطی: هر `POST/PUT/PATCH/DELETE` (+ ورود/خروج) با یک میدل‌ور سراسری روی `res.on("finish")`
+در جدول `activity_logs` ثبت می‌شود — با بافر و `bulkCreate` (بدون تأخیر در پاسخ)، ماسک اجباری رمز/توکن،
+بدون FOREIGN KEY (تاریخچه بعد از حذف کاربر می‌ماند) و پاک‌سازی خودکار طبق `ACTIVITY_RETENTION_DAYS`.
+
+| مورد | مقدار |
+|---|---|
+| جدول | `activity_logs` (۴ ایندکس · بدون FK · `down` دارد) |
+| کلید مجوز | `users.activity.view` (پیش‌فرض ادمین‌ها · بدون قفل) ⇒ کاتالوگ **۱۶۵** کلید / ۱۶ گروه |
+| مسیرها | `GET /api/activity` · `GET /api/activity/summary` · `GET /api/activity/:id` |
+| میدل‌ور | `middleware/activityLog.js` (skip: `/api/activity`, `presence/heartbeat|offline`, `/health`) |
+| سرویس | `services/activityService.js` (+ منطق خالص در `services/activityRules.js`) |
+| گارد | `Frontend/activity-guard-test.mjs` — `npm run test:activity` (**۷۱ بررسی**) |
+| تست دیتابیسی | `Backend/activity-e2e-test.mjs` — `npm run test:activity:e2e` (**۲۰ بررسی**) |
+| env | `ACTIVITY_LOG_ENABLED` · `ACTIVITY_RECORD_METHODS` · `ACTIVITY_LOG_VALUES` · `ACTIVITY_LOG_READS` · `ACTIVITY_FLUSH_MS` · `ACTIVITY_BUFFER_MAX` · `ACTIVITY_RETENTION_DAYS` · `ACTIVITY_PURGE_INTERVAL_HOURS` |
+
+📄 جزئیات کامل (تصمیم‌ها، مرزهای امنیتی، فایل‌به‌فایل): [`REVIEW-WAVE-12.2.md`](./REVIEW-WAVE-12.2.md)
+
+## ۱۰) زیرفاز ۱۲.۳ — پنل «فعالیت کاربران» (نمای خواندنِ ردّ فعالیت)
+
+خلاصهٔ یک‌خطی: ردّ فعالیت از API به **UI** رسید — سکشنی در پنل ادمین با فیلتر/صفحه‌بندی/کارت خلاصه،
+مودال جزئیات هر رویداد، خروجی CSV (با BOM برای اکسل فارسی) و لینک گیت‌شدهٔ رکورد هدف.
+
+| مورد | مقدار |
+|---|---|
+| جای UI | سکشن `#activity-log` داخل `admin-panel.html` (بدون صفحه/روت جدید) |
+| کلید منو | **`admin.menu.activity`** (جدید، `D.admin`) ⇒ کاتالوگ **۱۶۶** کلید / ۱۶ گروه |
+| کلید محتوا | همان `users.activity.view` (سرور روی `/api/activity` اعمال می‌کند) |
+| فایل‌ها | `Frontend/src/features/activity-log/{activity-log.view,activity-log.renderer,activity-log.manager}.js` + `activity-log.css` |
+| سیم‌کشی | `admin-panel.service.js`: `menuPermissions` + `case "activity-log"` + `initActivityLogManager()` (import داینامیک) |
+| گارد | `Frontend/activity-panel-guard-test.mjs` — `npm run test:activity:panel` (**۶۸ بررسی**) |
+| گیت | `test:activity:panel` در هر دو runner ⇒ **۳۷ ⇒ ۳۸ گام** |
+| ضد شکنندگی | عدد کاتالوگ دیگر در سه فایل تکرار نمی‌شود؛ `declared === catalog.TOTAL_PERMISSIONS` |
+
+📄 جزئیات کامل: [`REVIEW-WAVE-12.3.md`](./REVIEW-WAVE-12.3.md)
+
+
+## ۱۱) زیرفاز ۱۲.۴.۱ — دیالوگ «تاریخچهٔ رکورد» (ردّ فعالیت در بستر)
+
+> شناسهٔ فنی زیرفاز: `12.4.1` (اولین بخش از موج ۱۲.۴) و `12.4.2` (بستن دو محدودیت آن)
+
+خلاصهٔ یک‌خطی: تاریخچه از «یک منو در پنل» به **دیالوگ مشترک روی خودِ رکورد** رسید —
+دکمهٔ «تاریخچه» در ردیف هر کاربر/مدیر اصلی و دکمهٔ «تاریخچهٔ تغییرات» در هدر پروندهٔ مشتری.
+
+| مورد | مقدار |
+|---|---|
+| جای UI | دیالوگ سراسری در `document.body` (بدون صفحه/روت جدید) |
+| تب‌ها | «تغییرات این رکورد» (`entity` + `entityId`) · «فعالیت‌های این کاربر» (`userId`، شامل ورود/خروج) |
+| فایل‌ها | `Frontend/src/features/activity-log/{activity-log.view,activity-log.renderer,activity-log.manager}.js` + **`activity-log.history.js`** + **`activity-log.history.css`** |
+| نقاط ورود | `admin-panel.renderer.js` (هر دو جدول) · `customer-info.html` (`#customerHistoryBtn`) |
+| پل به بخش ۱۲.۳ | داخل پنل: صف مدیر (`queueHistory` + `applyPendingHistory`) · بیرون پنل: `sessionStorage` (`skb_activity_history`) |
+| کلید محتوا | همان `users.activity.view` (fail-open اگر دادهٔ مجوز نرسیده باشد) |
+| گارد | `Frontend/activity-history-guard-test.mjs` — `npm run test:activity:history` (**۶۸ بررسی**) |
+| گیت | `test:activity:history` در هر دو runner ⇒ **۳۸ ⇒ ۳۹ گام** |
+| محدودیت آگاهانه | رویدادهای ایجاد کاربر `entity_id` نداشتند ⇒ ✅ در **۱۲.۴.۲** رفع شد |
+
+📄 جزئیات کامل: [`REVIEW-WAVE-12.4.md`](./REVIEW-WAVE-12.4.md)
+
+## ۱۱.۲) زیرفاز ۱۲.۴.۲ — شناسهٔ رکورد از بدنهٔ پاسخ + تقویم شمسی فیلتر تاریخ
+
+> دو محدودیتِ باقی‌ماندهٔ ۱۲.۴.۱ در همین زیرفاز بسته شد (گیت همان **۳۹ گام** می‌ماند:
+> بررسی‌ها داخل گاردهای موجود اضافه شدند، نه گام تازه).
+
+| مورد | مقدار |
+|---|---|
+| رکورد تازه‌ساخته‌شده | `entityIdFromPayload(body)` در `Backend/services/activityRules.js` + `entityIdHint` در `buildEntry`؛ میدل‌ور `activityLog.js` پاسخ `res.json` را برای هر درخواست تغییردهنده می‌بیند و اولین شناسهٔ معتبر را برمی‌دارد |
+| قاعدهٔ امنیتی | allowlist کلید (`id`/`entity_id`/`user_id`/`customer_id`/`hall_id`/`flock_id` + درونیِ `user/customer/hall/flock/unit`) · فقط عدد صحیح مثبت یا UUID · **اولویت با شناسهٔ URL** · ورود/خروج مستثنی |
+| تاریخ شمسی | `core/utils/date.utils.js`: الگوریتم دقیق جلالی (`jalaliToGregorian`/`isLeapJalaliYear`/`jalaliMonthLength`) — fallback تقریبیِ `year - 621` **حذف شد**؛ تاریخ ناموجود ⇒ `null` |
+| تقویم پنل | `setupDatepickers()` (fail-soft اگر `$.fn.persianDatepicker` نبود · idempotent با `data-datepicker-initialized`) + `persianDateFilterToIso` در `readFilters` + نمایش شمسی در `syncFilterInputs` |
+| صفحه | `admin-panel.html`: `persian-date` و `persian-datepicker` (js + css) بعد از jQuery و با ترتیب درست |
+| اعتبارسنجی | `validateFilters` فقط ISO میلادی را می‌پذیرد ⇒ پیام فارسی روشن به‌جای بازهٔ خالیِ بی‌توضیح |
+| ⭐ باگ کشف‌شده | fallback قبلی (`new Date(year - 621, …)`) تاریخ را با **سال ۷۸۴** ذخیره می‌کرد (مثل `slaughter_date: "784-03-25"`) ⇒ دو اسنپ‌شات گیت (`test:hatchery:body`, `test:dashboard:bookmarks:body`) بازتولید و انکر بوکمارک اصلاح شد |
+| گاردها | `test:activity:panel` **۶۸ ⇒ ۸۲** (۱۴ بررسی تازه) · `test:activity:e2e` **۲۶ ⇒ ۳۴** (۸ بررسی تازه) · `test:activity` بدون تغییر (**۷۱**) |
+| باقی‌مانده | ستون `customer_id` (انتساب سالن/گله به مشتری) ⇒ موج ۱۲.۵ · deep-link برای موجودیت‌های بیشتر |
+
+## ۱۲) زیرفاز ۱۲.۵ — «همهٔ تغییرات این مشتری» (ستون `customer_id`)
+
+> زیرفاز مکمل ۱۲.۴: قفلِ «یک رکورد / یک کاربر» را باز می‌کند و دو تب دیالوگ را
+> به **سه تب** می‌رساند.
+
+خلاصهٔ یک‌خطی: هر ردیف ردّ فعالیت حالا می‌تواند به **مشتریِ مالکش** وصل شود، پس
+«این مشتری در کل پرونده‌اش چه تغییراتی داشته؟» (سالن‌ها + گله‌ها + هفته‌نامه + بازدیدها)
+با یک کلیک از هر رکورد پاسخ می‌گیرد.
+
+| مورد | مقدار |
+|---|---|
+| ستون | `activity_logs.customer_id` (`INTEGER`, nullable, **بدون FK** — تاریخچه باید از حذف مشتری جان سالم ببرد) · ایندکس `activity_logs_customer` روی `(customer_id, created_at)` |
+| مایگریشن | `20261005000000-add-activity-logs-customer-id.js` — idempotent (`describeTable`/`showIndex`)؛ `db:verify` ستون و ایندکس را می‌سنجد |
+| ثبت در مسیر پاسخ | `rules.customerIdFromRequest` — اولویت: بدنه ← پارامتر ← کوئری ← **بدنهٔ پاسخ**؛ خودانتسابی `entity=customers ⇒ customer_id = entity_id` · صفر کوئری اضافه |
+| استنتاج در flush | `Backend/services/activityCustomerResolver.js` — ۱۱ منبع (۷ مستقیم + ۴ با `INNER JOIN halls`)؛ یک کوئری به‌ازای هر جدول، سقف ۱۰۰ شناسه، خطا ⇒ خاموشی موقت ۱۰ دقیقه‌ای همان منبع (`ACTIVITY_RESOLVE_CUSTOMER=false` کل قابلیت را خاموش می‌کند) |
+| API | `GET /api/activity?customer_id=۱۲` (مقدار نامعتبر ⇒ نادیده، بدون ۵۰۰) |
+| فرانت | فیلتر «شناسهٔ مشتری» (`#alpCustomerId`) · `HISTORY_MODES.customer` · `defaultMode` روی پروندهٔ مشتری · نشان `مشتری #N` در جدول/دیالوگ/مودال · `window.showEntityHistory(entity, entityId, title, customerId)` |
+| گارد ضد باگ | `toIdInt` سخت‌گیر (اعشار/کاما/منفی ⇒ خطا، نه فیلتر بی‌صدا) · تب بدون فیلتر ⇒ هیچ درخواستی (جلوگیری از نمایش کل تاریخچهٔ سیستم) |
+| گاردها | `test:activity:panel` **۹۷** · `test:activity:history` **۸۵** · `test:activity:e2e` **۳۴ ⇒ ۴۸** · `test:activity` بدون تغییر (**۷۱**) |
+| ⭐ باگ کشف‌شده | `toInt` مقدار `1.5` را به `1` می‌بُرید ⇒ فیلتر روی مشتری اشتباه · زمینهٔ «فقط مشتری» تب «تغییرات» را بی‌فیلتر می‌کرد |
+| باقی‌مانده | `backfill` گذشته‌نگر ستون (اسکریپت یک‌بارمصرف خارج از مسیر درخواست) · تب مستقل «واحد/گله» |
+
+📄 جزئیات کامل: [`REVIEW-WAVE-12.5.md`](./REVIEW-WAVE-12.5.md)
+
+
 

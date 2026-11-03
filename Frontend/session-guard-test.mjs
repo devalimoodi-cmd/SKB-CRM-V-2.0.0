@@ -274,7 +274,8 @@ check(
 const verifySource = read("Backend/scripts/verify-db.js");
 check(
   "مایگریشن‌شمار: db:verify جدول/ستون‌ها/ایندکس‌های user_sessions را می‌شناسد",
-  /"user_sessions",\s*\r?\n\s*"SequelizeMeta"/.test(verifySource) &&
+  // ⚠️ ترتیب مهم نیست: هر موج جدول‌های تازه‌اش را به همان آرایه اضافه می‌کند
+  /"user_sessions",/.test(verifySource) &&
     /user_sessions:\s*\[/.test(verifySource) &&
     /user_sessions_sid_unique/.test(verifySource) &&
     /user_sessions_user_id_ended_at/.test(verifySource) &&
@@ -375,10 +376,22 @@ check(
   /get\(\s*"\/mine",\s*sessionController\.mine\s*\)/.test(routesSource),
 );
 
+// ⚠️ عدد کلیدهای کاتالوگ با هر موج رشد می‌کند (۱۲.۲ ⇒ ۱۶۵، ۱۲.۳ ⇒ ۱۶۶).
+//    به‌جای عدد ثابت — که هر بار سه فایل را هم‌زمان می‌شکست — عددِ
+//    اعلام‌شده در permissions-test با خودِ کاتالوگ مقایسه می‌شود
+//    (منبع حقیقت یکی است و دیگر لازم نیست عدد را در چند جا bump کنیم).
+const catalog = require(path.join(ROOT, "Backend", "config", "permissions.js"));
+const declaredTotal = Number(
+  (read("Backend/permissions-test.mjs").match(/TOTAL_PERMISSIONS === (\d+)/) ||
+    [])[1],
+);
+
 check(
   "کاتالوگ: کلید مجوز جدید در کاتالوگ هست و قفل‌نشده است (تست permissions-test)",
   /users\.sessions\.revoke/.test(read("Backend/config/permissions.js")) &&
-    /TOTAL_PERMISSIONS === 164/.test(read("Backend/permissions-test.mjs")),
+    Boolean(catalog.PERMISSIONS["users.sessions.revoke"]) &&
+    declaredTotal === catalog.TOTAL_PERMISSIONS,
+  `declared=${declaredTotal} actual=${catalog.TOTAL_PERMISSIONS}`,
 );
 
 check(

@@ -30,7 +30,7 @@ const { requirePermission } = require("./middleware/permissions.js");
 // ============================================================
 check(
   "کاتالوگ: تعداد کلیدها و گروه‌ها طبق طراحی است",
-  catalog.TOTAL_PERMISSIONS === 164 && catalog.PERMISSION_GROUPS.length === 16,
+  catalog.TOTAL_PERMISSIONS === 166 && catalog.PERMISSION_GROUPS.length === 16,
   `keys=${catalog.TOTAL_PERMISSIONS} groups=${catalog.PERMISSION_GROUPS.length}`,
 );
 
@@ -44,6 +44,17 @@ check(
     catalog.defaultFor("customer", "users.sessions.revoke") === false &&
     catalog.PERMISSIONS["users.sessions.revoke"].lockedTo.length === 0,
   `locked=${catalog.PERMISSIONS["users.sessions.revoke"]?.lockedTo?.length}`,
+);
+
+check(
+  "کاتالوگ: منوی «فعالیت کاربران» (admin.menu.activity) فقط برای مدیران روشن است",
+  Boolean(catalog.PERMISSIONS["admin.menu.activity"]) &&
+    catalog.defaultFor("super_admin", "admin.menu.activity") === true &&
+    catalog.defaultFor("admin", "admin.menu.activity") === true &&
+    catalog.defaultFor("sub_admin", "admin.menu.activity") === true &&
+    catalog.defaultFor("expert", "admin.menu.activity") === false &&
+    catalog.defaultFor("customer", "admin.menu.activity") === false &&
+    catalog.PERMISSIONS["admin.menu.activity"].lockedTo.length === 0,
 );
 
 check(

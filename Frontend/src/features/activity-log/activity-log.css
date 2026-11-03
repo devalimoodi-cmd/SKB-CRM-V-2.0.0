@@ -1,0 +1,630 @@
+/* ============================================================
+   features/activity-log/activity-log.css
+   «فعالیت کاربران» (ردّ فعالیت) — فاز ۱۲.۳
+   ------------------------------------------------------------
+   ⚠️ قاعدهٔ این موج: هرچه admin-panel.css دارد (مثل .data-table و
+      .content-section) دوباره تعریف نمی‌شود؛ فقط چیزهایی که مخصوص
+      همین بخش است این‌جاست تا استایل‌ها دوتایی/متناقض نشوند.
+   ============================================================ */
+
+/* ===== هدر بخش ===== */
+.alp-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  background: linear-gradient(135deg, var(--primary, #2c7a6e) 0%, var(--primary-dark, #035552) 100%);
+  border-radius: 12px;
+  padding: 16px 20px;
+  color: var(--c-fff, #fff);
+  margin-bottom: 16px;
+}
+
+.alp-header-text h3 {
+  margin: 0;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.alp-header-text p {
+  margin: 6px 0 0;
+  font-size: 12.5px;
+  line-height: 1.7;
+  opacity: 0.92;
+  max-width: 760px;
+}
+
+.alp-header-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* ===== دکمه‌ها ===== */
+.alp-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border: 1px solid var(--c-e8edf3, #e8edf3);
+  background: var(--bg-surface, #fff);
+  color: var(--ink, #0f172a);
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+}
+
+.alp-btn:hover:not(:disabled) {
+  border-color: var(--primary, #2c7a6e);
+  color: var(--primary, #2c7a6e);
+}
+
+.alp-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.alp-btn-primary {
+  background: var(--primary, #2c7a6e);
+  border-color: var(--primary, #2c7a6e);
+  color: var(--c-fff, #fff);
+}
+
+.alp-btn-primary:hover:not(:disabled) {
+  background: var(--primary-dark, #035552);
+  border-color: var(--primary-dark, #035552);
+  color: var(--c-fff, #fff);
+}
+
+/* ===== کارت‌های خلاصه ===== */
+.alp-summary {
+  margin-bottom: 14px;
+}
+
+.alp-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.alp-stat {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--c-e8edf3, #e8edf3);
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+
+.alp-stat i {
+  font-size: 18px;
+  color: var(--primary, #2c7a6e);
+}
+
+.alp-stat-failed i {
+  color: var(--danger, #dc2626);
+}
+
+.alp-stat-success i {
+  color: var(--success, #10b981);
+}
+
+.alp-stat-value {
+  display: block;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--ink, #0f172a);
+  line-height: 1.2;
+}
+
+.alp-stat-label {
+  display: block;
+  font-size: 11.5px;
+  color: var(--text-gray, #64748b);
+}
+
+.alp-summary-meta {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.alp-summary-hint {
+  font-size: 11.5px;
+  color: var(--text-gray, #64748b);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.alp-summary-empty {
+  font-size: 12.5px;
+  color: var(--text-light, #94a3b8);
+  background: var(--bg-surface, #fff);
+  border: 1px dashed var(--c-e8edf3, #e8edf3);
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+
+/* ===== نوار فیلتر ===== */
+.alp-filterbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: flex-end;
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--c-e8edf3, #e8edf3);
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-bottom: 10px;
+}
+
+.alp-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 130px;
+  flex: 1 1 130px;
+}
+
+.alp-field-narrow {
+  flex: 0 0 110px;
+}
+
+.alp-field label {
+  font-size: 11.5px;
+  color: var(--text-slate, #475569);
+}
+
+.alp-field input,
+.alp-field select {
+  width: 100%;
+  padding: 7px 9px;
+  border: 1px solid var(--slate-border, #d8e0e8);
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 12.5px;
+  background: var(--bg-surface, #fff);
+  color: var(--ink, #0f172a);
+  box-sizing: border-box;
+}
+
+.alp-filter-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.alp-filter-count {
+  font-size: 11.5px;
+  color: var(--primary, #2c7a6e);
+  font-weight: 600;
+}
+
+.alp-status {
+  margin-bottom: 8px;
+}
+
+.alp-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: var(--text-slate, #475569);
+  background: var(--gray-100, #f1f5f9);
+  border-radius: 999px;
+  padding: 3px 10px;
+}
+
+/* ===== جدول ===== */
+.alp-table-wrap {
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--c-e8edf3, #e8edf3);
+  border-radius: 12px;
+  padding: 4px;
+  overflow-x: auto;
+  margin-bottom: 10px;
+}
+
+.alp-table {
+  width: 100%;
+  min-width: 900px;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+
+.alp-table th {
+  white-space: nowrap;
+  font-size: 11.5px;
+  color: var(--text-gray, #64748b);
+  background: var(--gray-100, #f1f5f9);
+  padding: 8px 10px;
+  text-align: right;
+}
+
+.alp-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--c-e8edf3, #e8edf3);
+  vertical-align: middle;
+}
+
+.alp-row {
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+
+.alp-row:hover {
+  background: var(--c-f8fafc, #f8fafc);
+}
+
+.alp-time-abs {
+  display: block;
+  direction: ltr;
+  text-align: right;
+  font-size: 11.5px;
+  color: var(--ink, #0f172a);
+}
+
+.alp-time-rel {
+  display: block;
+  font-size: 11px;
+  color: var(--text-light, #94a3b8);
+}
+
+.alp-actor {
+  font-weight: 600;
+  color: var(--ink, #0f172a);
+}
+
+/* ===== برچسب عمل (کلاس از whitelist می‌آید، نه از دادهٔ خام) ===== */
+.alp-action {
+  display: inline-block;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: var(--gray-100, #f1f5f9);
+  color: var(--text-slate, #475569);
+}
+
+.alp-action-create {
+  background: var(--c-ecfdf5, #ecfdf5);
+  color: var(--c-047857, #047857);
+}
+
+.alp-action-update {
+  background: var(--c-eff6ff, #eff6ff);
+  color: var(--c-1d4ed8, #1d4ed8);
+}
+
+.alp-action-delete {
+  background: var(--c-fef2f2, #fef2f2);
+  color: var(--c-b91c1c, #b91c1c);
+}
+
+.alp-action-login {
+  background: var(--c-f0fdfa, #f0fdfa);
+  color: var(--primary-dark, #035552);
+}
+
+.alp-action-logout {
+  background: var(--c-fff7ed, #fff7ed);
+  color: var(--c-9a3412, #9a3412);
+}
+
+.alp-action-read {
+  background: var(--c-f5f3ff, #f5f3ff);
+  color: var(--c-6d28d9, #6d28d9);
+}
+
+.alp-entity {
+  color: var(--ink, #0f172a);
+}
+
+.alp-entity-id {
+  font-size: 11px;
+  color: var(--text-light, #94a3b8);
+  direction: ltr;
+  margin-inline-start: 4px;
+}
+
+/* ⭐ موج ۱۲.۵ — نشان «مشتری #N» روی ردیف‌های زیرمجموعهٔ مشتری */
+.alp-customer-id {
+  font-size: 11px;
+  color: var(--primary, #2c7a6e);
+  background: var(--gray-100, #f1f5f9);
+  border-radius: 6px;
+  padding: 1px 6px;
+  margin-inline-start: 4px;
+  white-space: nowrap;
+}
+
+.alp-method {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  background: var(--gray-100, #f1f5f9);
+  border-radius: 6px;
+  padding: 1px 6px;
+  direction: ltr;
+  display: inline-block;
+}
+
+.alp-badge {
+  display: inline-block;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 2px 9px;
+  border-radius: 999px;
+}
+
+.alp-badge-success {
+  background: var(--c-ecfdf5, #ecfdf5);
+  color: var(--c-047857, #047857);
+}
+
+.alp-badge-danger {
+  background: var(--c-fef2f2, #fef2f2);
+  color: var(--c-b91c1c, #b91c1c);
+}
+
+.alp-summary-text {
+  display: block;
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-slate, #475569);
+}
+
+.alp-chips-count {
+  font-size: 10.5px;
+  color: var(--text-light, #94a3b8);
+}
+
+.alp-link {
+  color: var(--primary, #2c7a6e);
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.alp-link:hover {
+  text-decoration: underline;
+}
+
+.alp-muted {
+  color: var(--text-light, #94a3b8);
+}
+
+/* ===== حالت خالی / لودر / پیام ===== */
+.alp-empty {
+  text-align: center;
+  padding: 28px 16px;
+  color: var(--text-light, #94a3b8);
+}
+
+.alp-empty i {
+  font-size: 26px;
+  margin-bottom: 8px;
+  display: block;
+}
+
+.alp-empty p {
+  margin: 0 0 4px;
+  font-size: 13px;
+  color: var(--text-slate, #475569);
+}
+
+.alp-empty span {
+  font-size: 11.5px;
+}
+
+.alp-loading {
+  text-align: center;
+  padding: 24px 16px;
+  font-size: 12.5px;
+  color: var(--text-light, #94a3b8);
+}
+
+.alp-notice {
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 12.5px;
+  line-height: 1.7;
+}
+
+.alp-notice-info {
+  background: var(--c-eff6ff, #eff6ff);
+  border: 1px solid var(--c-bfdbfe, #bfdbfe);
+  color: var(--c-1e40af, #1e40af);
+}
+
+.alp-notice-error {
+  background: var(--c-fef2f2, #fef2f2);
+  border: 1px solid var(--c-fecaca, #fecaca);
+  color: var(--c-b91c1c, #b91c1c);
+}
+
+/* ===== صفحه‌بندی ===== */
+.alp-pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.alp-pager-info {
+  font-size: 12px;
+  color: var(--text-slate, #475569);
+}
+
+/* ===== مودال جزئیات ===== */
+.alp-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.5);
+  z-index: 1200;
+  padding: 24px 12px;
+  overflow-y: auto;
+}
+
+.alp-modal.open {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+}
+
+.alp-modal-card {
+  width: 100%;
+  max-width: 720px;
+  background: var(--bg-surface, #fff);
+  border-radius: 14px;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.2);
+  overflow: hidden;
+}
+
+.alp-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--c-e8edf3, #e8edf3);
+}
+
+.alp-modal-head h4 {
+  margin: 0;
+  font-size: 14px;
+  color: var(--ink, #0f172a);
+}
+
+.alp-modal-close {
+  border: none;
+  background: transparent;
+  color: var(--text-gray, #64748b);
+  font-size: 16px;
+  cursor: pointer;
+  line-height: 1;
+  padding: 4px;
+}
+
+.alp-modal-close:hover {
+  color: var(--danger, #dc2626);
+}
+
+.alp-modal-body {
+  padding: 14px 16px 18px;
+}
+
+.alp-detail-status {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.alp-detail-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 6px 14px;
+  margin: 0 0 14px;
+}
+
+.alp-detail-row {
+  display: flex;
+  gap: 8px;
+  font-size: 12.5px;
+  border-bottom: 1px dashed var(--c-e8edf3, #e8edf3);
+  padding-bottom: 4px;
+}
+
+.alp-detail-row dt {
+  min-width: 92px;
+  color: var(--text-gray, #64748b);
+  font-size: 11.5px;
+}
+
+.alp-detail-row dd {
+  margin: 0;
+  color: var(--ink, #0f172a);
+  word-break: break-word;
+}
+
+.alp-detail-block {
+  margin-bottom: 12px;
+}
+
+.alp-detail-block h5 {
+  margin: 0 0 6px;
+  font-size: 12.5px;
+  color: var(--text-slate, #475569);
+}
+
+.alp-detail-summary {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.8;
+  color: var(--ink, #0f172a);
+  background: var(--gray-100, #f1f5f9);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+.alp-detail-ua {
+  margin: 0;
+  font-size: 11px;
+  color: var(--text-slate, #475569);
+  word-break: break-all;
+}
+
+.alp-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.alp-chip {
+  font-size: 11.5px;
+  background: var(--c-f0fdfa, #f0fdfa);
+  border: 1px solid var(--c-ccfbf1, #ccfbf1);
+  color: var(--primary-dark, #035552);
+  border-radius: 999px;
+  padding: 2px 9px;
+}
+
+.alp-hint {
+  margin: 8px 0 0;
+  font-size: 11.5px;
+  color: var(--text-light, #94a3b8);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ===== موبایل ===== */
+@media (max-width: 640px) {
+  .alp-field,
+  .alp-field-narrow {
+    flex: 1 1 100%;
+  }
+
+  .alp-filter-actions {
+    width: 100%;
+  }
+
+  .alp-summary-text {
+    max-width: 180px;
+  }
+}
+
+

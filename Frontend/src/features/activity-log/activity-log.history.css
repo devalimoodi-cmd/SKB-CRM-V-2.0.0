@@ -1,0 +1,348 @@
+/* ============================================================
+   features/activity-log/activity-log.history.css
+   دیالوگ «تاریخچهٔ رکورد» — موج ۱۲.۴.۱
+   ------------------------------------------------------------
+   ⚠️ قاعدهٔ این فایل: کاملاً خودبسنده است.
+      دیالوگ روی «پروندهٔ مشتری» هم باز می‌شود؛ آن صفحه نه
+      admin-panel.css را لود می‌کند و نه activity-log.css را ⇒
+      هر کلاس مشترک (.data-table / .alp-badge / …) آن‌جا بی‌استایل
+      می‌ماند. پس فقط کلاس‌های alp-hist-* و customer-history-*
+      این‌جا تعریف شده‌اند و به استایل بخش ۱۲.۳ وابسته نیستیم.
+   ============================================================ */
+
+/* ===== پوشش صفحه ===== */
+.alp-hist {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  z-index: 1250;
+  padding: 24px 12px;
+  overflow-y: auto;
+}
+
+.alp-hist.open {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+}
+
+/* ===== کارت ===== */
+.alp-hist-card {
+  width: 100%;
+  max-width: 760px;
+  margin: auto;
+  background: var(--bg-surface, #fff);
+  border-radius: 14px;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.2);
+  overflow: hidden;
+  direction: rtl;
+}
+
+.alp-hist-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--c-e8edf3, #e8edf3);
+}
+
+.alp-hist-head h4 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink, #0f172a);
+}
+
+.alp-hist-close {
+  border: none;
+  background: transparent;
+  color: var(--text-gray, #64748b);
+  font-size: 15px;
+  line-height: 1;
+  padding: 5px;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.alp-hist-close:hover {
+  color: var(--danger, #dc2626);
+  background: rgba(220, 38, 38, 0.08);
+}
+
+/* ===== تب‌ها ===== */
+.alp-hist-tabs {
+  display: flex;
+  gap: 6px;
+  padding: 10px 16px 0;
+  flex-wrap: wrap;
+}
+
+.alp-hist-tab {
+  border: 1px solid var(--c-e8edf3, #e8edf3);
+  background: var(--bg-muted, #f8fafc);
+  color: var(--text-slate, #475569);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-family: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.alp-hist-tab:hover {
+  border-color: var(--primary, #2c7a6e);
+  color: var(--primary, #2c7a6e);
+}
+
+.alp-hist-tab.active {
+  background: var(--primary, #2c7a6e);
+  border-color: var(--primary, #2c7a6e);
+  color: var(--c-fff, #fff);
+  font-weight: 600;
+}
+
+/* ===== آمار یک‌خطی ===== */
+.alp-hist-stats {
+  padding: 8px 16px 0;
+  font-size: 12px;
+  color: var(--text-gray, #64748b);
+  min-height: 18px;
+}
+
+
+/* ===== بدنه / فهرست ===== */
+.alp-hist-body {
+  padding: 12px 16px 4px;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.alp-hist-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.alp-hist-row {
+  border: 1px solid var(--c-e8edf3, #e8edf3);
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: var(--bg-surface, #fff);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.alp-hist-when {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11.5px;
+  color: var(--text-light, #94a3b8);
+}
+
+.alp-hist-abs {
+  font-variant-numeric: tabular-nums;
+}
+
+.alp-hist-rel {
+  background: var(--bg-muted, #f8fafc);
+  border-radius: 999px;
+  padding: 2px 8px;
+  color: var(--text-gray, #64748b);
+}
+
+.alp-hist-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 12.5px;
+}
+
+.alp-hist-action {
+  font-weight: 700;
+  color: var(--primary, #2c7a6e);
+}
+
+/* رنگ عمل — از whitelist رندرر می‌آید (create/update/delete/read/login/logout/other) */
+.alp-hist-action[data-tone="create"] {
+  color: var(--success, #16a34a);
+}
+
+.alp-hist-action[data-tone="update"] {
+  color: var(--info, #2563eb);
+}
+
+.alp-hist-action[data-tone="delete"] {
+  color: var(--danger, #dc2626);
+}
+
+.alp-hist-action[data-tone="login"] {
+  color: var(--success, #16a34a);
+}
+
+.alp-hist-action[data-tone="logout"] {
+  color: var(--warning, #d97706);
+}
+
+.alp-hist-actor {
+  color: var(--ink, #0f172a);
+}
+
+.alp-hist-status {
+  margin-inline-start: auto;
+  font-size: 11px;
+  border-radius: 999px;
+  padding: 2px 8px;
+  border: 1px solid transparent;
+}
+
+.alp-hist-status.ok {
+  background: rgba(22, 163, 74, 0.1);
+  border-color: rgba(22, 163, 74, 0.25);
+  color: var(--success, #16a34a);
+}
+
+.alp-hist-status.fail {
+  background: rgba(220, 38, 38, 0.1);
+  border-color: rgba(220, 38, 38, 0.25);
+  color: var(--danger, #dc2626);
+}
+
+.alp-hist-summary {
+  font-size: 12.5px;
+  color: var(--text-slate, #475569);
+  line-height: 1.7;
+  word-break: break-word;
+}
+
+.alp-hist-chips {
+  display: inline-block;
+  font-size: 11px;
+  background: var(--bg-muted, #f8fafc);
+  border: 1px solid var(--c-e8edf3, #e8edf3);
+  border-radius: 999px;
+  padding: 1px 8px;
+  color: var(--text-gray, #64748b);
+}
+
+.alp-hist-target {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 11.5px;
+  color: var(--text-gray, #64748b);
+}
+
+.alp-hist-entity-id {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  color: var(--text-light, #94a3b8);
+}
+
+/* ⭐ موج ۱۲.۵ — نشان «مشتری #N» در فهرست تاریخچه */
+.alp-hist-customer {
+  font-size: 11px;
+  color: var(--primary, #2c7a6e);
+  background: var(--gray-100, #f1f5f9);
+  border-radius: 6px;
+  padding: 1px 6px;
+  white-space: nowrap;
+}
+
+.alp-hist-link {
+  color: var(--primary, #2c7a6e);
+  text-decoration: none;
+  border-bottom: 1px dashed currentColor;
+}
+
+.alp-hist-link:hover {
+  color: var(--primary-dark, #035552);
+}
+
+/* ===== پابرگ ===== */
+.alp-hist-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 12px 16px;
+  border-top: 1px solid var(--c-e8edf3, #e8edf3);
+  background: var(--bg-muted, #f8fafc);
+}
+
+.alp-hist-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border: 1px solid var(--c-e8edf3, #e8edf3);
+  background: var(--bg-surface, #fff);
+  color: var(--ink, #0f172a);
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.alp-hist-btn:hover {
+  border-color: var(--primary, #2c7a6e);
+  color: var(--primary, #2c7a6e);
+}
+
+/* ===== دکمهٔ «تاریخچهٔ تغییرات» در هدر پروندهٔ مشتری ===== */
+.customer-history-row {
+  margin-top: 8px;
+}
+
+.customer-history-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid var(--c-e8edf3, #e8edf3);
+  background: var(--bg-surface, #fff);
+  color: var(--text-slate, #475569);
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.customer-history-btn:hover {
+  border-color: var(--primary, #2c7a6e);
+  color: var(--primary, #2c7a6e);
+  background: rgba(44, 122, 110, 0.06);
+}
+
+/* ===== موبایل ===== */
+@media (max-width: 576px) {
+  .alp-hist {
+    padding: 8px;
+  }
+
+  .alp-hist-body {
+    max-height: 68vh;
+    padding: 10px 12px 2px;
+  }
+
+  .alp-hist-head,
+  .alp-hist-foot {
+    padding: 10px 12px;
+  }
+
+  .alp-hist-tabs,
+  .alp-hist-stats {
+    padding-inline: 12px;
+  }
+}
+

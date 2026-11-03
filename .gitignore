@@ -101,3 +101,6 @@ backups/
 # ==== transient agent helper scripts ====
 .cline-tmp-*
 
+# ==== agent slice dumps (نباید کامیت شوند) ====
+.slices/
+

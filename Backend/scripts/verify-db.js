@@ -72,6 +72,8 @@ const EXPECTED_TABLES = [
   "permission_audit_logs",
   // ✅ «نشست‌های کاربران» (فاز ۱۲.۱)
   "user_sessions",
+  // ✅ «ردّ فعالیت» (فاز ۱۲.۲)
+  "activity_logs",
   "SequelizeMeta",
 ];
 
@@ -179,6 +181,30 @@ const EXPECTED_COLUMNS = {
     "end_reason",
     "ended_by",
   ],
+  // ✅ «ردّ فعالیت» (فاز ۱۲.۲)
+  activity_logs: [
+    "user_id",
+    "username",
+    "role",
+    "action",
+    "method",
+    "path",
+    "route",
+    "entity",
+    "entity_id",
+    // ✅ موج ۱۲.۵ — «همهٔ تغییرات یک مشتری»
+    "customer_id",
+    "status_code",
+    "success",
+    "ip",
+    "user_agent",
+    "session_id",
+    "fields",
+    "summary",
+    "duration_ms",
+    "created_at",
+    "updated_at",
+  ],
 };
 
 const EXPECTED_INDEXES = [
@@ -211,6 +237,13 @@ const EXPECTED_INDEXES = [
   "user_sessions_sid_unique",
   "user_sessions_user_id_ended_at",
   "user_sessions_last_activity_at",
+  // ✅ «ردّ فعالیت» (فاز ۱۲.۲)
+  "activity_logs_user_id_created_at",
+  "activity_logs_entity",
+  "activity_logs_created_at",
+  "activity_logs_action",
+  // ✅ موج ۱۲.۵ — «تازه‌ترین تغییرات این مشتری»
+  "activity_logs_customer",
 ];
 
 const COUNT_TABLES = [
@@ -225,6 +258,8 @@ const COUNT_TABLES = [
   "user_permissions",
   // ✅ «نشست‌های کاربران» (فاز ۱۲.۱)
   "user_sessions",
+  // ✅ «ردّ فعالیت» (فاز ۱۲.۲)
+  "activity_logs",
 ];
 
 // ============================================

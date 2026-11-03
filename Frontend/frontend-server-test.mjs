@@ -621,12 +621,14 @@ const run = async () => {
     "admin.menu.settings",
     "admin.menu.suggestions",
     "admin.menu.releases",
+    // فاز ۱۲.۳ — پنل «فعالیت کاربران»
+    "admin.menu.activity",
   ];
   check(
-    "گیت دسترسی: سایدبار پنل با ۷ کلید admin.menu.* گیت شده است",
+    "گیت دسترسی: سایدبار پنل با ۸ کلید admin.menu.* گیت شده است",
     adminMenuKeys.every((key) => adminHtml.includes(`data-permission="${key}"`)) &&
       !adminHtml.includes('data-permission="dictionary.hall-types.view"'),
-    `found=${adminMenuKeys.filter((key) => adminHtml.includes(`data-permission="${key}"`)).length}/7`,
+    `found=${adminMenuKeys.filter((key) => adminHtml.includes(`data-permission="${key}"`)).length}/8`,
   );
   check(
     "گیت دسترسی: سایدبار اگر منوی فعال مخفی شد، بخش دیگری انتخاب می‌کند",

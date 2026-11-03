@@ -425,8 +425,9 @@ const cases = [
       'class="bm-priority-option active" data-value="high"',
       '"put": 1',
       '"/bookmarks/11"',
-      // خروجی convertPersianToGregorian روی «1404/03/01» همین است؛ گارد بایت‌ها را قفل می‌کند
-      '"due_date": "783-03-01"',
+      // ⭐ ۱۲.۴.۲: تبدیل دقیق جلالی — «1404/03/01» ⇒ 2025-05-22
+      // (قبلاً fallback تقریبی «783-03-01» می‌داد؛ همان باگ سالِ غلط)
+      '"due_date": "2025-05-22"',
     ],
   },
   {

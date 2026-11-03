@@ -26,6 +26,26 @@
         "SMS_CONST"
       ]
     },
+    "src/core/services/activity.service.js": {
+      "instances": {
+        "activityService": "ActivityService"
+      },
+      "classes": {
+        "ActivityService": {
+          "methods": [
+            "getById",
+            "list",
+            "summary"
+          ],
+          "properties": [],
+          "mixins": {}
+        }
+      },
+      "windowGlobals": [
+        "ActivityService",
+        "activityService"
+      ]
+    },
     "src/core/services/api.service.js": {
       "instances": {
         "apiService": "ApiService"
@@ -491,6 +511,123 @@
         "themeService"
       ]
     },
+    "src/features/activity-log/activity-log.history.js": {
+      "instances": {
+        "activityHistoryDialog": "ActivityHistoryDialog"
+      },
+      "classes": {
+        "ActivityHistoryDialog": {
+          "methods": [
+            "allowed",
+            "bind",
+            "close",
+            "constructor",
+            "ensureManager",
+            "exportCsv",
+            "load",
+            "mount",
+            "mountCustomerTrigger",
+            "open",
+            "openFull",
+            "refreshCustomerTrigger",
+            "renderChrome",
+            "switchMode"
+          ],
+          "properties": [
+            "allowed",
+            "bind",
+            "close",
+            "context",
+            "ensureManager",
+            "exportCsv",
+            "items",
+            "load",
+            "loading",
+            "mode",
+            "mount",
+            "mounted",
+            "open",
+            "openFull",
+            "renderChrome",
+            "switchMode"
+          ],
+          "mixins": {}
+        }
+      },
+      "windowGlobals": [
+        "ActivityHistoryDialog",
+        "activityHistoryDialog",
+        "showEntityHistory"
+      ]
+    },
+    "src/features/activity-log/activity-log.manager.js": {
+      "instances": {
+        "activityLogManager": "ActivityLogManager"
+      },
+      "classes": {
+        "ActivityLogManager": {
+          "methods": [
+            "applyFilters",
+            "applyPendingHistory",
+            "bindEvents",
+            "can",
+            "closeDetail",
+            "constructor",
+            "exportCsv",
+            "goToPage",
+            "init",
+            "loadList",
+            "loadSummary",
+            "openDetail",
+            "openEntityHistory",
+            "queueHistory",
+            "readFilters",
+            "refresh",
+            "renderFilterCount",
+            "renderStatus",
+            "renderTable",
+            "resetFilters",
+            "setLoading",
+            "syncFilterInputs"
+          ],
+          "properties": [
+            "applyFilters",
+            "applyPendingHistory",
+            "bindEvents",
+            "bound",
+            "can",
+            "closeDetail",
+            "exportCsv",
+            "filters",
+            "goToPage",
+            "initialized",
+            "items",
+            "loadList",
+            "loadSummary",
+            "loading",
+            "openDetail",
+            "pagination",
+            "pendingHistory",
+            "queueHistory",
+            "readFilters",
+            "refresh",
+            "renderFilterCount",
+            "renderStatus",
+            "renderTable",
+            "resetFilters",
+            "root",
+            "setLoading",
+            "summary",
+            "syncFilterInputs"
+          ],
+          "mixins": {}
+        }
+      },
+      "windowGlobals": [
+        "ActivityLogManager",
+        "activityLogManager"
+      ]
+    },
     "src/features/admin-panel/admin-panel.service.js": {
       "instances": {
         "adminPanelService": "AdminPanelService"
@@ -499,6 +636,7 @@
         "AdminPanelService": {
           "methods": [
             "applyLoaderSelection",
+            "applyPendingHistory",
             "changeSuggestionStatus",
             "checkAdminExists",
             "closeTokenModal",
@@ -511,7 +649,9 @@
             "destroy",
             "editSuperAdmin",
             "editUser",
+            "ensureActivityLogManager",
             "init",
+            "initActivityLogManager",
             "initDictionaryManager",
             "initPermissionManager",
             "initReleaseNotesManager",
@@ -543,9 +683,11 @@
             "setupSuggestions",
             "showAdminPanel",
             "showSetupForm",
+            "showUserHistory",
             "startSuggestionsPolling",
             "stopSuggestionsPolling",
             "syncMenuVisibility",
+            "takePendingHistory",
             "toggleSuperAdminStatus",
             "viewUser",
             "viewUserToken"
@@ -553,6 +695,7 @@
           "properties": [
             "activeSuggestionId",
             "applyLoaderSelection",
+            "applyPendingHistory",
             "changeSuggestionStatus",
             "checkAdminExists",
             "closeTokenModal",
@@ -564,6 +707,8 @@
             "editUser",
             "editingUserId",
             "editingUserRole",
+            "ensureActivityLogManager",
+            "initActivityLogManager",
             "initDictionaryManager",
             "initPermissionManager",
             "initReleaseNotesManager",
@@ -605,6 +750,7 @@
             "suggestionsPolling",
             "superAdmins",
             "syncMenuVisibility",
+            "takePendingHistory",
             "users"
           ],
           "mixins": {}
@@ -619,6 +765,7 @@
         "editSuperAdmin",
         "editUser",
         "resetUserToken",
+        "showUserHistory",
         "toggleSuperAdminStatus",
         "viewUser",
         "viewUserToken"
@@ -3183,6 +3330,9 @@
     "API_CONSTANTS",
     "API_URL",
     "AccordionService",
+    "ActivityHistoryDialog",
+    "ActivityLogManager",
+    "ActivityService",
     "AdminPanelService",
     "AppService",
     "AuthService",
@@ -3224,6 +3374,9 @@
     "__skbMessagesPolling",
     "__skbWhatsNewInit",
     "accordionService",
+    "activityHistoryDialog",
+    "activityLogManager",
+    "activityService",
     "addExcelAttachment",
     "addFlockBookmark",
     "addFlockBookmarkOf",
@@ -3398,9 +3551,11 @@
     "showBookmarkDetail",
     "showCreateBookmarkModal",
     "showCustomerDetail",
+    "showEntityHistory",
     "showFlockSmsHistory",
     "showMoreWeeks",
     "showSmsHistory",
+    "showUserHistory",
     "sidebarService",
     "stateService",
     "switchCustomerDetailTab",

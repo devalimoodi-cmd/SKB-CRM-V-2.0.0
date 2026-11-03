@@ -60,6 +60,10 @@ const publicRoutes = require("./routes/publicRoutes");
 const presenceRoutes = require("./routes/presenceRoutes");
 // ✅ «نشست‌های کاربران» (فاز ۱۲.۱)
 const sessionRoutes = require("./routes/sessionRoutes");
+// ✅ «ردّ فعالیت» (فاز ۱۲.۲): ثبت خودکار تغییرات + مسیر مشاهدهٔ مدیران
+const activityRoutes = require("./routes/activityRoutes");
+const activityLog = require("./middleware/activityLog");
+const activityService = require("./services/activityService");
 
 // ================== ###==========
 
@@ -106,6 +110,16 @@ app.use(express.urlencoded({ extended: true, limit: "5mb" }));
 // ✅ محدودیت نرخ درخواست برای همهٔ APIها (ضد Brute-force / سوءاستفاده)
 // قابل غیرفعال‌سازی در تست با RATE_LIMIT_DISABLED=true
 app.use("/api", apiLimiter);
+
+// ============================================
+// ✅ «ردّ فعالیت» (فاز ۱۲.۲): ثبت هر تغییر وضعیت
+// ------------------------------------------------------------
+// • روی `res.on("finish")` کار می‌کند ⇒ هیچ تأخیری در پاسخ کاربر نیست
+// • فقط POST/PUT/PATCH/DELETE (+ ورود/خروج) — خواندن‌ها خاموش
+// • خودِ /api/activity و heartbeat حضور در skip list هستند (ضد حلقه)
+// • خاموش‌کردن کامل: ACTIVITY_LOG_ENABLED=false در .env
+// ============================================
+app.use("/api", activityLog);
 
 // ============================================
 // ✅ سرو فایل‌های آپلودی (تصاویر/پیوست‌های گزارش بازدید)
@@ -229,6 +243,8 @@ const CRITICAL_TABLES = [
   "permission_audit_logs",
   // ✅ «نشست‌های کاربران» (فاز ۱۲.۱)
   "user_sessions",
+  // ✅ «ردّ فعالیت» (فاز ۱۲.۲)
+  "activity_logs",
   "SequelizeMeta",
 ];
 
@@ -325,6 +341,8 @@ app.use("/api/users", userRoutes);
 app.use("/api/presence", presenceRoutes);
 // ✅ «نشست‌های کاربران» (فاز ۱۲.۱): فهرست نشست‌ها + بستن یک/همهٔ دستگاه‌ها
 app.use("/api/sessions", sessionRoutes);
+// ✅ «ردّ فعالیت» (فاز ۱۲.۲): فهرست/خلاصه/جزئیات (مدیر + کلید users.activity.view)
+app.use("/api/activity", activityRoutes);
 
 // مسیرهای تست
 app.get("/", (req, res) => {
@@ -513,6 +531,18 @@ const server = app.listen(PORT, () => {
   console.log(`✅ Server running on port ${PORT}`);
   console.log(`💚 Health check: http://localhost:${PORT}/health`);
   console.log(`📊 Server status: http://localhost:${PORT}/api/server-status`);
+
+  // ✅ «ردّ فعالیت» (فاز ۱۲.۲): پاک‌سازی دوره‌ای ردیف‌های قدیمی
+  //    (ACTIVITY_PURGE_INTERVAL_HOURS=0 ⇒ خاموش · خطا هرگز سرور را نمی‌خواباند)
+  try {
+    if (activityService.startHousekeeping()) {
+      console.log(
+        `🧹 پاک‌سازی ردّ فعالیت فعال شد (نگهداشت ${activityService.status().retention_days} روز)`,
+      );
+    }
+  } catch (error) {
+    console.warn("⚠️ خطا در راه‌اندازی پاک‌سازی ردّ فعالیت:", error.message);
+  }
 });
 
 // ✅ خطاهای سطح سرور (مثلاً پورت اشغال) با پیام واضح، نه خروج بی‌صدا

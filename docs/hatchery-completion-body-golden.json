@@ -8,16 +8,16 @@
   "note2": "خروجی به locale/ICU و منطقهٔ زمانی محیط Node وابسته است (ارقام/تاریخ شمسی در فرم و اعلان‌ها)؛ هارنس ساعت را تثبیت و TZ را روی Asia/Tehran قفل می‌کند، پس مقایسه در همان محیطی معنا دارد که اسنپ‌شات گرفته شده است.",
   "cases": {
     "E1.editPeriodCompletion-رکورد-کامل-ذخیرهٔ-موفق": {
-      "bytes": 18345,
-      "sha256": "2c86d05e81e2de31af0fba9c022adcdd1022ee0f7c29d3c1d0a969f62a9d5cbc"
+      "bytes": 18343,
+      "sha256": "9c42341bb1127bc59d2eb61b9e04524d2ce377c462dffd8ce0538227cc7db330"
     },
     "E2.editPeriodCompletion-رکورد-قدیمی-انصراف": {
       "bytes": 15346,
       "sha256": "965547c1202dac079a6631b156a06c5322a605232854fd0e2e6f56e87eaca848"
     },
     "E3.editPeriodCompletion-چندگله-اولی-پیش‌فرض": {
-      "bytes": 19596,
-      "sha256": "462b13d4c4fc6bc498fd1bb11fdaafb47b11eaec12be24a68101a5322d968704"
+      "bytes": 19594,
+      "sha256": "5caf48aba4e3fb117a05c2d0a257832b160862743b793f89b78b309746c34188"
     },
     "E4.editPeriodCompletion-بدون-داده": {
       "bytes": 493,
@@ -48,24 +48,24 @@
       "sha256": "911c2e135d42aaf75f0d416acf486be1ac987ef35a41608205c828c2e0778e6a"
     },
     "E11.editPeriodCompletion-روش-چندمرحله‌ای-با-دو-ارسال": {
-      "bytes": 18843,
-      "sha256": "ddfb58e8fa24a5a8bef357167760632cb6a5f0e58c09371f288f96eb09e6095f"
+      "bytes": 18907,
+      "sha256": "dc3960449ef228c5f805e1141b2158e7fc4ca1baf5741ae768c772087d6ade26"
     },
     "E12.editPeriodCompletion-ذخیره-ناموفق": {
-      "bytes": 18341,
-      "sha256": "a0d2a9d2bf3727521eb35354d2e2109170d932b5a2ebc274db335152d903bc0a"
+      "bytes": 18339,
+      "sha256": "ed094dd0c90cf1866d45478d612d90efd12263eab33c46f38ec35d6e9e1df780"
     },
     "E13.editPeriodCompletion-استثنا-در-ذخیره": {
-      "bytes": 18379,
-      "sha256": "57f41dcdb7afe6cd7bf0840fe1795806011657d48c8999e5b29a358ec9427532"
+      "bytes": 18377,
+      "sha256": "020507fcd4d8c3f02eda4ae52e32a6d03f448412267bd38a0b0b703fbc8b43a6"
     },
     "E14.editPeriodCompletion-کلیک-محاسبهٔ-مجدد": {
-      "bytes": 18764,
-      "sha256": "b989668330b48abf3cefe1d86fd8293822db46341a6d8c80bf8d6e17594e1649"
+      "bytes": 18762,
+      "sha256": "a11646b6aa80597a5ad5ed7d893adf394c97ff891b597cd090253ed9573b8047"
     },
     "C1.completePeriod-ذخیرهٔ-موفق-دو-گله": {
-      "bytes": 9827,
-      "sha256": "902275dcce035a22641cb6f9076fc24fefb57254e2a479d448b41a3c565b9617"
+      "bytes": 9829,
+      "sha256": "b59d3a138a0c6af34267547c7d7ae682e80a1675325672a2814714596006b488"
     },
     "C2.completePeriod-دوره-ناموجود": {
       "bytes": 285,
@@ -84,12 +84,12 @@
       "sha256": "19162ab2cbf6add6eb8f5bbc8d7a866f49c3d3d8881f3239a595c571e512f044"
     },
     "C6.completePeriod-ذخیره-ناموفق": {
-      "bytes": 9808,
-      "sha256": "6bd0ee7ee4554b624e9f1ef51761a7e34a724413960fc6254e6fe33898f8ef09"
+      "bytes": 9810,
+      "sha256": "6d633b44d2512da4911cfe3a5ebbc6279ce06ad649491f60989d49ab7b8704b9"
     },
     "C7.completePeriod-استثنا-در-ذخیره": {
-      "bytes": 9844,
-      "sha256": "4df51ac2361d02b4808c8864a448e53d80a565b998898c6bcd5040eaceeb596a"
+      "bytes": 9846,
+      "sha256": "16b5dd721d7cc7368b0f2309b92add27e8f20a1935d1e331802c059ba01a203a"
     },
     "C8.completePeriod-انصراف": {
       "bytes": 7857,

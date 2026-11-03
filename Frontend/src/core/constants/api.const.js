@@ -193,6 +193,15 @@ export const API_CONSTANTS = {
       // مدیریت: بستن همهٔ نشست‌های یک کاربر
       REVOKE_ALL: "/sessions/users/:userId/revoke-all",
     },
+    // ===== ردّ فعالیت (Activity Log) — «چه کسی چه چیزی را تغییر داد» (فاز ۱۲.۲) =====
+    ACTIVITY: {
+      // فهرست ردّ فعالیت (کلید users.activity.view)
+      LIST: "/activity",
+      // خلاصهٔ آماری سرِ پنل
+      SUMMARY: "/activity/summary",
+      // جزئیات یک رویداد
+      DETAIL: "/activity/:id",
+    },
   },
   TIMEOUT: 30000,
   RETRY_COUNT: 3,

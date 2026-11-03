@@ -1,6 +1,27 @@
 import { formatDate } from "../../core/utils/date.utils.js";
 import { escapeHtml} from "../../core/utils/string.utils.js";
 
+// ===== موج ۱۲.۴.۱ — دکمهٔ «تاریخچهٔ تغییرات» هر کاربر =====
+//   ⚠️ گیت با کلید محتوایی users.activity.view است (نه کلید منو)؛
+//      سرور هم همان کلید را روی /api/activity اعمال می‌کند.
+//   ⚠️ fail-open: اگر دادهٔ مجوز هنوز نرسیده باشد دکمه نمایش داده
+//      می‌شود و در بدترین حالت سرور پاسخ ۴۰۳ می‌دهد (هم‌الگوی پنل).
+const canViewUserHistory = () => {
+  const service = typeof window === "undefined" ? null : window.permissionService;
+  if (!service || typeof service.can !== "function") return false;
+  if (typeof service.hasData === "function" && service.hasData()) {
+    return service.can("users.activity.view");
+  }
+  return true;
+};
+
+const historyButton = (user) =>
+  canViewUserHistory()
+    ? `<button class="action-btn history" onclick="window.showUserHistory(${Number(user?.id) || 0})" title="تاریخچهٔ تغییرات این کاربر">
+                                <i class="fas fa-clock-rotate-left"></i>
+                            </button>`
+    : "";
+
 export const adminPanelRenderer = {
   // ===== رندر جدول مدیران اصلی =====
 
@@ -44,6 +65,7 @@ export const adminPanelRenderer = {
                             <button class="action-btn view" onclick="window.viewUser(${user.id})" title="مشاهده">
                                 <i class="fas fa-eye"></i>
                             </button>
+                            ${historyButton(user)}
                             <button class="action-btn edit" onclick="window.editSuperAdmin(${user.id})" title="ویرایش">
                                 <i class="fas fa-edit"></i>
                             </button>
@@ -110,6 +132,7 @@ export const adminPanelRenderer = {
                             <button class="action-btn view" onclick="window.viewUser(${user.id})" title="مشاهده">
                                 <i class="fas fa-eye"></i>
                             </button>
+                            ${historyButton(user)}
                             <button class="action-btn edit" onclick="window.editUser(${user.id})" title="ویرایش">
                                 <i class="fas fa-edit"></i>
                             </button>
