@@ -126,6 +126,19 @@ check(
     /\.reg-page/.test(registerCss) &&
     !/(^|\n)\s*body\s*\{/.test(registerCss),
 );
+check(
+  "صفحه: هیچ محتوایی بعد از </html> نیست (مارک‌آپ سالم و کامل)",
+  registerHtml.trimEnd().toLowerCase().endsWith("</html>") &&
+    (registerHtml.toLowerCase().match(/<\/html>/g) || []).length === 1,
+);
+check(
+  "صفحه: ترتیب فیلدها درست است (ایمیل پیش از رمز عبور) و divها متوازن‌اند",
+  registerHtml.indexOf('id="regEmail"') > 0 &&
+    registerHtml.indexOf('id="regEmail"') < registerHtml.indexOf('id="regPassword"') &&
+    (registerHtml.match(/<div\b/g) || []).length ===
+      (registerHtml.match(/<\/div>/g) || []).length,
+  `divs=${(registerHtml.match(/<div\b/g) || []).length}/${(registerHtml.match(/<\/div>/g) || []).length}`,
+);
 
 // ============================================================
 // ۲) لایهٔ API و سرویس ثبت‌نام

@@ -756,7 +756,7 @@ npm run test:cache    :: نگهبانهای UI (وجود بخش، سه‌حال�
 | مجوزها | `users.registrations.view` (صف/بج) · `users.registrations.review` (تأیید/رد) · `admin.menu.registrations` (منو) — تأیید **همچنین** `users.customer.link` |
 | صف پنل | آیتم `registration-requests` با بج «در انتظار تأیید»، فیلتر وضعیت، مودال بررسی (تأیید با انتخاب پروندهٔ مشتری / رد با دلیل) |
 | مایگریشن | `20261108000000-create-registration-requests.js` (جدول + ایندکس‌های یکتای جزئی) |
-| تست | `npm run test:registration` (۳۷ بررسی) + `Backend/registration-test.mjs` (۵۵ بررسی) — هر دو در گیت |
+| تست | `npm run test:registration` (۳۹ بررسی) + `Backend/registration-test.mjs` (۵۵ بررسی) — هر دو در گیت |
 | مستند | `docs/REVIEW-WAVE-13.6.md` |
 
 - **چرا صف مستقل؟** پیش‌فرض `User.status` روی `pending` است؛ اگر صف در همان جدول بود،

@@ -103,7 +103,7 @@
 | اسکن تنظیمات/مجوز | `registration_enabled` (پیش‌فرض false + `PUBLIC_KEYS`) و سه کلید کاتالوگ |
 | اسکن دیتابیس | ایندکس یکتای جزئی `WHERE status='pending'`، نبود ستون رمز خام، ثبت در `verify-db` |
 
-**`Frontend/registration-guard-test.mjs` — ۳۷ بررسی:** صفحه/فیلدها/کپچا/حالت‌ها،
+**`Frontend/registration-guard-test.mjs` — ۳۹ بررسی:** صفحه/فیلدها/کپچا/حالت‌ها،
 نبود فیلد نقش، ترتیب لود پیکربندی، لایهٔ API، روت‌های فرانت، `pageConfigs`،
 لینک ورود، هم‌خوانی `api.const`، صف پنل (منو/سکشن/مودال/گارد کلاینت/بج/escapeHtml)
 و هم‌راستایی کلیدهای مجوز بین سرور و پنل.
@@ -119,7 +119,7 @@ npx eslint .                       # بدون خطا
 
 # فرانت‌اند
 cd ../Frontend
-node registration-guard-test.mjs   # ✅ ALL PASS — 37/37
+node registration-guard-test.mjs   # ✅ ALL PASS — 39/39
 npx eslint src                     # بدون خطا
 
 # گیت کامل (۴۳ گام)
