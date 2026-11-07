@@ -373,7 +373,7 @@ class AppService {
       !permissionService.canAny(requiredPageKeys)
     ) {
       if (await this.handlePagePermissionLoss(requiredPageKeys[0])) {
-        window.location.href = "/index.html";
+        window.location.href = this.afterDenyLanding();
         return;
       }
     }
@@ -387,7 +387,7 @@ class AppService {
       !permissionService.can("admin.panel.access")
     ) {
       await this.denyPageAccess("admin.panel.access");
-      window.location.href = "/index.html";
+      window.location.href = this.afterDenyLanding();
       return;
     }
 
@@ -398,6 +398,9 @@ class AppService {
         window.location.href = "/admin-panel.html";
       } else if (user.role === "sub_admin" || user.role === "expert") {
         window.location.href = "/index.html";
+      } else if (user.role === "customer") {
+        // ✅ فاز ۱۳.۳: مقصد مشتری پورتال است (نه پروندهٔ مشتری)
+        window.location.href = "/portal.html";
       } else {
         window.location.href = "/customer-info.html";
       }
@@ -437,6 +440,23 @@ class AppService {
   // صفحهٔ مقصد (داشبورد) — از آن کسی را بیرون نمی‌اندازیم (ضدحلقهٔ ریدایرکت)
   isLandingPage() {
     return this.currentPage === "dashboard";
+  }
+
+  // ============================================================
+  // ✅ فاز ۱۳.۳ — مقصدِ بازگشت برای نقش مشتری
+  // ------------------------------------------------------------
+  // پیش از این، هر «رد دسترسی» به «/index.html» (داشبورد) برمی‌گشت؛
+  // داشبورد هم برای مشتری مجوز ندارد ⇒ حلقهٔ نیمه‌خراب.
+  // اکنون مشتری مستقیم به پورتال خودش برمی‌گردد.
+  // ============================================================
+  isCustomerSession() {
+    const role =
+      permissionService.role || authService.getUser()?.role || "";
+    return String(role).trim().toLowerCase() === "customer";
+  }
+
+  afterDenyLanding() {
+    return this.isCustomerSession() ? "/portal" : "/index.html";
   }
 
   // ✅ نتیجهٔ «گرفتن مجوز صفحه»:
@@ -511,7 +531,7 @@ class AppService {
       if (permissionService.canAny(keys)) return;
 
       if (await this.handlePagePermissionLoss(keys[0])) {
-        window.location.href = "/index.html";
+        window.location.href = this.afterDenyLanding();
       }
     });
   }

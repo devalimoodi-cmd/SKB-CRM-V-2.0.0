@@ -343,7 +343,8 @@ class AuthService {
       if (user?.role === "sub_admin" || user?.role === "expert") {
         window.location.href = "/";
       } else if (user?.role === "customer") {
-        window.location.href = "/customer-info";
+        // ✅ فاز ۱۳.۳: نقش مشتری به پورتال خودش می‌رود (نه پروندهٔ مشتری)
+        window.location.href = "/portal";
       } else {
         window.location.href = "/login";
       }
@@ -373,7 +374,8 @@ class AuthService {
     if (!this.isExpert() && !this.isAdmin()) {
       const user = this.getUser();
       if (user?.role === "customer") {
-        window.location.href = "/customer-info";
+        // ✅ فاز ۱۳.۳: مقصد مشتری پورتال است
+        window.location.href = "/portal";
       } else {
         window.location.href = "/login";
       }

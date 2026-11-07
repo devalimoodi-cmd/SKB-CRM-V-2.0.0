@@ -135,9 +135,23 @@ const enforceSelfCustomer =
     }
 
     req.customerScopeId = result.id;
-    // ✅ شناسهٔ معتبرِ همان مشتری روی درخواست می‌نشیند تا کنترلر
-    //    هرگز به مقدار خامِ کلاینت تکیه نکند.
-    if (source === "query" && req.query) req.query[key] = String(result.id);
+
+    // ✅ فاز ۱۳.۳ — «تزریق اجباری» شناسهٔ تأییدشده (نه فقط وقتی کلاینت
+    //    خودش پارامتر را فرستاده باشد).
+    //    چرا؟ اگر مسیری «لیست» باشد و کنترلر بر پایهٔ *وجود* همان پارامتر
+    //    فیلتر بسازد (الگوی رایج: if (customer_id) where.customer_id = ...)
+    //    آن‌گاه مشتریِ بدون پارامتر، فیلتری نمی‌فرستد و همهٔ ردیف‌های
+    //    *همهٔ* مشتریان را می‌گیرد. با این تزریق، کنترلر همیشه فیلتر دارد.
+    if (source === "query") {
+      if (!req.query) req.query = {};
+      req.query[key] = String(result.id);
+    } else if (source === "body") {
+      if (!req.body || typeof req.body !== "object") req.body = {};
+      req.body[key] = String(result.id);
+    }
+    // source === "params" ⇒ تطابق قبلاً در resolveScopeCustomerId تایید
+    // شده است (مقدار همان شناسهٔ خودِ مشتری بود) ⇒ بازنویسی لازم نیست.
+
     return next();
   };
 

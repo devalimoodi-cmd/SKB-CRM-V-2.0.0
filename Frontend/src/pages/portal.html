@@ -86,6 +86,71 @@
                 </section>
             </div>
 
+            <!-- ===== دادهٔ کامل پرونده (فاز ۱۳.۳) =====
+                 🔒 تب‌ها فقط خواندنی‌اند: هر کلیک یک GET به
+                 /api/portal/{halls,flocks,weeks,visits} می‌فرستد و
+                 صفحه‌بندی با «نمایش بیشتر» ادامه می‌یابد.
+                 هیچ فرم/ثبت/ویرایشی اینجا نیست. ===== -->
+            <section class="portal-tabs-block" id="portalFullData">
+                <div class="portal-tabs" id="portalTabs" role="tablist" aria-label="بخش‌های پروندهٔ من">
+                    <button type="button" class="portal-tab is-active" role="tab" data-portal-tab="halls"
+                        aria-selected="true">
+                        <i class="fas fa-warehouse"></i> سالن‌ها
+                    </button>
+                    <button type="button" class="portal-tab" role="tab" data-portal-tab="flocks" aria-selected="false">
+                        <i class="fas fa-egg"></i> گله‌ها
+                    </button>
+                    <button type="button" class="portal-tab" role="tab" data-portal-tab="weeks" aria-selected="false">
+                        <i class="fas fa-chart-line"></i> هفته‌های مدیریتی
+                    </button>
+                    <button type="button" class="portal-tab" role="tab" data-portal-tab="visits" aria-selected="false">
+                        <i class="fas fa-clipboard-list"></i> بازدیدها
+                    </button>
+                </div>
+
+                <div class="portal-tabpanels" id="portalTabPanels">
+                    <div class="portal-card portal-tabpanel" data-portal-panel="halls" role="tabpanel">
+                        <div class="portal-card__head">
+                            <i class="fas fa-warehouse"></i>
+                            <span>همهٔ سالن‌های من</span>
+                        </div>
+                        <div class="portal-tab__status" id="portalHallsStatus"></div>
+                        <ul class="portal-list" id="portalHallsList"></ul>
+                        <div class="portal-list__pager" id="portalHallsPager"></div>
+                    </div>
+
+                    <div class="portal-card portal-tabpanel" data-portal-panel="flocks" role="tabpanel" hidden>
+                        <div class="portal-card__head">
+                            <i class="fas fa-egg"></i>
+                            <span>همهٔ گله‌های من</span>
+                        </div>
+                        <div class="portal-tab__status" id="portalFlocksStatus"></div>
+                        <ul class="portal-list" id="portalFlocksList"></ul>
+                        <div class="portal-list__pager" id="portalFlocksPager"></div>
+                    </div>
+
+                    <div class="portal-card portal-tabpanel" data-portal-panel="weeks" role="tabpanel" hidden>
+                        <div class="portal-card__head">
+                            <i class="fas fa-chart-line"></i>
+                            <span>هفته‌های مدیریتی من</span>
+                        </div>
+                        <div class="portal-tab__status" id="portalWeeksStatus"></div>
+                        <ul class="portal-list" id="portalWeeksList"></ul>
+                        <div class="portal-list__pager" id="portalWeeksPager"></div>
+                    </div>
+
+                    <div class="portal-card portal-tabpanel" data-portal-panel="visits" role="tabpanel" hidden>
+                        <div class="portal-card__head">
+                            <i class="fas fa-clipboard-list"></i>
+                            <span>بازدیدهای من</span>
+                        </div>
+                        <div class="portal-tab__status" id="portalVisitsStatus"></div>
+                        <ul class="portal-list" id="portalVisitsList"></ul>
+                        <div class="portal-list__pager" id="portalVisitsPager"></div>
+                    </div>
+                </div>
+            </section>
+
             <!-- اطلاعات کمکی: فقط لینک‌های خودِ کاربر (بدون دادهٔ مشتری) -->
             <div class="portal-card" style="margin-top: 18px;">
                 <div class="portal-card__head">

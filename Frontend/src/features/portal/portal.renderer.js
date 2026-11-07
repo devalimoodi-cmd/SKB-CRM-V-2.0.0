@@ -175,3 +175,107 @@ export const renderVisits = (list = []) => {
     )
     .join("");
 };
+// ============================================================
+// فهرست‌های کامل (فاز ۱۳.۳) — صفحه‌بندی‌شده و فقط خواندنی
+// ------------------------------------------------------------
+// ⚠️ همان قواعد: escapeHtml + اعداد فارسی + تاریخ شمسی.
+//    هیچ فیلد حساسی در خروجی سرور نیست (کد ملی، آدرس، متن بازدید …)
+//    و هیچ دکمهٔ ایجاد/ویرایش/حذف در این بخش‌ها ساخته نمی‌شود.
+// ============================================================
+
+export const renderEmpty = (message) => emptyRow(message);
+
+const hallRow = (row) => `
+  <li class="portal-row">
+    <span class="portal-row__title">${escapeHtml(text(row.hall_name) || "بدون نام")}</span>
+    <span class="portal-row__sub">
+      ${row.hall_number === null || row.hall_number === undefined ? "" : `شماره: ${faNumber(row.hall_number)} ·`}
+      ظرفیت: ${faNumber(row.nominal_capacity)} قطعه
+    </span>
+    <span class="portal-badge portal-badge--${row.is_active ? "active" : "inactive"}">${
+      row.is_active ? "فعال" : "غیرفعال"
+    }</span>
+  </li>`;
+
+export const renderHallList = (list = []) => {
+  if (!Array.isArray(list) || list.length === 0) {
+    return renderEmpty("سالنی برای این پرونده ثبت نشده است");
+  }
+  return list.map(hallRow).join("");
+};
+
+const flockRow = (row) => `
+  <li class="portal-row">
+    <span class="portal-row__title">گلهٔ ${faNumber(row.flock_number ?? 0)}</span>
+    <span class="portal-row__sub">
+      جوجه‌ریزی: ${jalaliDate(row.placement_date)}${
+        row.ended_at ? ` · پایان: ${jalaliDate(row.ended_at)}` : ""
+      }
+    </span>
+    <span class="portal-badge portal-badge--${escapeHtml(text(row.status) || "unknown")}">${escapeHtml(statusLabel(row.status))}</span>
+  </li>`;
+
+export const renderFlockList = (list = []) => {
+  if (!Array.isArray(list) || list.length === 0) {
+    return renderEmpty("گله‌ای برای این پرونده ثبت نشده است");
+  }
+  return list.map(flockRow).join("");
+};
+
+const weekRow = (row) => `
+  <li class="portal-row">
+    <span class="portal-row__title">
+      هفتهٔ ${faNumber(row.week_number ?? 0)}${
+        text(row.hall_name).trim()
+          ? ` <small class="portal-row__hall">${escapeHtml(text(row.hall_name).trim())}</small>`
+          : ""
+      }
+    </span>
+    <span class="portal-row__sub">${jalaliDate(row.week_start_date)} تا ${jalaliDate(row.week_end_date)}</span>
+    <span class="portal-row__sub">
+      سن: ${faNumber(row.flock_age_days)} روز · وزن: ${faNumber(row.weekly_weight)} گرم ·
+      تلفات: ${faNumber(row.weekly_mortality)} · دان: ${faNumber(row.weekly_feed_intake)} کیلو
+    </span>
+  </li>`;
+
+export const renderWeekList = (list = []) => {
+  if (!Array.isArray(list) || list.length === 0) {
+    return renderEmpty("هفتهٔ مدیریتی ثبت نشده است");
+  }
+  return list.map(weekRow).join("");
+};
+
+const visitRow = (row) => `
+  <li class="portal-row">
+    <span class="portal-row__title">بازدید ${jalaliDate(row.visit_date)}</span>
+    <span class="portal-row__sub">گزارش و پیوست‌ها از طریق کارشناس خدمت ارائه می‌شود</span>
+    <span class="portal-badge portal-badge--${escapeHtml(text(row.status) || "unknown")}">${escapeHtml(statusLabel(row.status))}</span>
+  </li>`;
+
+export const renderVisitList = (list = []) => {
+  if (!Array.isArray(list) || list.length === 0) {
+    return renderEmpty("بازدیدی برای این پرونده ثبت نشده است");
+  }
+  return list.map(visitRow).join("");
+};
+
+// ===== «نمایش بیشتر» — تنها دکمهٔ فهرست‌ها و فقط یک GET دیگر =====
+export const renderPager = (pagination = {}, key = "") => {
+  const page = Number(pagination.page) || 1;
+  const pages = Number(pagination.pages) || 0;
+  const total = Number(pagination.total) || 0;
+
+  if (pages <= page) {
+    return total > 0
+      ? `<p class="portal-pager__end">همهٔ ${faNumber(total)} ردیف نمایش داده شد</p>`
+      : "";
+  }
+
+  return `
+    <div class="portal-pager">
+      <button type="button" class="portal-more" data-portal-more="${escapeHtml(key)}">
+        <i class="fas fa-chevron-down" aria-hidden="true"></i> نمایش بیشتر
+      </button>
+      <span class="portal-pager__count">صفحهٔ ${faNumber(page)} از ${faNumber(pages)}</span>
+    </div>`;
+};

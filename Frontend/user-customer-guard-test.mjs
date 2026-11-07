@@ -219,8 +219,9 @@ check(
 );
 
 check(
-  "ورود: حساب مشتری به «/customer-info?id=<customer_id>» می‌رود",
-  /\/customer-info\?id=\$\{customerId\}/.test(otpController),
+  "ورود: حساب مشتری به «/portal» می‌رود (فاز ۱۳.۳ — بدون ?id=)",
+  /return "\/portal";/.test(otpController) &&
+    !/\/customer-info\?id=/.test(otpController),
 );
 
 check(
@@ -229,8 +230,9 @@ check(
 );
 
 check(
-  "ورود: مقصد پیش‌فرض «/customer-info» برای حساب بدون پرونده حفظ شده است",
-  /return "\/customer-info";/.test(otpController),
+  "ورود: مقصد مشتری همیشه «/portal» است (حساب متصل و بدون پرونده)",
+  /return "\/portal";/.test(otpController) &&
+    (otpController.match(/\/portal/g) || []).length >= 1,
 );
 
 check(

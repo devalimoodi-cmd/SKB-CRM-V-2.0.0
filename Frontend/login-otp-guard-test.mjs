@@ -475,10 +475,10 @@ check(
 );
 
 check(
-  "کنترلر مرحلهٔ ۲: برای هر نقش مقصد ورود مشخص است (admin · داشبورد · customer-info)",
+  "کنترلر مرحلهٔ ۲: برای هر نقش مقصد ورود مشخص است (admin · داشبورد · پورتال)",
   /landingForRole/.test(controller) &&
     /"\/admin"/.test(controller) &&
-    /"\/customer-info"/.test(controller),
+    /"\/portal"/.test(controller),
 );
 
 // ============================================================

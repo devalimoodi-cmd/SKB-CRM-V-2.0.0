@@ -53,6 +53,8 @@ const FILES = {
   routes: "Backend/routes/portalRoutes.js",
   permissions: "Backend/config/permissions.js",
   permissionsTest: "Backend/permissions-test.mjs",
+  loginOtp: "Backend/controllers/loginOtpController.js",
+  pagination: "Backend/utils/pagination.js",
   server: "Backend/server.js",
   apiConst: "Frontend/src/core/constants/api.const.js",
   portalApi: "Frontend/src/features/portal/portal.api.js",
@@ -67,6 +69,7 @@ const FILES = {
   gateMjs: "tools/gate.mjs",
   gatePs1: "tools/gate.ps1",
   docs: "docs/REVIEW-WAVE-13.2.md",
+  docs133: "docs/REVIEW-WAVE-13.3.md",
 };
 
 check(
@@ -86,6 +89,8 @@ const SRC = {
   routes: read(FILES.routes),
   permissions: read(FILES.permissions),
   permissionsTest: read(FILES.permissionsTest),
+  loginOtp: read(FILES.loginOtp),
+  pagination: read(FILES.pagination),
   server: read(FILES.server),
   apiConst: read(FILES.apiConst),
   portalApi: read(FILES.portalApi),
@@ -380,7 +385,15 @@ check(
 // ============================================================
 check(
   "کنترلر: هیچ شناسه‌ای از req.query / req.body / req.params خوانده نمی‌شود",
-  !/req\.(query|body|params)\b/.test(SRC.controller),
+  !/req\.(query|body|params)(\.|\[\s*["'])(customer_id|customerId|id)\b/.test(
+    SRC.controller,
+  ) &&
+    !/req\.body/.test(SRC.controller) &&
+    !/req\.params/.test(SRC.controller) &&
+    // تنها استفادهٔ مجاز از req.query: کل شیء به صفحه‌بندی داده می‌شود
+    (SRC.controller.match(/paging\(req\.query\)/g) || []).length === 4 &&
+    !/req\.query\./.test(SRC.controller) &&
+    !/req\.query\[/.test(SRC.controller),
 );
 
 check(
@@ -447,9 +460,15 @@ check(
 );
 
 check(
-  "مسیر: فقط یک GET و بدون هیچ POST/PUT/PATCH/DELETE",
-  (SRC.routes.match(/router\.get\(/g) || []).length === 1 &&
+  "مسیر: پنج GET (خلاصه + چهار فهرست) و بدون هیچ POST/PUT/PATCH/DELETE",
+  (SRC.routes.match(/router\.get\(/g) || []).length === 5 &&
     !/router\.(post|put|patch|delete)\(/.test(SRC.routes),
+);
+
+check(
+  "مسیر: هر پنج مسیر از زنجیرهٔ مشترک customerChain عبور می‌کنند",
+  /const customerChain = \[/.test(SRC.routes) &&
+    (SRC.routes.match(/\.\.\.customerChain,/g) || []).length === 5,
 );
 
 check(
@@ -660,6 +679,193 @@ check(
   exists(FILES.docs) &&
     /customer\.portal\.view/.test(read(FILES.docs)) &&
     /\/api\/portal\/me/.test(read(FILES.docs)),
+);
+
+// ============================================================
+// ۱۰) موج ۱۳.۳ — دادهٔ کامل پورتال و مقصد ورود مشتری
+// ============================================================
+check(
+  "۱۳.۳ · مسیرها: چهار اندپوینت خواندنی تازه زیر /api/portal",
+  ['"/halls"', '"/flocks"', '"/weeks"', '"/visits"'].every((needle) =>
+    SRC.routes.includes(needle),
+  ) &&
+    [
+      "getMyHalls",
+      "getMyFlocks",
+      "getMyWeeks",
+      "getMyVisits",
+    ].every((name) => SRC.routes.includes(`portalController.${name}`)),
+);
+
+check(
+  "۱۳.۳ · کنترلر: هر چهار فهرست اسکوپِ اجباری دارند (بدون skope ⇒ ۴۰۳)",
+  (SRC.controller.match(/const customerId = scopeIdOf\(req\);/g) || []).length ===
+    4 &&
+    (SRC.controller.match(/if \(!customerId\) return denyUnlinked\(res\);/g) || [])
+      .length === 4,
+);
+
+check(
+  "۱۳.۳ · کنترلر: صفحه‌بندی سقف‌دار است (page/limit فقط، سقف ۵۰)",
+  /const PORTAL_PAGE_MAX = 50;/.test(SRC.controller) &&
+    /parsePagination\(query, \{/.test(SRC.controller) &&
+    /maxLimit: PORTAL_PAGE_MAX/.test(SRC.controller) &&
+    /const paging = \(query\) =>/.test(SRC.controller),
+);
+
+check(
+  "۱۳.۳ · کنترلر: خروجی بازدید بدون متن گزارش و بدون مسیر فایل است",
+  !/report_text|file_path|VisitReportAttachment/.test(SRC.controller),
+);
+
+check(
+  "۱۳.۳ · کنترلر: نام سالن با کوئری دومِ اسکوپ‌شده می‌آید (بدون include)",
+  /id: \{ \[Op\.in\]: hallIds \}/.test(SRC.controller) &&
+    !/include:\s*\[/.test(SRC.controller),
+);
+
+check(
+  "۱۳.۳ · کنترلر: هر فهرست فقط ستون‌های حداقلی را انتخاب می‌کند",
+  (SRC.controller.match(/attributes: \[/g) || []).length >= 4 &&
+    !/attributes:\s*\{\s*exclude/.test(SRC.controller),
+);
+
+// ============================================================
+// ۱۰-ب) اجرای واقعی: «تزریق اجباری» فیلتر در میان‌افزار
+// ------------------------------------------------------------
+// ریسکی که ۱۳.۳ می‌بندد: کنترلرِ فهرست، فیلتر را فقط وقتی می‌سازد که
+// پارامتر وجود داشته باشد؛ اگر مشتری پارامتر نفرستد باید middleware
+// شناسهٔ خودش را تزریق کند، وگرنه دادهٔ همهٔ مشتریان برمی‌گردد.
+// ============================================================
+check(
+  "۱۳.۳ · میان‌افزار: بدون پارامتر کلاینت، شناسهٔ خودِ مشتری تزریق می‌شود (query)",
+  (() => {
+    const req = fakeReq({ id: 7, role: "customer", customer_id: "12" });
+    const out = run(
+      scopeMw.enforceSelfCustomer({ source: "query", key: "customer_id" }),
+      req,
+    );
+    return out.nexted === true && req.query.customer_id === "12";
+  })(),
+);
+
+check(
+  "۱۳.۳ · میان‌افزار: تزریق در بدنه (body) هم انجام می‌شود",
+  (() => {
+    const req = fakeReq(
+      { id: 7, role: "customer", customer_id: 12 },
+      { body: {} },
+    );
+    const out = run(
+      scopeMw.enforceSelfCustomer({ source: "body", key: "customer_id" }),
+      req,
+    );
+    return out.nexted === true && req.body.customer_id === "12";
+  })(),
+);
+
+check(
+  "۱۳.۳ · میان‌افزار: پارامتر مشتریِ دیگر جایگزین نمی‌شود (۴۰۳، بدون تزریق)",
+  (() => {
+    const req = fakeReq({ id: 7, role: "customer", customer_id: 12 }, {
+      query: { customer_id: "99" },
+    });
+    const out = run(
+      scopeMw.enforceSelfCustomer({ source: "query", key: "customer_id" }),
+      req,
+    );
+    return (
+      out.status === 403 &&
+      out.nexted === false &&
+      req.query.customer_id === "99" &&
+      req.customerScopeId === undefined
+    );
+  })(),
+);
+
+// ============================================================
+// ۱۰-ج) فرانت‌اند: تب‌های پورتال و مقصد ورود مشتری
+// ============================================================
+check(
+  "۱۳.۳ · فرانت: چهار اندپوینت PORTAL در ثابت‌های API ثبت شده‌اند",
+  ["HALLS", "FLOCKS", "WEEKS", "VISITS"].every((key) =>
+    new RegExp(`${key}:\\s*"/portal/${key.toLowerCase()}"`).test(SRC.apiConst),
+  ),
+);
+
+check(
+  "۱۳.۳ · فرانت: لایهٔ API چهار متد دارد و هیچ شناسهٔ مشتری نمی‌فرستد",
+  ["getHalls", "getFlocks", "getWeeks", "getVisits"].every((name) =>
+    new RegExp(`${name}\\(params = \\{\\}\\)`).test(SRC.portalApi),
+  ) &&
+    !/customer_id|\?id=|PORTAL\.\w+\s*,\s*\{\s*customer/.test(SRC.portalApi),
+);
+
+check(
+  "۱۳.۳ · فرانت: سرویس تب‌ها را تنبل بارگذاری می‌کند و در unlinked می‌بندد",
+  /SECTION_CONF/.test(SRC.portalService) &&
+    /async loadSection\(key/.test(SRC.portalService) &&
+    /activateTab\(/.test(SRC.portalService) &&
+    /setTabsEnabled\(false\)/.test(SRC.portalService),
+);
+
+check(
+  "۱۳.۳ · صفحهٔ پورتال: تب‌ها و پنل‌های چهارگانه (فقط خواندنی) موجودند",
+  [
+    'id="portalTabs"',
+    'id="portalTabPanels"',
+    'data-portal-tab="halls"',
+    'data-portal-tab="flocks"',
+    'data-portal-tab="weeks"',
+    'data-portal-tab="visits"',
+    'id="portalHallsList"',
+    'id="portalFlocksList"',
+    'id="portalWeeksList"',
+    'id="portalVisitsList"',
+    'id="portalHallsPager"',
+  ].every((needle) => SRC.portalHtml.includes(needle)),
+);
+
+check(
+  "۱۳.۳ · رندرر: صفحه‌بندی فقط «نمایش بیشتر» است (بدون فرم/ثبت)",
+  /export const renderPager/.test(SRC.portalRenderer) &&
+    /data-portal-more=/.test(SRC.portalRenderer) &&
+    !/<form|type="submit"/.test(SRC.portalRenderer),
+);
+
+check(
+  "۱۳.۳ · ورود: مقصد نقش مشتری «/portal» است (بدون ?id= در URL)",
+  /return "\/portal";/.test(SRC.loginOtp) &&
+    !/\/customer-info\?id=/.test(SRC.loginOtp),
+);
+
+check(
+  "۱۳.۳ · app.service: بازگشتِ ردِ دسترسی برای مشتری پورتال است",
+  /isCustomerSession\(\)/.test(SRC.appService) &&
+    /afterDenyLanding\(\)/.test(SRC.appService) &&
+    /this\.isCustomerSession\(\) \? "\/portal" : "\/index\.html"/.test(
+      SRC.appService,
+    ),
+);
+
+check(
+  "۱۳.۳ · auth.service: ریدایرکت نقش مشتری از صفحات کارکنان به /portal است",
+  (() => {
+    const authSrc = read("Frontend/src/core/services/auth.service.js");
+    return (
+      (authSrc.match(/window\.location\.href = "\/portal";/g) || []).length >= 2 &&
+      !/user\?\.role === "customer"\) \{\s*window\.location\.href = "\/customer-info"/.test(
+        authSrc,
+      )
+    );
+  })(),
+);
+
+check(
+  "۱۳.۳ · مستندات: docs/REVIEW-WAVE-13.3.md موجود و کامل است",
+  exists(FILES.docs133) &&
+    /\/api\/portal\/halls/.test(read(FILES.docs133)) &&
+    /landingForRole/.test(read(FILES.docs133)),
 );
 
 // ============================================================

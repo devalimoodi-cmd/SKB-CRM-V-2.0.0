@@ -21,22 +21,19 @@ const { getTokenExpiryDate } = require("../utils/token");
 const { successResponse, errorResponse } = require("../utils/response");
 
 // صفحهٔ مقصد بر اساس نقش — یک منبع حقیقت برای فرانت‌اند
-// (در فاز ۱۳.۳ مشتری به «/portal» منتقل می‌شود)
 const landingForRole = (role, user = null) => {
   if (role === "super_admin" || role === "admin") return "/admin";
   if (role === "sub_admin" || role === "expert") return "/";
 
-  // ✅ فاز ۱۳.۰: حساب مشتری مستقیم به پروندهٔ خودش می‌رود
-  //    (پیش‌تر «/customer-info» بدون id بود و صفحه پیام
-  //     «شناسه مشتری یافت نشد» می‌داد)
-  const customerId = Number(user?.customer_id);
-  if (Number.isInteger(customerId) && customerId > 0) {
-    return `/customer-info?id=${customerId}`;
-  }
-
-  // حساب بدون پرونده (پیوند داده نشده) ⇒ همان صفحهٔ قبلی،
-  // فرانت‌اند پیام روشنِ «حساب متصل نیست» را نشان می‌دهد.
-  return "/customer-info";
+  // ✅ فاز ۱۳.۳: نقش مشتری همیشه به «پورتال» می‌رود.
+  //    پیش از این (۱۳.۰–۱۳.۲) به صفحهٔ پروندهٔ مشتری با شناسه در URL
+  //    می‌رفت؛ پورتال جایش را گرفت چون:
+  //      ۱) شناسهٔ پرونده دیگر در URL نیست ⇒ هیچ ?id= ای برای دستکاری نیست
+  //      ۲) حساب بدون پرونده هم مقصد روشن دارد (پیام «متصل نشده») و
+  //         در صفحهٔ خالی گیر نمی‌کند
+  //    ⚠️ پارامتر user عمداً در امضا می‌ماند (قرارداد فرانت/گاردها)؛
+  //       شناسهٔ پرونده در URL گذاشته نمی‌شود.
+  return "/portal";
 };
 
 // پیام‌های فارسی دلایل شکست (بدون افشای اطلاعات حساس)

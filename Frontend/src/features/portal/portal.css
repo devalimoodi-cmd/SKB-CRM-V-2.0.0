@@ -287,4 +287,132 @@
   .portal-sections {
     grid-template-columns: repeat(3, 1fr);
   }
+
+/* ===== تب‌های دادهٔ کامل (فاز ۱۳.۳) =====
+   فقط نمایش: تب‌ها یک GET می‌فرستند و «نمایش بیشتر» صفحهٔ بعد را. */
+.portal-tabs-block {
+  margin-top: 18px;
+}
+
+.portal-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.portal-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  font-size: 0.85rem;
+  font-family: inherit;
+  color: var(--text-gray);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.portal-tab i {
+  color: var(--primary);
+}
+
+.portal-tab:hover:not(:disabled) {
+  border-color: var(--primary);
+  color: var(--text-dark);
+}
+
+.portal-tab.is-active {
+  background: var(--primary-soft);
+  border-color: var(--primary);
+  color: var(--text-dark);
+  font-weight: 600;
+}
+
+.portal-tab:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.portal-tabpanel[hidden] {
+  display: none;
+}
+
+.portal-tab__status:empty {
+  display: none;
+}
+
+.portal-tab__status .portal-notice {
+  margin: 12px;
+}
+
+.portal-tab__loading {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  font-size: 0.82rem;
+  color: var(--text-gray);
+}
+
+.portal-row__hall {
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--text-light);
+}
+
+/* ===== صفحه‌بندی «نمایش بیشتر» ===== */
+.portal-list__pager:empty {
+  display: none;
+}
+
+.portal-pager {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 12px 16px 16px;
+}
+
+.portal-more {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  font-size: 0.82rem;
+  font-family: inherit;
+  color: var(--primary);
+  background: var(--primary-soft);
+  border: 1px solid var(--primary);
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.portal-more:hover {
+  background: var(--primary);
+  color: var(--text-inverse);
+}
+
+.portal-pager__count,
+.portal-pager__end {
+  margin: 0;
+  padding: 12px 16px 16px;
+  font-size: 0.78rem;
+  color: var(--text-light);
+}
+
+.portal-pager__count {
+  padding: 0;
+}
+
+@media (min-width: 768px) {
+  .portal-tab {
+    font-size: 0.9rem;
+  }
+}
+
 }
