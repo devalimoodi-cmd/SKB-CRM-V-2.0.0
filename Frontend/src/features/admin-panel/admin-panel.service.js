@@ -35,6 +35,10 @@ class AdminPanelService {
     this.suggestionCounts = {};
     this.activeSuggestionId = null;
     this.suggestionsPolling = null;
+    // ✅ فاز ۱۳.۶ — صف «درخواست‌های ثبت‌نام» (فهرست + درخواست در حال بررسی)
+    this.registrations = [];
+    this.reviewingRegistration = null;
+    this.reviewMode = null;
     this.initialized = false;
     // ✅ لودر سیستمی (تنظیمات سیستم)
     this.loaderStyle = "classic";
@@ -63,6 +67,8 @@ class AdminPanelService {
 
     this.setupEvents();
     this.setupSuggestions();
+    // ✅ فاز ۱۳.۶ — رویدادهای صف ثبت‌نام + بج «در انتظار تأیید»
+    this.setupRegistrationQueue();
     this.loadSystemSettings();
     this.loadSuggestionCounts();
     this.initialized = true;
@@ -149,6 +155,59 @@ class AdminPanelService {
 
     // ✅ لودر سیستمی (کلاسیک / لوگوی ستاره کیان)
     await this.loadLoaderStyle();
+
+    // ✅ فاز ۱۳.۶ — پرچم «ثبت‌نام عمومی» (صفحهٔ /register)
+    await this.loadPublicRegisterSetting();
+  }
+
+  // ===== ✅ فاز ۱۳.۶ — ثبت‌نام عمومی: خواندن + بایند یک‌بارهٔ سوییچ =====
+  async loadPublicRegisterSetting() {
+    const toggle = document.getElementById("publicRegisterToggle");
+    const stateEl = document.getElementById("publicRegisterState");
+    if (!toggle) return;
+
+    try {
+      const res = await adminPanelApi.getSettings();
+      const enabled = res?.success ? res.data?.registration_enabled === true : false;
+      toggle.checked = enabled;
+      if (stateEl) stateEl.textContent = enabled ? "فعال" : "غیرفعال";
+
+      if (!toggle.dataset.bound) {
+        toggle.addEventListener("change", () => this.savePublicRegister(toggle));
+        toggle.dataset.bound = "1";
+      }
+    } catch (error) {
+      console.warn("⚠️ خطا در دریافت تنظیم ثبت‌نام عمومی:", error.message);
+      if (stateEl) stateEl.textContent = "نامشخص";
+    }
+  }
+
+  // ذخیرهٔ فوری پرچم ثبت‌نام عمومی (هم‌الگوی auto_welcome_sms)
+  async savePublicRegister(toggle) {
+    const stateEl = document.getElementById("publicRegisterState");
+    const newValue = toggle.checked;
+    const previous = !newValue;
+    toggle.disabled = true;
+    try {
+      const res = await adminPanelApi.updateSetting("registration_enabled", newValue);
+      if (res?.success) {
+        if (stateEl) stateEl.textContent = newValue ? "فعال" : "غیرفعال";
+        notificationService.success(
+          newValue
+            ? "✅ ثبت‌نام عمومی فعال شد؛ لینک «ثبت‌نام مشتری» در صفحهٔ ورود نمایش داده می‌شود"
+            : "ثبت‌نام عمومی غیرفعال شد؛ صفحهٔ /register پیام «بسته است» نشان می‌دهد",
+        );
+      } else {
+        toggle.checked = previous;
+        notificationService.error(res?.message || "خطا در ذخیره تنظیم ثبت‌نام عمومی");
+      }
+    } catch (error) {
+      console.error("❌ Error saving registration_enabled:", error);
+      toggle.checked = previous;
+      notificationService.error(error.message || "خطا در ذخیره تنظیم ثبت‌نام عمومی");
+    } finally {
+      toggle.disabled = false;
+    }
   }
 
   // ===== لودر سیستمی: خواندن تنظیم + ساخت پیش‌نمایش‌ها =====
@@ -724,6 +783,8 @@ class AdminPanelService {
       // فاز ۱۲.۳ — «فعالیت کاربران» (کلید منو جدا از کلید محتوایی
       // users.activity.view است که سرور روی /api/activity اعمال می‌کند)
       "activity-log": "admin.menu.activity",
+      // فاز ۱۳.۶ — «درخواست‌های ثبت‌نام» (کلید محتوایی: users.registrations.view)
+      "registration-requests": "admin.menu.registrations",
     };
   }
 
@@ -773,6 +834,11 @@ class AdminPanelService {
         //    ⚠️ هیچ pollingای نداریم؛ مدیر با دکمهٔ «به‌روزرسانی» تازه می‌کند
         this.stopSuggestionsPolling();
         await this.initActivityLogManager();
+        break;
+      case "registration-requests":
+        // ✅ «درخواست‌های ثبت‌نام» (فاز ۱۳.۶) — صف تأیید مشتریان
+        this.stopSuggestionsPolling();
+        await this.loadRegistrationRequests();
         break;
       default:
         console.log("📌 بخش:", menuId);
@@ -1537,6 +1603,264 @@ class AdminPanelService {
     if (this.suggestionsPolling) {
       clearInterval(this.suggestionsPolling);
       this.suggestionsPolling = null;
+    }
+  }
+
+  // ============================================================
+  // ✅ موج ۱۳.۶ — «درخواست‌های ثبت‌نام» (صف تأیید)
+  // ------------------------------------------------------------
+  // • فهرست/شمارش: users.registrations.view  (سرور هم همین را می‌سنجد)
+  // • تأیید/رد: users.registrations.review + (تأیید) users.customer.link
+  // • تأیید بدون پروندهٔ مشتری ارسال **نمی‌شود** (دکمه غیرفعال/پیام روشن)
+  // ============================================================
+
+  setupRegistrationQueue() {
+    document
+      .getElementById("regRefreshBtn")
+      ?.addEventListener("click", () => this.loadRegistrationRequests());
+
+    document
+      .getElementById("regStatusFilter")
+      ?.addEventListener("change", () => this.loadRegistrationRequests());
+
+    // مودال بررسی (تأیید/رد)
+    document
+      .getElementById("regReviewCloseBtn")
+      ?.addEventListener("click", () => this.closeRegistrationReview());
+    document
+      .getElementById("regApproveCancelBtn")
+      ?.addEventListener("click", () => this.closeRegistrationReview());
+    document
+      .getElementById("regRejectCancelBtn")
+      ?.addEventListener("click", () => this.closeRegistrationReview());
+    document
+      .getElementById("regApproveBtn")
+      ?.addEventListener("click", () => this.confirmRegistrationApprove());
+    document
+      .getElementById("regRejectBtn")
+      ?.addEventListener("click", () => this.confirmRegistrationReject());
+
+    // جستجوی زندهٔ پروندهٔ مشتری در مودال تأیید
+    let searchTimer = null;
+    document.getElementById("regCustomerSearch")?.addEventListener("input", (event) => {
+      const value = event.target.value.trim();
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(() => this.loadRegistrationCustomerOptions(value), 400);
+    });
+
+    // بج تعداد در انتظار تأیید (بی‌صدا اگر مجوز نباشد)
+    this.refreshRegistrationsBadge();
+  }
+
+  // بج «در انتظار تأیید» روی منوی سایدبار
+  async refreshRegistrationsBadge() {
+    const badge = document.getElementById("registrationsMenuBadge");
+    if (!badge) return;
+
+    if (permissionService.hasData() && !permissionService.can("users.registrations.view")) {
+      badge.style.display = "none";
+      return;
+    }
+
+    try {
+      const response = await adminPanelApi.getRegistrationPendingCount();
+      const count = Number(response?.data?.count || 0);
+      badge.textContent = String(count);
+      badge.style.display = count > 0 ? "" : "none";
+    } catch (error) {
+      // بی‌صدا: نبود بج نباید تجربهٔ پنل را خراب کند
+      console.warn("⚠️ شمارش درخواست‌های ثبت‌نام ناموفق بود:", error?.message || error);
+    }
+  }
+
+  // فهرست صف بر اساس فیلتر وضعیت
+  async loadRegistrationRequests() {
+    const container = document.getElementById("registrationQueueContainer");
+    const filter = document.getElementById("regStatusFilter")?.value || "pending";
+    const params = { limit: 50 };
+    if (filter && filter !== "all") params.status = filter;
+
+    if (container) {
+      container.innerHTML = `
+        <div class="regq-empty">
+          <i class="fas fa-spinner fa-spin" style="font-size:24px;"></i>
+          <p style="margin:8px 0 0;font-size:13px;">در حال بارگذاری درخواست‌ها…</p>
+        </div>`;
+    }
+
+    try {
+      const response = await adminPanelApi.getRegistrations(params);
+      if (!response?.success) {
+        notificationService.error(response?.message || "دریافت درخواست‌های ثبت‌نام ناموفق بود");
+        return;
+      }
+
+      // پاسخ: { items: [...], total, page, limit, status }
+      const data = response.data || {};
+      this.registrations = Array.isArray(data.items) ? data.items : [];
+      adminPanelRenderer.renderRegistrationRequests(this.registrations);
+      this.refreshRegistrationsBadge();
+    } catch (error) {
+      console.error("❌ Error loading registration requests:", error);
+      if (container) {
+        container.innerHTML = `
+          <div class="regq-empty">
+            <i class="fas fa-triangle-exclamation" style="font-size:24px;"></i>
+            <p style="margin:8px 0 0;font-size:13px;">${escapeHtml(
+              error.message || "خطا در دریافت درخواست‌ها",
+            )}</p>
+          </div>`;
+      }
+    }
+  }
+
+  // بازکردن مودال بررسی در یکی از دو حالت approve / reject
+  openRegistrationReview(id, mode = "approve") {
+    const item = (this.registrations || []).find((row) => Number(row.id) === Number(id));
+    if (!item) {
+      notificationService.error("درخواست انتخاب‌شده یافت نشد؛ فهرست را تازه کنید");
+      return;
+    }
+
+    this.reviewingRegistration = item;
+    this.reviewMode = mode === "reject" ? "reject" : "approve";
+
+    const modal = document.getElementById("regReviewModal");
+    const approveBlock = document.getElementById("regApproveBlock");
+    const rejectBlock = document.getElementById("regRejectBlock");
+    const title = document.getElementById("regReviewTitle");
+    const summary = document.getElementById("regReviewSummary");
+
+    const fullName = `${item.first_name || ""} ${item.last_name || ""}`.trim();
+    if (summary) {
+      summary.innerHTML = `
+        <div class="regq-summary-name">${escapeHtml(fullName || item.username || "بدون نام")}</div>
+        <div class="regq-summary-meta">
+          <span><i class="fas fa-user"></i> ${escapeHtml(item.username || "-")}</span>
+          <span><i class="fas fa-mobile-screen"></i> ${escapeHtml(item.mobile_number || "-")}</span>
+          <span><i class="fas fa-envelope"></i> ${escapeHtml(item.email || "-")}</span>
+        </div>
+        ${
+          item.requested_customer_code
+            ? `<div class="regq-summary-meta"><span><i class="fas fa-id-card"></i> پروندهٔ ادعاشده: ${escapeHtml(
+                item.requested_customer_code,
+              )}</span></div>`
+            : ""
+        }`;
+    }
+
+    if (title) {
+      title.textContent =
+        this.reviewMode === "approve" ? "تأیید درخواست ثبت‌نام" : "رد درخواست ثبت‌نام";
+    }
+    if (approveBlock) approveBlock.hidden = this.reviewMode !== "approve";
+    if (rejectBlock) rejectBlock.hidden = this.reviewMode !== "reject";
+
+    // پاک‌کردن حالت قبلی
+    const reason = document.getElementById("regRejectReason");
+    if (reason) reason.value = "";
+    const search = document.getElementById("regCustomerSearch");
+    if (search) search.value = "";
+    const select = document.getElementById("regCustomerSelect");
+    if (select) select.value = "";
+
+    if (modal) {
+      modal.classList.add("active");
+      document.body.style.overflow = "hidden";
+    }
+
+    // فهرست پرونده‌های مشتریان فقط برای حالت تأیید (تنبل)
+    if (this.reviewMode === "approve") this.loadRegistrationCustomerOptions("");
+  }
+
+  closeRegistrationReview() {
+    const modal = document.getElementById("regReviewModal");
+    if (modal) modal.classList.remove("active");
+    document.body.style.overflow = "";
+    this.reviewingRegistration = null;
+    this.reviewMode = null;
+  }
+
+  // گزینه‌های پروندهٔ مشتری با جستجوی زنده (هم‌منبع فرم کاربر)
+  async loadRegistrationCustomerOptions(search = "") {
+    try {
+      const response = await adminPanelApi.getCustomers({
+        limit: 50,
+        search: search || undefined,
+      });
+      if (!response?.success) return;
+
+      const data = response.data;
+      const customers = Array.isArray(data) ? data : data?.customers || [];
+      adminPanelRenderer.renderRegistrationCustomerOptions(customers);
+    } catch (error) {
+      console.warn("⚠️ دریافت فهرست مشتریان برای تأیید ناموفق بود:", error?.message || error);
+    }
+  }
+
+
+  // تأیید: customer_id اجباری است
+  async confirmRegistrationApprove() {
+    const item = this.reviewingRegistration;
+    if (!item) return;
+
+    const customerId = Number(document.getElementById("regCustomerSelect")?.value || 0);
+    if (!Number.isInteger(customerId) || customerId <= 0) {
+      notificationService.error("برای تأیید، انتخاب پروندهٔ مشتری الزامی است");
+      return;
+    }
+
+    const button = document.getElementById("regApproveBtn");
+    if (button) button.disabled = true;
+
+    try {
+      const response = await adminPanelApi.approveRegistration(item.id, customerId);
+      if (response?.success) {
+        notificationService.success(
+          response.message || "درخواست تأیید شد و حساب مشتری ساخته شد",
+        );
+        this.closeRegistrationReview();
+        await this.loadRegistrationRequests();
+        await this.loadUsers();
+      } else {
+        notificationService.error(response?.message || "تأیید درخواست ناموفق بود");
+      }
+    } catch (error) {
+      console.error("❌ Error approving registration:", error);
+      notificationService.error(error.message || "خطا در تأیید درخواست");
+    } finally {
+      if (button) button.disabled = false;
+    }
+  }
+
+  // رد: دلیل اجباری است
+  async confirmRegistrationReject() {
+    const item = this.reviewingRegistration;
+    if (!item) return;
+
+    const reason = String(document.getElementById("regRejectReason")?.value || "").trim();
+    if (reason.length < 3) {
+      notificationService.error("دلیل رد را وارد کنید (حداقل ۳ کاراکتر)");
+      return;
+    }
+
+    const button = document.getElementById("regRejectBtn");
+    if (button) button.disabled = true;
+
+    try {
+      const response = await adminPanelApi.rejectRegistration(item.id, reason);
+      if (response?.success) {
+        notificationService.success(response.message || "درخواست ثبت‌نام رد شد");
+        this.closeRegistrationReview();
+        await this.loadRegistrationRequests();
+      } else {
+        notificationService.error(response?.message || "رد درخواست ناموفق بود");
+      }
+    } catch (error) {
+      console.error("❌ Error rejecting registration:", error);
+      notificationService.error(error.message || "خطا در رد درخواست");
+    } finally {
+      if (button) button.disabled = false;
     }
   }
 

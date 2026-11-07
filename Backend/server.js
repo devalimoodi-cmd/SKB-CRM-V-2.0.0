@@ -26,6 +26,8 @@ const {
 
 // Routes
 const customerRegistrationRoutes = require("./routes/customerRegistrationRoutes");
+// ✅ «ثبت‌نام عمومی مشتری + صف تأیید» (فاز ۱۳.۶)
+const registrationRoutes = require("./routes/registrationRoutes");
 const cityRoutes = require("./routes/cityRoutes");
 const userRoutes = require("./routes/userRoutes");
 const unitRoutes = require("./routes/unitRoutes");
@@ -339,6 +341,10 @@ connectDB();
 // مسیرهای API
 // ============================================
 app.use("/api/customers", customerRegistrationRoutes);
+// ✅ «ثبت‌نام عمومی مشتری + صف تأیید» (فاز ۱۳.۶)
+//    عمومی: GET /api/registrations/config و POST /api/registrations
+//    مدیریت: فهرست/شمارش/تأیید/رد با کلیدهای users.registrations.*
+app.use("/api/registrations", registrationRoutes);
 app.use("/api/cities", cityRoutes);
 app.use("/api/users", userRoutes);
 // ✅ «حضور کاربران» (Presence): heartbeat / خروج صریح / خلاصهٔ آنلاین‌ها

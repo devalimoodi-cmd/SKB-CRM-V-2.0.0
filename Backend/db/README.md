@@ -264,11 +264,13 @@ GET /api/server-status
 |---|---|---|---|
 | `auto_welcome_sms` | boolean | `true` | ارسال خودکار پیامک خوش‌آمدگویی بعد از ثبت مشتری |
 | `loader_style` | enum (`classic` / `logo`) | `classic` | لودر سیستمی: دایرهٔ چرخان یا لوگوی ستاره کیان |
+| `registration_enabled` | boolean | `false` | **ثبت‌نام عمومی مشتری** (`/register` + `POST /api/registrations`) — تا روشن نشود، هر دو بسته‌اند (فاز ۱۳.۶) |
+
 
 اندپوینت‌ها:
 - `GET /api/settings` → همهٔ تنظیمات (نیاز به ورود)
 - `PUT /api/settings/:key` → تغییر یک تنظیم (مدیر میانی/مدیر اصلی/سوپر ادمین)
-- `GET /api/public/ui-settings` → **عمومی (بدون ورود)** فقط کلیدهای نمایشی مثل `loader_style`
+- `GET /api/public/ui-settings` → **عمومی (بدون ورود)** فقط کلیدهای نمایشی مثل `loader_style` و `registration_enabled`
 
 > ⚠️ هر کلید جدید که به لیست عمومی (`PUBLIC_KEYS`) اضافه می‌شود باید بی‌خطر و نمایشی باشد.
 > مقادیر نامعتبر (مثل `loader_style="x"`) خودکار به مقدار پیش‌فرض برمی‌گردند.

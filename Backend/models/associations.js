@@ -51,6 +51,9 @@ const CustomerType = require("./CustomerType");
 const UserSession = require("./UserSession");
 // ✅ «ردّ فعالیت» (فاز ۱۲.۲)
 const ActivityLog = require("./ActivityLog");
+// ✅ «درخواست‌های ثبت‌نام» (فاز ۱۳.۶) — بدون association:
+//    تا تأیید مدیر هیچ ردیفی در users ساخته نمی‌شود؛ پیوند «نرم» است.
+require("./RegistrationRequest");
 
 // ================================================================
 // ✅ ارتباطات با CASCADE برای حذف آبشاری

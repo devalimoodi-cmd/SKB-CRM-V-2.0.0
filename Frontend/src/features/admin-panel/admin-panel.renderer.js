@@ -379,6 +379,117 @@ export const adminPanelRenderer = {
     return map[status] || status;
   },
 
+  // ✅ موج ۱۳.۶ — «درخواست‌های ثبت‌نام»: رندر صف
+  // ------------------------------------------------------------
+  // ⚠️ همهٔ متن‌ها با escapeHtml می‌آیند (دادهٔ کاربر مهمان و غیرقابل‌اعتماد).
+  // ⚠️ دکمه‌ها فقط با مجوز تأیید نمایش داده می‌شوند (fail-open هم‌الگوی پنل).
+  canReviewRegistrations() {
+    const service = typeof window === "undefined" ? null : window.permissionService;
+    if (!service || typeof service.can !== "function") return false;
+    if (typeof service.hasData === "function" && service.hasData()) {
+      return service.can("users.registrations.review");
+    }
+    return true;
+  },
+
+  registrationStatusBadge(status) {
+    const map = {
+      pending: { label: "در انتظار تأیید", className: "pending" },
+      approved: { label: "تأییدشده", className: "active" },
+      rejected: { label: "ردشده", className: "inactive" },
+    };
+    const item = map[status] || { label: status || "-", className: "inactive" };
+    return `<span class="regq-badge ${item.className}">${escapeHtml(item.label)}</span>`;
+  },
+
+  renderRegistrationRequests(items = []) {
+    const container = document.getElementById("registrationQueueContainer");
+    if (!container) return;
+
+    if (!Array.isArray(items) || items.length === 0) {
+      container.innerHTML = `
+        <div class="regq-empty">
+          <i class="fas fa-inbox" style="font-size:26px;"></i>
+          <p style="margin:8px 0 0;font-size:13px;">درخواستی برای نمایش نیست.</p>
+        </div>`;
+      return;
+    }
+
+    const canReview = this.canReviewRegistrations();
+
+    const rows = items
+      .map((item) => {
+        const fullName = `${item.first_name || ""} ${item.last_name || ""}`.trim();
+        const created = item.created_at ? formatDate(item.created_at) : "-";
+        const customerCode = item.requested_customer_code || "-";
+        const note = item.note ? escapeHtml(item.note) : "—";
+        const rejectReason = item.reject_reason
+          ? `<div class="regq-reason"><i class="fas fa-circle-info"></i> ${escapeHtml(
+              item.reject_reason,
+            )}</div>`
+          : "";
+
+        const actions = canReview && item.status === "pending"
+          ? `<div class="regq-row-actions">
+               <button type="button" class="regq-icon-btn approve" title="تأیید و ساخت حساب"
+                 onclick="window.adminPanelService?.openRegistrationReview(${Number(item.id)}, 'approve')">
+                 <i class="fas fa-circle-check"></i>
+               </button>
+               <button type="button" class="regq-icon-btn reject" title="رد درخواست"
+                 onclick="window.adminPanelService?.openRegistrationReview(${Number(item.id)}, 'reject')">
+                 <i class="fas fa-ban"></i>
+               </button>
+             </div>`
+          : `<span class="regq-muted">—</span>`;
+
+        return `
+          <div class="regq-row" data-registration-id="${Number(item.id)}">
+            <div class="regq-main">
+              <div class="regq-name">
+                ${escapeHtml(fullName || item.username || "بدون نام")}
+                ${this.registrationStatusBadge(item.status)}
+              </div>
+              <div class="regq-meta">
+                <span><i class="fas fa-user"></i> ${escapeHtml(item.username || "-")}</span>
+                <span><i class="fas fa-mobile-screen"></i> ${escapeHtml(
+                  item.mobile_masked || item.mobile_number || "-",
+                )}</span>
+                <span><i class="fas fa-envelope"></i> ${escapeHtml(item.email || "-")}</span>
+              </div>
+              <div class="regq-meta">
+                <span><i class="fas fa-id-card"></i> پروندهٔ ادعاشده: ${escapeHtml(customerCode)}</span>
+                <span><i class="fas fa-calendar"></i> ${escapeHtml(created)}</span>
+              </div>
+              <div class="regq-note"><i class="fas fa-comment-dots"></i> ${note}</div>
+              ${rejectReason}
+            </div>
+            ${actions}
+          </div>`;
+      })
+      .join("");
+
+    container.innerHTML = `<div class="regq-list">${rows}</div>`;
+  },
+
+  // پرکردن گزینه‌های «پروندهٔ مشتری» در مودال تأیید
+  renderRegistrationCustomerOptions(customers = []) {
+    const select = document.getElementById("regCustomerSelect");
+    if (!select) return;
+
+    const previous = select.value;
+    select.innerHTML = '<option value="">— انتخاب پروندهٔ مشتری (الزامی) —</option>';
+
+    (customers || []).forEach((customer) => {
+      if (!customer?.id) return;
+      const option = document.createElement("option");
+      option.value = String(customer.id);
+      option.textContent = this.customerOptionLabel(customer);
+      select.add(option);
+    });
+
+    if (previous) select.value = previous;
+  },
+
   escapeHtml(text) {
     const div = document.createElement("div");
     div.textContent = text;

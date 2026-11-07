@@ -611,9 +611,10 @@ check(
 
 check(
   "کاتالوگ: شمارش کلیدها/گروه‌ها با permissions-test هم‌خوان است",
-  catalog.TOTAL_PERMISSIONS === 173 &&
+  // ✅ فاز ۱۳.۶: سه کلید صف ثبت‌نام (۱۷۳ ⇒ ۱۷۶)
+  catalog.TOTAL_PERMISSIONS === 176 &&
     catalog.PERMISSION_GROUPS.length === 17 &&
-    /TOTAL_PERMISSIONS === 173 && catalog\.PERMISSION_GROUPS\.length === 17/.test(
+    /TOTAL_PERMISSIONS === 176 && catalog\.PERMISSION_GROUPS\.length === 17/.test(
       SRC.permissionsTest,
     ),
   `keys=${catalog.TOTAL_PERMISSIONS} groups=${catalog.PERMISSION_GROUPS.length}`,

@@ -76,6 +76,8 @@ const EXPECTED_TABLES = [
   "activity_logs",
   // ✅ «چالش‌های ورود» (فاز ۱۳.۱)
   "login_challenges",
+  // ✅ «درخواست‌های ثبت‌نام» (فاز ۱۳.۶)
+  "registration_requests",
   "SequelizeMeta",
 ];
 
@@ -232,6 +234,28 @@ const EXPECTED_COLUMNS = {
     "created_at",
     "updated_at",
   ],
+  // ✅ «درخواست‌های ثبت‌نام» (فاز ۱۳.۶)
+  //    ⚠️ هیچ ستون «password» خامی وجود ندارد — فقط password_hash.
+  //    اگر روزی کسی ستون رمز خام اضافه کرد، همین لیست آن را آشکار می‌کند.
+  registration_requests: [
+    "first_name",
+    "last_name",
+    "username",
+    "email",
+    "mobile_number",
+    "password_hash",
+    "requested_customer_code",
+    "note",
+    "status",
+    "reject_reason",
+    "reviewed_by",
+    "reviewed_at",
+    "created_user_id",
+    "ip",
+    "user_agent",
+    "created_at",
+    "updated_at",
+  ],
 };
 
 const EXPECTED_INDEXES = [
@@ -277,6 +301,11 @@ const EXPECTED_INDEXES = [
   "login_challenges_expires_at",
   // ✅ «پیوند حساب کاربر با پروندهٔ مشتری» (فاز ۱۳.۰)
   "users_customer_id_unique",
+  // ✅ «درخواست‌های ثبت‌نام» (فاز ۱۳.۶)
+  "registration_requests_pending_username_unique",
+  "registration_requests_pending_email_unique",
+  "registration_requests_pending_mobile_unique",
+  "registration_requests_status_created_at",
 ];
 
 const COUNT_TABLES = [
@@ -295,6 +324,8 @@ const COUNT_TABLES = [
   "activity_logs",
   // ✅ «چالش‌های ورود» (فاز ۱۳.۱)
   "login_challenges",
+  // ✅ «درخواست‌های ثبت‌نام» (فاز ۱۳.۶)
+  "registration_requests",
 ];
 
 // ============================================

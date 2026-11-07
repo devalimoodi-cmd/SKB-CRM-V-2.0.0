@@ -91,6 +91,12 @@ class AppService {
         requiresAuth: false,
         requiresAdmin: false,
       },
+      // ✅ فاز ۱۳.۶ — ثبت‌نام عمومی مشتری (پیش از ورود؛ بدون هیچ مجوزی)
+      register: {
+        title: "ثبت‌نام مشتری",
+        requiresAuth: false,
+        requiresAdmin: false,
+      },
     };
   }
 
@@ -302,6 +308,9 @@ class AppService {
       "/login.html": "login",
       "/setup-admin": "setup-admin",
       "/setup-admin.html": "setup-admin",
+      // ✅ فاز ۱۳.۶ — ثبت‌نام عمومی مشتری
+      "/register": "register",
+      "/register.html": "register",
       "/index.html": "dashboard",
       "/": "dashboard",
     };

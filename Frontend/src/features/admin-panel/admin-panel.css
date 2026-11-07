@@ -2122,3 +2122,257 @@
     }
 }
 
+
+/* ============================================================
+   ✅ موج ۱۳.۶ — «درخواست‌های ثبت‌نام» (صف تأیید)
+   ------------------------------------------------------------
+   ⚠️ همهٔ کلاس‌ها با پیشوند .regq- هستند تا با هیچ استایل موجودی
+      تداخل نکنند.
+   ============================================================ */
+
+.regq-card {
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--c-e8edf3, #e8edf3);
+  border-radius: 12px;
+  padding: 18px;
+}
+
+.regq-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--c-e8edf3, #e8edf3);
+  padding-bottom: 14px;
+  margin-bottom: 14px;
+}
+
+.regq-title {
+  margin: 0;
+  font-size: 15.5px;
+  color: var(--primary, #2c7a6e);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.regq-sub {
+  margin: 6px 0 0;
+  font-size: 12.5px;
+  line-height: 1.9;
+  color: var(--text-light, #94a3b8);
+}
+
+.regq-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.regq-select {
+  padding: 8px 10px;
+  border: 1.5px solid var(--gray-200, #e5e7eb);
+  border-radius: 9px;
+  font-size: 12.5px;
+  font-family: inherit;
+  background: var(--bg-surface-2, #f8fafc);
+  color: var(--text-dark, #1e293b);
+}
+
+.regq-btn {
+  padding: 8px 14px;
+  border: 1px solid var(--gray-200, #e5e7eb);
+  background: var(--bg-surface-2, #f8fafc);
+  color: var(--text-gray, #64748b);
+  border-radius: 9px;
+  font-size: 12.5px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.regq-btn:hover {
+  color: var(--primary, #2c7a6e);
+  border-color: var(--primary, #2c7a6e);
+}
+
+.regq-body {
+  max-height: 62vh;
+  overflow-y: auto;
+}
+
+.regq-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.regq-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid var(--c-e8edf3, #e8edf3);
+  border-radius: 10px;
+  padding: 12px 14px;
+  background: var(--bg-surface-2, #f8fafc);
+}
+
+.regq-main {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.regq-name {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text-dark, #1e293b);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+
+.regq-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--text-gray, #64748b);
+  margin-bottom: 4px;
+}
+
+.regq-meta i {
+  opacity: 0.7;
+  margin-inline-end: 3px;
+}
+
+.regq-note {
+  font-size: 12px;
+  color: var(--text-light, #94a3b8);
+  line-height: 1.8;
+  margin-top: 4px;
+  word-break: break-word;
+}
+
+.regq-reason {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--danger-deep);
+  background: var(--danger-soft);
+  border-radius: 8px;
+  padding: 6px 10px;
+}
+
+.regq-badge {
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 999px;
+  padding: 2px 9px;
+  border: 1px solid transparent;
+}
+
+.regq-badge.pending {
+  background: var(--warning-soft);
+  border-color: var(--warning-brd);
+  color: var(--warning-deep);
+}
+
+.regq-badge.active {
+  background: var(--success-soft);
+  border-color: var(--success-mist);
+  color: var(--success-deep);
+}
+
+.regq-badge.inactive {
+  background: var(--danger-soft);
+  border-color: var(--danger-mist);
+  color: var(--danger-deep);
+}
+
+.regq-row-actions {
+  display: flex;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+
+.regq-icon-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  border: 1px solid var(--gray-200, #e5e7eb);
+  background: var(--bg-surface, #fff);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.regq-icon-btn.approve {
+  color: var(--success-strong);
+}
+
+.regq-icon-btn.approve:hover {
+  border-color: var(--success-strong);
+  background: var(--success-soft);
+}
+
+.regq-icon-btn.reject {
+  color: var(--danger);
+}
+
+.regq-icon-btn.reject:hover {
+  border-color: var(--danger);
+  background: var(--danger-soft);
+}
+
+.regq-muted {
+  color: var(--text-light, #94a3b8);
+  font-size: 13px;
+}
+
+.regq-empty {
+  text-align: center;
+  color: var(--text-light, #94a3b8);
+  padding: 26px 10px;
+}
+
+.regq-summary {
+  background: var(--bg-surface-2, #f8fafc);
+  border: 1px solid var(--c-e8edf3, #e8edf3);
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+
+.regq-summary-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-dark, #1e293b);
+  margin-bottom: 6px;
+}
+
+.regq-summary-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--text-gray, #64748b);
+}
+
+.regq-hint {
+  margin: 10px 0 0;
+  font-size: 11.5px;
+  line-height: 1.9;
+  color: var(--text-light, #94a3b8);
+}
+
+@media (max-width: 640px) {
+  .regq-row {
+    flex-direction: column;
+  }
+
+  .regq-row-actions {
+    align-self: flex-end;
+  }
+}
+

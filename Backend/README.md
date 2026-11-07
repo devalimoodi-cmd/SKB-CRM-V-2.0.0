@@ -187,7 +187,7 @@ ALLOW_DB_TESTS=true npm run test:db   # چرخهٔ کامل ساخت→انتش�
 ### فایل‌های کلیدی
 | فایل | کار |
 |---|---|
-| `config/permissions.js` | **کاتالوگ مجوزها** (۱۶۴ کلید در ۱۶ گروه) + پیش‌فرض هر ۵ نقش + کلیدهای قفل‌شده |
+| `config/permissions.js` | **کاتالوگ مجوزها** (۱۷۶ کلید در ۱۷ گروه) + پیش‌فرض هر ۵ نقش + کلیدهای قفل‌شده |
 | `services/permissionService.js` | محاسبهٔ مجوز مؤثر + کش ۳۰ ثانیه‌ای + ذخیره + گزارش تغییرات |
 | `middleware/permissions.js` | `requirePermission("customers.edit")` (دارای حالت dry-run) |
 | `middleware/auth.js` | پس از احراز هویت، `req.user.permissions` را پر می‌کند |

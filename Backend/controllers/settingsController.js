@@ -17,11 +17,20 @@ const KEY_DEFS = {
     default: "classic",
     title: "لودر سیستمی (کلاسیک / لوگوی ستاره کیان)",
   },
+  // ✅ «ثبت‌نام عمومی» (فاز ۱۳.۶)
+  //    پیش‌فرض: بسته. تا مدیر روشن نکند، صفحهٔ /register و اندپوینت
+  //    POST /api/registrations هر دو پاسخ «ثبت‌نام بسته است» می‌دهند.
+  registration_enabled: {
+    type: "boolean",
+    default: false,
+    title: "ثبت‌نام عمومی مشتریان (صفحهٔ /register)",
+  },
 };
 
 // کلیدهایی که برای کاربران مهمان (بدون ورود) هم قابل خواندن‌اند
 // ⚠️ فقط تنظیمات نمایشی اینجا بیایند — هیچ دادهٔ حساسی نباید اضافه شود
-const PUBLIC_KEYS = ["loader_style"];
+// (registration_enabled فقط یک پرچم «باز/بسته» است، نه دادهٔ حساس)
+const PUBLIC_KEYS = ["loader_style", "registration_enabled"];
 
 const toStoredValue = (def, raw) => {
   if (def.type === "boolean") {
@@ -132,10 +141,31 @@ const getPublicSettings = async (req, res) => {
   }
 };
 
+// ================================================================
+// خواندن یک تنظیم (برای مصرف داخلی کنترلرهای دیگر)
+// ----------------------------------------------------------------
+// • اگر دیتابیس در دسترس نباشد یا ردیف نباشد، **پیش‌فرضِ تعریف‌شده**
+//   برگردانده می‌شود (fail-safe، بدون کرش).
+// • فاز ۱۳.۶: registrationController با همین تابع پرچم «ثبت‌نام باز است»
+//   را می‌خواند تا یک منبع حقیقت برای سرور و فرانت باشد.
+// ================================================================
+const readSetting = async (key) => {
+  const def = KEY_DEFS[key];
+  if (!def) return undefined;
+  try {
+    const row = await AppSetting.findOne({ where: { key } });
+    return toApiValue(def, row ? row.value : String(def.default));
+  } catch (error) {
+    console.warn(`⚠️ خواندن تنظیم «${key}» ناموفق بود، پیش‌فرض اعمال شد:`, error.message);
+    return def.default;
+  }
+};
+
 module.exports = {
   getSettings,
   getPublicSettings,
   updateSetting,
+  readSetting,
   KEY_DEFS,
   PUBLIC_KEYS,
 };

@@ -739,5 +739,35 @@ npm run test:cache    :: نگهبانهای UI (وجود بخش، سه‌حال�
   داخل جریان صفحه نمی‌افتد. گارد: بخش ۱۲ در `test:customer-portal` (پیمایش همهٔ صفحه‌ها).
 - گزارش کامل: `docs/REVIEW-WAVE-13.2.md`، `docs/REVIEW-WAVE-13.3.md` و `docs/REVIEW-WAVE-13.4.md`.
 
+---
+
+## ثبت‌نام عمومی مشتری + صف تأیید (موج ۱۳.۶)
+
+فرم عمومی `/register` + صف «درخواست‌های ثبت‌نام» در پنل مدیریت.
+**تا تأیید مدیر هیچ حسابی ساخته نمی‌شود** (جدول مستقل `registration_requests`).
+
+| موضوع | مقدار |
+|---|---|
+| صفحه | `/register` (و `/register.html`) ⇒ `src/pages/register.html` + `src/features/registration/*` |
+| دسترسی صفحه | عمومی (`requiresAuth:false`، بدون `requiresPermission`) — پیش از ورود |
+| پرچم باز/بسته | تنظیمات سراسری `registration_enabled` (پیش‌فرض **false**) — سوییچ در «تنظیمات سیستم» |
+| اندپوینت عمومی | `GET /api/registrations/config` · `POST /api/registrations` (کپچا + ۵ درخواست در ساعت برای هر IP) |
+| اندپوینت مدیریت | `GET /api/registrations` · `GET /api/registrations/pending-count` · `POST /api/registrations/:id/approve` · `.../reject` |
+| مجوزها | `users.registrations.view` (صف/بج) · `users.registrations.review` (تأیید/رد) · `admin.menu.registrations` (منو) — تأیید **همچنین** `users.customer.link` |
+| صف پنل | آیتم `registration-requests` با بج «در انتظار تأیید»، فیلتر وضعیت، مودال بررسی (تأیید با انتخاب پروندهٔ مشتری / رد با دلیل) |
+| مایگریشن | `20261108000000-create-registration-requests.js` (جدول + ایندکس‌های یکتای جزئی) |
+| تست | `npm run test:registration` (۳۷ بررسی) + `Backend/registration-test.mjs` (۵۵ بررسی) — هر دو در گیت |
+| مستند | `docs/REVIEW-WAVE-13.6.md` |
+
+- **چرا صف مستقل؟** پیش‌فرض `User.status` روی `pending` است؛ اگر صف در همان جدول بود،
+  ثبت‌نام عمومی جدول کاربران را با ردیف نیمه‌کاره پر می‌کرد و همهٔ فیلترهای موجود باید تغییر می‌کردند.
+- **چرا پیوند پروندهٔ مشتری اجباری است؟** مشتریِ فعالِ بی‌پرونده وارد می‌شود ولی `/portal` با
+  `CUSTOMER_LINK_MISSING` خطا می‌دهد؛ پس تأیید بدون انتخاب پرونده ارسال نمی‌شود (کلاینت + سرور).
+- **ضد ارتقای نقش:** فرم هیچ فیلد `role/status/customer_id` ندارد و سرور فقط «فیلدهای سفید»
+  را می‌پذیرد؛ نقش کاربر ساخته‌شده همیشه `customer` و وضعیت `active` است.
+- **امنیت صفحه:** روت `/register` در `LOADER_PAGES` نیست (فرم سبک است) و از `app.service`
+  (هدر/فوتر/گارد صفحه) استفاده نمی‌کند؛ فقط `config.const.js` + ماژول ثبت‌نام را لود می‌کند.
+
+
 
 

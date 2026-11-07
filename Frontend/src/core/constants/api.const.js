@@ -224,6 +224,16 @@ export const API_CONSTANTS = {
       VISIT_ATTACHMENT: (visitId, attachmentId) =>
         `/portal/visits/${visitId}/attachments/${attachmentId}`,
     },
+    // ===== ثبت‌نام عمومی مشتری + صف تأیید (فاز ۱۳.۶) =====
+    //  ⚠️ CONFIG و CREATE عمومی‌اند (بدون ورود)؛ بقیه پنل مدیریت.
+    REGISTRATIONS: {
+      CONFIG: "/registrations/config",
+      CREATE: "/registrations",
+      LIST: "/registrations",
+      PENDING_COUNT: "/registrations/pending-count",
+      APPROVE: (id) => `/registrations/${id}/approve`,
+      REJECT: (id) => `/registrations/${id}/reject`,
+    },
   },
   TIMEOUT: 30000,
   RETRY_COUNT: 3,

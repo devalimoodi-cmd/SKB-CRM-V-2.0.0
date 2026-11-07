@@ -141,4 +141,32 @@ export const adminPanelApi = {
   async setupAdmin(data) {
     return apiService.post(API_CONSTANTS.ENDPOINTS.AUTH.SETUP_ADMIN, data);
   },
+
+  // ===== ✅ «درخواست‌های ثبت‌نام» (فاز ۱۳.۶) =====
+  //  ⚠️ دسترسی سرور: فهرست/شمارش = users.registrations.view
+  //     تأیید/رد = users.registrations.review (+ users.customer.link برای تأیید)
+
+  // فهرست صف ثبت‌نام (پیش‌فرض: pending)
+  async getRegistrations(params = {}) {
+    const endpoints = API_CONSTANTS.ENDPOINTS.REGISTRATIONS;
+    return apiService.get(endpoints.LIST, params);
+  },
+
+  // تعداد در انتظار تأیید (بج منو)
+  async getRegistrationPendingCount() {
+    const endpoints = API_CONSTANTS.ENDPOINTS.REGISTRATIONS;
+    return apiService.get(endpoints.PENDING_COUNT);
+  },
+
+  // تأیید + ساخت حساب مشتری (customer_id اجباری است)
+  async approveRegistration(id, customerId) {
+    const endpoints = API_CONSTANTS.ENDPOINTS.REGISTRATIONS;
+    return apiService.post(endpoints.APPROVE(id), { customer_id: customerId });
+  },
+
+  // رد درخواست با دلیل اجباری
+  async rejectRegistration(id, reason) {
+    const endpoints = API_CONSTANTS.ENDPOINTS.REGISTRATIONS;
+    return apiService.post(endpoints.REJECT(id), { reason });
+  },
 };

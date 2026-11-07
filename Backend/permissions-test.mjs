@@ -33,7 +33,7 @@ check(
   // ✅ فاز ۱۳.۲: گروه «پورتال مشتری» + کلید customer.portal.view
   // ✅ فاز ۱۳.۴: کلید customer.portal.visit.report (متن گزارش + پیوست‌ها)
   // ✅ فاز ۱۳.۵: چهار کلید تب پورتال (halls/flocks/weeks/visits)
-  catalog.TOTAL_PERMISSIONS === 173 && catalog.PERMISSION_GROUPS.length === 17,
+  catalog.TOTAL_PERMISSIONS === 176 && catalog.PERMISSION_GROUPS.length === 17,
   `keys=${catalog.TOTAL_PERMISSIONS} groups=${catalog.PERMISSION_GROUPS.length}`,
 );
 

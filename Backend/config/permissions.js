@@ -314,6 +314,12 @@ const ADMIN_USERS = [
   // ✅ «ردّ فعالیت» (فاز ۱۲.۲): مشاهدهٔ تاریخچهٔ تغییرات کاربران
   //    (قفل‌شده نیست ⇒ سوپرادمین می‌تواند از ماتریس به کارشناس هم بدهد)
   item("users.activity.view", "مشاهدهٔ ردّ فعالیت کاربران", D.admin),
+  // ✅ «صف ثبت‌نام عمومی» (فاز ۱۳.۶)
+  //    • view: دیدن درخواست‌های ثبت‌نام عمومی در پنل
+  //    • review: تأیید/رد آن‌ها — تأیید **همچنین** users.customer.link
+  //      می‌خواهد، چون بدون پیوند پروندهٔ مشتری، پورتال مشتری کار نمی‌کند.
+  item("users.registrations.view", "مشاهدهٔ درخواست‌های ثبت‌نام", D.admin),
+  item("users.registrations.review", "تأیید یا رد درخواست ثبت‌نام", D.admin),
 ];
 
 // ============================================================
@@ -408,6 +414,8 @@ const UNITS = [
 const ADMIN_MENUS = [
   item("admin.menu.superAdmins", "منوی «مدیریت مدیران اصلی»", D.owner),
   item("admin.menu.users", "منوی «مدیریت کاربران»", D.admin),
+  // ✅ فاز ۱۳.۶: منوی «درخواست‌های ثبت‌نام» (کلید محتوایی: users.registrations.view)
+  item("admin.menu.registrations", "منوی «درخواست‌های ثبت‌نام»", D.admin),
   item("admin.menu.dictionary", "منوی «مدیریت دیکشنری‌ها»", D.all),
   item("admin.menu.roles", "منوی «مدیریت نقش‌ها»", D.admin),
   item("admin.menu.settings", "منوی «تنظیمات سیستم»", D.all),

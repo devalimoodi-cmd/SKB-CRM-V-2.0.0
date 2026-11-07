@@ -48,6 +48,9 @@ npm run db:verify   # فقط تأیید ساختار
 | `20260919120000-customer-type-and-national-code.js` | `customer_types` (دیکشنری «انواع مشتری» + ۴ آیتم پیش‌فرض: گوشتی/تخم‌گذار/مرغ مادر/سایر) و افزودن `national_code` و `customer_type_id` به `customer_personal_information` |
 | `20260920120000-permissions.js` | `role_permissions` + `user_permissions` + `permission_audit_logs` («سطوح دسترسی نقش‌ها و کاربران» — کاتالوگ مجوزها در `config/permissions.js` است و این جدول‌ها فقط استثناها را نگه می‌دارند؛ بدون seed) |
 | `20261003000000-add-user-preferences.js` | افزودن ستون `preferences` (JSONB) به `users` — تنظیمات شخصی کاربر (توست/اعلان‌ها/چیدمان نمودار/تم) برای صفحه‌های «پروفایل» و «تنظیمات حساب» |
+| `20261007000000-add-users-customer-id.js` | افزودن `users.customer_id` (یکتا، FK به `customer_personal_information` با `ON DELETE SET NULL`) — پیوند حساب با پروندهٔ مشتری |
+| `20261108000000-create-registration-requests.js` | **جدول مستقل صف ثبت‌نام عمومی** (`registration_requests`) + سه ایندکس یکتای جزئی `WHERE status='pending'` + ایندکس `(status, created_at)` — تا تأیید مدیر هیچ ردیفی در `users` ساخته نمی‌شود (فاز ۱۳.۶) |
+
 
 همهٔ مایگریشن‌ها **idempotent** هستند (اگر جدول/ستون موجود باشد، دست نمی‌زنند) تا اجرای دوباره روی سرور خطا ندهد.
 

@@ -824,6 +824,20 @@ app.get("/setup-admin.html", (req, res) => {
 });
 
 // ============================================
+// ✅ ثبت‌نام عمومی مشتری (فاز ۱۳.۶)
+// ------------------------------------------------------------
+// صفحهٔ سبک و پیش از ورود است ⇒ در LOADER_PAGES نیست (مثل login/setup-admin)
+// و نیازی به app.service (هدر/فوتر/گارد صفحه) ندارد.
+// ============================================
+app.get("/register", (req, res) => {
+  res.sendFile(path.join(srcPath, "pages", "register.html"));
+});
+
+app.get("/register.html", (req, res) => {
+  res.sendFile(path.join(srcPath, "pages", "register.html"));
+});
+
+// ============================================
 // ✅ 404
 // ============================================
 app.use((req, res) => {

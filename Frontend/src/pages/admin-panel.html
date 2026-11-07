@@ -272,6 +272,24 @@
                             </div>
                             <i class="fas fa-chevron-left menu-arrow"></i>
                         </div>
+
+                        <!-- ✅ «درخواست‌های ثبت‌نام» (فاز ۱۳.۶) -->
+                        <!--    کلید محتوایی: users.registrations.view -->
+                        <div class="sidebar-menu-item" data-menu="registration-requests"
+                            data-permission="admin.menu.registrations">
+                            <div class="menu-icon-wrapper">
+                                <i class="fas fa-user-plus menu-icon"></i>
+                            </div>
+                            <div class="menu-content">
+                                <span class="menu-title">
+                                    درخواست‌های ثبت‌نام
+                                    <span id="registrationsMenuBadge" class="quantity"
+                                        style="display:none;background:var(--danger-strong, #ef4444);color:var(--c-fff, #fff);border-radius:999px;padding:0 7px;font-size:11px;margin-inline-start:6px;">0</span>
+                                </span>
+                                <span class="menu-description">تأیید یا رد ثبت‌نام مشتریان از صفحهٔ عمومی</span>
+                            </div>
+                            <i class="fas fa-chevron-left menu-arrow"></i>
+                        </div>
                     </div>
                 </div>
 
@@ -474,6 +492,38 @@
                                     </div>
                                 </div>
                             </div>
+
+                            <!-- ✅ فاز ۱۳.۶ — «ثبت‌نام عمومی» (صفحهٔ /register) -->
+                            <div style="background:var(--bg-surface, #fff);border-radius:12px;border:1px solid var(--c-e8edf3, #e8edf3);padding:22px;margin-top:18px;">
+                                <h3 style="margin:0 0 6px;font-size:15px;color:var(--ink, #0f172a);">
+                                    <i class="fas fa-user-plus" style="color:var(--primary, #2c7a6e);"></i> ثبت‌نام عمومی مشتریان
+                                </h3>
+                                <p style="margin:0 0 18px;font-size:12px;color:var(--text-gray, #64748b);line-height:1.9;">
+                                    اگر فعال باشد، لینک «ثبت‌نام مشتری» در صفحهٔ ورود نمایش داده می‌شود و متقاضیان
+                                    می‌توانند فرم ثبت‌نام را پر کنند. هر درخواست در بخش «درخواست‌های ثبت‌نام»
+                                    می‌آید و تا تأیید شما هیچ حسابی ساخته نمی‌شود.
+                                </p>
+                                <div style="display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;background:var(--bg-surface-2, #f8fafc);border:1px solid var(--border-light, #eef2f6);border-radius:10px;padding:14px 16px;">
+                                    <div>
+                                        <strong style="font-size:13px;color:var(--text-dark, #1e293b);">وضعیت ثبت‌نام عمومی</strong>
+                                        <div style="font-size:11.5px;color:var(--text-light, #94a3b8);margin-top:3px;">
+                                            پیش‌فرض: غیرفعال (بسته). سرور و صفحهٔ ثبت‌نام هر دو همین مقدار را می‌خوانند.
+                                        </div>
+                                    </div>
+                                    <div style="display:inline-flex;align-items:center;gap:10px;">
+                                        <span id="publicRegisterState" style="font-size:12px;font-weight:700;color:var(--text-slate, #475569);">در حال بارگذاری...</span>
+                                        <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;">
+                                            <input type="checkbox" id="publicRegisterToggle" style="width:18px;height:18px;accent-color:var(--primary, #2c7a6e);cursor:pointer;">
+                                            <span style="font-size:11.5px;color:var(--text-gray, #64748b);">فعال</span>
+                                        </label>
+                                    </div>
+                                </div>
+                                <p style="margin:12px 0 0;font-size:11.5px;color:var(--text-light, #94a3b8);line-height:1.9;">
+                                    صفحهٔ ثبت‌نام: <a href="/register" target="_blank" rel="noopener"
+                                        style="color:var(--primary, #2c7a6e);">/register</a>
+                                    — دارای کپچا و محدودیت نرخ (۵ درخواست در ساعت برای هر آی‌پی).
+                                </p>
+                            </div>
                         </div>
                     </div>
 
@@ -575,6 +625,42 @@
                                 style="background:var(--bg-surface, #fff);border:1px solid var(--c-e8edf3, #e8edf3);border-radius:12px;padding:24px;text-align:center;color:var(--text-light, #94a3b8);">
                                 <i class="fas fa-history" style="font-size:28px;"></i>
                                 <p style="margin:8px 0 0;font-size:13px;">در حال بارگذاری بخش فعالیت کاربران…</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ✅ «درخواست‌های ثبت‌نام» — فاز ۱۳.۶ -->
+                    <div id="registration-requests" class="content-section">
+                        <div class="regq-card">
+                            <div class="regq-header">
+                                <div>
+                                    <h3 class="regq-title">
+                                        <i class="fas fa-user-plus"></i>
+                                        درخواست‌های ثبت‌نام مشتریان
+                                    </h3>
+                                    <p class="regq-sub">
+                                        تأیید هر درخواست، حساب کاربری نقش «مشتری» می‌سازد.
+                                        انتخاب پروندهٔ مشتری <strong>الزامی</strong> است.
+                                    </p>
+                                </div>
+                                <div class="regq-actions">
+                                    <select id="regStatusFilter" class="regq-select">
+                                        <option value="pending" selected>در انتظار تأیید</option>
+                                        <option value="approved">تأییدشده</option>
+                                        <option value="rejected">ردشده</option>
+                                        <option value="all">همه</option>
+                                    </select>
+                                    <button type="button" class="regq-btn" id="regRefreshBtn">
+                                        <i class="fas fa-rotate-right"></i> به‌روزرسانی
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div id="registrationQueueContainer" class="regq-body">
+                                <div class="regq-empty">
+                                    <i class="fas fa-inbox" style="font-size:26px;"></i>
+                                    <p style="margin:8px 0 0;font-size:13px;">در حال بارگذاری درخواست‌ها…</p>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -733,6 +819,81 @@
                     <button class="cancel-btn" onclick="window.closeTokenModal()">
                         <i class="fas fa-check"></i> بستن
                     </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- ✅ «بررسی درخواست ثبت‌نام» (فاز ۱۳.۶) -->
+    <!-- ------------------------------------------------------------ -->
+    <!-- دو حالت در یک مودال: تأیید (انتخاب پروندهٔ مشتری، اجباری) و رد (دلیل) -->
+    <!-- ============================================================ -->
+    <div id="regReviewModal" class="modal-overlay">
+        <div class="modal-container" style="max-width: 620px;">
+            <div class="modal-header">
+                <h3>
+                    <i class="fas fa-user-check"></i>
+                    <span id="regReviewTitle">بررسی درخواست ثبت‌نام</span>
+                </h3>
+                <button class="modal-close" id="regReviewCloseBtn" type="button">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="regq-summary" id="regReviewSummary"></div>
+
+                <!-- ===== تأیید ===== -->
+                <div id="regApproveBlock">
+                    <div class="filed-wraper" style="margin-top:14px;">
+                        <div class="filed-flot-input">
+                            <i class="fas fa-search float-icon"></i>
+                            <input type="text" id="regCustomerSearch" class="float-input" placeholder=" "
+                                autocomplete="off">
+                            <label class="float-label">جستجوی پروندهٔ مشتری (نام یا کد)</label>
+                        </div>
+                    </div>
+                    <div class="filed-wraper" style="margin-top:12px;">
+                        <div class="filed-flot-input">
+                            <i class="fas fa-link float-icon"></i>
+                            <select id="regCustomerSelect" class="float-input float-select">
+                                <option value="">— انتخاب پروندهٔ مشتری (الزامی) —</option>
+                            </select>
+                            <label class="float-label">پروندهٔ مشتری *</label>
+                        </div>
+                    </div>
+                    <p class="regq-hint">
+                        بدون پروندهٔ مشتری، کاربر می‌تواند وارد شود اما پورتال مشتری برایش خطا می‌دهد؛
+                        پس این انتخاب الزامی است.
+                    </p>
+                    <div class="form-actions">
+                        <button class="submit-btn" id="regApproveBtn" type="button">
+                            <i class="fas fa-circle-check"></i> تأیید و ساخت حساب
+                        </button>
+                        <button class="cancel-btn" id="regApproveCancelBtn" type="button">
+                            <i class="fas fa-times"></i> انصراف
+                        </button>
+                    </div>
+                </div>
+
+                <!-- ===== رد ===== -->
+                <div id="regRejectBlock" hidden>
+                    <div class="filed-wraper" style="margin-top:14px;">
+                        <div class="filed-flot-input">
+                            <i class="fas fa-comment-slash float-icon"></i>
+                            <input type="text" id="regRejectReason" class="float-input" placeholder=" "
+                                maxlength="300" autocomplete="off">
+                            <label class="float-label">دلیل رد (اجباری — حداقل ۳ کاراکتر) *</label>
+                        </div>
+                    </div>
+                    <p class="regq-hint">دلیل رد برای ممیزی ذخیره می‌شود و به متقاضی نمایش داده نمی‌شود.</p>
+                    <div class="form-actions">
+                        <button class="cancel-btn" id="regRejectBtn" type="button"
+                            style="background:var(--danger-strong, #ef4444);color:#fff;">
+                            <i class="fas fa-ban"></i> رد درخواست
+                        </button>
+                        <button class="cancel-btn" id="regRejectCancelBtn" type="button">
+                            <i class="fas fa-times"></i> انصراف
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
