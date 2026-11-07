@@ -33,6 +33,13 @@ const MAX_NOTE_LENGTH = 500;
 const MIN_REJECT_REASON = 3;
 const MAX_REJECT_REASON = 300;
 
+// ===== پروندهٔ مشتری (حالت «ثبت مشتری جدید» در تأیید) =====
+const MAX_FULL_NAME_LENGTH = 200;
+const MAX_FARM_NAME_LENGTH = 200;
+const MAX_REGION_LENGTH = 50;
+const MAX_FARM_ADDRESS_LENGTH = 500;
+const NATIONAL_CODE_LENGTH = 10;
+
 // فیلدهایی که «کاربر مهمان» اجازهٔ ارسالشان را دارد — و بس.
 const ALLOWED_FIELDS = [
   "first_name",
@@ -207,11 +214,111 @@ const validateRejectReason = (raw) => {
   return { ok: true, value: reason };
 };
 
-const approvalPatch = ({ reviewerId, userId, now = new Date() } = {}) => ({
+// ============================================
+// «حالت پروندهٔ مشتری» در لحظهٔ تأیید (موج ۱۳.۷)
+// ------------------------------------------------------------
+//   existing → اتصال به پروندهٔ موجود (customer_id اجباری)
+//   new      → ساخت پروندهٔ مشتری تازه در همان تراکنش (مشتری بدون پرونده)
+// ⚠️ هر مقدار ناشناخته ⇒ null تا کنترلر ۴۰۰ بدهد (fail-closed).
+// ============================================
+const CUSTOMER_MODE = { EXISTING: "existing", NEW: "new" };
+const CUSTOMER_MODES = [CUSTOMER_MODE.EXISTING, CUSTOMER_MODE.NEW];
+
+const normalizeCustomerMode = (raw) => {
+  const value = String(raw ?? "").trim().toLowerCase();
+  if (value === "") return CUSTOMER_MODE.EXISTING;
+  return CUSTOMER_MODES.includes(value) ? value : null;
+};
+
+// ============================================
+// اعتبارسنجی «پروندهٔ مشتری تازه» (حالت new)
+// ------------------------------------------------------------
+// ورودی: { customer_type_id, full_name?, farm_name?, national_code?,
+//          province?, county?, farm_address?, collection_name? }
+// ورودی دوم: ردیف درخواست (برای پیش‌فرض‌ها: نام + موبایل + ایمیل)
+// خروجی:  { ok, errors: {field: message}, values: {...فیلدهای سفید} }
+// ------------------------------------------------------------
+// 🔒 فقط فیلدهای سفید عبور می‌کنند؛ mobile_number/email همیشه از «درخواست»
+//    می‌آیند (نه از بدنهٔ مدیر) تا هویت متقاضی دستکاری‌شدنی نباشد.
+// ============================================
+const validateNewCustomer = (input = {}, request = {}) => {
+  const errors = {};
+  const src = input || {};
+
+  const fullName = cleanName(src.full_name) || cleanName(
+    `${request.first_name || ""} ${request.last_name || ""}`,
+  );
+  if (fullName.length < MIN_NAME_LENGTH) {
+    errors.full_name = "نام و نام خانوادگی مشتری الزامی است";
+  } else if (fullName.length > MAX_FULL_NAME_LENGTH) {
+    errors.full_name = `نام مشتری حداکثر ${MAX_FULL_NAME_LENGTH} کاراکتر است`;
+  }
+
+  const rawType = normalizeDigits(src.customer_type_id).trim();
+  const typeId = rawType === "" ? NaN : Number(rawType);
+  if (!Number.isInteger(typeId) || typeId <= 0) {
+    errors.customer_type_id = "نوع مشتری را از فهرست انتخاب کنید";
+  }
+
+  const rawNational = normalizeDigits(src.national_code).replace(/\D/g, "");
+  if (rawNational !== "" && rawNational.length !== NATIONAL_CODE_LENGTH) {
+    errors.national_code = `کد ملی باید ${NATIONAL_CODE_LENGTH} رقم باشد`;
+  }
+
+  const farmName = cleanText(src.farm_name);
+  if (farmName.length > MAX_FARM_NAME_LENGTH) {
+    errors.farm_name = `نام واحد/مزرعه حداکثر ${MAX_FARM_NAME_LENGTH} کاراکتر است`;
+  }
+
+  const province = cleanText(src.province);
+  if (province.length > MAX_REGION_LENGTH) {
+    errors.province = `استان حداکثر ${MAX_REGION_LENGTH} کاراکتر است`;
+  }
+
+  const county = cleanText(src.county);
+  if (county.length > MAX_REGION_LENGTH) {
+    errors.county = `شهرستان حداکثر ${MAX_REGION_LENGTH} کاراکتر است`;
+  }
+
+  const farmAddress = cleanText(src.farm_address);
+  if (farmAddress.length > MAX_FARM_ADDRESS_LENGTH) {
+    errors.farm_address = `آدرس حداکثر ${MAX_FARM_ADDRESS_LENGTH} کاراکتر است`;
+  }
+
+  const collectionName = cleanText(src.collection_name);
+  if (collectionName.length > MAX_FULL_NAME_LENGTH) {
+    errors.collection_name = `نام مجموعه حداکثر ${MAX_FULL_NAME_LENGTH} کاراکتر است`;
+  }
+
+  return {
+    ok: Object.keys(errors).length === 0,
+    errors,
+    values: {
+      full_name: fullName,
+      customer_type_id: Number.isInteger(typeId) && typeId > 0 ? typeId : null,
+      national_code: rawNational === "" ? null : rawNational,
+      farm_name: farmName || null,
+      province: province || null,
+      county: county || null,
+      farm_address: farmAddress || null,
+      collection_name: collectionName || null,
+    },
+  };
+};
+
+const approvalPatch = ({
+  reviewerId,
+  userId,
+  customerId = null,
+  customerCreated = false,
+  now = new Date(),
+} = {}) => ({
   status: STATUS.APPROVED,
   reviewed_by: reviewerId ?? null,
   reviewed_at: now,
   created_user_id: userId ?? null,
+  created_customer_id: customerId ?? null,
+  customer_created: customerCreated === true,
   reject_reason: null,
 });
 
@@ -241,6 +348,8 @@ const adminRequestView = (row = {}) => ({
   reviewed_by: row.reviewed_by ?? null,
   reviewed_at: row.reviewed_at || null,
   created_user_id: row.created_user_id ?? null,
+  created_customer_id: row.created_customer_id ?? null,
+  customer_created: row.customer_created === true,
   created_at: row.created_at,
   updated_at: row.updated_at,
 });
@@ -281,6 +390,11 @@ module.exports = {
   MIN_PASSWORD_LENGTH,
   MIN_REJECT_REASON,
   MAX_REJECT_REASON,
+  MAX_FULL_NAME_LENGTH,
+  MAX_FARM_NAME_LENGTH,
+  MAX_REGION_LENGTH,
+  MAX_FARM_ADDRESS_LENGTH,
+  NATIONAL_CODE_LENGTH,
   // ابزارهای پایه
   normalizeDigits,
   cleanText,
@@ -296,6 +410,11 @@ module.exports = {
   validateRejectReason,
   approvalPatch,
   rejectionPatch,
+  // پروندهٔ مشتری (موج ۱۳.۷)
+  CUSTOMER_MODE,
+  CUSTOMER_MODES,
+  normalizeCustomerMode,
+  validateNewCustomer,
   // خروجی API
   adminRequestView,
   publicRequestView,

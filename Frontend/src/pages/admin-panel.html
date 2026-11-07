@@ -843,27 +843,102 @@
 
                 <!-- ===== تأیید ===== -->
                 <div id="regApproveBlock">
-                    <div class="filed-wraper" style="margin-top:14px;">
-                        <div class="filed-flot-input">
-                            <i class="fas fa-search float-icon"></i>
-                            <input type="text" id="regCustomerSearch" class="float-input" placeholder=" "
-                                autocomplete="off">
-                            <label class="float-label">جستجوی پروندهٔ مشتری (نام یا کد)</label>
-                        </div>
+                    <!-- حالت پروندهٔ مشتری: موجود یا تازه (موج ۱۳.۷) -->
+                    <div class="regq-mode" id="regCustomerMode" role="tablist">
+                        <button type="button" class="regq-mode-btn active" id="regModeExistingBtn"
+                            data-mode="existing">
+                            <i class="fas fa-link"></i> اتصال به پروندهٔ موجود
+                        </button>
+                        <button type="button" class="regq-mode-btn" id="regModeNewBtn" data-mode="new">
+                            <i class="fas fa-folder-plus"></i> ثبت پروندهٔ مشتری جدید
+                        </button>
                     </div>
-                    <div class="filed-wraper" style="margin-top:12px;">
-                        <div class="filed-flot-input">
-                            <i class="fas fa-link float-icon"></i>
-                            <select id="regCustomerSelect" class="float-input float-select">
-                                <option value="">— انتخاب پروندهٔ مشتری (الزامی) —</option>
-                            </select>
-                            <label class="float-label">پروندهٔ مشتری *</label>
+
+                    <!-- حالت ۱: پروندهٔ موجود -->
+                    <div id="regExistingCustomerBlock">
+                        <div class="filed-wraper" style="margin-top:14px;">
+                            <div class="filed-flot-input">
+                                <i class="fas fa-search float-icon"></i>
+                                <input type="text" id="regCustomerSearch" class="float-input" placeholder=" "
+                                    autocomplete="off">
+                                <label class="float-label">جستجوی پروندهٔ مشتری (نام یا کد)</label>
+                            </div>
                         </div>
+                        <div class="filed-wraper" style="margin-top:12px;">
+                            <div class="filed-flot-input">
+                                <i class="fas fa-link float-icon"></i>
+                                <select id="regCustomerSelect" class="float-input float-select">
+                                    <option value="">— انتخاب پروندهٔ مشتری (الزامی) —</option>
+                                </select>
+                                <label class="float-label">پروندهٔ مشتری *</label>
+                            </div>
+                        </div>
+                        <p class="regq-hint">
+                            بدون پروندهٔ مشتری، کاربر می‌تواند وارد شود اما پورتال مشتری برایش خطا می‌دهد؛
+                            پس این انتخاب الزامی است.
+                        </p>
                     </div>
-                    <p class="regq-hint">
-                        بدون پروندهٔ مشتری، کاربر می‌تواند وارد شود اما پورتال مشتری برایش خطا می‌دهد؛
-                        پس این انتخاب الزامی است.
-                    </p>
+
+                    <!-- حالت ۲: ساخت پروندهٔ مشتری تازه (متقاضی بدون پرونده) -->
+                    <div id="regNewCustomerBlock" hidden>
+                        <p class="regq-hint" style="margin-top:12px;">
+                            متقاضی پرونده ندارد؟ با تکمیل این بخش، هنگام تأیید یک پروندهٔ مشتری تازه ساخته
+                            و حساب کاربر به آن متصل می‌شود. موبایل و ایمیل از خود درخواست برداشته می‌شود.
+                        </p>
+                        <div class="regq-grid">
+                            <div class="filed-wraper">
+                                <div class="filed-flot-input">
+                                    <i class="fas fa-tags float-icon"></i>
+                                    <select id="regNewCustomerType" class="float-input float-select">
+                                        <option value="">— انتخاب نوع مشتری —</option>
+                                    </select>
+                                    <label class="float-label">نوع مشتری *</label>
+                                </div>
+                            </div>
+                            <div class="filed-wraper">
+                                <div class="filed-flot-input">
+                                    <i class="fas fa-id-card float-icon"></i>
+                                    <input type="text" id="regNewCustomerNationalCode" class="float-input"
+                                        placeholder=" " maxlength="10" inputmode="numeric" autocomplete="off">
+                                    <label class="float-label">کد ملی (اختیاری — ۱۰ رقم)</label>
+                                </div>
+                            </div>
+                            <div class="filed-wraper">
+                                <div class="filed-flot-input">
+                                    <i class="fas fa-user float-icon"></i>
+                                    <input type="text" id="regNewCustomerFullName" class="float-input"
+                                        placeholder=" " maxlength="200" autocomplete="off">
+                                    <label class="float-label">نام و نام خانوادگی مشتری *</label>
+                                </div>
+                            </div>
+                            <div class="filed-wraper">
+                                <div class="filed-flot-input">
+                                    <i class="fas fa-warehouse float-icon"></i>
+                                    <input type="text" id="regNewCustomerFarmName" class="float-input"
+                                        placeholder=" " maxlength="200" autocomplete="off">
+                                    <label class="float-label">نام واحد / مزرعه (اختیاری)</label>
+                                </div>
+                            </div>
+                            <div class="filed-wraper">
+                                <div class="filed-flot-input">
+                                    <i class="fas fa-map float-icon"></i>
+                                    <input type="text" id="regNewCustomerProvince" class="float-input"
+                                        placeholder=" " maxlength="50" autocomplete="off">
+                                    <label class="float-label">استان (اختیاری)</label>
+                                </div>
+                            </div>
+                            <div class="filed-wraper">
+                                <div class="filed-flot-input">
+                                    <i class="fas fa-location-dot float-icon"></i>
+                                    <input type="text" id="regNewCustomerCounty" class="float-input" placeholder=" "
+                                        maxlength="50" autocomplete="off">
+                                    <label class="float-label">شهرستان (اختیاری)</label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="regq-new-error" id="regNewCustomerError" hidden></div>
+                    </div>
+
                     <div class="form-actions">
                         <button class="submit-btn" id="regApproveBtn" type="button">
                             <i class="fas fa-circle-check"></i> تأیید و ساخت حساب

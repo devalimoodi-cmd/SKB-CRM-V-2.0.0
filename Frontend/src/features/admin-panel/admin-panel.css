@@ -2366,6 +2366,89 @@
   color: var(--text-light, #94a3b8);
 }
 
+/* ============================================================
+   ✅ موج ۱۳.۷ — سوییچ «پروندهٔ موجود / پروندهٔ تازه» در مودال تأیید
+   ------------------------------------------------------------
+   ⚠️ [hidden] روی دکمه‌ها با display:inline-flex پایین‌تر خنثی می‌شود؛
+      پس قاعدهٔ صریح display:none برای همان idها لازم است.
+   ============================================================ */
+
+.regq-mode {
+  display: flex;
+  gap: 6px;
+  padding: 5px;
+  margin-top: 14px;
+  border: 1px solid var(--c-e8edf3, #e8edf3);
+  border-radius: 10px;
+  background: var(--bg-surface-2, #f8fafc);
+}
+
+.regq-mode-btn {
+  flex: 1 1 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 9px 10px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-gray, #64748b);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.regq-mode-btn:hover {
+  color: var(--primary, #2c7a6e);
+}
+
+.regq-mode-btn.active {
+  background: var(--bg-surface, #fff);
+  border-color: var(--primary, #2c7a6e);
+  color: var(--primary, #2c7a6e);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+}
+
+.regq-mode-btn:focus-visible {
+  outline: 2px solid var(--primary, #2c7a6e);
+  outline-offset: 2px;
+}
+
+/* دو ستون در دسکتاپ، یک ستون در موبایل (media query پایین فایل) */
+.regq-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.regq-new-error {
+  margin-top: 10px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  line-height: 1.8;
+  background: var(--danger-soft);
+  border: 1px solid var(--danger-mist);
+  color: var(--danger-deep);
+}
+
+#regModeNewBtn[hidden],
+#regNewCustomerBlock[hidden],
+#regExistingCustomerBlock[hidden],
+.regq-new-error[hidden] {
+  display: none !important;
+}
+
+@media (max-width: 640px) {
+  .regq-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 640px) {
   .regq-row {
     flex-direction: column;

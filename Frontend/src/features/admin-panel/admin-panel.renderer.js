@@ -429,6 +429,13 @@ export const adminPanelRenderer = {
             )}</div>`
           : "";
 
+        // ✅ موج ۱۳.۷ — پروندهٔ متصل پس از تأیید (و اینکه تازه ساخته شده یا نه)
+        const linkedCustomer = item.created_customer_id
+          ? `<div class="regq-meta"><span><i class="fas fa-folder-open"></i> پروندهٔ متصل: #${Number(
+              item.created_customer_id,
+            )}${item.customer_created ? " (تازه ساخته شد)" : ""}</span></div>`
+          : "";
+
         const actions = canReview && item.status === "pending"
           ? `<div class="regq-row-actions">
                <button type="button" class="regq-icon-btn approve" title="تأیید و ساخت حساب"
@@ -460,6 +467,7 @@ export const adminPanelRenderer = {
                 <span><i class="fas fa-id-card"></i> پروندهٔ ادعاشده: ${escapeHtml(customerCode)}</span>
                 <span><i class="fas fa-calendar"></i> ${escapeHtml(created)}</span>
               </div>
+              ${linkedCustomer}
               <div class="regq-note"><i class="fas fa-comment-dots"></i> ${note}</div>
               ${rejectReason}
             </div>

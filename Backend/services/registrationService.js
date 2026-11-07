@@ -25,6 +25,7 @@ const bcrypt = require("bcryptjs");
 const RegistrationRequest = require("../models/RegistrationRequest");
 const User = require("../models/User");
 const CustomerPersonalInfo = require("../models/CustomerPersonalInfo");
+const CustomerType = require("../models/CustomerType");
 const { sequelize } = require("../config/database");
 const rules = require("./registrationRules");
 
@@ -64,6 +65,144 @@ const userDuplicateField = (error) => {
   if (/username/.test(constraint)) return "username";
   if (/mobile_number/.test(constraint)) return "mobile_number";
   return "";
+};
+
+// ============================================================
+// ابزارهای «پروندهٔ مشتری تازه» (موج ۱۳.۷)
+// ------------------------------------------------------------
+// چرا اینجا و نه در کوئری دیگری؟ چون تأیید ثبت‌نام باید **یک تراکنش**
+// باشد: یا هم پروندهٔ مشتری و هم کاربر ساخته می‌شود، یا هیچ‌کدام.
+// نکته: قاعدهٔ شماره‌دهی دقیقاً همان قاعدهٔ customerRegistrationController
+// است (MAX(customer_code)+1 زیر قفل جدول) تا شماره‌ها یک‌دست بمانند.
+// ============================================================
+const CUSTOMER_CODE_START = Number(process.env.CUSTOMER_CODE_START || 1000);
+const DEFAULT_CUSTOMER_BIRTHDATE = "2000-01-01";
+
+// خطای دسته‌بندی‌شده (کد + پیام) برای نگاشت به HTTP در کنترلر
+const codedError = (code, message) => {
+  const error = new Error(message);
+  error.code = code;
+  return error;
+};
+
+// شمارهٔ مشتری ترتیبی = بزرگ‌ترین شمارهٔ موجود + ۱ (زیر قفل جدول)
+const nextCustomerCode = async (transaction) => {
+  await sequelize.query(
+    "LOCK TABLE customer_personal_information IN SHARE ROW EXCLUSIVE MODE",
+    { transaction },
+  );
+
+  const [rows] = await sequelize.query(
+    `SELECT COALESCE(MAX(customer_code), :start - 1) + 1 AS code
+       FROM customer_personal_information`,
+    { replacements: { start: CUSTOMER_CODE_START }, transaction },
+  );
+
+  return Number(rows?.[0]?.code);
+};
+
+// ایمیل آزاد برای پروندهٔ تازه (ستون email یکتاست ⇒ fallback امن)
+const pickCustomerEmail = async ({ preferred, mobileNumber, requestId, transaction }) => {
+  const lastFour = String(mobileNumber || "").replace(/\D/g, "").slice(-4) || "0000";
+  const candidates = [];
+  if (preferred) candidates.push(String(preferred).trim().toLowerCase());
+  candidates.push(`temp${lastFour}@temp.skb-crm.ir`);
+  candidates.push(`reg${requestId}@temp.skb-crm.ir`);
+
+  for (const candidate of candidates) {
+    if (!candidate) continue;
+    const taken = await CustomerPersonalInfo.findOne({
+      where: { email: candidate },
+      attributes: ["id"],
+      transaction,
+    });
+    if (!taken) return candidate;
+  }
+
+  return null;
+};
+
+// ساخت پروندهٔ مشتری تازه از دادهٔ «فیلد سفید» درخواست
+const createCustomerForRequest = async (values, request, reviewerId, transaction) => {
+  // ۱) موبایل متقاضی نباید از قبل در پرونده‌های مشتریان باشد
+  //    (اگر باشد، مدیر باید همان پرونده را انتخاب کند — نه پروندهٔ تکراری)
+  const sameMobile = await CustomerPersonalInfo.findOne({
+    where: { mobile_number: request.mobile_number },
+    attributes: ["id"],
+    transaction,
+  });
+  if (sameMobile) {
+    throw codedError(
+      "CUSTOMER_MOBILE_TAKEN",
+      "این شمارهٔ موبایل از قبل در پرونده‌های مشتریان وجود دارد؛ همان پرونده را انتخاب کنید",
+    );
+  }
+
+  // ۲) ایمیل آزاد (ایمیل درخواست اگر آزاد باشد، وگرنه temp/reg)
+  const email = await pickCustomerEmail({
+    preferred: request.email,
+    mobileNumber: request.mobile_number,
+    requestId: request.id,
+    transaction,
+  });
+  if (!email) {
+    throw codedError(
+      "CUSTOMER_EMAIL_TAKEN",
+      "ساخت پروندهٔ مشتری تازه ممکن نشد (تداخل ایمیل)؛ دوباره تلاش کنید",
+    );
+  }
+
+  // ۳) شمارهٔ مشتری ترتیبی + ساخت ردیف
+  const customerCode = await nextCustomerCode(transaction);
+
+  try {
+    return await CustomerPersonalInfo.create(
+      {
+        customer_code: customerCode,
+        full_name: values.full_name,
+        customer_type_id: values.customer_type_id,
+        national_code: values.national_code,
+        farm_name: values.farm_name,
+        province: values.province,
+        county: values.county,
+        farm_address: values.farm_address,
+        collection_name: values.collection_name,
+        email,
+        mobile_number: request.mobile_number,
+        date_of_birth: DEFAULT_CUSTOMER_BIRTHDATE,
+        active: true,
+        status: "active",
+        created_by: reviewerId ?? null,
+        updated_by: reviewerId ?? null,
+      },
+      { transaction },
+    );
+  } catch (error) {
+    if (error?.name === "SequelizeUniqueConstraintError") {
+      const constraint = String(
+        error?.parent?.constraint || error?.original?.constraint || "",
+      );
+      if (/mobile_number/.test(constraint)) {
+        throw codedError(
+          "CUSTOMER_MOBILE_TAKEN",
+          "این شمارهٔ موبایل از قبل در پرونده‌های مشتریان وجود دارد؛ همان پرونده را انتخاب کنید",
+        );
+      }
+      throw codedError(
+        "CUSTOMER_EMAIL_TAKEN",
+        "ساخت پروندهٔ مشتری تازه ممکن نشد (تداخل یکتایی)؛ دوباره تلاش کنید",
+      );
+    }
+
+    if (error?.name === "SequelizeValidationError") {
+      throw codedError(
+        "CUSTOMER_INVALID",
+        error.errors?.[0]?.message || "اطلاعات پروندهٔ مشتری معتبر نیست",
+      );
+    }
+
+    throw error;
+  }
 };
 
 // ============================================================
@@ -161,31 +300,94 @@ const listRequests = async ({ status = null, limit = 20, offset = 0 } = {}) => {
 //   code: NOT_FOUND | ALREADY_REVIEWED | INVALID_CUSTOMER | CUSTOMER_NOT_FOUND
 //         | DUPLICATE_* | CUSTOMER_LINK_TAKEN | INVALID_STATE
 // ============================================================
-const approveRequest = async ({ id, reviewerId, customerId } = {}) => {
+const approveRequest = async ({
+  id,
+  reviewerId,
+  customerId,
+  customerMode = rules.CUSTOMER_MODE.EXISTING,
+  newCustomer = null,
+} = {}) => {
   const requestId = Number(id);
   if (!Number.isInteger(requestId) || requestId <= 0) {
     return { ok: false, code: "NOT_FOUND", message: "درخواست یافت نشد" };
   }
 
-  const customer = Number(customerId);
-  if (!Number.isInteger(customer) || customer <= 0) {
+  // حالت پروندهٔ مشتری: موجود (existing) یا ساخت پروندهٔ تازه (new)
+  const mode = rules.normalizeCustomerMode(customerMode);
+  if (!mode) {
     return {
       ok: false,
-      code: "INVALID_CUSTOMER",
-      message:
-        "برای تأیید، انتخاب پروندهٔ مشتری الزامی است (بدون پرونده، پورتال مشتری قابل استفاده نیست)",
+      code: "INVALID_MODE",
+      message: "حالت پروندهٔ مشتری نامعتبر است",
     };
   }
+  const creatingCustomer = mode === rules.CUSTOMER_MODE.NEW;
 
-  const customerProfile = await CustomerPersonalInfo.findByPk(customer, {
-    attributes: ["id"],
-  });
-  if (!customerProfile) {
-    return {
-      ok: false,
-      code: "CUSTOMER_NOT_FOUND",
-      message: "پروندهٔ مشتری با این شناسه یافت نشد",
-    };
+  let newCustomerValues = null;
+
+  if (creatingCustomer) {
+    // ۰) درخواست باید هنوز pending باشد (پیش‌بررسی قبل از تراکنش)
+    const pending = await RegistrationRequest.findByPk(requestId);
+    if (!pending || pending.status !== rules.STATUS.PENDING) {
+      return {
+        ok: false,
+        code: "ALREADY_REVIEWED",
+        message: "این درخواست وجود ندارد یا قبلاً بررسی شده است",
+      };
+    }
+
+    // ۱) اعتبارسنجی خالص دادهٔ پروندهٔ تازه (پیش از باز کردن تراکنش)
+    const checked = rules.validateNewCustomer(newCustomer, pending);
+    if (!checked.ok) {
+      return {
+        ok: false,
+        code: "INVALID_NEW_CUSTOMER",
+        message: "اطلاعات پروندهٔ مشتری تازه کامل نیست",
+        errors: checked.errors,
+      };
+    }
+
+    // ۲) نوع مشتری باید وجود داشته و فعال باشد
+    const customerType = await CustomerType.findByPk(checked.values.customer_type_id, {
+      attributes: ["id", "active"],
+    });
+    if (!customerType) {
+      return {
+        ok: false,
+        code: "CUSTOMER_TYPE_NOT_FOUND",
+        message: "نوع مشتری انتخاب‌شده یافت نشد",
+      };
+    }
+    if (customerType.active === false) {
+      return {
+        ok: false,
+        code: "CUSTOMER_TYPE_INACTIVE",
+        message: "نوع مشتری انتخاب‌شده غیرفعال است؛ نوع دیگری انتخاب کنید",
+      };
+    }
+
+    newCustomerValues = checked.values;
+  } else {
+    const customer = Number(customerId);
+    if (!Number.isInteger(customer) || customer <= 0) {
+      return {
+        ok: false,
+        code: "INVALID_CUSTOMER",
+        message:
+          "برای تأیید، انتخاب پروندهٔ مشتری الزامی است (بدون پرونده، پورتال مشتری قابل استفاده نیست)",
+      };
+    }
+
+    const customerProfile = await CustomerPersonalInfo.findByPk(customer, {
+      attributes: ["id"],
+    });
+    if (!customerProfile) {
+      return {
+        ok: false,
+        code: "CUSTOMER_NOT_FOUND",
+        message: "پروندهٔ مشتری با این شناسه یافت نشد",
+      };
+    }
   }
 
   let transaction = null;
@@ -210,6 +412,25 @@ const approveRequest = async ({ id, reviewerId, customerId } = {}) => {
 
     const request = await RegistrationRequest.findByPk(requestId, { transaction });
 
+    // ── پروندهٔ مشتری (موج ۱۳.۷) ──────────────────────────────
+    // existing → همان customer_id انتخاب مدیر
+    // new      → ساخت پروندهٔ تازه از دادهٔ فیلد سفید (در همین تراکنش)
+    let customer = null;
+    let customerCreated = false;
+
+    if (creatingCustomer) {
+      const createdCustomer = await createCustomerForRequest(
+        newCustomerValues,
+        request,
+        reviewerId,
+        transaction,
+      );
+      customer = createdCustomer.id;
+      customerCreated = true;
+    } else {
+      customer = Number(customerId);
+    }
+
     // ⚠️ hooks:false عمدی است — رمز از قبل bcrypt شده و نباید دوباره هش شود
     const user = await User.create(
       {
@@ -232,6 +453,8 @@ const approveRequest = async ({ id, reviewerId, customerId } = {}) => {
       rules.approvalPatch({
         reviewerId,
         userId: user.id,
+        customerId: customer,
+        customerCreated,
         now: new Date(),
       }),
       { transaction },
@@ -240,9 +463,18 @@ const approveRequest = async ({ id, reviewerId, customerId } = {}) => {
     await transaction.commit();
     transaction = null;
 
-    return { ok: true, user, request };
+    return { ok: true, user, request, customerId: customer, customerCreated };
   } catch (error) {
     if (transaction) await transaction.rollback();
+
+    // خطاهای دسته‌بندی‌شدهٔ ساخت پروندهٔ مشتری تازه (موج ۱۳.۷)
+    if (
+      error?.code === "CUSTOMER_MOBILE_TAKEN" ||
+      error?.code === "CUSTOMER_EMAIL_TAKEN" ||
+      error?.code === "CUSTOMER_INVALID"
+    ) {
+      return { ok: false, code: error.code, message: error.message };
+    }
 
     if (error?.name === "SequelizeUniqueConstraintError") {
       const field = userDuplicateField(error);
@@ -318,10 +550,15 @@ const findRequest = (id) => RegistrationRequest.findByPk(id);
 
 module.exports = {
   HASH_ROUNDS,
+  CUSTOMER_CODE_START,
+  DEFAULT_CUSTOMER_BIRTHDATE,
   DUPLICATE_MESSAGES,
   PENDING_EXISTS_MESSAGE,
   isPendingUniqueViolation,
   userDuplicateField,
+  nextCustomerCode,
+  pickCustomerEmail,
+  createCustomerForRequest,
   createRequest,
   listRequests,
   pendingCount,

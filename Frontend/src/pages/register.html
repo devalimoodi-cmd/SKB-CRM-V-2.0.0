@@ -1,4 +1,4 @@
-<!-- pages/register.html — ثبت‌نام عمومی مشتری (فاز ۱۳.۶) -->
+<!-- pages/register.html — ثبت‌نام عمومی مشتری (فاز ۱۳.۶ / بازطراحی ۱۳.۷) -->
 <!DOCTYPE html>
 <html dir="rtl" lang="fa">
 
@@ -19,145 +19,200 @@
 </head>
 
 <body class="reg-page">
-    <div class="reg-card">
-        <div class="reg-header">
-            <i class="fas fa-user-plus reg-icon"></i>
-            <h1 class="reg-title">ثبت‌نام مشتری</h1>
-            <p class="reg-subtitle">
-                پس از ثبت درخواست، کارشناسان ما اطلاعات شما را بررسی می‌کنند و
-                پس از تأیید، امکان ورود به پورتال مشتری را خواهید داشت.
-            </p>
-        </div>
+    <!-- تصویر پس‌زمینهٔ مشترک با صفحهٔ ورود (تم روشن/تیره از توکن‌ها می‌آید) -->
+    <div class="reg-bg" aria-hidden="true"></div>
 
-        <!-- پیام‌ها (خطا/موفقیت/اطلاع) -->
-        <div id="regMessage" class="reg-message" hidden></div>
+    <main class="reg-shell">
+        <section class="reg-card">
+            <!-- ===== سربرگ: لوگوی شرکت + عنوان ===== -->
+            <header class="reg-header">
+                <a class="reg-brand" href="/login" title="ستاره کیان بیرجند">
+                    <img src="/assets/images/skb-logo.png" alt="کارخانه ستاره کیان بیرجند">
+                </a>
+                <h1 class="reg-title">ثبت‌نام مشتری در سِکاد</h1>
+                <p class="reg-subtitle">
+                    سامانه مدیریت اطلاعات، خدمات و ارتباطات با مشتریان<br>
+                    پس از ثبت درخواست، کارشناسان ما اطلاعات شما را بررسی می‌کنند و
+                    پس از تأیید می‌توانید وارد پورتال مشتری شوید.
+                </p>
+            </header>
 
-        <!-- ===== حالت «ثبت‌نام بسته است» ===== -->
-        <div id="regClosed" class="reg-closed" hidden>
-            <i class="fas fa-lock"></i>
-            <p>
-                ثبت‌نام عمومی در حال حاضر غیرفعال است.<br>
-                برای دریافت حساب کاربری با پشتیبانی تماس بگیرید.
-            </p>
-            <a class="reg-footer-link" href="/login">بازگشت به صفحهٔ ورود</a>
-        </div>
+            <!-- پیام‌ها (خطا/موفقیت/اطلاع) -->
+            <div id="regMessage" class="reg-message" hidden></div>
 
-        <!-- ===== فرم ثبت‌نام ===== -->
-        <div id="regFormPanel" hidden>
-            <form id="registerForm" novalidate>
-                <div class="reg-row">
+            <!-- ===== حالت «ثبت‌نام بسته است» ===== -->
+            <div id="regClosed" class="reg-state reg-closed" hidden>
+                <i class="fas fa-lock"></i>
+                <p>
+                    ثبت‌نام عمومی در حال حاضر غیرفعال است.<br>
+                    برای دریافت حساب کاربری با پشتیبانی تماس بگیرید.
+                </p>
+                <a class="reg-state-link" href="/login">بازگشت به صفحهٔ ورود</a>
+            </div>
+
+            <!-- ===== فرم ثبت‌نام ===== -->
+            <div id="regFormPanel" hidden>
+                <form id="registerForm" novalidate autocomplete="on">
+
+                    <!-- نام و نام خانوادگی -->
+                    <div class="reg-row">
+                        <div class="reg-field">
+                            <label class="reg-label" for="regFirstName">نام</label>
+                            <div class="reg-control">
+                                <input class="reg-input" id="regFirstName" data-field="first_name" type="text"
+                                    maxlength="100" autocomplete="given-name" placeholder="مثال: علی">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            <span class="reg-error" data-field="first_name" hidden></span>
+                        </div>
+                        <div class="reg-field">
+                            <label class="reg-label" for="regLastName">نام خانوادگی</label>
+                            <div class="reg-control">
+                                <input class="reg-input" id="regLastName" data-field="last_name" type="text"
+                                    maxlength="100" autocomplete="family-name" placeholder="مثال: محمدی">
+                                <i class="fas fa-user-tag"></i>
+                            </div>
+                            <span class="reg-error" data-field="last_name" hidden></span>
+                        </div>
+                    </div>
+
+                    <!-- نام کاربری و موبایل -->
+                    <div class="reg-row">
+                        <div class="reg-field">
+                            <label class="reg-label" for="regUsername">نام کاربری</label>
+                            <div class="reg-control">
+                                <input class="reg-input" id="regUsername" data-field="username" type="text"
+                                    maxlength="100" autocomplete="username" placeholder="حروف انگلیسی و رقم">
+                                <i class="fas fa-user-circle"></i>
+                            </div>
+                            <span class="reg-hint">حداقل ۳ کاراکتر؛ حروف انگلیسی، رقم، نقطه، خط تیره</span>
+                            <span class="reg-error" data-field="username" hidden></span>
+                        </div>
+                        <div class="reg-field">
+                            <label class="reg-label" for="regMobile">شماره همراه</label>
+                            <div class="reg-control">
+                                <input class="reg-input" id="regMobile" data-field="mobile_number" type="tel"
+                                    maxlength="11" inputmode="numeric" autocomplete="tel" placeholder="09151234567">
+                                <i class="fas fa-mobile-screen-button"></i>
+                            </div>
+                            <span class="reg-error" data-field="mobile_number" hidden></span>
+                        </div>
+                    </div>
+
+                    <!-- ایمیل -->
                     <div class="reg-field">
-                        <label class="reg-label" for="regFirstName">نام</label>
-                        <input class="reg-input" id="regFirstName" data-field="first_name" type="text"
-                            maxlength="100" autocomplete="given-name" placeholder="مثال: علی">
-                        <span class="reg-error" data-field="first_name" hidden></span>
+                        <label class="reg-label" for="regEmail">ایمیل</label>
+                        <div class="reg-control">
+                            <input class="reg-input" id="regEmail" data-field="email" type="email" maxlength="100"
+                                autocomplete="email" placeholder="you@example.com">
+                            <i class="fas fa-envelope"></i>
+                        </div>
+                        <span class="reg-error" data-field="email" hidden></span>
                     </div>
+
+                    <!-- رمز عبور و تکرار آن -->
+                    <div class="reg-row">
+                        <div class="reg-field">
+                            <label class="reg-label" for="regPassword">رمز عبور</label>
+                            <div class="reg-control">
+                                <input class="reg-input" id="regPassword" data-field="password" type="password"
+                                    maxlength="100" autocomplete="new-password" placeholder="حداقل ۸ کاراکتر">
+                                <i class="fas fa-lock"></i>
+                            </div>
+                            <span class="reg-hint">ترکیبی از حروف و رقم برای امنیت بیشتر</span>
+                            <span class="reg-error" data-field="password" hidden></span>
+                        </div>
+                        <div class="reg-field">
+                            <label class="reg-label" for="regConfirmPassword">تکرار رمز عبور</label>
+                            <div class="reg-control">
+                                <input class="reg-input" id="regConfirmPassword" data-field="confirm_password"
+                                    type="password" maxlength="100" autocomplete="new-password"
+                                    placeholder="همان رمز را دوباره وارد کنید">
+                                <i class="fas fa-lock-open"></i>
+                            </div>
+                            <span class="reg-error" data-field="confirm_password" hidden></span>
+                        </div>
+                    </div>
+
+                    <!-- پروندهٔ مشتری (اختیاری) -->
                     <div class="reg-field">
-                        <label class="reg-label" for="regLastName">نام خانوادگی</label>
-                        <input class="reg-input" id="regLastName" data-field="last_name" type="text"
-                            maxlength="100" autocomplete="family-name" placeholder="مثال: محمدی">
-                        <span class="reg-error" data-field="last_name" hidden></span>
+                        <label class="reg-label" for="regCustomerCode">
+                            کد یا نام پروندهٔ مشتری
+                            <span class="reg-optional">(اختیاری — برای تسریع در تأیید)</span>
+                        </label>
+                        <div class="reg-control">
+                            <input class="reg-input" id="regCustomerCode" data-field="requested_customer_code"
+                                type="text" maxlength="50" placeholder="مثال: SKB-1024 یا نام واحد پرورشی">
+                            <i class="fas fa-folder-open"></i>
+                        </div>
+                        <span class="reg-hint">
+                            اگر هنوز پروندهٔ مشتری ندارید، این قسمت را خالی بگذارید؛
+                            مدیر می‌تواند هنگام تأیید پروندهٔ جدید برای شما بسازد.
+                        </span>
+                        <span class="reg-error" data-field="requested_customer_code" hidden></span>
                     </div>
-                </div>
 
-                <div class="reg-row">
+                    <!-- توضیح -->
                     <div class="reg-field">
-                        <label class="reg-label" for="regUsername">نام کاربری</label>
-                        <input class="reg-input" id="regUsername" data-field="username" type="text"
-                            maxlength="100" autocomplete="username" placeholder="حروف انگلیسی و رقم">
-                        <span class="reg-hint">حداقل ۳ کاراکتر؛ حروف انگلیسی، رقم، نقطه، خط تیره</span>
-                        <span class="reg-error" data-field="username" hidden></span>
+                        <label class="reg-label" for="regNote">
+                            توضیح
+                            <span class="reg-optional">(اختیاری)</span>
+                        </label>
+                        <textarea class="reg-textarea" id="regNote" data-field="note" maxlength="500"
+                            placeholder="هر توضیحی که به بررسی درخواست شما کمک می‌کند"></textarea>
+                        <span class="reg-error" data-field="note" hidden></span>
                     </div>
-                    <div class="reg-field">
-                        <label class="reg-label" for="regMobile">شماره همراه</label>
-                        <input class="reg-input" id="regMobile" data-field="mobile_number" type="tel"
-                            inputmode="numeric" maxlength="11" autocomplete="tel" placeholder="09123456789">
-                        <span class="reg-error" data-field="mobile_number" hidden></span>
+
+                    <!-- کپچا -->
+                    <div class="reg-field" id="regCaptchaGroup" hidden>
+                        <label class="reg-label" for="regCaptchaAnswer">کد امنیتی</label>
+                        <div class="reg-captcha">
+                            <input class="reg-input" id="regCaptchaAnswer" data-field="captcha_answer" type="text"
+                                maxlength="8" autocomplete="off" placeholder="کد تصویر">
+                            <div class="reg-captcha-box">
+                                <img id="regCaptchaImage" alt="کد امنیتی" title="برای تصویر جدید کلیک کنید">
+                                <button type="button" class="reg-captcha-refresh" id="regCaptchaRefresh"
+                                    title="تصویر جدید">
+                                    <i class="fas fa-rotate-right"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <span class="reg-error" data-field="captcha_answer" hidden></span>
                     </div>
-                </div>
 
-                <div class="reg-field">
-                    <label class="reg-label" for="regEmail">ایمیل</label>
-                    <input class="reg-input" id="regEmail" data-field="email" type="email" maxlength="100"
-                        autocomplete="email" placeholder="you@example.com">
-                    <span class="reg-error" data-field="email" hidden></span>
-                </div>
+                    <button type="submit" class="reg-submit" id="regSubmitBtn">
+                        <i class="fas fa-paper-plane"></i>
+                        <span class="reg-submit-text">ارسال درخواست ثبت‌نام</span>
+                    </button>
+                </form>
+            </div>
 
-                <div class="reg-row">
-                    <div class="reg-field">
-                        <label class="reg-label" for="regPassword">رمز عبور</label>
-                        <input class="reg-input" id="regPassword" data-field="password" type="password"
-                            maxlength="100" autocomplete="new-password" placeholder="حداقل ۸ کاراکتر">
-                        <span class="reg-error" data-field="password" hidden></span>
-                    </div>
-                    <div class="reg-field">
-                        <label class="reg-label" for="regConfirmPassword">تکرار رمز عبور</label>
-                        <input class="reg-input" id="regConfirmPassword" data-field="confirm_password"
-                            type="password" maxlength="100" autocomplete="new-password"
-                            placeholder="همان رمز را دوباره وارد کنید">
-                        <span class="reg-error" data-field="confirm_password" hidden></span>
-                    </div>
-                </div>
+            <!-- ===== حالت پس از ثبت موفق ===== -->
+            <div id="regSuccess" class="reg-state reg-success" hidden>
+                <i class="fas fa-circle-check"></i>
+                <p id="regSuccessText">
+                    درخواست ثبت‌نام شما ثبت شد. پس از بررسی و تأیید مدیر، می‌توانید وارد شوید.
+                </p>
+                <a class="reg-state-link" href="/login">رفتن به صفحهٔ ورود</a>
+            </div>
 
-                <div class="reg-field">
-                    <label class="reg-label" for="regCustomerCode">
-                        کد یا نام پروندهٔ مشتری
-                        <span class="reg-optional">(اختیاری — برای تسریع در تأیید)</span>
-                    </label>
-                    <input class="reg-input" id="regCustomerCode" data-field="requested_customer_code" type="text"
-                        maxlength="50" placeholder="مثال: SKB-1024 یا نام واحد پرورشی">
-                    <span class="reg-error" data-field="requested_customer_code" hidden></span>
-                </div>
-
-                <div class="reg-field">
-                    <label class="reg-label" for="regNote">
-                        توضیح
-                        <span class="reg-optional">(اختیاری)</span>
-                    </label>
-                    <textarea class="reg-textarea" id="regNote" data-field="note" maxlength="500"
-                        placeholder="هر توضیحی که به بررسی درخواست شما کمک می‌کند"></textarea>
-                    <span class="reg-error" data-field="note" hidden></span>
-                </div>
-
-                <div class="reg-field" id="regCaptchaGroup" hidden>
-                    <label class="reg-label" for="regCaptchaAnswer">کد امنیتی</label>
-                    <div class="reg-captcha">
-                        <input class="reg-input" id="regCaptchaAnswer" data-field="captcha_answer" type="text"
-                            maxlength="8" autocomplete="off" placeholder="کد تصویر">
-                        <img id="regCaptchaImage" alt="کد امنیتی" title="برای تصویر جدید کلیک کنید">
-                        <button type="button" class="reg-captcha-refresh" id="regCaptchaRefresh"
-                            title="تصویر جدید">
-                            <i class="fas fa-rotate-right"></i>
-                        </button>
-                    </div>
-                    <span class="reg-error" data-field="captcha_answer" hidden></span>
-                </div>
-
-                <button type="submit" class="reg-submit" id="regSubmitBtn">
-                    <i class="fas fa-paper-plane"></i>
-                    ارسال درخواست ثبت‌نام
-                </button>
-            </form>
-        </div>
-
-        <!-- ===== حالت پس از ثبت موفق ===== -->
-        <div id="regSuccess" class="reg-success" hidden>
-            <i class="fas fa-circle-check"></i>
-            <p id="regSuccessText">
-                درخواست ثبت‌نام شما ثبت شد. پس از بررسی و تأیید مدیر، می‌توانید وارد شوید.
-            </p>
-            <a class="reg-footer-link" href="/login">رفتن به صفحهٔ ورود</a>
-        </div>
-
-        <div class="reg-footer">
-            حساب دارید؟
-            <a id="regBackToLogin" href="/login">ورود به سامانه</a>
-        </div>
-    </div>
-
-    <p class="reg-copyright">
-        کلیه حقوق متعلق به واحد تحقیق و توسعه کارخانه ستاره کیان بیرجند است.
-    </p>
+            <!-- ===== پاورقی مشترک با صفحهٔ ورود ===== -->
+            <div class="reg-footer">
+                <p>
+                    حساب کاربری دارید؟
+                    <a id="regBackToLogin" href="/login">ورود به سامانه</a>
+                </p>
+                <p class="reg-footer-links">
+                    <a href="/about"><i class="fas fa-circle-info"></i> درباره ما</a> •
+                    <a href="/help"><i class="fas fa-circle-question"></i> راهنما</a> •
+                    <a href="/contact"><i class="fas fa-headset"></i> تماس با ما</a>
+                </p>
+                <p class="reg-copyright">
+                    کلیه حقوق متعلق به واحد تحقیق و توسعه کارخانه ستاره کیان بیرجند است.
+                </p>
+            </div>
+        </section>
+    </main>
 
     <!-- ===== Script ===== -->
     <!-- ۱) پیکربندی (آدرس API بر اساس hostname — باید پیش از سرویس اجرا شود) -->

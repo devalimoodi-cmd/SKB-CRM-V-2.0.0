@@ -33,6 +33,9 @@ const serverJs = read("server.js");
 const migration = read(
   "migrations/20261108000000-create-registration-requests.js",
 );
+const customerMigration = read(
+  "migrations/20261108000001-add-customer-link-to-registration-requests.js",
+);
 
 const results = [];
 const check = (name, ok, extra = "") => {
@@ -370,6 +373,126 @@ check(
       return false;
     }
   })(),
+);
+
+// ============================================================
+// ۷) «پروندهٔ مشتری تازه» در تأیید (موج ۱۳.۷)
+// ------------------------------------------------------------
+//  ریسکی که این بخش از بازگشتش جلوگیری می‌کند:
+//    • مشتری بدون پرونده → تأیید بدون customer_id ⇒ کاربر فعالِ بی‌پورتال
+//    • پذیرش mobile/email/role از بدنهٔ مدیر ⇒ جعل هویت مشتری
+//    • ساخت پرونده بدون کنترل «نوع مشتری» یا بدون تراکنش
+// ============================================================
+check(
+  "normalizeCustomerMode: خالی/نامشخص → existing",
+  rules.normalizeCustomerMode() === "existing" &&
+    rules.normalizeCustomerMode("  ") === "existing",
+);
+check(
+  "normalizeCustomerMode: new/existing معتبرند و مقدار ناشناخته → null",
+  rules.normalizeCustomerMode("new") === "new" &&
+    rules.normalizeCustomerMode("EXISTING") === "existing" &&
+    rules.normalizeCustomerMode("other") === null,
+);
+
+const pendingRequest = { first_name: "علی", last_name: "محمدی" };
+check(
+  "validateNewCustomer: بدون نوع مشتری → خطای customer_type_id",
+  Boolean(rules.validateNewCustomer({}, pendingRequest).errors.customer_type_id),
+);
+check(
+  "validateNewCustomer: نوع معتبر + نام از درخواست → ok",
+  (() => {
+    const result = rules.validateNewCustomer(
+      { customer_type_id: "3" },
+      pendingRequest,
+    );
+    return result.ok && result.values.full_name === "علی محمدی";
+  })(),
+);
+check(
+  "validateNewCustomer: کد ملی ناقص → خطا (۱۰ رقم)",
+  Boolean(
+    rules
+      .validateNewCustomer({ customer_type_id: 1, national_code: "12345" }, pendingRequest)
+      .errors.national_code,
+  ),
+);
+check(
+  "validateNewCustomer: موبایل/ایمیل/نقش از بدنهٔ مدیر پذیرفته نمی‌شود",
+  (() => {
+    const result = rules.validateNewCustomer(
+      {
+        customer_type_id: 2,
+        mobile_number: "09999999999",
+        email: "hacker@example.com",
+        role: "admin",
+        customer_id: 5,
+      },
+      pendingRequest,
+    );
+    return (
+      result.ok &&
+      !("mobile_number" in result.values) &&
+      !("email" in result.values) &&
+      !("role" in result.values) &&
+      !("customer_id" in result.values)
+    );
+  })(),
+);
+check(
+  "approvalPatch: created_customer_id و customer_created ثبت می‌شوند",
+  (() => {
+    const patch = rules.approvalPatch({
+      reviewerId: 4,
+      userId: 11,
+      customerId: 77,
+      customerCreated: true,
+    });
+    return (
+      patch.created_customer_id === 77 &&
+      patch.customer_created === true &&
+      rules.approvalPatch({ reviewerId: 4, userId: 11 }).customer_created === false
+    );
+  })(),
+);
+check(
+  "adminRequestView: created_customer_id/customer_created در خروجی هستند",
+  (() => {
+    const view = rules.adminRequestView({ ...sampleRow, created_customer_id: 9, customer_created: true });
+    return view.created_customer_id === 9 && view.customer_created === true;
+  })(),
+);
+check(
+  "service: شمارهٔ مشتری MAX(customer_code)+1 زیر قفل جدول",
+  /LOCK TABLE customer_personal_information/.test(service) &&
+    /MAX\(customer_code\)/.test(service),
+);
+check(
+  "service: ساخت پروندهٔ مشتری داخل همان تراکنش تأیید است (fail-closed)",
+  /createCustomerForRequest\(/.test(service) &&
+    /customer_id: customer,/.test(service) &&
+    /await transaction\.rollback\(\)/.test(service),
+);
+check(
+  "service: موبایل تکراری مشتری → انتخاب پروندهٔ موجود (نه پروندهٔ تکراری)",
+  /CUSTOMER_MOBILE_TAKEN/.test(service) &&
+    /sameMobile/.test(service),
+);
+check(
+  "controller: حالت new مجوز customers.register هم می‌خواهد",
+  /userHasPermission\(req,\s*"customers\.register"\)/.test(controller) &&
+    /CUSTOMER_MODE\.NEW/.test(controller),
+);
+check(
+  "migration: ستون‌های created_customer_id و customer_created (idempotent)",
+  /created_customer_id/.test(customerMigration) &&
+    /customer_created/.test(customerMigration) &&
+    /describeTable/.test(customerMigration),
+);
+check(
+  "verify-db: ستون‌های جدید در اسکن registration_requests هستند",
+  /created_customer_id/.test(verifyDb) && /customer_created/.test(verifyDb),
 );
 
 // ============================================================

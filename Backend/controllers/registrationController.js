@@ -42,11 +42,19 @@ const STATUS_BY_CODE = {
   DUPLICATE_USERNAME: 400,
   DUPLICATE_MOBILE_NUMBER: 400,
   DUPLICATE: 400,
+  // پروندهٔ مشتری تازه (موج ۱۳.۷)
+  INVALID_MODE: 400,
+  INVALID_NEW_CUSTOMER: 400,
+  CUSTOMER_TYPE_NOT_FOUND: 400,
+  CUSTOMER_TYPE_INACTIVE: 400,
+  CUSTOMER_INVALID: 400,
+  CUSTOMER_MOBILE_TAKEN: 409,
+  CUSTOMER_EMAIL_TAKEN: 409,
 };
 
 const sendServiceError = (res, result) => {
   const status = STATUS_BY_CODE[result.code] || 400;
-  return errorResponse(res, result.message, status);
+  return errorResponse(res, result.message, status, result.errors);
 };
 
 // ============================================
@@ -182,6 +190,9 @@ const getPendingCount = async (req, res) => {
 // ⚠️ دو شرط: مجوز روت (users.registrations.review) **و** مجوز پیوند
 //    پروندهٔ مشتری (users.customer.link) — چون تأیید بدون پیوند، مشتریِ
 //    فعالِ بی‌پورتال می‌سازد.
+// ⚠️ حالت «ساخت پروندهٔ تازه» (customer_mode='new') **یک شرط سوم** هم دارد:
+//    customers.register — کسی که مجوز ثبت مشتری ندارد نباید با تأیید
+//    ثبت‌نام، پروندهٔ مشتری بسازد (موج ۱۳.۷).
 // ============================================
 const approveRegistration = async (req, res) => {
   try {
@@ -194,10 +205,28 @@ const approveRegistration = async (req, res) => {
       );
     }
 
+    const customerMode = rules.normalizeCustomerMode(req.body?.customer_mode);
+    if (!customerMode) {
+      return errorResponse(res, "حالت پروندهٔ مشتری نامعتبر است", 400);
+    }
+
+    if (customerMode === rules.CUSTOMER_MODE.NEW) {
+      const canRegisterCustomer = await userHasPermission(req, "customers.register");
+      if (!canRegisterCustomer) {
+        return errorResponse(
+          res,
+          "برای ساخت پروندهٔ مشتری تازه، مجوز «ثبت مشتری جدید» لازم است؛ یا پروندهٔ موجود را انتخاب کنید",
+          403,
+        );
+      }
+    }
+
     const result = await service.approveRequest({
       id: req.params.id,
       reviewerId: req.user?.id ?? null,
       customerId: req.body?.customer_id,
+      customerMode,
+      newCustomer: req.body?.customer,
     });
 
     if (!result.ok) return sendServiceError(res, result);
@@ -206,6 +235,10 @@ const approveRegistration = async (req, res) => {
       res,
       {
         request: rules.adminRequestView(result.request),
+        customer: {
+          id: result.customerId,
+          created: result.customerCreated === true,
+        },
         user: {
           id: result.user.id,
           username: result.user.username,
@@ -215,7 +248,9 @@ const approveRegistration = async (req, res) => {
           customer_id: result.user.customer_id,
         },
       },
-      "درخواست تأیید شد و حساب مشتری ساخته شد",
+      result.customerCreated
+        ? "درخواست تأیید شد؛ پروندهٔ مشتری تازه ساخته و حساب کاربر به آن متصل شد"
+        : "درخواست تأیید شد و حساب مشتری ساخته شد",
     );
   } catch (error) {
     console.error("❌ خطا در تأیید درخواست ثبت‌نام:", error);

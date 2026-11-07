@@ -53,6 +53,12 @@ const FILES = {
   adminApi: "Frontend/src/features/admin-panel/admin-panel.api.js",
   adminCss: "Frontend/src/features/admin-panel/admin-panel.css",
   permissions: "Backend/config/permissions.js",
+  // ✅ موج ۱۳.۷ — «ساخت پروندهٔ مشتری تازه» در زمان تأیید
+  regRules: "Backend/services/registrationRules.js",
+  regService: "Backend/services/registrationService.js",
+  regController: "Backend/controllers/registrationController.js",
+  regMigration:
+    "Backend/migrations/20261108000001-add-customer-link-to-registration-requests.js",
 };
 
 const missing = Object.entries(FILES)
@@ -75,6 +81,11 @@ const adminApi = read(FILES.adminApi);
 const adminCss = read(FILES.adminCss);
 const apiConstSource = apiConst;
 const permissions = read(FILES.permissions);
+// ✅ موج ۱۳.۷
+const regRules = read(FILES.regRules);
+const regService = read(FILES.regService);
+const regController = read(FILES.regController);
+const regMigration = read(FILES.regMigration);
 
 
 // ============================================================
@@ -233,9 +244,10 @@ check(
   /case "registration-requests":[\s\S]{0,200}loadRegistrationRequests\(\)/.test(adminService),
 );
 check(
-  "سرویس پنل: تأیید بدون customer_id ارسال نمی‌شود (گارد کلاینت)",
+  "سرویس پنل: تأیید بدون پرونده ارسال نمی‌شود (گارد کلاینت، دو حالت)",
   /customerId <= 0/.test(adminService) &&
-    /approveRegistration\(item\.id, customerId\)/.test(adminService),
+    /approveRegistration\(item\.id, payload\)/.test(adminService) &&
+    /customer_mode: this\.registrationCustomerMode/.test(adminService),
 );
 check(
   "سرویس پنل: دلیل رد اجباری است (حداقل ۳ کاراکتر)",
@@ -306,6 +318,99 @@ check(
   /notificationService\.error\(response\?\.message \|\| "تأیید درخواست ناموفق بود"\)/.test(
     adminService,
   ),
+);
+
+// ============================================================
+// ۷) موج ۱۳.۷ — «صفحهٔ ثبت‌نام هم‌چهر سایر صفحات» + «پروندهٔ مشتری تازه»
+// ------------------------------------------------------------
+//  ریسک‌هایی که این بخش قفل می‌کند:
+//   ۱) صفحهٔ /register دوباره بی‌لوگو/بی‌پس‌زمینه و ناهم‌چهر سایر صفحات شود.
+//   ۲) پنل بتواند «تأیید» را بدون پرونده (موجود یا تازه) بفرستد.
+//   ۳) حالت «تازه» بدون مجوز customers.register اجرا شود (دور زدن مجوز).
+//   ۴) پروندهٔ مشتری بیرون از تراکنش تأیید ساخته شود (حساب بی‌پرونده).
+// ============================================================
+check(
+  "۱۳.۷ · صفحهٔ ثبت‌نام: لوگو، لایهٔ پس‌زمینه و پاورقی دارد",
+  /class="reg-brand"/.test(registerHtml) &&
+    /skb-logo\.png/.test(registerHtml) &&
+    /class="reg-bg"/.test(registerHtml) &&
+    /reg-footer/.test(registerHtml),
+);
+check(
+  "۱۳.۷ · CSS صفحه: .reg-bg/.reg-shell/.reg-control + تصویر پس‌زمینهٔ صفحهٔ ورود",
+  /\.reg-bg\s*\{/.test(registerCss) &&
+    /login-bg\.jpg/.test(registerCss) &&
+    /\.reg-shell\s*\{/.test(registerCss) &&
+    /\.reg-control\s*\{/.test(registerCss) &&
+    !/(^|\n)\s*(html|body)\s*\{/.test(registerCss),
+);
+check(
+  "۱۳.۷ · پنل: سوییچ دوحالته + بلوک «پروندهٔ تازه» در مودال تأیید",
+  /id="regModeExistingBtn"/.test(adminHtml) &&
+    /id="regModeNewBtn"/.test(adminHtml) &&
+    /id="regExistingCustomerBlock"/.test(adminHtml) &&
+    /id="regNewCustomerBlock"/.test(adminHtml) &&
+    /id="regNewCustomerType"/.test(adminHtml) &&
+    /id="regNewCustomerNationalCode"/.test(adminHtml) &&
+    /id="regNewCustomerError"/.test(adminHtml),
+);
+check(
+  "۱۳.۷ · سرویس پنل: سوییچ حالت + ساخت بدنهٔ پروندهٔ تازه سیم‌کشی شده است",
+  /setRegistrationCustomerMode\(mode = "existing"\)/.test(adminService) &&
+    /buildRegistrationNewCustomer\(\)/.test(adminService) &&
+    /payload\.customer = built\.values/.test(adminService) &&
+    /showRegistrationNewCustomerError/.test(adminService),
+);
+check(
+  "۱۳.۷ · سرویس پنل: حالت «تازه» فقط با مجوز customers.register",
+  /canRegisterCustomers\(\)/.test(adminService) &&
+    /permissionService\.can\("customers\.register"\)/.test(adminService),
+);
+check(
+  "۱۳.۷ · سرویس پنل: نام از درخواست پیش‌پر و ارقام کد ملی نرمال می‌شود",
+  /resetRegistrationNewCustomerForm\(item\)/.test(adminService) &&
+    /digitsOnlyValue\(/.test(adminService) &&
+    /NEW_CUSTOMER_NATIONAL_CODE_LENGTH/.test(adminService),
+);
+check(
+  "۱۳.۷ · API پنل: approveRegistration با payload + getCustomerTypes",
+  /approveRegistration\(id, payload = \{\}\)/.test(adminApi) &&
+    /getCustomerTypes\(\)/.test(adminApi) &&
+    /DICTIONARY\.CUSTOMER_TYPES/.test(adminApi),
+);
+check(
+  "۱۳.۷ · رندرر: پروندهٔ متصل/تازه‌ساخته در ردیف صف نمایش داده می‌شود",
+  /created_customer_id/.test(adminRenderer) &&
+    /customer_created/.test(adminRenderer) &&
+    /linkedCustomer/.test(adminRenderer),
+);
+check(
+  "۱۳.۷ · CSS پنل: .regq-mode-btn.active/.regq-grid/.regq-new-error + [hidden]",
+  /\.regq-mode-btn\.active/.test(adminCss) &&
+    /\.regq-grid/.test(adminCss) &&
+    /\.regq-new-error/.test(adminCss) &&
+    /#regModeNewBtn\[hidden\]/.test(adminCss),
+);
+check(
+  "۱۳.۷ · سرور: حالت new مجوز سوم customers.register می‌خواهد",
+  /CUSTOMER_MODE\.NEW/.test(regController) &&
+    /userHasPermission\(req, "customers\.register"\)/.test(regController),
+);
+check(
+  "۱۳.۷ · سرور: اعتبارسنجی خالص پروندهٔ تازه با پیش‌فرض نام از درخواست",
+  /const validateNewCustomer/.test(regRules) &&
+    /request\.first_name/.test(regRules) &&
+    /errors\.customer_type_id/.test(regRules),
+);
+check(
+  "۱۳.۷ · سرور: پروندهٔ تازه داخل تراکنش تأیید و هویت از درخواست",
+  /createCustomerForRequest\(/.test(regService) &&
+    /mobile_number: request\.mobile_number/.test(regService) &&
+    /CUSTOMER_MOBILE_TAKEN/.test(regService),
+);
+check(
+  "۱۳.۷ · مایگریشن: ستون‌های ممیزی پروندهٔ مشتری روی درخواست‌ها",
+  /created_customer_id/.test(regMigration) && /customer_created/.test(regMigration),
 );
 
 // ============================================================

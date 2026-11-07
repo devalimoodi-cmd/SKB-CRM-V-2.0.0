@@ -251,6 +251,9 @@ const EXPECTED_COLUMNS = {
     "reviewed_by",
     "reviewed_at",
     "created_user_id",
+    // ✅ موج ۱۳.۷ — ممیزی پروندهٔ مشتری (اتصال یا ساخت تازه)
+    "created_customer_id",
+    "customer_created",
     "ip",
     "user_agent",
     "created_at",

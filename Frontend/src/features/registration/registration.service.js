@@ -69,8 +69,12 @@ const applyFieldErrors = (errors) => {
 const applyClosedState = () => {
   state.enabled = false;
   const form = el("registerForm");
+  const panel = el("regFormPanel");
   const notice = el("regClosed");
+  const success = el("regSuccess");
   if (form) form.hidden = true;
+  if (panel) panel.hidden = true;
+  if (success) success.hidden = true;
   if (notice) notice.hidden = false;
   hideMessage();
 };
@@ -180,9 +184,11 @@ const submit = async (event) => {
 
     if (result.ok) {
       const form = el("registerForm");
+      const panel = el("regFormPanel");
       const success = el("regSuccess");
       const successText = el("regSuccessText");
       if (form) form.hidden = true;
+      if (panel) panel.hidden = true;
       if (success) success.hidden = false;
       if (successText) {
         successText.textContent =

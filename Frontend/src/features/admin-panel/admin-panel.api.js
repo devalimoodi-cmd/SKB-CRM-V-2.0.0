@@ -158,10 +158,22 @@ export const adminPanelApi = {
     return apiService.get(endpoints.PENDING_COUNT);
   },
 
-  // تأیید + ساخت حساب مشتری (customer_id اجباری است)
-  async approveRegistration(id, customerId) {
+  // تأیید + ساخت حساب مشتری
+  // ------------------------------------------------------------
+  // payload (موج ۱۳.۷):
+  //   { customer_mode: "existing", customer_id: 12 }
+  //   { customer_mode: "new", customer: { customer_type_id, full_name, ... } }
+  // ⚠️ بدنه همین‌جا ساخته نمی‌شود؛ سرویس پنل آن را از فرم می‌سازد تا
+  //    اعتبارسنجی کلاینت پیش از ارسال انجام شود.
+  async approveRegistration(id, payload = {}) {
     const endpoints = API_CONSTANTS.ENDPOINTS.REGISTRATIONS;
-    return apiService.post(endpoints.APPROVE(id), { customer_id: customerId });
+    return apiService.post(endpoints.APPROVE(id), payload);
+  },
+
+  // ✅ موج ۱۳.۷ — انواع مشتری (برای فرم «ثبت پروندهٔ مشتری جدید»)
+  // همان منبع فرم مشتری (دیکشنری customer_types) — فقط انواع فعال.
+  async getCustomerTypes() {
+    return apiService.get(API_CONSTANTS.ENDPOINTS.DICTIONARY.CUSTOMER_TYPES);
   },
 
   // رد درخواست با دلیل اجباری

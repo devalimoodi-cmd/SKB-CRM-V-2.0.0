@@ -403,6 +403,29 @@ ALLOW_DB_TESTS=true npm run test:db     # ۱۰ بررسی: ساختار (flocks)
 - ⛔ حذف نوعی که برای مشتری‌ها استفاده شده **ممنوع** است (۴۰۰ با پیام فارسی) تا نوع مشتریان بی‌مرجع نشود؛ برای حذف از فرم‌ها آن را «غیرفعال» کنید.
 - «نوع مشتری» در ثبت‌نام **اجباری** است و در ویرایش هم اگر مشتری قدیمی نوعی نداشته باشد تعیین آن الزامی است. «کد ملی» اختیاری است (**فقط ۱۰ رقم عددی**، بدون رقم کنترلی؛ ارقام فارسی/عربی هم پذیرفته و نرمال‌سازی می‌شود؛ فیلد فرم فقط عدد می‌پذیرد) ✅.
 
+### ثبت‌نام عمومی + صف تأیید (`/api/registrations`)
+
+| متد | مسیر | دسترسی |
+|---|---|---|
+| GET | `/api/registrations/config` | عمومی — `{ enabled, captcha_enabled, min_password_length }` |
+| POST | `/api/registrations` | عمومی — کپچا + `registerLimiter` (۵/ساعت/IP) + پرچم `registration_enabled` |
+| GET | `/api/registrations` | `protect` + `users.registrations.view` |
+| GET | `/api/registrations/pending-count` | `protect` + `users.registrations.view` |
+| POST | `/api/registrations/:id/approve` | `protect` + `users.registrations.review` + `users.customer.link` |
+| POST | `/api/registrations/:id/reject` | `protect` + `users.registrations.review` |
+
+- بدنهٔ تأیید دو حالته است (موج ۱۳.۷):
+  `{ customer_mode:"existing", customer_id }` یا
+  `{ customer_mode:"new", customer: { customer_type_id, full_name?, national_code?, farm_name?, province?, county? } }`.
+- حالت `new` **مجوز سوم** `customers.register` هم می‌خواهد؛ پرونده داخل **همان تراکنش تأیید**
+  ساخته می‌شود (`MAX(customer_code)+1` زیر `LOCK TABLE`) و `mobile_number`/`email` همیشه از
+  ردیف درخواست برداشته می‌شوند (بدنهٔ مدیر حق تغییرشان را ندارد).
+- موبایل تکراری در `customer_personal_information` ⇒ **۴۰۹** `CUSTOMER_MOBILE_TAKEN`
+  («همان پرونده را انتخاب کنید»). ممیزی: `created_customer_id` + `customer_created`.
+- تست: `npm run test:registration` (`registration-test.mjs` — **۶۹** بررسی) و
+  `Frontend/registration-guard-test.mjs` (**۵۲** بررسی). مستند: `docs/REVIEW-WAVE-13.7.md`.
+
+
 
 
 ---

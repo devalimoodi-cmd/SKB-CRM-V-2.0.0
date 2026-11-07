@@ -9,7 +9,7 @@ import {
   statusBadge,
   subjectLabel,
 } from "../messages/messages.service.js";
-import { escapeHtml } from "../../core/utils/string.utils.js";
+import { escapeHtml, digitsOnlyValue } from "../../core/utils/string.utils.js";
 import { loaderService } from "../../shared/components/Loader/loader.service.js";
 import {
   HISTORY_HANDOFF_KEY,
@@ -17,6 +17,17 @@ import {
 } from "../activity-log/activity-log.view.js";
 import "../../core/services/state.service.js";
 import "../../core/utils/date.utils.js";
+
+// ============================================================
+// ✅ موج ۱۳.۷ — قاعده‌های «پروندهٔ مشتری تازه» در سمت کلاینت
+// ------------------------------------------------------------
+// ⚠️ منبع حقیقت سرور است (Backend/services/registrationRules.js)؛
+//    این اعداد فقط برای «پیش‌اعتبارسنجی» و پیام فوری به مدیر است
+//    تا خطای ۴۰۰ سرور برای داده‌ای که خودِ فرم می‌توانست بگیرد، رخ ندهد.
+// ============================================================
+const NEW_CUSTOMER_MIN_NAME_LENGTH = 2;
+const NEW_CUSTOMER_MAX_NAME_LENGTH = 200;
+const NEW_CUSTOMER_NATIONAL_CODE_LENGTH = 10;
 
 class AdminPanelService {
   constructor() {
@@ -39,6 +50,8 @@ class AdminPanelService {
     this.registrations = [];
     this.reviewingRegistration = null;
     this.reviewMode = null;
+    // ✅ موج ۱۳.۷ — حالت پروندهٔ مشتری در مودال تأیید: existing | new
+    this.registrationCustomerMode = "existing";
     this.initialized = false;
     // ✅ لودر سیستمی (تنظیمات سیستم)
     this.loaderStyle = "classic";
@@ -1648,6 +1661,14 @@ class AdminPanelService {
       searchTimer = setTimeout(() => this.loadRegistrationCustomerOptions(value), 400);
     });
 
+    // ✅ موج ۱۳.۷ — سوییچ حالت پروندهٔ مشتری: «موجود» یا «تازه»
+    document
+      .getElementById("regModeExistingBtn")
+      ?.addEventListener("click", () => this.setRegistrationCustomerMode("existing"));
+    document
+      .getElementById("regModeNewBtn")
+      ?.addEventListener("click", () => this.setRegistrationCustomerMode("new"));
+
     // بج تعداد در انتظار تأیید (بی‌صدا اگر مجوز نباشد)
     this.refreshRegistrationsBadge();
   }
@@ -1764,6 +1785,9 @@ class AdminPanelService {
     const select = document.getElementById("regCustomerSelect");
     if (select) select.value = "";
 
+    // ✅ موج ۱۳.۷ — بازنشانی «پروندهٔ تازه» (نام از خود درخواست پیش‌پر می‌شود)
+    this.resetRegistrationNewCustomerForm(item);
+
     if (modal) {
       modal.classList.add("active");
       document.body.style.overflow = "hidden";
@@ -1779,6 +1803,9 @@ class AdminPanelService {
     document.body.style.overflow = "";
     this.reviewingRegistration = null;
     this.reviewMode = null;
+    // ✅ موج ۱۳.۷ — بستن مودال، حالت «پروندهٔ تازه» را هم صفر می‌کند
+    this.registrationCustomerMode = "existing";
+    this.clearRegistrationNewCustomerError();
   }
 
   // گزینه‌های پروندهٔ مشتری با جستجوی زنده (هم‌منبع فرم کاربر)
@@ -1799,22 +1826,193 @@ class AdminPanelService {
   }
 
 
-  // تأیید: customer_id اجباری است
+  // ============================================================
+  // ✅ موج ۱۳.۷ — حالت «پروندهٔ مشتری» در مودال تأیید
+  // ------------------------------------------------------------
+  // دو مسیر:
+  //   existing → اتصال به پروندهٔ موجود (customer_id) — رفتار فاز ۱۳.۶
+  //   new      → ساخت پروندهٔ تازه از دادهٔ فرم (customer_mode: "new")
+  // ⚠️ ساخت پروندهٔ تازه در سرور «customers.register» می‌خواهد؛ کاربرِ بدون
+  //    این مجوز دکمهٔ حالت «تازه» را نمی‌بیند (fail-open هم‌الگوی پنل).
+  // ============================================================
+
+  // آیا کاربر مجاز به ساخت پروندهٔ مشتری است؟ (هم‌مجوز با فرم ثبت مشتری)
+  canRegisterCustomers() {
+    if (permissionService.hasData() && !permissionService.can("customers.register")) {
+      return false;
+    }
+    return true;
+  }
+
+  // آیا کاربر می‌تواند انواع مشتری را بخواند؟ (دیکشنری customer-types)
+  canReadCustomerTypes() {
+    if (
+      permissionService.hasData() &&
+      !permissionService.can("dictionary.customer-types.view")
+    ) {
+      return false;
+    }
+    return true;
+  }
+
+  // خطای فرم «پروندهٔ تازه» — همان‌جا زیر فرم نمایش داده می‌شود
+  showRegistrationNewCustomerError(message = "") {
+    const box = document.getElementById("regNewCustomerError");
+    if (!box) return;
+    box.textContent = message || "";
+    box.hidden = !message;
+  }
+
+  clearRegistrationNewCustomerError() {
+    this.showRegistrationNewCustomerError("");
+  }
+
+  // انتخاب حالت + نمایش/پنهان‌کردن بلوک‌ها
+  setRegistrationCustomerMode(mode = "existing") {
+    const next = mode === "new" && this.canRegisterCustomers() ? "new" : "existing";
+    this.registrationCustomerMode = next;
+
+    const existingBtn = document.getElementById("regModeExistingBtn");
+    const newBtn = document.getElementById("regModeNewBtn");
+    existingBtn?.classList.toggle("active", next === "existing");
+    newBtn?.classList.toggle("active", next === "new");
+    existingBtn?.setAttribute("aria-selected", next === "existing" ? "true" : "false");
+    newBtn?.setAttribute("aria-selected", next === "new" ? "true" : "false");
+
+    const existingBlock = document.getElementById("regExistingCustomerBlock");
+    const newBlock = document.getElementById("regNewCustomerBlock");
+    if (existingBlock) existingBlock.hidden = next !== "existing";
+    if (newBlock) newBlock.hidden = next !== "new";
+
+    this.clearRegistrationNewCustomerError();
+    if (next === "new") this.loadRegistrationCustomerTypes();
+  }
+
+  // بازنشانی فرم «پروندهٔ تازه» + پیش‌پر کردن نام از خود درخواست
+  resetRegistrationNewCustomerForm(item = {}) {
+    const fullName = `${item.first_name || ""} ${item.last_name || ""}`.trim();
+    const setValue = (id, value = "") => {
+      const el = document.getElementById(id);
+      if (el) el.value = value;
+    };
+
+    setValue("regNewCustomerType", "");
+    setValue("regNewCustomerFullName", fullName);
+    setValue("regNewCustomerNationalCode", "");
+    setValue("regNewCustomerFarmName", "");
+    setValue("regNewCustomerProvince", "");
+    setValue("regNewCustomerCounty", "");
+
+    // بدون مجوز «ثبت مشتری جدید»، حالت «تازه» حتی نمایش داده نمی‌شود
+    const newBtn = document.getElementById("regModeNewBtn");
+    if (newBtn) newBtn.hidden = !this.canRegisterCustomers();
+
+    // پیش‌فرض همیشه «پروندهٔ موجود» است (سازگار با فاز ۱۳.۶)
+    this.setRegistrationCustomerMode("existing");
+  }
+
+  // انواع مشتری (تنبل — یک‌بار از سرور، بعد از آن از حافظه)
+  async loadRegistrationCustomerTypes() {
+    const select = document.getElementById("regNewCustomerType");
+    if (!select || select.dataset.loaded === "true") return;
+
+    if (!this.canReadCustomerTypes()) {
+      this.showRegistrationNewCustomerError(
+        "برای انتخاب «نوع مشتری»، مجوز «مشاهدهٔ انواع مشتری» لازم است",
+      );
+      return;
+    }
+
+    try {
+      const response = await adminPanelApi.getCustomerTypes();
+      if (!response?.success) return;
+
+      const list = Array.isArray(response.data) ? response.data : [];
+      select.innerHTML = '<option value="">— انتخاب نوع مشتری —</option>';
+      list.forEach((type) => {
+        const id = Number(type?.id);
+        if (!Number.isInteger(id) || id <= 0 || type.active === false) return;
+        const option = document.createElement("option");
+        option.value = String(id);
+        option.textContent = type.name || `نوع ${id}`;
+        select.add(option);
+      });
+      select.dataset.loaded = "true";
+    } catch (error) {
+      console.warn("⚠️ دریافت انواع مشتری برای تأیید ناموفق بود:", error?.message || error);
+      this.showRegistrationNewCustomerError(
+        "دریافت «انواع مشتری» ناموفق بود؛ دوباره تلاش کنید یا پروندهٔ موجود را انتخاب کنید",
+      );
+    }
+  }
+
+  // بدنهٔ «پروندهٔ تازه» از فرم — پیش‌اعتبارسنجی هم‌قاعده با سرور
+  buildRegistrationNewCustomer() {
+    const read = (id) => document.getElementById(id)?.value ?? "";
+
+    const typeId = Number(String(read("regNewCustomerType")).trim() || 0);
+    if (!Number.isInteger(typeId) || typeId <= 0) {
+      return { error: "نوع مشتری را از فهرست انتخاب کنید" };
+    }
+
+    const fullName = String(read("regNewCustomerFullName")).trim();
+    if (fullName.length < NEW_CUSTOMER_MIN_NAME_LENGTH) {
+      return { error: "نام و نام خانوادگی مشتری الزامی است" };
+    }
+    if (fullName.length > NEW_CUSTOMER_MAX_NAME_LENGTH) {
+      return { error: `نام مشتری حداکثر ${NEW_CUSTOMER_MAX_NAME_LENGTH} کاراکتر است` };
+    }
+
+    const nationalCode = digitsOnlyValue(
+      read("regNewCustomerNationalCode"),
+      NEW_CUSTOMER_NATIONAL_CODE_LENGTH,
+    );
+    if (nationalCode !== "" && nationalCode.length !== NEW_CUSTOMER_NATIONAL_CODE_LENGTH) {
+      return { error: "کد ملی باید ۱۰ رقم باشد" };
+    }
+
+    return {
+      values: {
+        customer_type_id: typeId,
+        full_name: fullName,
+        national_code: nationalCode || null,
+        farm_name: String(read("regNewCustomerFarmName")).trim() || null,
+        province: String(read("regNewCustomerProvince")).trim() || null,
+        county: String(read("regNewCustomerCounty")).trim() || null,
+      },
+    };
+  }
+
+  // تأیید: پروندهٔ موجود ⇒ customer_id | پروندهٔ تازه ⇒ customer_mode="new" + customer
   async confirmRegistrationApprove() {
     const item = this.reviewingRegistration;
     if (!item) return;
 
-    const customerId = Number(document.getElementById("regCustomerSelect")?.value || 0);
-    if (!Number.isInteger(customerId) || customerId <= 0) {
-      notificationService.error("برای تأیید، انتخاب پروندهٔ مشتری الزامی است");
-      return;
+    const payload = { customer_mode: this.registrationCustomerMode };
+
+    if (this.registrationCustomerMode === "new") {
+      const built = this.buildRegistrationNewCustomer();
+      if (built.error) {
+        this.showRegistrationNewCustomerError(built.error);
+        notificationService.error(built.error);
+        return;
+      }
+      this.clearRegistrationNewCustomerError();
+      payload.customer = built.values;
+    } else {
+      const customerId = Number(document.getElementById("regCustomerSelect")?.value || 0);
+      if (!Number.isInteger(customerId) || customerId <= 0) {
+        notificationService.error("برای تأیید، انتخاب پروندهٔ مشتری الزامی است");
+        return;
+      }
+      payload.customer_id = customerId;
     }
 
     const button = document.getElementById("regApproveBtn");
     if (button) button.disabled = true;
 
     try {
-      const response = await adminPanelApi.approveRegistration(item.id, customerId);
+      const response = await adminPanelApi.approveRegistration(item.id, payload);
       if (response?.success) {
         notificationService.success(
           response.message || "درخواست تأیید شد و حساب مشتری ساخته شد",
@@ -1827,6 +2025,10 @@ class AdminPanelService {
       }
     } catch (error) {
       console.error("❌ Error approving registration:", error);
+      // پیام دقیق سرور (۴۰۹ موبایل تکراری / ۴۰۰ نوع مشتری / ۴۰۳ مجوز) همان‌جای فرم
+      if (this.registrationCustomerMode === "new") {
+        this.showRegistrationNewCustomerError(error?.message || "");
+      }
       notificationService.error(error.message || "خطا در تأیید درخواست");
     } finally {
       if (button) button.disabled = false;

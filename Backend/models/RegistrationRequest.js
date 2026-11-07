@@ -107,6 +107,18 @@ const RegistrationRequest = sequelize.define(
       allowNull: true,
       field: "created_user_id",
     },
+    // موج ۱۳.۷ — ممیزی پروندهٔ مشتری
+    created_customer_id: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      field: "created_customer_id",
+    },
+    customer_created: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+      field: "customer_created",
+    },
     ip: {
       type: DataTypes.STRING(45),
       allowNull: true,

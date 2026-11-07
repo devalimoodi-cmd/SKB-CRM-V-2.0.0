@@ -755,9 +755,9 @@ npm run test:cache    :: نگهبانهای UI (وجود بخش، سه‌حال�
 | اندپوینت مدیریت | `GET /api/registrations` · `GET /api/registrations/pending-count` · `POST /api/registrations/:id/approve` · `.../reject` |
 | مجوزها | `users.registrations.view` (صف/بج) · `users.registrations.review` (تأیید/رد) · `admin.menu.registrations` (منو) — تأیید **همچنین** `users.customer.link` |
 | صف پنل | آیتم `registration-requests` با بج «در انتظار تأیید»، فیلتر وضعیت، مودال بررسی (تأیید با انتخاب پروندهٔ مشتری / رد با دلیل) |
-| مایگریشن | `20261108000000-create-registration-requests.js` (جدول + ایندکس‌های یکتای جزئی) |
-| تست | `npm run test:registration` (۳۹ بررسی) + `Backend/registration-test.mjs` (۵۵ بررسی) — هر دو در گیت |
-| مستند | `docs/REVIEW-WAVE-13.6.md` |
+| مایگریشن | `20261108000000-create-registration-requests.js` (جدول + ایندکس‌های یکتای جزئی) + `20261108000001-add-customer-link-to-registration-requests.js` (موج ۱۳.۷) |
+| تست | `npm run test:registration` (۵۲ بررسی) + `Backend/registration-test.mjs` (۶۹ بررسی) — هر دو در گیت |
+| مستند | `docs/REVIEW-WAVE-13.6.md` · `docs/REVIEW-WAVE-13.7.md` |
 
 - **چرا صف مستقل؟** پیش‌فرض `User.status` روی `pending` است؛ اگر صف در همان جدول بود،
   ثبت‌نام عمومی جدول کاربران را با ردیف نیمه‌کاره پر می‌کرد و همهٔ فیلترهای موجود باید تغییر می‌کردند.
@@ -767,6 +767,23 @@ npm run test:cache    :: نگهبانهای UI (وجود بخش، سه‌حال�
   را می‌پذیرد؛ نقش کاربر ساخته‌شده همیشه `customer` و وضعیت `active` است.
 - **امنیت صفحه:** روت `/register` در `LOADER_PAGES` نیست (فرم سبک است) و از `app.service`
   (هدر/فوتر/گارد صفحه) استفاده نمی‌کند؛ فقط `config.const.js` + ماژول ثبت‌نام را لود می‌کند.
+
+### موج ۱۳.۷ — ظاهر هم‌چهر + «تأیید با پروندهٔ مشتری جدید»
+
+| موضوع | مقدار |
+|---|---|
+| صفحه | همان `/register` با **لوگوی `skb-logo.png`**، لایهٔ `login-bg.jpg` + اورلی/بلور، کارت شیشه‌ای ۶۲۰px، ورودی‌های آیکون‌دار `.reg-control`، پاورقی لینک‌دار |
+| CSS | بازنویسی کامل `registration.css`؛ صفر سلکتور سراسری (`body`/`html`)، همهٔ رنگ‌ها از توکن ⇒ سازگار با تم تاریک |
+| سرویس صفحه | `#regFormPanel` هم در حالت «بسته» و هم پس از «ثبت موفق» پنهان می‌شود |
+| مودال تأیید | سوییچ دوحالته: «اتصال به پروندهٔ موجود» (پیش‌فرض) · «ثبت پروندهٔ مشتری جدید» (نوع مشتری*، نام*، کد ملی، واحد/مزرعه، استان، شهرستان) |
+| payload | `{ customer_mode:"existing", customer_id }` یا `{ customer_mode:"new", customer: {…} }` |
+| مجوز حالت تازه | `users.registrations.review` + `users.customer.link` + **`customers.register`** (سرور؛ دکمه هم بدون آن دیده نمی‌شود) |
+| اعتبارسنجی کلاینت | نوع مشتری اجباری، کد ملی ۱۰ رقم (`digitsOnlyValue`)، طول نام — آینهٔ `registrationRules` |
+| نمایش خطا | `#regNewCustomerError` زیر فرم + توست (`CUSTOMER_MOBILE_TAKEN` ⇒ «همان پرونده را انتخاب کنید») |
+| ممیزی | `created_customer_id` + `customer_created` روی `registration_requests`؛ در ردیف صف «پروندهٔ متصل: #id (تازه ساخته شد)» |
+| تست | `registration-guard-test.mjs` ۳۹ → **۵۲** بررسی (بخش ۷) |
+| مستند | `docs/REVIEW-WAVE-13.7.md` |
+
 
 
 

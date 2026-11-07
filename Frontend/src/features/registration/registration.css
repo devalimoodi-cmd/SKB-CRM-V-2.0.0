@@ -1,55 +1,109 @@
 /* ============================================================
    features/registration/registration.css
-   «صفحهٔ ثبت‌نام مشتری» — فاز ۱۳.۶
+   «صفحهٔ ثبت‌نام مشتری» — فاز ۱۳.۶ · بازطراحی چیدمان در ۱۳.۷
    ------------------------------------------------------------
    ⚠️ همهٔ کلاس‌ها با پیشوند `.reg-` هستند ⇒ هیچ استایل عمومی
       (body/input/a) بازنویسی نمی‌شود و افزودن این فایل به صفحات
       دیگر بی‌خطر است (همان اصل info-pages.css).
+   🎨 چیدمان دقیقاً هم‌زبان صفحهٔ ورود است: تصویر پس‌زمینهٔ مشترک،
+      کارت شیشه‌ای، لوگوی شرکت و ورودی‌های آیکون‌دار.
+   🌗 همهٔ رنگ‌ها از توکن‌های global.css می‌آیند (تم روشن/تیره).
    ============================================================ */
 
+/* ===== قاب صفحه (body.reg-page) ===== */
 .reg-page {
+  position: relative;
   min-height: 100vh;
   margin: 0;
-  padding: 32px 16px;
+  padding: 40px 16px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, var(--indigo, #667eea) 0%, #764ba2 100%);
   font-family: "Vazir", "IRANSans", sans-serif;
+  background: var(--bg-body, #f5f7fb);
+  overflow-x: hidden;
 }
 
+/* تصویر پس‌زمینه + لایهٔ تاریک (مثل صفحهٔ ورود) */
+.reg-bg {
+  position: fixed;
+  inset: 0;
+  background: url("/assets/images/login-bg.jpg") center/cover no-repeat;
+  z-index: 0;
+}
+
+.reg-bg::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+}
+
+/* ===== ستون اصلی ===== */
+.reg-shell {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 620px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* ===== کارت ===== */
 .reg-card {
   width: 100%;
-  max-width: 560px;
-  background: var(--bg-surface, #fff);
-  border-radius: 20px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.22);
-  padding: 32px 28px;
+  background: rgba(var(--surface-rgb, 255, 255, 255), 0.96);
+  border: 1px solid var(--border-light, #eef2f6);
+  border-radius: 24px;
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.18);
+  backdrop-filter: blur(10px);
+  padding: 34px 32px 26px;
+  animation: regFadeInUp 0.45s ease;
 }
 
+@keyframes regFadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ===== سربرگ: لوگو + عنوان ===== */
 .reg-header {
   text-align: center;
   margin-bottom: 22px;
 }
 
-.reg-header .reg-icon {
+.reg-brand {
+  display: inline-block;
+  margin-bottom: 12px;
+}
+
+.reg-brand img {
+  height: 62px;
+  width: auto;
   display: block;
-  font-size: 52px;
-  color: var(--indigo, #667eea);
-  margin-bottom: 10px;
+  margin: 0 auto;
 }
 
 .reg-title {
   margin: 0;
-  font-size: 20px;
+  font-size: 21px;
   font-weight: 700;
   color: var(--text-dark, #1e293b);
 }
 
 .reg-subtitle {
   margin: 8px 0 0;
-  font-size: 13px;
-  line-height: 1.9;
+  font-size: 12.5px;
+  line-height: 2;
   color: var(--text-gray, #64748b);
 }
 
@@ -65,35 +119,38 @@
   border: 1px solid transparent;
 }
 
+.reg-message[hidden] {
+  display: none;
+}
+
 .reg-message.error {
-  background: var(--danger-soft);
-  border-color: var(--danger-mist);
-  color: var(--danger-deep);
+  background: var(--danger-soft, #fef2f2);
+  border-color: var(--danger-mist, #fecaca);
+  color: var(--danger-deep, #b91c1c);
 }
 
 .reg-message.success {
-  background: var(--success-soft);
-  border-color: var(--success-mist);
-  color: var(--success-deep);
+  background: var(--success-soft, #f0fdf4);
+  border-color: var(--success-mist, #bbf7d0);
+  color: var(--success-deep, #15803d);
 }
 
 .reg-message.info {
-  background: var(--info-soft);
-  border-color: var(--info-brd);
-  color: var(--info-deep);
+  background: var(--info-soft, #eff6ff);
+  border-color: var(--info-brd, #bfdbfe);
+  color: var(--info-deep, #1d4ed8);
 }
 
 /* ===== فرم ===== */
 .reg-row {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
 }
 
 .reg-field {
-  flex: 1 1 220px;
-  min-width: 200px;
   margin-bottom: 14px;
+  min-width: 0;
 }
 
 .reg-label {
@@ -101,7 +158,7 @@
   font-size: 12.5px;
   font-weight: 600;
   color: var(--text-dark, #1e293b);
-  margin-bottom: 5px;
+  margin-bottom: 6px;
 }
 
 .reg-label .reg-optional {
@@ -110,13 +167,33 @@
   font-size: 11.5px;
 }
 
+/* ورودی آیکون‌دار (آیکون سمت راست، هم‌الگو با صفحهٔ ورود) */
+.reg-control {
+  position: relative;
+}
+
+.reg-control > i {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 15px;
+  color: var(--text-light, #94a3b8);
+  pointer-events: none;
+  transition: color 0.2s ease;
+}
+
+.reg-control > .reg-input {
+  padding: 12px 42px 12px 14px;
+}
+
 .reg-input,
 .reg-textarea {
   width: 100%;
-  padding: 10px 13px;
+  padding: 12px 14px;
   border: 1.5px solid var(--gray-200, #e5e7eb);
   border-radius: 10px;
-  font-size: 13.5px;
+  font-size: 14px;
   font-family: inherit;
   background: var(--bg-surface-2, #f8fafc);
   color: var(--text-dark, #1e293b);
@@ -124,35 +201,51 @@
 }
 
 .reg-textarea {
-  min-height: 74px;
+  min-height: 78px;
   resize: vertical;
+  line-height: 1.9;
+}
+
+.reg-input::placeholder,
+.reg-textarea::placeholder {
+  color: var(--text-light, #94a3b8);
 }
 
 .reg-input:focus,
 .reg-textarea:focus {
   outline: none;
-  border-color: var(--indigo, #667eea);
+  border-color: var(--primary, #2c7a6e);
   background: var(--bg-surface, #fff);
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
+  box-shadow: 0 0 0 3px rgba(var(--primary-rgb, 44, 122, 110), 0.12);
+}
+
+.reg-control > .reg-input:focus + i,
+.reg-control > .reg-input:focus ~ i {
+  color: var(--primary, #2c7a6e);
 }
 
 .reg-input.invalid,
 .reg-textarea.invalid {
-  border-color: var(--danger-strong);
-  background: var(--danger-soft);
+  border-color: var(--danger-strong, #ef4444);
+  background: var(--danger-soft, #fef2f2);
 }
 
 .reg-error {
   display: block;
   margin-top: 4px;
   font-size: 11.5px;
-  color: var(--danger);
+  color: var(--danger, #dc2626);
+}
+
+.reg-error[hidden] {
+  display: none;
 }
 
 .reg-hint {
   display: block;
   margin-top: 4px;
   font-size: 11.5px;
+  line-height: 1.9;
   color: var(--text-light, #94a3b8);
 }
 
@@ -161,56 +254,73 @@
   display: flex;
   align-items: center;
   gap: 10px;
+  flex-wrap: wrap;
 }
 
-.reg-captcha .reg-input {
-  flex: 1 1 auto;
+.reg-captcha > .reg-input {
+  flex: 1 1 140px;
+  min-width: 0;
 }
 
-.reg-captcha img {
+.reg-captcha-box {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 10px;
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border-color, #e2e8f0);
+}
+
+.reg-captcha-box img {
   width: 132px;
-  height: 48px;
-  border-radius: 8px;
-  border: 1px solid var(--gray-200, #e5e7eb);
-  background: var(--bg-surface-2);
-  cursor: pointer;
+  height: 40px;
+  display: block;
   object-fit: contain;
+  cursor: pointer;
+  border-radius: 6px;
 }
 
 .reg-captcha-refresh {
-  border: 1px solid var(--gray-200, #e5e7eb);
-  background: var(--bg-surface-2, #f8fafc);
-  color: var(--text-gray, #64748b);
+  border: none;
+  background: transparent;
+  color: var(--primary, #2c7a6e);
   border-radius: 8px;
-  width: 40px;
-  height: 40px;
+  width: 32px;
+  height: 32px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  font-size: 14px;
+  transition: transform 0.2s ease, background 0.2s ease;
 }
 
 .reg-captcha-refresh:hover {
-  color: var(--indigo, #667eea);
-  border-color: var(--indigo, #667eea);
+  background: var(--primary-soft, rgba(44, 122, 110, 0.1));
+  transform: rotate(45deg);
 }
 
-/* ===== دکمه‌ها ===== */
+/* ===== دکمهٔ ارسال ===== */
 .reg-submit {
   width: 100%;
-  padding: 12px;
-  margin-top: 6px;
+  margin-top: 4px;
+  padding: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
   border: none;
   border-radius: 10px;
-  font-size: 15px;
-  font-weight: 700;
+  font-size: 15.5px;
+  font-weight: 600;
   font-family: inherit;
   color: #fff;
   cursor: pointer;
-  background: linear-gradient(135deg, var(--indigo, #667eea) 0%, #764ba2 100%);
-  transition: transform 0.15s ease, opacity 0.2s ease;
+  background: linear-gradient(135deg, var(--primary, #2c7a6e) 0%, var(--primary-dark, #035552) 100%);
+  transition: transform 0.15s ease, opacity 0.2s ease, box-shadow 0.2s ease;
 }
 
 .reg-submit:hover:not(:disabled) {
   transform: translateY(-1px);
+  box-shadow: 0 10px 20px rgba(var(--primary-rgb, 44, 122, 110), 0.28);
 }
 
 .reg-submit:disabled {
@@ -218,53 +328,94 @@
   cursor: not-allowed;
 }
 
+/* چرخ‌لایک بارگذاری (بدون تغییر مارک‌آپ) */
+.reg-submit.loading > i,
+.reg-submit.loading .reg-submit-text {
+  display: none;
+}
+
 .reg-submit.loading::after {
-  content: "…";
-  margin-inline-start: 6px;
+  content: "";
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: regSpin 0.8s linear infinite;
 }
 
-/* ===== حالت‌ها ===== */
-.reg-closed,
-.reg-success {
+@keyframes regSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ===== حالت‌های بسته/موفق ===== */
+.reg-state {
   text-align: center;
-  padding: 14px 6px;
+  padding: 10px 6px 4px;
 }
 
-.reg-closed i,
-.reg-success i {
-  font-size: 40px;
+.reg-state[hidden] {
+  display: none;
+}
+
+.reg-state > i {
+  font-size: 38px;
   display: block;
   margin-bottom: 10px;
 }
 
-.reg-closed i {
-  color: var(--warning);
+.reg-closed > i {
+  color: var(--warning, #f59e0b);
 }
 
-.reg-success i {
-  color: var(--success-strong);
+.reg-success > i {
+  color: var(--success, #10b981);
 }
 
-.reg-closed p,
-.reg-success p {
+.reg-state p {
   font-size: 13.5px;
   line-height: 2;
   color: var(--text-gray, #64748b);
   margin: 0 0 14px;
 }
 
+.reg-state-link {
+  display: inline-block;
+  padding: 9px 20px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--primary, #2c7a6e);
+  background: var(--primary-soft, rgba(44, 122, 110, 0.1));
+  border: 1px solid var(--primary, #2c7a6e);
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.reg-state-link:hover {
+  background: var(--primary, #2c7a6e);
+  color: #fff;
+}
+
 /* ===== پاورقی ===== */
 .reg-footer {
-  margin-top: 18px;
-  padding-top: 14px;
-  border-top: 1px dashed var(--gray-200, #e5e7eb);
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-light, #eef2f6);
   text-align: center;
   font-size: 12.5px;
+  line-height: 2;
   color: var(--text-gray, #64748b);
 }
 
+.reg-footer p {
+  margin: 0;
+}
+
 .reg-footer a {
-  color: var(--indigo, #667eea);
+  color: var(--primary, #2c7a6e);
   text-decoration: none;
   font-weight: 600;
 }
@@ -273,44 +424,48 @@
   text-decoration: underline;
 }
 
-/* پیوندهای حالت‌های بسته/موفق */
-.reg-footer-link {
-  display: inline-block;
-  margin-top: 4px;
-  padding: 8px 18px;
-  border-radius: 9px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--indigo, #667eea);
-  background: var(--bg-surface-2, #f8fafc);
-  border: 1px solid var(--gray-200, #e5e7eb);
-  text-decoration: none;
-  transition: all 0.2s ease;
+.reg-footer-links {
+  margin-top: 6px !important;
+  font-size: 12px;
+  color: var(--text-light, #94a3b8);
 }
 
-.reg-footer-link:hover {
-  border-color: var(--indigo, #667eea);
-  text-decoration: none;
+.reg-footer-links a {
+  font-weight: 500;
 }
 
 .reg-copyright {
-  margin-top: 12px;
+  margin-top: 10px !important;
   font-size: 11px;
   color: var(--text-light, #94a3b8);
-  text-align: center;
-  line-height: 1.8;
+  line-height: 1.9;
 }
 
-@media (max-width: 520px) {
+/* ===== واکنش‌گرا ===== */
+@media (max-width: 560px) {
+  .reg-page {
+    padding: 24px 12px;
+  }
+
   .reg-card {
-    padding: 24px 18px;
+    padding: 26px 18px 20px;
+    border-radius: 18px;
   }
 
-  .reg-field {
-    flex: 1 1 100%;
+  .reg-row {
+    grid-template-columns: 1fr;
+    gap: 0;
   }
 
-  .reg-captcha img {
-    width: 110px;
+  .reg-brand img {
+    height: 52px;
+  }
+
+  .reg-title {
+    font-size: 18px;
+  }
+
+  .reg-captcha-box img {
+    width: 108px;
   }
 }
