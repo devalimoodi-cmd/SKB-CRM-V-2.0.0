@@ -124,7 +124,10 @@ export const adminPanelRenderer = {
                     <td>${escapeHtml(user.username)}</td>
                     <td>${escapeHtml(user.email) || "-"}</td>
                     <td>${escapeHtml(user.mobile_number) || "-"}</td>
-                    <td><span class="role-badge ${roleClass}">${roleText}</span></td>
+                    <td>
+                        <span class="role-badge ${roleClass}">${roleText}</span>
+                        ${this.renderCustomerLinkBadge(user)}
+                    </td>
                     <td><span class="status-badge ${statusClass}">${statusText}</span></td>
                     <td>${user.createdAt ? formatDate(user.createdAt) : "-"}</td>
                     <td>
@@ -185,6 +188,10 @@ export const adminPanelRenderer = {
   // ===== فرم کاربر =====
 
   getUserFormData() {
+    const role = document.getElementById("role")?.value || "expert";
+    // ✅ فاز ۱۳.۰: پروندهٔ مشتری فقط برای نقش «مشتری» ارسال می‌شود
+    const customerValue = document.getElementById("customerLink")?.value || "";
+
     return {
       first_name: document.getElementById("firstName")?.value || "",
       last_name: document.getElementById("lastName")?.value || "",
@@ -192,8 +199,9 @@ export const adminPanelRenderer = {
       email: document.getElementById("email")?.value || "",
       password: document.getElementById("password")?.value || "",
       mobile_number: document.getElementById("mobile")?.value || "",
-      role: document.getElementById("role")?.value || "expert",
+      role,
       status: document.getElementById("status")?.value || "active",
+      customer_id: role === "customer" ? customerValue || null : null,
     };
   },
 
@@ -206,6 +214,29 @@ export const adminPanelRenderer = {
     document.getElementById("mobile").value = user.mobile_number || "";
     document.getElementById("role").value = user.role || "expert";
     document.getElementById("status").value = user.status || "active";
+
+    // ✅ فاز ۱۳.۰: پروندهٔ مشتریِ متصل (اگر گزینه در لیست نبود، اضافه می‌شود
+    //    تا مقدار فعلی هرگز در فرم «گم» نشود)
+    const customerSelect = document.getElementById("customerLink");
+    if (customerSelect) {
+      const current = user.customer_id ? String(user.customer_id) : "";
+
+      if (
+        current &&
+        ![...customerSelect.options].some((option) => option.value === current)
+      ) {
+        const option = document.createElement("option");
+        option.value = current;
+        option.textContent = this.customerOptionLabel(user.customer, current);
+        customerSelect.add(option);
+      }
+
+      customerSelect.value = current;
+      this.setCustomerLinkVisibility(user.role === "customer");
+    }
+
+    const customerSearch = document.getElementById("customerSearch");
+    if (customerSearch) customerSearch.value = "";
 
     // عکس پروفایل
     const preview = document.getElementById("profilePreviewImg");
@@ -224,6 +255,7 @@ export const adminPanelRenderer = {
       "email",
       "password",
       "mobile",
+      "customerSearch",
     ].forEach((id) => {
       const el = document.getElementById(id);
       if (el) el.value = "";
@@ -240,12 +272,78 @@ export const adminPanelRenderer = {
       statusSelect.value = "active";
     }
 
+    // ✅ فاز ۱۳.۰: پاک‌کردن انتخاب پروندهٔ مشتری (فقط گزینهٔ پیش‌فرض می‌ماند)
+    const customerSelect = document.getElementById("customerLink");
+    if (customerSelect) {
+      customerSelect.value = "";
+    }
+    this.setCustomerLinkVisibility((role || "expert") === "customer");
+
     // ریست عکس
     const preview = document.getElementById("profilePreviewImg");
     if (preview) {
       preview.style.display = "none";
       preview.src = "";
     }
+  },
+
+  // ===== ✅ «پروندهٔ مشتری» (فاز ۱۳.۰) =====
+
+  // نشان «پروندهٔ مشتری» در ردیف جدول کاربران (فقط برای نقش مشتری)
+  renderCustomerLinkBadge(user) {
+    if (user?.role !== "customer") return "";
+
+    const linked = Number(user.customer_id) > 0;
+    const label = !linked
+      ? "بدون پروندهٔ مشتری"
+      : user.customer?.full_name
+        ? this.customerOptionLabel(user.customer, user.customer_id)
+        : `مشتری #${user.customer_id}`;
+
+    const badgeClass = linked ? "customer" : "expert";
+    return `<span class="role-badge ${badgeClass}" title="پروندهٔ مشتری" style="margin-top:4px;display:inline-block;">${escapeHtml(label)}</span>`;
+  },
+
+  // برچسب فارسی یک گزینهٔ مشتری: «نام (کد ۱۰۰۱)»
+  customerOptionLabel(customer, fallbackId = "") {
+    const name = customer?.full_name || `مشتری #${fallbackId || "?"}`;
+    const code =
+      customer?.customer_code !== undefined && customer?.customer_code !== null
+        ? ` (کد ${customer.customer_code})`
+        : "";
+    return `${name}${code}`;
+  },
+
+  // پرکردن فهرست انتخاب مشتری (مقدار انتخاب‌شدهٔ فعلی حفظ می‌شود)
+  renderCustomerOptions(customers = []) {
+    const select = document.getElementById("customerLink");
+    if (!select) return;
+
+    const previous = select.value;
+    select.innerHTML = '<option value="">— انتخاب پروندهٔ مشتری —</option>';
+
+    (customers || []).forEach((customer) => {
+      if (!customer?.id) return;
+      const option = document.createElement("option");
+      option.value = String(customer.id);
+      option.textContent = this.customerOptionLabel(customer);
+      select.add(option);
+    });
+
+    // اگر مقدار قبلی در فهرست جدید نبود، دور ریخته نشود (حالت ویرایش)
+    if (previous && ![...select.options].some((o) => o.value === previous)) {
+      const option = document.createElement("option");
+      option.value = previous;
+      option.textContent = `مشتری #${previous}`;
+      select.add(option);
+    }
+    select.value = previous;
+  },
+
+  // نمایش/پنهان‌کردن بلوک «پروندهٔ مشتری» بر اساس نقش
+  setCustomerLinkVisibility(isCustomer) {
+    const group = document.getElementById("customerLinkGroup");
+    if (group) group.style.display = isCustomer ? "" : "none";
   },
 
   // ===== توابع کمکی =====

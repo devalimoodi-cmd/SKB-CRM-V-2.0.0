@@ -253,6 +253,9 @@ const ADMIN_USERS = [
     lockedTo: ["super_admin"],
   }),
   item("users.role.assign", "تغییر نقش کاربر", D.admin),
+  // ✅ «پیوند با پروندهٔ مشتری» (فاز ۱۳.۰): تعیین اینکه حسابِ یک مشتری
+  //    صاحب کدام پروندهٔ مشتری است (پورتال مشتری در فاز ۱۳.۲ روی همین سوار است)
+  item("users.customer.link", "تعیین پروندهٔ مشتری برای حساب کاربر", D.admin),
   item("users.token.reset", "بازنشانی توکن کاربر", D.admin),
   item("users.token.view", "مشاهدهٔ توکن کاربر", D.owner, {
     risk: "high",

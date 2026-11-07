@@ -22,9 +22,20 @@ const { successResponse, errorResponse } = require("../utils/response");
 
 // صفحهٔ مقصد بر اساس نقش — یک منبع حقیقت برای فرانت‌اند
 // (در فاز ۱۳.۳ مشتری به «/portal» منتقل می‌شود)
-const landingForRole = (role) => {
+const landingForRole = (role, user = null) => {
   if (role === "super_admin" || role === "admin") return "/admin";
   if (role === "sub_admin" || role === "expert") return "/";
+
+  // ✅ فاز ۱۳.۰: حساب مشتری مستقیم به پروندهٔ خودش می‌رود
+  //    (پیش‌تر «/customer-info» بدون id بود و صفحه پیام
+  //     «شناسه مشتری یافت نشد» می‌داد)
+  const customerId = Number(user?.customer_id);
+  if (Number.isInteger(customerId) && customerId > 0) {
+    return `/customer-info?id=${customerId}`;
+  }
+
+  // حساب بدون پرونده (پیوند داده نشده) ⇒ همان صفحهٔ قبلی،
+  // فرانت‌اند پیام روشنِ «حساب متصل نیست» را نشان می‌دهد.
   return "/customer-info";
 };
 
@@ -129,7 +140,7 @@ const verifyLogin = async (req, res) => {
       {
         user: user.toJSON(),
         token,
-        landing: landingForRole(user.role),
+        landing: landingForRole(user.role, user),
       },
       "ورود با موفقیت انجام شد",
     );

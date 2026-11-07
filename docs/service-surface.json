@@ -158,6 +158,8 @@
       "classes": {
         "AuthService": {
           "methods": [
+            "_finishLogin",
+            "cancelLoginOtp",
             "changePassword",
             "checkAdminExists",
             "checkAdminPageAccess",
@@ -178,12 +180,15 @@
             "isLoggedIn",
             "login",
             "logout",
+            "resendLoginOtp",
             "setToken",
             "setUser",
             "setupAdmin",
-            "updateOnlineStatus"
+            "updateOnlineStatus",
+            "verifyLoginOtp"
           ],
           "properties": [
+            "_finishLogin",
             "allowedAdminRoles",
             "allowedCustomerRoles",
             "allowedExpertRoles",
@@ -522,6 +527,7 @@
             "bind",
             "close",
             "constructor",
+            "defaultMode",
             "ensureManager",
             "exportCsv",
             "load",
@@ -538,6 +544,7 @@
             "bind",
             "close",
             "context",
+            "defaultMode",
             "ensureManager",
             "exportCsv",
             "items",
@@ -588,6 +595,7 @@
             "renderTable",
             "resetFilters",
             "setLoading",
+            "setupDatepickers",
             "syncFilterInputs"
           ],
           "properties": [
@@ -617,6 +625,7 @@
             "resetFilters",
             "root",
             "setLoading",
+            "setupDatepickers",
             "summary",
             "syncFilterInputs"
           ],
@@ -655,6 +664,7 @@
             "initDictionaryManager",
             "initPermissionManager",
             "initReleaseNotesManager",
+            "loadCustomerOptions",
             "loadData",
             "loadLoaderStyle",
             "loadMenuData",
@@ -686,9 +696,11 @@
             "showUserHistory",
             "startSuggestionsPolling",
             "stopSuggestionsPolling",
+            "syncCustomerLink",
             "syncMenuVisibility",
             "takePendingHistory",
             "toggleSuperAdminStatus",
+            "updateUser",
             "viewUser",
             "viewUserToken"
           ],
@@ -701,6 +713,8 @@
             "closeTokenModal",
             "closeUserModal",
             "currentUser",
+            "customerSearchTimer",
+            "customers",
             "deleteSuggestion",
             "deleteSuggestionMessage",
             "editSuperAdmin",
@@ -714,6 +728,7 @@
             "initReleaseNotesManager",
             "initialized",
             "isEditing",
+            "loadCustomerOptions",
             "loadData",
             "loadLoaderStyle",
             "loadMenuData",
@@ -749,8 +764,10 @@
             "suggestions",
             "suggestionsPolling",
             "superAdmins",
+            "syncCustomerLink",
             "syncMenuVisibility",
             "takePendingHistory",
+            "updateUser",
             "users"
           ],
           "mixins": {}

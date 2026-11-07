@@ -2,7 +2,8 @@ import { apiService } from "../../core/services/api.service.js";
 import { stateService } from "../../core/services/state.service.js";
 import { notificationService } from "../../core/services/notification.service.js";
 import { permissionService } from "../../core/services/permission.service.js";
-import "../../core/services/auth.service.js";
+// ✅ فاز ۱۳.۰: پروندهٔ مشتریِ متصل به حساب کاربر واردشده
+import { authService } from "../../core/services/auth.service.js";
 import {
 } from "../../core/utils/date.utils.js";
 import { animateCounter } from "../../core/utils/animate.utils.js";
@@ -55,13 +56,18 @@ class CustomerInfoService {
   async init() {
     if (this.initialized) return;
 
-    // دریافت ID از URL
+    // دریافت ID از URL (یا پروندهٔ متصل به حساب کاربر واردشده — فاز ۱۳.۰)
     this.customerId =
       stateService.getCustomerId() ||
-      new URLSearchParams(window.location.search).get("id");
+      new URLSearchParams(window.location.search).get("id") ||
+      authService.getUser()?.customer_id ||
+      null;
 
     if (!this.customerId) {
-      notificationService.error("شناسه مشتری یافت نشد");
+      // حساب مشتری بدون پرونده: پیام روشن، نه خطای خشک
+      notificationService.error(
+        "حساب شما به پروندهٔ مشتری متصل نشده است؛ با مدیر سیستم تماس بگیرید",
+      );
       return;
     }
 

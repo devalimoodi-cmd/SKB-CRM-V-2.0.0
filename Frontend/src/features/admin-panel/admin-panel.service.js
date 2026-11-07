@@ -26,6 +26,9 @@ class AdminPanelService {
     this.editingUserId = null;
     this.editingUserRole = null;
     this.isEditing = false;
+    // ✅ فاز ۱۳.۰: فهرست مشتریان برای انتخاب «پروندهٔ مشتری» در فرم کاربر
+    this.customers = [];
+    this.customerSearchTimer = null;
     this.selectedMenu = "super-admin-management";
     // ✅ «نظرات و پیشنهادات» (جای چت عمومی قبلی که بک‌اند نداشت)
     this.suggestions = [];
@@ -398,6 +401,14 @@ class AdminPanelService {
       data.role = role;
     }
 
+    // ✅ فاز ۱۳.۰: نقش «مشتری» بدون پروندهٔ مشتری، حساب بی‌مصرف می‌سازد
+    if (data.role === "customer" && !data.customer_id) {
+      notificationService.error(
+        "برای نقش «مشتری» انتخاب «پروندهٔ مشتری» الزامی است",
+      );
+      return;
+    }
+
     const saveBtn = document.getElementById("saveUserBtn");
     const originalText = saveBtn?.innerHTML;
 
@@ -427,6 +438,59 @@ class AdminPanelService {
       }
     } catch (error) {
       console.error("❌ Error registering user:", error);
+      notificationService.showError(error.message || "خطا در ارتباط با سرور");
+    } finally {
+      if (saveBtn) {
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = originalText;
+      }
+    }
+  }
+
+  // ===== ویرایش کاربر (✅ فاز ۱۳.۰: پیوند پروندهٔ مشتری هم ذخیره می‌شود) =====
+
+  async updateUser(id, data, role = null) {
+    const payload = { ...data };
+    if (role) payload.role = role;
+
+    // رمز خالی در حالت ویرایش ⇒ «بدون تغییر»
+    if (!payload.password) delete payload.password;
+
+    const errors = adminPanelValidation.validateUserUpdate(payload);
+    if (errors.length > 0) {
+      notificationService.showValidationErrors(errors);
+      return;
+    }
+
+    if (payload.role === "customer" && !payload.customer_id) {
+      notificationService.error(
+        "برای نقش «مشتری» انتخاب «پروندهٔ مشتری» الزامی است",
+      );
+      return;
+    }
+
+    const saveBtn = document.getElementById("saveUserBtn");
+    const originalText = saveBtn?.innerHTML;
+
+    if (saveBtn) {
+      saveBtn.disabled = true;
+      saveBtn.innerHTML =
+        '<i class="fas fa-spinner fa-spin"></i> در حال ذخیره...';
+    }
+
+    try {
+      const response = await adminPanelApi.updateUser(id, payload);
+      if (response.success) {
+        notificationService.success("✅ اطلاعات کاربر بروزرسانی شد");
+        await this.loadUsers();
+        this.closeUserModal();
+      } else {
+        notificationService.showError(
+          response.message || "خطا در بروزرسانی کاربر",
+        );
+      }
+    } catch (error) {
+      console.error("❌ Error updating user:", error);
       notificationService.showError(error.message || "خطا در ارتباط با سرور");
     } finally {
       if (saveBtn) {
@@ -1075,6 +1139,10 @@ class AdminPanelService {
       if (role) roleSelect.value = role;
     }
 
+    // ✅ فاز ۱۳.۰: بلوک «پروندهٔ مشتری» با نقش هم‌گام می‌شود
+    //    (در حالت ویرایش، نقشِ خودِ کاربر خوانده می‌شود)
+    this.syncCustomerLink(roleSelect?.value || user?.role || "expert");
+
     modal.classList.add("active");
     document.body.style.overflow = "hidden";
   }
@@ -1088,6 +1156,44 @@ class AdminPanelService {
     this.isEditing = false;
     this.editingUserId = null;
     this.editingUserRole = null;
+  }
+
+  // ===== ✅ «پروندهٔ مشتری» (فاز ۱۳.۰) =====
+
+  // بارگذاری گزینه‌های مشتری برای انتخاب در فرم کاربر (جستجوی زنده)
+  async loadCustomerOptions(search = "") {
+    try {
+      const response = await adminPanelApi.getCustomers({
+        limit: 50,
+        search: search || undefined,
+      });
+
+      if (!response?.success) {
+        notificationService.error(
+          response?.message || "دریافت فهرست مشتریان ناموفق بود",
+        );
+        return;
+      }
+
+      // پاسخ: { customers: [...], pagination: {...} }
+      const data = response.data;
+      const customers = Array.isArray(data) ? data : data?.customers || [];
+      this.customers = customers;
+      adminPanelRenderer.renderCustomerOptions(customers);
+    } catch (error) {
+      console.error("❌ Error loading customers for user link:", error);
+      notificationService.error(error.message || "خطا در دریافت فهرست مشتریان");
+    }
+  }
+
+  // نمایش/پنهان‌کردن بلوک «پروندهٔ مشتری» + بارگذاری تنبل فهرست
+  syncCustomerLink(role) {
+    const isCustomer = role === "customer";
+    adminPanelRenderer.setCustomerLinkVisibility(isCustomer);
+
+    if (isCustomer && this.customers.length === 0) {
+      this.loadCustomerOptions();
+    }
   }
 
   // ===== نظرات و پیشنهادات (جای چت عمومی قبلی) =====
@@ -1491,7 +1597,34 @@ class AdminPanelService {
       saveBtn.addEventListener("click", () => {
         const data = adminPanelRenderer.getUserFormData();
         const role = document.getElementById("role")?.value;
-        this.registerUser(data, role);
+
+        // ✅ فاز ۱۳.۰: در حالت ویرایش، به‌جای «ثبت کاربر جدید» واقعاً
+        //    همان کاربر بروزرسانی می‌شود (قبلاً یک کاربر تکراری ساخته می‌شد)
+        if (this.isEditing && this.editingUserId) {
+          this.updateUser(this.editingUserId, data, role);
+        } else {
+          this.registerUser(data, role);
+        }
+      });
+    }
+
+    // ✅ فاز ۱۳.۰: تغییر نقش ⇒ نمایش/پنهان‌کردن بلوک «پروندهٔ مشتری»
+    const roleSelect = document.getElementById("role");
+    if (roleSelect) {
+      roleSelect.addEventListener("change", () =>
+        this.syncCustomerLink(roleSelect.value),
+      );
+    }
+
+    // ✅ فاز ۱۳.۰: جستجوی زندهٔ مشتری برای انتخاب پرونده (۳۰۰ms)
+    const customerSearch = document.getElementById("customerSearch");
+    if (customerSearch) {
+      customerSearch.addEventListener("input", () => {
+        clearTimeout(this.customerSearchTimer);
+        const term = customerSearch.value.trim();
+        this.customerSearchTimer = setTimeout(() => {
+          this.loadCustomerOptions(term);
+        }, 300);
       });
     }
 

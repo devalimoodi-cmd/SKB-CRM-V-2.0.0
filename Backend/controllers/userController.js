@@ -3,6 +3,9 @@ const { Op } = require("sequelize");
 const path = require("path");
 const fs = require("fs");
 const { ADMIN_ROLES } = require("../middleware/auth");
+// ✅ «پیوند حساب کاربر با پروندهٔ مشتری» (فاز ۱۳.۰)
+const CustomerPersonalInfo = require("../models/CustomerPersonalInfo");
+const { userHasPermission } = require("../middleware/permissions");
 const { getTokenExpiryDate } = require("../utils/token");
 // ✅ «نشست‌های کاربران» (فاز ۱۲.۱): ثبت/بستن نشست‌ها (sid داخل توکن)
 const sessionService = require("../services/sessionService");
@@ -24,6 +27,81 @@ const fileToPublicUrl = (file) => {
   if (index >= 0) return `/${relative.slice(index)}`;
   return `/uploads/${file.filename}`;
 };
+
+// ============================================
+// ✅ «پیوند حساب کاربر با پروندهٔ مشتری» (فاز ۱۳.۰)
+// ============================================
+// چرا؟ پیش‌تر حسابِ نقش «مشتری» نمی‌دانست صاحب کدام پرونده است؛ پس از ورود
+// به «/customer-info» (بدون id) می‌رفت و پیام «شناسه مشتری یافت نشد» می‌گرفت.
+// پورتال مشتری (فاز ۱۳.۲) و کنسول مجوز (فاز ۱۳.۴) هم بدون این پیوند لنگر ندارند.
+//
+// قواعد:
+//   • فقط نقش «customer» می‌تواند customer_id داشته باشد
+//   • "" یا null ⇒ «حذف پیوند»؛ عدد صحیح مثبت ⇒ شناسهٔ پرونده
+//   • وجود پرونده در دیتابیس بررسی می‌شود ⇒ پاسخ ۴۰۰ با پیام فارسی
+//     (نه خطای ۵۰۰ کلید خارجی)
+const normalizeCustomerId = (value) => {
+  if (value === undefined) return { provided: false, value: null, valid: true };
+  if (value === null || value === "") {
+    return { provided: true, value: null, valid: true };
+  }
+
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed <= 0) {
+    return { provided: true, value: null, valid: false };
+  }
+
+  return { provided: true, value: parsed, valid: true };
+};
+
+// نتیجه: { ok, provided, customerId } یا { ok: false, message }
+const resolveCustomerLink = async ({ rawValue, role }) => {
+  const normalized = normalizeCustomerId(rawValue);
+  if (!normalized.provided) {
+    return { ok: true, provided: false, customerId: null };
+  }
+  if (!normalized.valid) {
+    return { ok: false, message: "شناسهٔ پروندهٔ مشتری معتبر نیست" };
+  }
+  if (normalized.value === null) {
+    return { ok: true, provided: true, customerId: null };
+  }
+  if (role !== "customer") {
+    return {
+      ok: false,
+      message: "پروندهٔ مشتری فقط برای نقش «مشتری» قابل تعیین است",
+    };
+  }
+
+  const customer = await CustomerPersonalInfo.findByPk(normalized.value, {
+    attributes: ["id"],
+  });
+  if (!customer) {
+    return { ok: false, message: "پروندهٔ مشتری با این شناسه یافت نشد" };
+  }
+
+  return { ok: true, provided: true, customerId: normalized.value };
+};
+
+// تشخیص خطای «این پرونده قبلاً حساب دارد» (ایندکس یکتای users_customer_id_unique)
+const isCustomerIdConflict = (error) => {
+  const fields = error?.fields || {};
+  if (Object.prototype.hasOwnProperty.call(fields, "customer_id")) return true;
+  const constraint = String(
+    error?.parent?.constraint || error?.original?.constraint || "",
+  );
+  return constraint.includes("users_customer_id_unique");
+};
+
+// include مشترک: پروندهٔ مشتریِ متصل، برای نمایش «نام/کد» در پنل مدیریت
+const CUSTOMER_LINK_INCLUDE = [
+  {
+    model: CustomerPersonalInfo,
+    as: "customer",
+    attributes: ["id", "customer_code", "full_name"],
+    required: false,
+  },
+];
 
 // ============================================
 // بررسی وجود ادمین
@@ -170,6 +248,7 @@ const registerUser = async (req, res) => {
       mobile_number,
       role,
       status,
+      customer_id,
     } = req.body;
 
     // اعتبارسنجی اولیه
@@ -231,6 +310,31 @@ const registerUser = async (req, res) => {
       );
     }
 
+    // ✅ «پیوند با پروندهٔ مشتری» (فاز ۱۳.۰)
+    //    • فقط نقش «مشتری» می‌تواند پرونده داشته باشد (بقیه ⇒ ۴۰۰)
+    //    • تعیین پرونده مجوز اختصاصی دارد (users.customer.link)
+    const customerLink = await resolveCustomerLink({
+      rawValue: customer_id,
+      role: safeRole,
+    });
+
+    if (!customerLink.ok) {
+      if (req.file) fs.unlinkSync(req.file.path);
+      return errorResponse(res, customerLink.message, 400);
+    }
+
+    if (
+      customerLink.customerId &&
+      !(await userHasPermission(req, "users.customer.link"))
+    ) {
+      if (req.file) fs.unlinkSync(req.file.path);
+      return errorResponse(
+        res,
+        "دسترسی به تعیین پروندهٔ مشتری برای حساب کاربر را ندارید",
+        403,
+      );
+    }
+
     // ایجاد کاربر جدید (توکن کاربر فعلی تغییری نمی‌کند)
     const newUser = await User.create({
       first_name,
@@ -241,6 +345,8 @@ const registerUser = async (req, res) => {
       mobile_number,
       role: safeRole,
       status: status || "pending",
+      // ✅ پروندهٔ مشتری (فقط برای نقش customer؛ در غیر این صورت null)
+      customer_id: customerLink.customerId,
       profile_image,
       created_by: req.user?.id || null,
     });
@@ -278,6 +384,14 @@ const registerUser = async (req, res) => {
     }
 
     if (error.name === "SequelizeUniqueConstraintError") {
+      // ✅ فاز ۱۳.۰: «این پرونده قبلاً حساب دارد» پیام اختصاصی می‌گیرد
+      if (isCustomerIdConflict(error)) {
+        return errorResponse(
+          res,
+          "این پروندهٔ مشتری قبلاً به حساب کاربری دیگری متصل شده است",
+          400,
+        );
+      }
       return errorResponse(res, "اطلاعات تکراری است", 400);
     }
 
@@ -300,6 +414,8 @@ const getAllUsers = async (req, res) => {
       where,
       order: [["created_at", "DESC"]],
       attributes: { exclude: ["password"] },
+      // ✅ فاز ۱۳.۰: پروندهٔ مشتریِ متصل (نام/کد) برای نمایش در جدول کاربران
+      include: CUSTOMER_LINK_INCLUDE,
     });
 
     successResponse(res, users, "لیست کاربران دریافت شد");
@@ -335,6 +451,8 @@ const getUserById = async (req, res) => {
     const { id } = req.params;
     const user = await User.findByPk(id, {
       attributes: { exclude: ["password"] },
+      // ✅ فاز ۱۳.۰: پروندهٔ مشتریِ متصل
+      include: CUSTOMER_LINK_INCLUDE,
     });
     if (!user) return errorResponse(res, "کاربر یافت نشد", 404);
     successResponse(res, user, "اطلاعات کاربر دریافت شد");
@@ -372,6 +490,10 @@ const updateUser = async (req, res) => {
       "created_by",
       "online_status",
       "last_seen_at",
+      // ✅ فاز ۱۳.۰: بدون این بند، یک مشتری می‌توانست با
+      //    PUT /users/<خودش> پروندهٔ مشتریِ دیگری را به حسابش بچسباند
+      //    و اطلاعات او را ببیند (ارتقای سطح دسترسی).
+      "customer_id",
     ];
 
     if (!isAdmin) {
@@ -432,6 +554,40 @@ const updateUser = async (req, res) => {
       updateData.profile_image = fileToPublicUrl(req.file);
     }
 
+    // ✅ «پیوند با پروندهٔ مشتری» (فاز ۱۳.۰)
+    //    • کاربر عادی: از protectedFields حذف شده است (بالاتر)
+    //    • ادمین بدون مجوز اختصاصی ⇒ ۴۰۳
+    //    • نقش غیرمشتری ⇒ پیوند بی‌معناست و پاک می‌شود
+    if (
+      isAdmin &&
+      Object.prototype.hasOwnProperty.call(updateData, "customer_id")
+    ) {
+      if (!(await userHasPermission(req, "users.customer.link"))) {
+        if (req.file) fs.unlinkSync(req.file.path);
+        return errorResponse(
+          res,
+          "دسترسی به تعیین پروندهٔ مشتری برای حساب کاربر را ندارید",
+          403,
+        );
+      }
+
+      const customerLink = await resolveCustomerLink({
+        rawValue: updateData.customer_id,
+        // نقش مؤثر: نقش جدید (اگر آمده) وگرنه نقش فعلی حساب
+        role: updateData.role || user.role,
+      });
+
+      if (!customerLink.ok) {
+        if (req.file) fs.unlinkSync(req.file.path);
+        return errorResponse(res, customerLink.message, 400);
+      }
+
+      updateData.customer_id = customerLink.customerId;
+    } else if (updateData.role && updateData.role !== "customer") {
+      // تغییر نقش از «مشتری» به نقش دیگر ⇒ پرونده معنا ندارد
+      updateData.customer_id = null;
+    }
+
     await user.update(updateData);
 
     // تولید توکن جدید اگر نقش تغییر کرد
@@ -457,6 +613,16 @@ const updateUser = async (req, res) => {
   } catch (error) {
     if (req.file) fs.unlinkSync(req.file.path);
     console.error("خطا:", error);
+
+    // ✅ فاز ۱۳.۰: پروندهٔ مشتری تکراری (ایندکس یکتا) ⇒ ۴۰۰ با پیام روشن
+    if (error.name === "SequelizeUniqueConstraintError" && isCustomerIdConflict(error)) {
+      return errorResponse(
+        res,
+        "این پروندهٔ مشتری قبلاً به حساب کاربری دیگری متصل شده است",
+        400,
+      );
+    }
+
     errorResponse(res, error.message, 500);
   }
 };

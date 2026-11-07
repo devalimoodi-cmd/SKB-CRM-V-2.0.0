@@ -657,6 +657,8 @@
                             <select id="role" class="float-input float-select">
                                 <option value="sub_admin">مدیر میانی</option>
                                 <option value="expert">کارشناس</option>
+                                <!-- ✅ فاز ۱۳.۰: حساب مشتری (باید به یک پروندهٔ مشتری وصل شود) -->
+                                <option value="customer">مشتری</option>
                             </select>
                             <label class="float-label">نقش کاربر</label>
                             <i class="fas fa-chevron-down select-arrow"></i>
@@ -671,6 +673,27 @@
                                 <option value="pending">در انتظار</option>
                             </select>
                             <label class="float-label">وضعیت حساب</label>
+                            <i class="fas fa-chevron-down select-arrow"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ✅ «پروندهٔ مشتری» (فاز ۱۳.۰): فقط برای نقش «مشتری» نمایش داده می‌شود -->
+                <div class="form-row" id="customerLinkGroup" style="display: none;">
+                    <div class="filed-wraper">
+                        <div class="filed-flot-input">
+                            <i class="fas fa-search float-icon"></i>
+                            <input type="text" id="customerSearch" class="float-input" placeholder=" ">
+                            <label class="float-label">جستجوی مشتری (نام / کد / موبایل)</label>
+                        </div>
+                    </div>
+                    <div class="filed-wraper">
+                        <div class="filed-flot-input select-input">
+                            <i class="fas fa-folder-open float-icon"></i>
+                            <select id="customerLink" class="float-input float-select">
+                                <option value="">— انتخاب پروندهٔ مشتری —</option>
+                            </select>
+                            <label class="float-label">پروندهٔ مشتری</label>
                             <i class="fas fa-chevron-down select-arrow"></i>
                         </div>
                     </div>

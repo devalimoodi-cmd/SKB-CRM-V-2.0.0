@@ -75,6 +75,19 @@ User.hasMany(CustomerPersonalInfo, {
   as: "updated_customers",
 });
 
+// ===== «حساب ورودِ مشتری» ↔ «پروندهٔ مشتری» (فاز ۱۳.۰) =====
+// • هر پروندهٔ مشتری حداکثر یک حساب ورود دارد (ایندکس یکتا: users_customer_id_unique)
+// • حذف پرونده ⇒ users.customer_id همان حساب NULL می‌شود (ON DELETE SET NULL)
+//   یعنی «حساب» زنده می‌ماند تا پشتیبانی بتواند دوباره پیوندش دهد.
+CustomerPersonalInfo.hasMany(User, {
+  foreignKey: "customer_id",
+  as: "login_accounts",
+});
+User.belongsTo(CustomerPersonalInfo, {
+  foreignKey: "customer_id",
+  as: "customer",
+});
+
 // ===== CustomerPersonalInfo → CustomerType (نوع مشتری — جدول دیکشنری) =====
 CustomerType.hasMany(CustomerPersonalInfo, {
   foreignKey: "customer_type_id",

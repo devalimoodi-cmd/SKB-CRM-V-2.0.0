@@ -29,7 +29,8 @@ export const adminPanelValidation = {
     return errors;
   },
 
-  validateUser(data) {
+  // ✅ فاز ۱۳.۰: در «ویرایش کاربر» رمز عبور اختیاری است (خالی = بدون تغییر)
+  validateUser(data, { requirePassword = true } = {}) {
     const errors = [];
 
     if (!data.first_name || data.first_name.trim().length < 2) {
@@ -48,7 +49,7 @@ export const adminPanelValidation = {
       errors.push("ایمیل معتبر نیست");
     }
 
-    if (!data.password || data.password.length < 6) {
+    if (requirePassword && (!data.password || data.password.length < 6)) {
       errors.push("رمز عبور باید حداقل 6 کاراکتر باشد");
     }
 
@@ -61,6 +62,11 @@ export const adminPanelValidation = {
     }
 
     return errors;
+  },
+
+  // ✅ فاز ۱۳.۰: اعتبارسنجی مخصوص حالت ویرایش
+  validateUserUpdate(data) {
+    return this.validateUser(data, { requirePassword: false });
   },
 
   isValidEmail(email) {

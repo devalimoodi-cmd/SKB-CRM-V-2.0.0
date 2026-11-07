@@ -76,6 +76,14 @@ const User = sequelize.define(
         },
       },
     },
+    // ✅ «پروندهٔ مشتری» (فاز ۱۳.۰): فقط برای نقش customer پر می‌شود
+    //    (یکتا در دیتابیس: هر پرونده حداکثر یک حساب ورود دارد)
+    customer_id: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      field: "customer_id",
+      references: { model: "customer_personal_information", key: "id" },
+    },
     status: {
       type: DataTypes.STRING(20), // ✅ تغییر
       defaultValue: "pending",

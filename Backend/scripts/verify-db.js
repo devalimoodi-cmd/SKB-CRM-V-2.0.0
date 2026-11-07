@@ -91,6 +91,8 @@ const EXPECTED_COLUMNS = {
     "preferences",
     // ✅ حضور کاربران (مایگریشن 20261004000000)
     "last_seen_at",
+    // ✅ پیوند حساب کاربر با پروندهٔ مشتری (مایگریشن 20261007000000)
+    "customer_id",
   ],
   customer_personal_information: [
     "customer_code",
@@ -273,6 +275,8 @@ const EXPECTED_INDEXES = [
   "login_challenges_challenge_id_unique",
   "login_challenges_user_status",
   "login_challenges_expires_at",
+  // ✅ «پیوند حساب کاربر با پروندهٔ مشتری» (فاز ۱۳.۰)
+  "users_customer_id_unique",
 ];
 
 const COUNT_TABLES = [

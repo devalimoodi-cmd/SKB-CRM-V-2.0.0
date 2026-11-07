@@ -29,6 +29,12 @@ export const adminPanelApi = {
     return apiService.get(endpoint);
   },
 
+  // ✅ فاز ۱۳.۰: فهرست مشتریان برای انتخاب «پروندهٔ مشتری» در فرم کاربر
+  // (همان مسیر لیست مشتریان با جستجوی زنده؛ سقف ۱۰۰ رکورد در هر درخواست)
+  async getCustomers(params = {}) {
+    return apiService.get(API_CONSTANTS.ENDPOINTS.CUSTOMERS.LIST, params);
+  },
+
   // دریافت اطلاعات یک کاربر
   async getUser(id) {
     const endpoint = API_CONSTANTS.ENDPOINTS.USERS.UPDATE.replace(":id", id);

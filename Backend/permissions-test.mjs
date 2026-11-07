@@ -30,7 +30,7 @@ const { requirePermission } = require("./middleware/permissions.js");
 // ============================================================
 check(
   "کاتالوگ: تعداد کلیدها و گروه‌ها طبق طراحی است",
-  catalog.TOTAL_PERMISSIONS === 166 && catalog.PERMISSION_GROUPS.length === 16,
+  catalog.TOTAL_PERMISSIONS === 167 && catalog.PERMISSION_GROUPS.length === 16,
   `keys=${catalog.TOTAL_PERMISSIONS} groups=${catalog.PERMISSION_GROUPS.length}`,
 );
 
