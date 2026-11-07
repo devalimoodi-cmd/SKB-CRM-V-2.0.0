@@ -2425,6 +2425,12 @@
   margin-top: 12px;
 }
 
+/* ✅ ۱۳.۷.۱ — selectهای استان/شهرستان در بلوک «پروندهٔ تازه» */
+.regq-grid .float-select:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
 .regq-new-error {
   margin-top: 10px;
   padding: 8px 12px;

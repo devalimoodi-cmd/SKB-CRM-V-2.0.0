@@ -17,7 +17,9 @@
   margin: 0;
   padding: 40px 16px;
   display: flex;
-  align-items: center;
+  /* ✅ ۱۳.۷.۱ — مرکز عمودی با margin:auto روی شل ⇒ در ارتفاع کم، بالای کارت
+     بریده نمی‌شود و اسکرول سالم کار می‌کند */
+  align-items: flex-start;
   justify-content: center;
   font-family: "Vazir", "IRANSans", sans-serif;
   background: var(--bg-body, #f5f7fb);
@@ -45,10 +47,13 @@
   position: relative;
   z-index: 1;
   width: 100%;
-  max-width: 620px;
+  /* ✅ ۱۳.۷.۱ — کارت پهن‌تر: فرم سه‌ستونه بدون اسکرول عمودی */
+  max-width: 980px;
   display: flex;
   flex-direction: column;
   align-items: center;
+  /* مرکز عمودی امن: در ارتفاع کم به صفر می‌رسد و کارت از بالا شروع می‌شود */
+  margin: auto 0;
 }
 
 /* ===== کارت ===== */
@@ -59,7 +64,7 @@
   border-radius: 24px;
   box-shadow: 0 25px 50px rgba(0, 0, 0, 0.18);
   backdrop-filter: blur(10px);
-  padding: 34px 32px 26px;
+  padding: 30px 30px 20px;
   animation: regFadeInUp 0.45s ease;
 }
 
@@ -78,16 +83,16 @@
 /* ===== سربرگ: لوگو + عنوان ===== */
 .reg-header {
   text-align: center;
-  margin-bottom: 22px;
+  margin-bottom: 16px;
 }
 
 .reg-brand {
   display: inline-block;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
 .reg-brand img {
-  height: 62px;
+  height: 54px;
   width: auto;
   display: block;
   margin: 0 auto;
@@ -101,9 +106,9 @@
 }
 
 .reg-subtitle {
-  margin: 8px 0 0;
-  font-size: 12.5px;
-  line-height: 2;
+  margin: 6px 0 0;
+  font-size: 12px;
+  line-height: 1.85;
   color: var(--text-gray, #64748b);
 }
 
@@ -142,14 +147,16 @@
 }
 
 /* ===== فرم ===== */
-.reg-row {
+/* ✅ ۱۳.۷.۱ — شبکهٔ سه‌ستونه (ردیف‌های ۳ فیلدی): کل فرم بدون اسکرول عمودی */
+.reg-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 14px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  column-gap: 14px;
+  row-gap: 0;
 }
 
 .reg-field {
-  margin-bottom: 14px;
+  margin-bottom: 12px;
   min-width: 0;
 }
 
@@ -201,9 +208,9 @@
 }
 
 .reg-textarea {
-  min-height: 78px;
+  min-height: 58px;
   resize: vertical;
-  line-height: 1.9;
+  line-height: 1.8;
 }
 
 .reg-input::placeholder,
@@ -243,9 +250,9 @@
 
 .reg-hint {
   display: block;
-  margin-top: 4px;
-  font-size: 11.5px;
-  line-height: 1.9;
+  margin-top: 3px;
+  font-size: 11px;
+  line-height: 1.7;
   color: var(--text-light, #94a3b8);
 }
 
@@ -301,7 +308,7 @@
 /* ===== دکمهٔ ارسال ===== */
 .reg-submit {
   width: 100%;
-  margin-top: 4px;
+  margin-top: 8px;
   padding: 14px;
   display: flex;
   align-items: center;
@@ -401,12 +408,12 @@
 
 /* ===== پاورقی ===== */
 .reg-footer {
-  margin-top: 20px;
-  padding-top: 16px;
+  margin-top: 16px;
+  padding-top: 12px;
   border-top: 1px solid var(--border-light, #eef2f6);
   text-align: center;
   font-size: 12.5px;
-  line-height: 2;
+  line-height: 1.9;
   color: var(--text-gray, #64748b);
 }
 
@@ -425,7 +432,7 @@
 }
 
 .reg-footer-links {
-  margin-top: 6px !important;
+  margin-top: 4px !important;
   font-size: 12px;
   color: var(--text-light, #94a3b8);
 }
@@ -435,13 +442,33 @@
 }
 
 .reg-copyright {
-  margin-top: 10px !important;
+  margin-top: 6px !important;
   font-size: 11px;
   color: var(--text-light, #94a3b8);
-  line-height: 1.9;
+  line-height: 1.8;
 }
 
 /* ===== واکنش‌گرا ===== */
+/* ✅ ۱۳.۷.۱ — کپچا در ستون باریک شبکهٔ سه‌ستونه جا شود (بدون شکستن ردیف) */
+@media (min-width: 901px) {
+  .reg-grid .reg-captcha > .reg-input {
+    flex: 1 1 90px;
+  }
+
+  .reg-grid .reg-captcha-box img {
+    width: 96px;
+    height: 34px;
+  }
+}
+
+/* تبلت و لپ‌تاپ کوچک: دو ستون */
+@media (max-width: 900px) {
+  .reg-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* موبایل: یک ستون */
 @media (max-width: 560px) {
   .reg-page {
     padding: 24px 12px;
@@ -452,9 +479,9 @@
     border-radius: 18px;
   }
 
-  .reg-row {
+  .reg-grid {
     grid-template-columns: 1fr;
-    gap: 0;
+    column-gap: 0;
   }
 
   .reg-brand img {
@@ -469,3 +496,66 @@
     width: 108px;
   }
 }
+
+/* ===== ۱۳.۷.۱ · حالت فشرده برای نمایشگرهای کم‌ارتفاع (بدون اسکرول عمودی) ===== */
+@media (max-height: 860px) {
+  .reg-page {
+    padding: 18px 16px;
+  }
+
+  .reg-card {
+    padding: 22px 26px 16px;
+  }
+
+  .reg-brand img {
+    height: 44px;
+  }
+
+  .reg-brand {
+    margin-bottom: 6px;
+  }
+
+  .reg-header {
+    margin-bottom: 12px;
+  }
+
+  .reg-title {
+    font-size: 19px;
+  }
+
+  .reg-subtitle {
+    font-size: 11.5px;
+    line-height: 1.7;
+  }
+
+  .reg-label {
+    margin-bottom: 4px;
+  }
+
+  .reg-field {
+    margin-bottom: 10px;
+  }
+
+  .reg-footer {
+    margin-top: 12px;
+    padding-top: 10px;
+    font-size: 12px;
+  }
+}
+
+/* ارتفاع خیلی کم: زیرعنوان تک‌خطی و پاورقی جمع‌وجور */
+@media (max-height: 720px) {
+  .reg-subtitle-extra {
+    display: none;
+  }
+
+  .reg-footer-links,
+  .reg-copyright {
+    display: none !important;
+  }
+
+  .reg-brand img {
+    height: 38px;
+  }
+}
+

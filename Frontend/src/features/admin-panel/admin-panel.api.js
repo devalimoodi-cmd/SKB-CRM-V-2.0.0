@@ -176,6 +176,24 @@ export const adminPanelApi = {
     return apiService.get(API_CONSTANTS.ENDPOINTS.DICTIONARY.CUSTOMER_TYPES);
   },
 
+  // ===== ✅ موج ۱۳.۷.۱ — دیکشنری استان/شهرستان (همان منبع فرم مشتری) =====
+  //  ⚠️ این دو مسیر در سرور عمومی هستند (routes/cityRoutes.js) و فقط
+  //     به احراز هویت نیازی ندارند؛ پس ادمین میانی هم می‌تواند بخواند.
+
+  // فهرست استان‌ها
+  async getProvinces() {
+    return apiService.get(API_CONSTANTS.ENDPOINTS.CITIES.PROVINCES);
+  },
+
+  // شهرستان‌های یک استان (نام استان، نه کد)
+  async getCitiesByProvince(stateName) {
+    const endpoint = API_CONSTANTS.ENDPOINTS.CITIES.CITIES_BY_PROVINCE.replace(
+      ":state",
+      encodeURIComponent(stateName),
+    );
+    return apiService.get(endpoint);
+  },
+
   // رد درخواست با دلیل اجباری
   async rejectRegistration(id, reason) {
     const endpoints = API_CONSTANTS.ENDPOINTS.REGISTRATIONS;

@@ -1669,6 +1669,13 @@ class AdminPanelService {
       .getElementById("regModeNewBtn")
       ?.addEventListener("click", () => this.setRegistrationCustomerMode("new"));
 
+    // ✅ موج ۱۳.۷.۱ — انتخاب استان ⇒ بارگذاری شهرستان‌های همان استان (استان ⇒ شهرستان)
+    document
+      .getElementById("regNewCustomerProvince")
+      ?.addEventListener("change", (event) =>
+        this.loadRegistrationCounties(event.target.value),
+      );
+
     // بج تعداد در انتظار تأیید (بی‌صدا اگر مجوز نباشد)
     this.refreshRegistrationsBadge();
   }
@@ -1885,7 +1892,11 @@ class AdminPanelService {
     if (newBlock) newBlock.hidden = next !== "new";
 
     this.clearRegistrationNewCustomerError();
-    if (next === "new") this.loadRegistrationCustomerTypes();
+    if (next === "new") {
+      this.loadRegistrationCustomerTypes();
+      // ✅ موج ۱۳.۷.۱ — استان/شهرستان از دیکشنری (نه ورودی متنی آزاد)
+      this.loadRegistrationProvinces();
+    }
   }
 
   // بازنشانی فرم «پروندهٔ تازه» + پیش‌پر کردن نام از خود درخواست
@@ -1901,7 +1912,8 @@ class AdminPanelService {
     setValue("regNewCustomerNationalCode", "");
     setValue("regNewCustomerFarmName", "");
     setValue("regNewCustomerProvince", "");
-    setValue("regNewCustomerCounty", "");
+    // ✅ ۱۳.۷.۱ — شهرستان‌ها هم صفر و غیرفعال می‌شوند (وابسته به استان)
+    this.resetRegistrationCounties();
 
     // بدون مجوز «ثبت مشتری جدید»، حالت «تازه» حتی نمایش داده نمی‌شود
     const newBtn = document.getElementById("regModeNewBtn");
@@ -1946,6 +1958,95 @@ class AdminPanelService {
     }
   }
 
+  // ✅ موج ۱۳.۷.۱ — استان‌ها از دیکشنری (تنبل — یک‌بار از سرور، بعد از آن از حافظه)
+  async loadRegistrationProvinces() {
+    const select = document.getElementById("regNewCustomerProvince");
+    if (!select || select.dataset.loaded === "true") return;
+
+    try {
+      const response = await adminPanelApi.getProvinces();
+      if (!response?.success) return;
+
+      const list = Array.isArray(response.data) ? response.data : [];
+      select.innerHTML = '<option value="">— انتخاب استان (اختیاری) —</option>';
+      list.forEach((province) => {
+        const name = String(province?.state_name || "").trim();
+        if (!name) return;
+        const option = document.createElement("option");
+        option.value = name;
+        option.textContent = name;
+        select.add(option);
+      });
+      select.dataset.loaded = "true";
+    } catch (error) {
+      console.warn("⚠️ دریافت استان‌ها برای پروندهٔ تازه ناموفق بود:", error?.message || error);
+      if (!select.options.length) {
+        select.innerHTML = '<option value="">خطا در دریافت استان‌ها</option>';
+      }
+    }
+  }
+
+  // شهرستان‌ها را به حالت «ابتدا استان را انتخاب کنید» برمی‌گرداند + غیرفعال می‌کند
+  resetRegistrationCounties(message = "— ابتدا استان را انتخاب کنید —") {
+    const select = document.getElementById("regNewCustomerCounty");
+    if (!select) return;
+
+    select.innerHTML = "";
+    const option = document.createElement("option");
+    option.value = "";
+    option.textContent = message;
+    select.add(option);
+    select.value = "";
+    select.disabled = true;
+  }
+
+  // ✅ موج ۱۳.۷.۱ — شهرستان‌های استان انتخاب‌شده (وابسته: استان ⇒ شهرستان)
+  async loadRegistrationCounties(province = "", selected = "") {
+    const select = document.getElementById("regNewCustomerCounty");
+    if (!select) return;
+
+    const provinceName = String(province || "").trim();
+    if (!provinceName) {
+      this.resetRegistrationCounties();
+      return;
+    }
+
+    select.disabled = true;
+    select.innerHTML = '<option value="">در حال بارگذاری...</option>';
+
+    try {
+      const response = await adminPanelApi.getCitiesByProvince(provinceName);
+      if (!response?.success) {
+        this.resetRegistrationCounties("— شهرستانی یافت نشد —");
+        return;
+      }
+
+      const list = Array.isArray(response.data) ? response.data : [];
+      select.innerHTML = '<option value="">— انتخاب شهرستان (اختیاری) —</option>';
+      list.forEach((city) => {
+        const name = String(city?.city_name || "").trim();
+        if (!name) return;
+        const option = document.createElement("option");
+        option.value = name;
+        option.textContent = name;
+        select.add(option);
+      });
+
+      if (list.length === 0) {
+        this.resetRegistrationCounties("— شهرستانی یافت نشد —");
+        return;
+      }
+
+      select.disabled = false;
+      if (selected && Array.from(select.options).some((opt) => opt.value === selected)) {
+        select.value = selected;
+      }
+    } catch (error) {
+      console.warn("⚠️ دریافت شهرستان‌ها برای پروندهٔ تازه ناموفق بود:", error?.message || error);
+      this.resetRegistrationCounties("— خطا در دریافت شهرستان‌ها —");
+    }
+  }
+
   // بدنهٔ «پروندهٔ تازه» از فرم — پیش‌اعتبارسنجی هم‌قاعده با سرور
   buildRegistrationNewCustomer() {
     const read = (id) => document.getElementById(id)?.value ?? "";
@@ -1971,14 +2072,18 @@ class AdminPanelService {
       return { error: "کد ملی باید ۱۰ رقم باشد" };
     }
 
+    // ✅ ۱۳.۷.۱ — استان/شهرستان از دیکشنری می‌آیند؛ شهرستان بدون استان معنا ندارد
+    const province = String(read("regNewCustomerProvince")).trim();
+    const county = province ? String(read("regNewCustomerCounty")).trim() : "";
+
     return {
       values: {
         customer_type_id: typeId,
         full_name: fullName,
         national_code: nationalCode || null,
         farm_name: String(read("regNewCustomerFarmName")).trim() || null,
-        province: String(read("regNewCustomerProvince")).trim() || null,
-        county: String(read("regNewCustomerCounty")).trim() || null,
+        province: province || null,
+        county: county || null,
       },
     };
   }

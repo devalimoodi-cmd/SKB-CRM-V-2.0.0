@@ -1,4 +1,4 @@
-<!-- pages/register.html — ثبت‌نام عمومی مشتری (فاز ۱۳.۶ / بازطراحی ۱۳.۷) -->
+<!-- pages/register.html — ثبت‌نام عمومی مشتری (فاز ۱۳.۶ / بازطراحی ۱۳.۷ / چیدمان سه‌ستونه ۱۳.۷.۱) -->
 <!DOCTYPE html>
 <html dir="rtl" lang="fa">
 
@@ -32,8 +32,10 @@
                 <h1 class="reg-title">ثبت‌نام مشتری در سِکاد</h1>
                 <p class="reg-subtitle">
                     سامانه مدیریت اطلاعات، خدمات و ارتباطات با مشتریان<br>
-                    پس از ثبت درخواست، کارشناسان ما اطلاعات شما را بررسی می‌کنند و
-                    پس از تأیید می‌توانید وارد پورتال مشتری شوید.
+                    <span class="reg-subtitle-extra">
+                        پس از ثبت درخواست، کارشناسان ما اطلاعات شما را بررسی می‌کنند و
+                        پس از تأیید می‌توانید وارد پورتال مشتری شوید.
+                    </span>
                 </p>
             </header>
 
@@ -54,8 +56,10 @@
             <div id="regFormPanel" hidden>
                 <form id="registerForm" novalidate autocomplete="on">
 
-                    <!-- نام و نام خانوادگی -->
-                    <div class="reg-row">
+                    <!-- ✅ موج ۱۳.۷.۱ — شبکهٔ سه‌ستونه: فرم کامل روی دسکتاپ بدون اسکرول عمودی جا می‌شود -->
+                    <div class="reg-grid">
+
+                        <!-- ۱) نام -->
                         <div class="reg-field">
                             <label class="reg-label" for="regFirstName">نام</label>
                             <div class="reg-control">
@@ -65,6 +69,8 @@
                             </div>
                             <span class="reg-error" data-field="first_name" hidden></span>
                         </div>
+
+                        <!-- ۲) نام خانوادگی -->
                         <div class="reg-field">
                             <label class="reg-label" for="regLastName">نام خانوادگی</label>
                             <div class="reg-control">
@@ -74,10 +80,19 @@
                             </div>
                             <span class="reg-error" data-field="last_name" hidden></span>
                         </div>
-                    </div>
 
-                    <!-- نام کاربری و موبایل -->
-                    <div class="reg-row">
+                        <!-- ۳) شماره همراه -->
+                        <div class="reg-field">
+                            <label class="reg-label" for="regMobile">شماره همراه</label>
+                            <div class="reg-control">
+                                <input class="reg-input" id="regMobile" data-field="mobile_number" type="tel"
+                                    maxlength="11" inputmode="numeric" autocomplete="tel" placeholder="09151234567">
+                                <i class="fas fa-mobile-screen-button"></i>
+                            </div>
+                            <span class="reg-error" data-field="mobile_number" hidden></span>
+                        </div>
+
+                        <!-- ۴) نام کاربری -->
                         <div class="reg-field">
                             <label class="reg-label" for="regUsername">نام کاربری</label>
                             <div class="reg-control">
@@ -88,30 +103,36 @@
                             <span class="reg-hint">حداقل ۳ کاراکتر؛ حروف انگلیسی، رقم، نقطه، خط تیره</span>
                             <span class="reg-error" data-field="username" hidden></span>
                         </div>
+
+                        <!-- ۵) ایمیل -->
                         <div class="reg-field">
-                            <label class="reg-label" for="regMobile">شماره همراه</label>
+                            <label class="reg-label" for="regEmail">ایمیل</label>
                             <div class="reg-control">
-                                <input class="reg-input" id="regMobile" data-field="mobile_number" type="tel"
-                                    maxlength="11" inputmode="numeric" autocomplete="tel" placeholder="09151234567">
-                                <i class="fas fa-mobile-screen-button"></i>
+                                <input class="reg-input" id="regEmail" data-field="email" type="email" maxlength="100"
+                                    autocomplete="email" placeholder="you@example.com">
+                                <i class="fas fa-envelope"></i>
                             </div>
-                            <span class="reg-error" data-field="mobile_number" hidden></span>
+                            <span class="reg-error" data-field="email" hidden></span>
                         </div>
-                    </div>
 
-                    <!-- ایمیل -->
-                    <div class="reg-field">
-                        <label class="reg-label" for="regEmail">ایمیل</label>
-                        <div class="reg-control">
-                            <input class="reg-input" id="regEmail" data-field="email" type="email" maxlength="100"
-                                autocomplete="email" placeholder="you@example.com">
-                            <i class="fas fa-envelope"></i>
+                        <!-- ۶) پروندهٔ مشتری (اختیاری) -->
+                        <div class="reg-field">
+                            <label class="reg-label" for="regCustomerCode">
+                                کد یا نام پروندهٔ مشتری
+                                <span class="reg-optional">(اختیاری)</span>
+                            </label>
+                            <div class="reg-control">
+                                <input class="reg-input" id="regCustomerCode" data-field="requested_customer_code"
+                                    type="text" maxlength="50" placeholder="مثال: SKB-1024">
+                                <i class="fas fa-folder-open"></i>
+                            </div>
+                            <span class="reg-hint">
+                                اگر پرونده‌ای ندارید خالی بگذارید؛ مدیر هنگام تأیید پروندهٔ تازه می‌سازد.
+                            </span>
+                            <span class="reg-error" data-field="requested_customer_code" hidden></span>
                         </div>
-                        <span class="reg-error" data-field="email" hidden></span>
-                    </div>
 
-                    <!-- رمز عبور و تکرار آن -->
-                    <div class="reg-row">
+                        <!-- ۷) رمز عبور -->
                         <div class="reg-field">
                             <label class="reg-label" for="regPassword">رمز عبور</label>
                             <div class="reg-control">
@@ -122,6 +143,8 @@
                             <span class="reg-hint">ترکیبی از حروف و رقم برای امنیت بیشتر</span>
                             <span class="reg-error" data-field="password" hidden></span>
                         </div>
+
+                        <!-- ۸) تکرار رمز عبور -->
                         <div class="reg-field">
                             <label class="reg-label" for="regConfirmPassword">تکرار رمز عبور</label>
                             <div class="reg-control">
@@ -132,27 +155,26 @@
                             </div>
                             <span class="reg-error" data-field="confirm_password" hidden></span>
                         </div>
-                    </div>
 
-                    <!-- پروندهٔ مشتری (اختیاری) -->
-                    <div class="reg-field">
-                        <label class="reg-label" for="regCustomerCode">
-                            کد یا نام پروندهٔ مشتری
-                            <span class="reg-optional">(اختیاری — برای تسریع در تأیید)</span>
-                        </label>
-                        <div class="reg-control">
-                            <input class="reg-input" id="regCustomerCode" data-field="requested_customer_code"
-                                type="text" maxlength="50" placeholder="مثال: SKB-1024 یا نام واحد پرورشی">
-                            <i class="fas fa-folder-open"></i>
+                        <!-- ۹) کد امنیتی (پیش‌فرض پنهان — ستون سوم ردیف رمز) -->
+                        <div class="reg-field" id="regCaptchaGroup" hidden>
+                            <label class="reg-label" for="regCaptchaAnswer">کد امنیتی</label>
+                            <div class="reg-captcha">
+                                <input class="reg-input" id="regCaptchaAnswer" data-field="captcha_answer" type="text"
+                                    maxlength="8" autocomplete="off" placeholder="کد تصویر">
+                                <div class="reg-captcha-box">
+                                    <img id="regCaptchaImage" alt="کد امنیتی" title="برای تصویر جدید کلیک کنید">
+                                    <button type="button" class="reg-captcha-refresh" id="regCaptchaRefresh"
+                                        title="تصویر جدید">
+                                        <i class="fas fa-rotate-right"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <span class="reg-error" data-field="captcha_answer" hidden></span>
                         </div>
-                        <span class="reg-hint">
-                            اگر هنوز پروندهٔ مشتری ندارید، این قسمت را خالی بگذارید؛
-                            مدیر می‌تواند هنگام تأیید پروندهٔ جدید برای شما بسازد.
-                        </span>
-                        <span class="reg-error" data-field="requested_customer_code" hidden></span>
                     </div>
 
-                    <!-- توضیح -->
+                    <!-- ۱۰) توضیح (تمام‌عرض) -->
                     <div class="reg-field">
                         <label class="reg-label" for="regNote">
                             توضیح
@@ -161,23 +183,6 @@
                         <textarea class="reg-textarea" id="regNote" data-field="note" maxlength="500"
                             placeholder="هر توضیحی که به بررسی درخواست شما کمک می‌کند"></textarea>
                         <span class="reg-error" data-field="note" hidden></span>
-                    </div>
-
-                    <!-- کپچا -->
-                    <div class="reg-field" id="regCaptchaGroup" hidden>
-                        <label class="reg-label" for="regCaptchaAnswer">کد امنیتی</label>
-                        <div class="reg-captcha">
-                            <input class="reg-input" id="regCaptchaAnswer" data-field="captcha_answer" type="text"
-                                maxlength="8" autocomplete="off" placeholder="کد تصویر">
-                            <div class="reg-captcha-box">
-                                <img id="regCaptchaImage" alt="کد امنیتی" title="برای تصویر جدید کلیک کنید">
-                                <button type="button" class="reg-captcha-refresh" id="regCaptchaRefresh"
-                                    title="تصویر جدید">
-                                    <i class="fas fa-rotate-right"></i>
-                                </button>
-                            </div>
-                        </div>
-                        <span class="reg-error" data-field="captcha_answer" hidden></span>
                     </div>
 
                     <button type="submit" class="reg-submit" id="regSubmitBtn">

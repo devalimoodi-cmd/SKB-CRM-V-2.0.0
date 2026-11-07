@@ -756,8 +756,8 @@ npm run test:cache    :: نگهبانهای UI (وجود بخش، سه‌حال�
 | مجوزها | `users.registrations.view` (صف/بج) · `users.registrations.review` (تأیید/رد) · `admin.menu.registrations` (منو) — تأیید **همچنین** `users.customer.link` |
 | صف پنل | آیتم `registration-requests` با بج «در انتظار تأیید»، فیلتر وضعیت، مودال بررسی (تأیید با انتخاب پروندهٔ مشتری / رد با دلیل) |
 | مایگریشن | `20261108000000-create-registration-requests.js` (جدول + ایندکس‌های یکتای جزئی) + `20261108000001-add-customer-link-to-registration-requests.js` (موج ۱۳.۷) |
-| تست | `npm run test:registration` (۵۲ بررسی) + `Backend/registration-test.mjs` (۶۹ بررسی) — هر دو در گیت |
-| مستند | `docs/REVIEW-WAVE-13.6.md` · `docs/REVIEW-WAVE-13.7.md` |
+| تست | `npm run test:registration` (۶۰ بررسی) + `Backend/registration-test.mjs` (۶۹ بررسی) — هر دو در گیت |
+| مستند | `docs/REVIEW-WAVE-13.6.md` · `docs/REVIEW-WAVE-13.7.md` · `docs/REVIEW-WAVE-13.7.1.md` |
 
 - **چرا صف مستقل؟** پیش‌فرض `User.status` روی `pending` است؛ اگر صف در همان جدول بود،
   ثبت‌نام عمومی جدول کاربران را با ردیف نیمه‌کاره پر می‌کرد و همهٔ فیلترهای موجود باید تغییر می‌کردند.
@@ -772,7 +772,7 @@ npm run test:cache    :: نگهبانهای UI (وجود بخش، سه‌حال�
 
 | موضوع | مقدار |
 |---|---|
-| صفحه | همان `/register` با **لوگوی `skb-logo.png`**، لایهٔ `login-bg.jpg` + اورلی/بلور، کارت شیشه‌ای ۶۲۰px، ورودی‌های آیکون‌دار `.reg-control`، پاورقی لینک‌دار |
+| صفحه | همان `/register` با **لوگوی `skb-logo.png`**، لایهٔ `login-bg.jpg` + اورلی/بلور، کارت شیشه‌ای (۱۳.۷.۱: ۹۸۰px / سه‌ستونه)، ورودی‌های آیکون‌دار `.reg-control`، پاورقی لینک‌دار |
 | CSS | بازنویسی کامل `registration.css`؛ صفر سلکتور سراسری (`body`/`html`)، همهٔ رنگ‌ها از توکن ⇒ سازگار با تم تاریک |
 | سرویس صفحه | `#regFormPanel` هم در حالت «بسته» و هم پس از «ثبت موفق» پنهان می‌شود |
 | مودال تأیید | سوییچ دوحالته: «اتصال به پروندهٔ موجود» (پیش‌فرض) · «ثبت پروندهٔ مشتری جدید» (نوع مشتری*، نام*، کد ملی، واحد/مزرعه، استان، شهرستان) |
@@ -783,6 +783,21 @@ npm run test:cache    :: نگهبانهای UI (وجود بخش، سه‌حال�
 | ممیزی | `created_customer_id` + `customer_created` روی `registration_requests`؛ در ردیف صف «پروندهٔ متصل: #id (تازه ساخته شد)» |
 | تست | `registration-guard-test.mjs` ۳۹ → **۵۲** بررسی (بخش ۷) |
 | مستند | `docs/REVIEW-WAVE-13.7.md` |
+
+### موج ۱۳.۷.۱ — فرم سه‌ستونهٔ بدون اسکرول + دیکشنری استان/شهرستان
+
+| موضوع | مقدار |
+|---|---|
+| صفحه | `.reg-grid` سه‌ستونه (۹ فیلد در ۳ ردیف + توضیح تمام‌عرض) جای سه `.reg-row` دوتایی را گرفت ⇒ روی دسکتاپ **بدون اسکرول عمودی** |
+| عرض کارت | `.reg-shell` از `620px` به `980px`؛ ۲ ستون در `≤900px` و ۱ ستون در `≤560px` |
+| ارتفاع کم | `@media (max-height: 860px)` و `@media (max-height: 720px)` (لوگوی کوچک‌تر، زیرعنوان/لینک پاورقی جمع‌وجور) |
+| مودال تأیید | `#regNewCustomerProvince` و `#regNewCustomerCounty` از **ورودی متنی** به `<select>` تبدیل شدند (هم‌چهر `customer-list`) |
+| منبع دیکشنری | `GET /api/cities/provinces` و `/api/cities/cities-by-province/:state` با `ENDPOINTS.CITIES` (همان API فرم مشتری — بدون مجوز اضافه) |
+| وابستگی | انتخاب استان ⇒ بارگذاری شهرستان‌ها؛ شهرستان تا انتخاب استان `disabled` است و با تغییر استان صفر می‌شود |
+| اختیاری | استان/شهرستان همچنان **اختیاری**اند (سرور هم همین را می‌پذیرد)؛ شهرستان بدون استان ارسال نمی‌شود |
+| تست | `registration-guard-test.mjs` ۵۲ → **۶۰** بررسی (بخش ۸) · بک‌اند بدون تغییر (**۶۹**) |
+| مستند | `docs/REVIEW-WAVE-13.7.1.md` |
+
 
 
 

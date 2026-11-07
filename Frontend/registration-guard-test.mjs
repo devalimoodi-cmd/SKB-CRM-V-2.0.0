@@ -414,6 +414,59 @@ check(
 );
 
 // ============================================================
+// ۸) موج ۱۳.۷.۱ — «فرم سه‌ستونهٔ بدون اسکرول» + «دیکشنری استان/شهرستان»
+// ------------------------------------------------------------
+//  ریسک‌هایی که این بخش قفل می‌کند:
+//   ۱) بازگشت صفحهٔ ثبت‌نام به چیدمان باریک/تک‌ستونه و اسکرول عمودی.
+//   ۲) بازگشت استان/شهرستان مودال تأیید به ورودی متنی آزاد
+//      (ناسازگاری با دیکشنری استان/شهرستانِ فرم مشتری).
+//   ۳) فراموش‌شدن وابستگی «استان ⇒ شهرستان» (شهرستانِ بی‌استان).
+// ============================================================
+check(
+  "۱۳.۷.۱ · صفحه: چیدمان سه‌ستونهٔ .reg-grid جای .reg-row را گرفته است",
+  /class="reg-grid"/.test(registerHtml) && !/class="reg-row"/.test(registerHtml),
+);
+check(
+  "۱۳.۷.۱ · CSS صفحه: .reg-grid سه‌ستونه + شِل پهن (≥ ۹۰۰px)",
+  /\.reg-grid\s*\{/.test(registerCss) &&
+    /grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/.test(registerCss) &&
+    /\.reg-shell\s*\{[^}]*max-width:\s*9\d\dpx/.test(registerCss),
+);
+check(
+  "۱۳.۷.۱ · CSS صفحه: حالت فشردهٔ کم‌ارتفاع برای حذف اسکرول عمودی",
+  /@media\s*\(max-height:\s*860px\)/.test(registerCss) &&
+    /@media\s*\(max-height:\s*720px\)/.test(registerCss) &&
+    /\.reg-subtitle-extra\s*\{/.test(registerCss),
+);
+check(
+  "۱۳.۷.۱ · پنل: استان/شهرستان مودال تأیید <select> شدند (نه ورودی متنی)",
+  /<select[^>]*id="regNewCustomerProvince"[^>]*class="[^"]*float-select/.test(adminHtml) &&
+    /<select[^>]*id="regNewCustomerCounty"[^>]*class="[^"]*float-select/.test(adminHtml) &&
+    !/<input[^>]*id="regNewCustomerProvince"/.test(adminHtml) &&
+    !/<input[^>]*id="regNewCustomerCounty"/.test(adminHtml),
+);
+check(
+  "۱۳.۷.۱ · پنل: شهرستان تا انتخاب استان غیرفعال است + فلش select",
+  /id="regNewCustomerCounty"[^>]*disabled/.test(adminHtml) &&
+    /id="regNewCustomerProvince"[\s\S]{0,400}?select-arrow/.test(adminHtml),
+);
+check(
+  "۱۳.۷.۱ · API پنل: استان‌ها/شهرستان‌ها از ENDPOINTS.CITIES می‌آیند",
+  /CITIES\.PROVINCES/.test(adminApi) && /CITIES\.CITIES_BY_PROVINCE/.test(adminApi),
+);
+check(
+  "۱۳.۷.۱ · سرویس پنل: بارگذاری استان‌ها + شهرستان‌های وابسته سیم‌کشی شده است",
+  /loadRegistrationProvinces\(\)/.test(adminService) &&
+    /loadRegistrationCounties\(province = "", selected = ""\)/.test(adminService) &&
+    /resetRegistrationCounties\(/.test(adminService) &&
+    /getElementById\("regNewCustomerProvince"\)/.test(adminService),
+);
+check(
+  "۱۳.۷.۱ · سرویس پنل: شهرستان بدون استان به سرور فرستاده نمی‌شود",
+  /const county = province \?/.test(adminService),
+);
+
+// ============================================================
 // جمع‌بندی
 // ============================================================
 const failed = results.filter((r) => !r.ok);
