@@ -39,6 +39,13 @@ const protect = async (req, res, next) => {
         "role",
         "status",
         "token",
+        // ✅ فاز ۱۳.۲ — «پورتال مشتری»
+        //    شناسهٔ پروندهٔ مشتریِ متصل به حساب کاربر (users.customer_id).
+        //    بدون این ستون، هیچ اسکوپ سمت سروری قابل اعمال نیست و مرزِ
+        //    «دادهٔ خودم» فقط به localStorage کلاینت تکیه می‌کرد.
+        //    ⚠️ فقط خوانده می‌شود؛ هیچ مسیری اجازهٔ نوشتن آن را به خودِ
+        //    کاربر نمی‌دهد (فاز ۱۳.۰: customer_id در protectedFields است).
+        "customer_id",
       ],
     });
 
@@ -101,6 +108,8 @@ const protect = async (req, res, next) => {
       username: user.username,
       role: user.role,
       status: user.status,
+      // ✅ فاز ۱۳.۲: پروندهٔ مشتریِ متصل (null برای نقش‌های کارکنان)
+      customer_id: user.customer_id ?? null,
     };
 
     // ✅ «سطوح دسترسی» کاربر (استثنای کاربر ← استثنای نقش ← پیش‌فرض کاتالوگ)

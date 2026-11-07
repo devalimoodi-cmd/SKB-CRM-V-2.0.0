@@ -713,9 +713,10 @@ const declaredTotalInTest = Number(
 );
 
 check(
-  "کاتالوگ: تعداد کلیدها با فهرست کلیدها یکی است و گروه‌ها ۱۶ است",
+  "کاتالوگ: تعداد کلیدها با فهرست کلیدها یکی است و گروه‌ها ۱۷ است",
+  // ✅ فاز ۱۳.۲: گروه «پورتال مشتری» اضافه شد (۱۶ ⇒ ۱۷)
   catalog.TOTAL_PERMISSIONS === catalog.PERMISSION_KEYS.length &&
-    catalog.PERMISSION_GROUPS.length === 16,
+    catalog.PERMISSION_GROUPS.length === 17,
   `keys=${catalog.TOTAL_PERMISSIONS} groups=${catalog.PERMISSION_GROUPS.length}`,
 );
 

@@ -1,0 +1,290 @@
+/* ============================================================
+   features/portal/portal.css
+   «پورتال مشتری» — پوستهٔ سبک و مستقل (فاز ۱۳.۲)
+   ------------------------------------------------------------
+   • فقط خواندنی: هیچ استایل فرم/دکمهٔ ویرایش اینجا نیست، جز
+     دکمهٔ «تلاش دوباره» (که فقط یک GET دیگر می‌فرستد)
+   • موبایل‌اول: کارت‌ها یک‌ستونه، از ۷۶۸px دوستونه، از ۱۲۰۰px چهارستونه
+   • رنگ‌ها از متغیرهای global.css ⇒ سازگار با تم روشن/تیره
+   ============================================================ */
+
+.portal-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px 16px 64px;
+}
+
+/* ===== سرصفحه ===== */
+.portal-hero {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 22px 20px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  box-shadow: 0 6px 24px rgba(15, 23, 42, 0.06);
+}
+
+.portal-hero__name {
+  margin: 0 0 4px;
+  font-size: 1.35rem;
+  color: var(--text-dark);
+}
+
+.portal-hero__farm {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--text-gray);
+}
+
+.portal-hero__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  font-size: 0.85rem;
+  color: var(--text-gray);
+}
+
+.portal-hero__meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ===== کارت‌های آماری ===== */
+.portal-kpis {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.portal-kpi {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-areas:
+    "icon value"
+    "icon label"
+    "icon meta";
+  align-items: center;
+  gap: 2px 12px;
+  padding: 16px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+}
+
+.portal-kpi__icon {
+  grid-area: icon;
+  font-size: 1.25rem;
+  color: var(--primary);
+  background: var(--primary-soft);
+  border-radius: 12px;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+}
+
+.portal-kpi__value {
+  grid-area: value;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-dark);
+}
+
+.portal-kpi__label {
+  grid-area: label;
+  font-size: 0.85rem;
+  color: var(--text-gray);
+}
+
+.portal-kpi__meta {
+  grid-area: meta;
+  font-size: 0.75rem;
+  color: var(--text-light);
+}
+
+/* ===== بخش‌های فهرست ===== */
+.portal-sections {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.portal-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.portal-card__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--text-dark);
+  background: var(--bg-muted);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.portal-card__head i {
+  color: var(--primary);
+}
+
+.portal-list {
+  list-style: none;
+  margin: 0;
+  padding: 6px 0;
+}
+
+.portal-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 10px;
+  padding: 10px 16px;
+  border-bottom: 1px dashed var(--border-light);
+}
+
+.portal-row:last-child {
+  border-bottom: 0;
+}
+
+.portal-row__title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-slate-strong);
+}
+
+.portal-row__sub {
+  font-size: 0.8rem;
+  color: var(--text-gray);
+}
+
+.portal-empty {
+  padding: 16px;
+  font-size: 0.85rem;
+  color: var(--text-light);
+  text-align: center;
+}
+
+/* ===== نشان وضعیت ===== */
+.portal-badge {
+  font-size: 0.72rem;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--bg-muted);
+  color: var(--text-gray);
+}
+
+.portal-badge--active,
+.portal-badge--read {
+  background: var(--success-bg);
+  color: var(--success-deeper);
+}
+
+.portal-badge--unread,
+.portal-badge--pending {
+  background: var(--warning-bg);
+  color: var(--warning-deep);
+}
+
+.portal-badge--cancelled,
+.portal-badge--inactive {
+  background: var(--danger-bg);
+  color: var(--danger-deep);
+}
+
+/* ===== پیام‌ها (بدون پرونده / خطا) ===== */
+.portal-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 14px;
+  border: 1px solid var(--border-color);
+  background: var(--info-soft);
+  color: var(--text-slate-strong);
+}
+
+.portal-notice--error {
+  background: var(--danger-soft);
+  border-color: var(--danger-mist);
+}
+
+.portal-notice i {
+  font-size: 1.1rem;
+  color: var(--info);
+}
+
+.portal-notice--error i {
+  color: var(--danger);
+}
+
+.portal-notice__title {
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.portal-notice__text {
+  font-size: 0.85rem;
+  color: var(--text-gray);
+  line-height: 1.8;
+}
+
+.portal-retry {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+  padding: 8px 16px;
+  font-size: 0.85rem;
+  color: var(--text-inverse);
+  background: var(--primary);
+  border: 0;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.portal-retry:hover {
+  background: var(--primary-dark);
+}
+
+/* ===== حالت‌های بارگذاری ===== */
+.portal-page[data-portal-state="loading"] .portal-content {
+  opacity: 0.5;
+}
+
+.portal-status:empty {
+  display: none;
+}
+
+/* ===== ریسپانسیو ===== */
+@media (min-width: 768px) {
+  .portal-kpis {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .portal-sections {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1200px) {
+  .portal-kpis {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .portal-sections {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}

@@ -129,11 +129,12 @@ SMS_TEMPLATE_OTP_LOGIN=514103
 
 | فاز | کار |
 |---|---|
-| ۱۳.۰ | `users.customer_id` (پیوند کاربر به پروندهٔ مشتری) |
-| ۱۳.۲ | پورتال مشتری (`/portal`) |
-| ۱۳.۳ | ثبت‌نام عمومی + صف تایید مدیر (قالب `SMS_TEMPLATE_OTP_REGISTER`) |
-| ۱۳.۴ | کنسول مجوز مشتری |
-| ۱۳.۵ | PWA (manifest · آیکون مربع از `skb-logo.png` · `sw.js` · پوستهٔ آفلاین) |
+| ۱۳.۰ | `users.customer_id` (پیوند کاربر به پروندهٔ مشتری) — ✅ انجام شد |
+| ۱۳.۲ | پورتال مشتری (`/portal`) — ✅ انجام شد (`docs/REVIEW-WAVE-13.2.md`) |
+| ۱۳.۳ | بازکردن خواندنیِ GETهای موجود با `allowCustomerRead` + هدایت مشتری به `/portal` |
+| ۱۳.۴ | ثبت‌نام عمومی + صف تایید مدیر (قالب `SMS_TEMPLATE_OTP_REGISTER`) |
+| ۱۳.۵ | کنسول مجوز مشتری |
+| ۱۳.۶ | PWA (manifest · آیکون مربع از `skb-logo.png` · `sw.js` · پوستهٔ آفلاین) |
 | ۱۲.۵-ب | backfill ردیف‌های تاریخی `activity_logs.customer_id` |
 
 > ⚠️ محدودیت شناخته‌شده: `resend` کد **جدید** می‌سازد و `attempts` را صفر می‌کند؛ سقف ارسال

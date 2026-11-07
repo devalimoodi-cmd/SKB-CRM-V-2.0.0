@@ -51,17 +51,34 @@ class CustomerInfoService {
   }
 
   // ============================================
+  // ✅ شناسهٔ پرونده‌ای که این کاربر حق دیدنش را دارد (فاز ۱۳.۲)
+  // ------------------------------------------------------------
+  // • کارکنان: ?id= / localStorage / پروندهٔ متصل (هر کدام اول بود)
+  // • نقش «مشتری»: **فقط** پروندهٔ متصل به حساب خودش
+  //   ⇒ دستکاری آدرس (?id=۳) یا localStorage نمی‌تواند پروندهٔ
+  //     مشتری دیگری را باز کند. مرز نهایی هم سمت سرور اعمال می‌شود
+  //     (Backend/middleware/customerScope.js).
+  // ============================================
+  resolveCustomerId() {
+    const linkedId = authService.getUser()?.customer_id || null;
+    if (authService.getUser()?.role === "customer") return linkedId;
+
+    return (
+      stateService.getCustomerId() ||
+      new URLSearchParams(window.location.search).get("id") ||
+      linkedId ||
+      null
+    );
+  }
+
+  // ============================================
   // ✅ مقداردهی اولیه
   // ============================================
   async init() {
     if (this.initialized) return;
 
     // دریافت ID از URL (یا پروندهٔ متصل به حساب کاربر واردشده — فاز ۱۳.۰)
-    this.customerId =
-      stateService.getCustomerId() ||
-      new URLSearchParams(window.location.search).get("id") ||
-      authService.getUser()?.customer_id ||
-      null;
+    this.customerId = this.resolveCustomerId();
 
     if (!this.customerId) {
       // حساب مشتری بدون پرونده: پیام روشن، نه خطای خشک

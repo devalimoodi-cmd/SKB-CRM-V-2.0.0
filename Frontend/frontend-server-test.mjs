@@ -726,8 +726,11 @@ const run = async () => {
       globalCssSrc.includes(".perm-denied-box {"),
   );
   check(
-    "عدم دسترسی: ضدحلقهٔ ریدایرکت (نقش مشتری + صفحهٔ مقصد) رعایت شده است",
-    appServiceSrc.includes('permissionService.role !== "customer"') &&
+    "عدم دسترسی: ضدحلقهٔ ریدایرکت (صفحهٔ معاف مشتری + صفحهٔ مقصد) رعایت شده است",
+    // ✅ فاز ۱۳.۲: استثنای «همهٔ صفحات» برای نقش مشتری به یک استثنای
+    //    دقیق تبدیل شد (isCustomerExemptPage) تا پورتال قابل بستن باشد.
+    appServiceSrc.includes("isCustomerExemptPage()") &&
+      appServiceSrc.includes('permissionService.role !== "customer"') &&
       appServiceSrc.includes("isLandingPage()") &&
       appServiceSrc.includes("async handlePagePermissionLoss("),
   );

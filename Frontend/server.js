@@ -224,6 +224,8 @@ const LOADER_PAGES = new Set([
   "customer-list.html",
   "customer-info.html",
   "admin-panel.html",
+  // ✅ فاز ۱۳.۲ — پورتال مشتری (صفحهٔ داده‌محور؛ لودر سیستمی می‌گیرد)
+  "portal.html",
 ]);
 const LOADER_STYLE_DEFAULT = "classic";
 const LOADER_CSS_URL = "/shared/components/Loader/loader.css";
@@ -761,6 +763,13 @@ app.get("/customer-info.html", (req, res) => {
   res.sendFile(path.join(srcPath, "pages", "customer-info.html"));
 });
 
+// ===== پورتال مشتری (فاز ۱۳.۲) =====
+// صفحهٔ اختصاصی نقش «مشتری»؛ فقط خواندنی و با اسکوپ سمت سرور.
+// (گیت ورود: ورود اجباری + مجوز customer.portal.view در همان صفحه)
+app.get(["/portal", "/portal.html"], (req, res) => {
+  res.sendFile(path.join(srcPath, "pages", "portal.html"));
+});
+
 // لیست مشتریان
 app.get("/customers", (req, res) => {
   res.sendFile(path.join(srcPath, "pages", "customer-list.html"));
@@ -852,6 +861,7 @@ app.listen(PORT, () => {
   console.log(`   /login       → صفحه ورود`);
   console.log(`   /admin       → پنل مدیریت`);
   console.log(`   /customer-info → اطلاعات مشتری`);
+  console.log(`   /portal      → پورتال مشتری (فاز ۱۳.۲)`);
   console.log(`   /customers   → لیست مشتریان`);
   console.log(`   /sms         → مدیریت پیامک`);
   console.log(`   /setup-admin → تنظیمات اولیه`);

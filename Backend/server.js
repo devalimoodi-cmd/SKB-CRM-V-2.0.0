@@ -62,6 +62,8 @@ const presenceRoutes = require("./routes/presenceRoutes");
 const sessionRoutes = require("./routes/sessionRoutes");
 // ✅ «ردّ فعالیت» (فاز ۱۲.۲): ثبت خودکار تغییرات + مسیر مشاهدهٔ مدیران
 const activityRoutes = require("./routes/activityRoutes");
+// ✅ «پورتال مشتری» (فاز ۱۳.۲): تنها مسیر تازه — خلاصهٔ پروندهٔ خودِ مشتری
+const portalRoutes = require("./routes/portalRoutes");
 const activityLog = require("./middleware/activityLog");
 const activityService = require("./services/activityService");
 // ✅ ورود دومرحله‌ای (فاز ۱۳.۱) — پاک‌سازی چالش‌های ورود
@@ -490,6 +492,14 @@ app.use("/api/customer-header", customerHeaderRoutes);
 
 // =============================== روت اطلاعات پایان دوره (Flock Completion) =============
 app.use("/api/flock-completions", flockCompletionRoutes);
+// =========
+
+// =============================== روت «پورتال مشتری» (فاز ۱۳.۲) =============
+// • تنها ورودی کلاینت: توکن (Bearer) — هیچ ?id= یا بدنه‌ای خوانده نمی‌شود
+// • نرخ‌بندی: از apiLimiter سراسری /api ارث می‌برد (بالاتر در همین فایل)
+// • اسکوپ: auth.js ستون customer_id را می‌خواند و customerScope.js
+//   آن را به req.customerScopeId تبدیل می‌کند
+app.use("/api/portal", portalRoutes);
 // =========
 
 // ============================================

@@ -1,0 +1,172 @@
+<!-- pages/portal.html — پورتال مشتری (فاز ۱۳.۲) -->
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>پورتال مشتری | سامانه مدیریت مشتریان ستاره کیان بیرجند</title>
+
+    <!-- ===== Vendor Styles ===== -->
+    <link rel="stylesheet" href="./../../node_modules/@fortawesome/fontawesome-free/css/all.min.css">
+
+    <!-- ===== Core Styles ===== -->
+    <link rel="stylesheet" href="/styles/global.css">
+
+    <!-- ===== Layouts ===== -->
+    <link rel="stylesheet" href="./../shared/layouts/Header/header.css">
+    <link rel="stylesheet" href="./../shared/layouts/Footer/footer.css">
+
+    <!-- ===== Feature Styles ===== -->
+    <link rel="stylesheet" href="/features/portal/portal.css">
+
+    <link rel="icon" type="image/png" href="/assets/images/favicon.ico">
+</head>
+
+<body>
+    <!-- ===== پیام «دسترسی بسته» (fallback گیت مجوز) ===== -->
+    <div id="portalDenied" class="portal-page" style="display: none;">
+        <div class="portal-notice portal-notice--error" role="status">
+            <i class="fas fa-lock"></i>
+            <div>
+                <div class="portal-notice__title">دسترسی به پورتال بسته است</div>
+                <div class="portal-notice__text">
+                    نمایش پورتال مشتری برای نقش شما غیرفعال شده است. برای فعال‌سازی با مدیر سیستم تماس بگیرید.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== HEADER ===== -->
+    <header id="main-header"></header>
+
+    <!-- ===== پورتال =====
+         ⚠️ این صفحه «فقط خواندنی» است: هیچ فرم، دکمهٔ ثبت/ویرایش/حذف
+         و هیچ درخواست نوشتنی (POST/PUT/DELETE) در آن وجود ندارد.
+         لودر سیستمی از سمت Frontend/server.js تزریق و با اسکریپت پایین
+         همین صفحه (overlay#pageLoadingOverlay) مخفی می‌شود. ===== -->
+    <main id="portalRoot" class="portal-page" data-portal-state="loading"
+        data-permission="customer.portal.view" data-permission-fallback="#portalDenied">
+
+        <!-- جای پیام‌ها: بدون پروندهٔ متصل / خطای شبکه -->
+        <div id="portalStatus" class="portal-status"></div>
+
+        <div id="portalContent" class="portal-content">
+            <!-- سرصفحهٔ پرونده -->
+            <section class="portal-hero" id="portalHero" aria-live="polite"></section>
+
+            <!-- کارت‌های آماری -->
+            <section class="portal-kpis" id="portalCounters" aria-live="polite"></section>
+
+            <!-- فهرست‌های کوتاه -->
+            <div class="portal-sections">
+                <section class="portal-card">
+                    <div class="portal-card__head">
+                        <i class="fas fa-egg"></i>
+                        <span>گله‌های من</span>
+                    </div>
+                    <ul class="portal-list" id="portalFlocks"></ul>
+                </section>
+
+                <section class="portal-card">
+                    <div class="portal-card__head">
+                        <i class="fas fa-chart-line"></i>
+                        <span>آخرین هفته‌های مدیریتی</span>
+                    </div>
+                    <ul class="portal-list" id="portalWeeks"></ul>
+                </section>
+
+                <section class="portal-card">
+                    <div class="portal-card__head">
+                        <i class="fas fa-clipboard-list"></i>
+                        <span>آخرین بازدیدها</span>
+                    </div>
+                    <ul class="portal-list" id="portalVisits"></ul>
+                </section>
+            </div>
+
+            <!-- اطلاعات کمکی: فقط لینک‌های خودِ کاربر (بدون دادهٔ مشتری) -->
+            <div class="portal-card" style="margin-top: 18px;">
+                <div class="portal-card__head">
+                    <i class="fas fa-user-gear"></i>
+                    <span>حساب کاربری</span>
+                </div>
+                <ul class="portal-list">
+                    <li class="portal-row">
+                        <a class="portal-row__title" href="/profile">پروفایل من</a>
+                        <span class="portal-row__sub">اطلاعات حساب و رمز عبور</span>
+                    </li>
+                    <li class="portal-row">
+                        <a class="portal-row__title" href="/settings">تنظیمات حساب</a>
+                        <span class="portal-row__sub">ترجیحات نمایش و اعلان‌ها</span>
+                    </li>
+                    <li class="portal-row">
+                        <a class="portal-row__title" href="/help">راهنما</a>
+                        <span class="portal-row__sub">پرسش‌های پرتکرار</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </main>
+
+    <footer id="main-footer"></footer>
+
+    <!-- ===== Vendor Scripts ===== -->
+    <script src="./../../node_modules/jquery/dist/jquery.min.js"></script>
+    <script src="./../../node_modules/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="./../../node_modules/sweetalert2/dist/sweetalert2.all.min.js"></script>
+
+    <!-- ===== Core ===== -->
+    <script type="module" src="/core/constants/api.const.js"></script>
+    <script type="module" src="/core/constants/config.const.js"></script>
+    <script type="module" src="/core/services/cache.service.js"></script>
+    <script type="module" src="/core/services/api.service.js"></script>
+    <script type="module" src="/core/services/auth.service.js"></script>
+    <script type="module" src="/core/services/state.service.js"></script>
+    <script type="module" src="/core/services/notification.service.js"></script>
+    <script type="module" src="/core/services/router.service.js"></script>
+    <script type="module" src="/core/utils/date.utils.js"></script>
+    <script type="module" src="/core/utils/string.utils.js"></script>
+    <script type="module" src="/core/utils/dom.utils.js"></script>
+
+    <!-- ===== Layouts ===== -->
+    <script type="module" src="/shared/layouts/Header/header.service.js"></script>
+    <script type="module" src="/shared/layouts/Header/header-bookmarks.service.js"></script>
+    <script type="module" src="/shared/layouts/Header/header-dropdown.service.js"></script>
+    <script type="module" src="/shared/layouts/Footer/footer.service.js"></script>
+
+    <!-- ===== Messages / What's New (هدر) ===== -->
+    <script type="module" src="/features/messages/messages.api.js"></script>
+    <script type="module" src="/features/messages/messages.service.js"></script>
+    <script type="module" src="/features/whats-new/whats-new.service.js"></script>
+
+    <!-- ===== Feature (پورتال) ===== -->
+    <script type="module" src="/features/portal/portal.renderer.js"></script>
+    <script type="module" src="/features/portal/portal.service.js"></script>
+
+    <!-- ===== App ===== -->
+    <script type="module" src="/core/services/app.service.js"></script>
+
+    <!-- ===== Init ===== -->
+    <script>
+        document.addEventListener('DOMContentLoaded', async function () {
+            try {
+                if (typeof window.portalService !== 'undefined') {
+                    await window.portalService.init();
+                }
+            } catch (error) {
+                console.error('❌ Error initializing portal page:', error);
+            } finally {
+                // مخفی کردن لودر سیستمی — در همهٔ حالت‌ها (موفق/خطا)
+                const overlay = document.getElementById('pageLoadingOverlay');
+                if (overlay) {
+                    overlay.style.opacity = '0';
+                    setTimeout(() => { overlay.style.display = 'none'; }, 500);
+                }
+            }
+        });
+    </script>
+</body>
+
+</html>

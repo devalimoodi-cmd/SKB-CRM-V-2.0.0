@@ -35,6 +35,16 @@ class AppService {
         requiresPermission: "customer.basic.view",
         feature: "customer-info",
       },
+      // ✅ فاز ۱۳.۲ — «پورتال مشتری» (صفحهٔ اختصاصی نقش مشتری)
+      //    requiresPermission عمداً ست شده است تا اگر مدیر این کلید را
+      //    از نقش مشتری بگیرد، صفحه همان لحظه بسته شود (پیام + بازگشت).
+      portal: {
+        title: "پورتال مشتری",
+        requiresAuth: true,
+        requiresAdmin: false,
+        requiresPermission: "customer.portal.view",
+        feature: "portal",
+      },
       dashboard: {
         title: "داشبورد",
         requiresAuth: true,
@@ -277,6 +287,9 @@ class AppService {
       "/admin-panel.html": "admin-panel",
       "/customer-info": "customer-info",
       "/customer-info.html": "customer-info",
+      // ✅ فاز ۱۳.۲ — پورتال مشتری
+      "/portal": "portal",
+      "/portal.html": "portal",
       "/customers": "customer-list",
       "/customer-list.html": "customer-list",
       "/profile": "profile",
@@ -310,6 +323,25 @@ class AppService {
     return page || "404";
   }
 
+  // ============================================================
+  // ✅ صفحاتی که نقش «مشتری» از گیت مجوز صفحه معاف است
+  // ------------------------------------------------------------
+  // تاریخچه:
+  //  • پیش از ۱۳.۲ همهٔ صفحات برای نقش مشتری معاف بودند (تا مشتری
+  //    با پیش‌فرض‌های کاتالوگ که همه برای او false است، قفل نشود).
+  //  • از ۱۳.۲ فقط «/customer-info» معاف است؛ صفحهٔ «/portal» عمداً
+  //    گیت مجوز دارد تا مدیر بتواند با بستن customer.portal.view
+  //    دسترسی مشتری به پورتال را واقعاً قطع کند.
+  // ============================================================
+  isCustomerExemptPage() {
+    if (permissionService.role !== "customer") return false;
+    // ۱) پروفایل مشتری: تنها راه ورود مشتری (پیش از ۱۳.۲ قفل می‌شد)
+    if (this.currentPage === "customer-info") return true;
+    // ۲) صفحهٔ مقصد: برای مشتری فقط «اطلاع» است و ریدایرکت نمی‌شود
+    //    (ضدحلقه) ⇒ معاف می‌ماند تا پیام تکراری نگیرد.
+    return this.isLandingPage();
+  }
+
   // ===== بررسی دسترسی =====
 
   async checkAccess() {
@@ -336,7 +368,7 @@ class AppService {
     const requiredPageKeys = [].concat(config.requiresPermission || []);
     if (
       requiredPageKeys.length &&
-      permissionService.role !== "customer" &&
+      !this.isCustomerExemptPage() &&
       permissionService.hasData() &&
       !permissionService.canAny(requiredPageKeys)
     ) {
@@ -473,8 +505,9 @@ class AppService {
       const config = this.pageConfigs[this.currentPage];
       const keys = [].concat(config?.requiresPermission || []);
       if (!keys.length || !permissionService.hasData()) return;
-      // مشتری پورتال خودش است و داشبورد صفحهٔ مقصد ⇒ هیچ‌کدام بیرون انداخته نمی‌شوند
-      if (permissionService.role === "customer") return;
+      // ✅ فاز ۱۳.۲: تنها صفحهٔ معاف برای مشتری «/customer-info» است؛
+      //    پورتال گیت دارد تا «بستن پورتال از پنل مدیریت» واقعاً اثر کند.
+      if (this.isCustomerExemptPage()) return;
       if (permissionService.canAny(keys)) return;
 
       if (await this.handlePagePermissionLoss(keys[0])) {
