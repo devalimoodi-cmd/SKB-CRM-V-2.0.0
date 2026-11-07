@@ -6,7 +6,9 @@ const { uploadProfile } = require("../middleware/upload");
 const {
   loginLimiter,
   setupAdminLimiter,
+  otpLimiter,
 } = require("../middleware/rateLimit");
+const loginOtpController = require("../controllers/loginOtpController");
 
 // ============================================
 // مسیرهای عمومی (بدون نیاز به احراز هویت)
@@ -14,6 +16,13 @@ const {
 router.get("/check-admin", userController.checkAdminExists);
 router.post("/setup-admin", setupAdminLimiter, userController.setupAdmin);
 router.post("/login", loginLimiter, userController.loginUser);
+
+// ⭐ فاز ۱۳.۱ — مرحلهٔ ۲ ورود (کد پیامکی)
+//    ⚠️ این مسیرها هیچ توکنی نمی‌گیرند؛ اعتبارشان «challenge_id» است
+//    که فقط پس از رمز صحیح صادر می‌شود. محدودیت نرخ سخت‌گیرانه دارند.
+router.post("/login/verify", otpLimiter, loginOtpController.verifyLogin);
+router.post("/login/resend", otpLimiter, loginOtpController.resendLoginCode);
+router.post("/login/cancel", otpLimiter, loginOtpController.cancelLogin);
 
 // ============================================
 // مسیرهای محافظت شده (نیاز به احراز هویت)

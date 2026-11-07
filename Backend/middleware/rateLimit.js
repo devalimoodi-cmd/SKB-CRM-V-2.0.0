@@ -119,10 +119,22 @@ const setupAdminLimiter = createRateLimiter({
   message: "تعداد تلاش‌ها بیش از حد مجاز است. لطفاً بعداً تلاش کنید.",
 });
 
+// ===== کد یک‌بارمصرف ورود (فاز ۱۳.۱): سخت‌گیرانه =====
+// چرا اینقدر کم؟ هر درخواست «verify» یک حدس ۶ رقمی است و هر «resend»
+// یک پیامک هزینه‌دار. با ۱۰ درخواست در دقیقه، کرک عملی نیست و
+// هزینهٔ پیامک هم کنترل می‌شود.
+const otpLimiter = createRateLimiter({
+  windowMs: 60 * 1000,
+  max: Number(process.env.LOGIN_OTP_RATE_MAX || 10),
+  message:
+    "تعداد درخواست‌های کد ورود بیش از حد مجاز است. لطفاً یک دقیقه بعد تلاش کنید.",
+});
+
 module.exports = {
   applySecurityHeaders,
   createRateLimiter,
   apiLimiter,
   loginLimiter,
   setupAdminLimiter,
+  otpLimiter,
 };

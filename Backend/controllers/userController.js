@@ -6,6 +6,8 @@ const { ADMIN_ROLES } = require("../middleware/auth");
 const { getTokenExpiryDate } = require("../utils/token");
 // ✅ «نشست‌های کاربران» (فاز ۱۲.۱): ثبت/بستن نشست‌ها (sid داخل توکن)
 const sessionService = require("../services/sessionService");
+// ✅ ورود دومرحله‌ای (فاز ۱۳.۱): چالش کد پیامکی در مرحلهٔ ۱ ساخته می‌شود
+const otpService = require("../services/otpService");
 const {
   verifyChallenge,
   isEnabled: isCaptchaEnabled,
@@ -725,8 +727,26 @@ const loginUser = async (req, res) => {
       }
     }
 
+    // ✅ شناسهٔ ورود: نام کاربری، ایمیل یا شمارهٔ موبایل (فاز ۱۳.۱)
+    //    چرا موبایل؟ چون کد ورود به همان شماره پیامک می‌شود؛ کاربر
+    //    لازم نیست نام کاربری را به خاطر بسپارد. اگر ورودی خودِ یک
+    //    شمارهٔ موبایل معتبر باشد، فقط با همین ستون تطبیق داده می‌شود
+    //    تا «ایمیل به شکل شماره» یا تطبیق چندگانه رخ ندهد.
+    const identifier = String(username).trim();
+    const looksLikeMobile = /^09[0-9]{9}$/.test(identifier);
+
     const user = await User.findOne({
-      where: { [Op.or]: [{ username }, { email: username }] },
+      where: looksLikeMobile
+        ? { mobile_number: identifier }
+        : {
+            // ایمیل هم با همان حالت و هم با حروف کوچک بررسی می‌شود
+            // (کاربر معمولاً حروف بزرگ/کوچک را رعایت نمی‌کند)
+            [Op.or]: [
+              { username: identifier },
+              { email: identifier },
+              { email: identifier.toLowerCase() },
+            ],
+          },
     });
     if (!user)
       return errorResponse(res, "نام کاربری یا رمز عبور اشتباه است", 401);
@@ -775,9 +795,50 @@ const loginUser = async (req, res) => {
       );
     }
 
-    // ✅ ورود موفق: شمارندهٔ تلاش‌های ناموفق و قفل پاک می‌شود
+    // ✅ رمز صحیح است ⇒ شمارندهٔ تلاش ناموفق پاک می‌شود
     if (user.failed_login_attempts > 0 || user.locked_until) {
       await user.resetFailedAttempts();
+    }
+
+    // ⭐ فاز ۱۳.۱ — ورود دومرحله‌ای (OTP):
+    //    در این مرحله «هیچ توکن/نشستی» صادر نمی‌شود؛ فقط یک چالش
+    //    کد پیامکی ساخته می‌شود. نشست و توکن در
+    //    POST /api/users/login/verify ساخته می‌شوند.
+    if (otpService.isEnforced()) {
+      const { ip, userAgent } = sessionService.fromRequest(req);
+      const challenge = await otpService.createChallenge({
+        user,
+        purpose: "login",
+        ip,
+        userAgent,
+      });
+
+      if (!challenge.ok) {
+        const messages = {
+          hourly_limit:
+            "تعداد درخواست کد ورود در یک ساعت گذشته زیاد بوده است؛ کمی بعد تلاش کنید",
+          sms_failed: "ارسال پیامک ناموفق بود؛ لطفاً بعداً تلاش کنید",
+          db_error: "خطای موقت در سیستم؛ لطفاً بعداً تلاش کنید",
+        };
+
+        return errorResponse(
+          res,
+          messages[challenge.reason] || "خطا در ارسال کد ورود",
+          challenge.reason === "hourly_limit" ? 429 : 503,
+        );
+      }
+
+      return successResponse(
+        res,
+        {
+          requires_otp: true,
+          challenge_id: challenge.challenge.challenge_id,
+          masked_mobile: challenge.challenge.mobile_masked,
+          expires_in: challenge.expiresIn,
+          resend_after: challenge.resendAfter,
+        },
+        "کد ورود به شمارهٔ موبایل شما پیامک شد",
+      );
     }
 
     // ✅ «نشست» (فاز ۱۲.۱): برای این ورود یک ردیف نشست ساخته می‌شود و

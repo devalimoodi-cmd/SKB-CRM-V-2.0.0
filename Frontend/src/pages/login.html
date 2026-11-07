@@ -309,6 +309,82 @@
             border: 1px solid var(--c-fde68a, #fde68a);
         }
 
+        /* ===== مرحلهٔ ۲ ورود: کد پیامکی (فاز ۱۳.۱) ===== */
+        .login-form[hidden] {
+            display: none;
+        }
+
+        .otp-hint {
+            font-size: 13px;
+            line-height: 1.9;
+            color: var(--text-slate, #475569);
+            text-align: center;
+        }
+
+        .otp-hint strong {
+            color: var(--primary-dark, #035552);
+            direction: ltr;
+            display: inline-block;
+        }
+
+        .otp-input {
+            text-align: center;
+            direction: ltr;
+            letter-spacing: 10px;
+            font-size: 22px;
+            font-weight: 700;
+            font-family: 'Vazir', monospace;
+            padding: 12px 14px 12px 44px;
+        }
+
+        .otp-timer {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-size: 13px;
+            color: var(--text-gray, #64748b);
+        }
+
+        .otp-timer strong {
+            direction: ltr;
+            font-size: 15px;
+            color: var(--primary-dark, #035552);
+        }
+
+        .otp-timer.expired strong {
+            color: var(--danger, #dc2626);
+        }
+
+        .otp-actions {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            font-size: 13px;
+        }
+
+        .otp-link {
+            background: none;
+            border: none;
+            color: var(--primary, #2c7a6e);
+            font-family: 'Vazir', sans-serif;
+            font-size: 13px;
+            cursor: pointer;
+            padding: 4px 0;
+            transition: all 0.3s ease;
+        }
+
+        .otp-link:hover:not(:disabled) {
+            color: var(--primary-dark, #035552);
+            text-decoration: underline;
+        }
+
+        .otp-link:disabled {
+            color: var(--text-light, #94a3b8);
+            cursor: not-allowed;
+        }
+
         @media (max-width: 768px) {
             .login-container {
                 padding: 30px 24px;
@@ -417,8 +493,8 @@
             </div>
 
             <div class="form-group">
-                <input type="text" class="form-control" id="username" placeholder="نام کاربری" autocomplete="username"
-                    required>
+                <input type="text" class="form-control" id="username"
+                    placeholder="نام کاربری، ایمیل یا شمارهٔ موبایل" autocomplete="username" required>
                 <i class="fas fa-user-circle form-icon"></i>
             </div>
 
@@ -443,11 +519,9 @@
                 </div>
             </div>
 
+            <!-- ✅ ورود دومرحله‌ای (فاز ۱۳.۱): گزینهٔ «ذخیرهٔ دستگاه» حذف شد.
+                 هر ورود، در هر نقش، به کد پیامکی نیاز دارد. -->
             <div class="login-options">
-                <label class="form-check">
-                    <input type="checkbox" id="rememberMe">
-                    <label for="rememberMe">مرا به خاطر بسپار</label>
-                </label>
                 <a href="#" class="forgot-link" id="forgotPasswordBtn">رمز عبور را فراموش کرده‌ام</a>
             </div>
 
@@ -456,6 +530,42 @@
                 <span class="spinner"></span>
                 <i class="fas fa-arrow-left btn-icon"></i>
             </button>
+        </form>
+
+        <!-- ===== مرحلهٔ ۲: کد یک‌بارمصرف پیامکی ===== -->
+        <form class="login-form" id="otpForm" autocomplete="off" hidden>
+            <div class="login-message" id="otpMessage">
+                <i class="fas fa-exclamation-circle"></i>
+                <span id="otpMessageText"></span>
+            </div>
+
+            <p class="otp-hint">
+                کد ۶ رقمی ارسال‌شده به
+                <strong id="otpMobile">شمارهٔ شما</strong>
+                را وارد کنید
+            </p>
+
+            <div class="form-group">
+                <input type="text" class="form-control otp-input" id="otpCode" placeholder="------"
+                    inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="one-time-code" required>
+                <i class="fas fa-shield-alt form-icon"></i>
+            </div>
+
+            <div class="otp-timer" id="otpTimer">
+                <strong id="otpCountdown">03:00</strong>
+                <span>تا پایان اعتبار کد</span>
+            </div>
+
+            <button type="submit" class="btn-login" id="otpBtn">
+                <span class="btn-text">تایید و ورود</span>
+                <span class="spinner"></span>
+                <i class="fas fa-check btn-icon"></i>
+            </button>
+
+            <div class="otp-actions">
+                <button type="button" class="otp-link" id="otpResend" disabled>ارسال مجدد کد</button>
+                <button type="button" class="otp-link" id="otpBack">بازگشت</button>
+            </div>
         </form>
 
         <div class="login-footer">
@@ -496,7 +606,6 @@
             const form = document.getElementById('loginForm');
             const username = document.getElementById('username');
             const password = document.getElementById('password');
-            const rememberMe = document.getElementById('rememberMe');
             const loginBtn = document.getElementById('loginBtn');
             const togglePassword = document.getElementById('togglePassword');
             const message = document.getElementById('loginMessage');
@@ -505,6 +614,25 @@
             const captchaImage = document.getElementById('captchaImage');
             const captchaAnswer = document.getElementById('captchaAnswer');
             const captchaRefresh = document.getElementById('captchaRefresh');
+
+            // ===== مرحلهٔ ۲ (کد پیامکی) — فاز ۱۳.۱ =====
+            const otpForm = document.getElementById('otpForm');
+            const otpCode = document.getElementById('otpCode');
+            const otpBtn = document.getElementById('otpBtn');
+            const otpMobile = document.getElementById('otpMobile');
+            const otpCountdown = document.getElementById('otpCountdown');
+            const otpTimer = document.getElementById('otpTimer');
+            const otpResend = document.getElementById('otpResend');
+            const otpBack = document.getElementById('otpBack');
+            const otpMessage = document.getElementById('otpMessage');
+            const otpMessageText = document.getElementById('otpMessageText');
+
+            // وضعیت چالش جاری (فقط در حافظهٔ همین صفحه — بدون ذخیره در localStorage)
+            let challengeId = null;
+            let countdownTimer = null;
+            let resendTimer = null;
+            let secondsLeft = 0;
+            let resendLeft = 0;
 
             // ✅ وضعیت کپچا (از سرور خوانده می‌شود)
             let captchaId = null;
@@ -609,13 +737,116 @@
                 icon.classList.toggle('fa-eye-slash');
             });
 
-            if (localStorage.getItem('rememberMe') === 'true') {
-                const savedUsername = localStorage.getItem('savedUsername');
-                if (savedUsername) {
-                    username.value = savedUsername;
-                    rememberMe.checked = true;
+            // ============================================================
+            // مرحلهٔ ۲ — کد پیامکی (فاز ۱۳.۱)
+            // ============================================================
+            function showOtpMessage(text, type = 'error') {
+                otpMessage.className = `login-message ${type}`;
+                otpMessageText.textContent = text;
+                otpMessage.style.display = text ? 'flex' : 'none';
+            }
+
+            const two = (n) => String(n).padStart(2, '0');
+
+            function stopTimers() {
+                if (countdownTimer) clearInterval(countdownTimer);
+                if (resendTimer) clearInterval(resendTimer);
+                countdownTimer = null;
+                resendTimer = null;
+            }
+
+            function paintCountdown() {
+                otpCountdown.textContent = `${two(Math.floor(secondsLeft / 60))}:${two(secondsLeft % 60)}`;
+                otpTimer.classList.toggle('expired', secondsLeft <= 0);
+            }
+
+            function startCountdown(expiresIn) {
+                secondsLeft = Math.max(0, Number(expiresIn) || 0);
+                paintCountdown();
+                if (countdownTimer) clearInterval(countdownTimer);
+                countdownTimer = setInterval(() => {
+                    secondsLeft -= 1;
+                    if (secondsLeft <= 0) {
+                        secondsLeft = 0;
+                        clearInterval(countdownTimer);
+                        countdownTimer = null;
+                        paintCountdown();
+                        showOtpMessage('کد منقضی شد؛ کد جدید بگیرید', 'warning');
+                        otpResend.disabled = false;
+                        otpResend.textContent = 'ارسال کد جدید';
+                        return;
+                    }
+                    paintCountdown();
+                }, 1000);
+            }
+
+            function startResendCooldown(seconds) {
+                resendLeft = Math.max(0, Number(seconds) || 0);
+                if (resendTimer) clearInterval(resendTimer);
+
+                const paint = () => {
+                    if (resendLeft > 0) {
+                        otpResend.disabled = true;
+                        otpResend.textContent = `ارسال مجدد تا ${two(resendLeft)}`;
+                    } else {
+                        otpResend.disabled = false;
+                        otpResend.textContent = 'ارسال مجدد کد';
+                    }
+                };
+
+                paint();
+                if (resendLeft <= 0) return;
+
+                resendTimer = setInterval(() => {
+                    resendLeft -= 1;
+                    paint();
+                    if (resendLeft <= 0) {
+                        clearInterval(resendTimer);
+                        resendTimer = null;
+                    }
+                }, 1000);
+            }
+
+            function showOtpStep({ challengeId: id, maskedMobile, expiresIn, resendAfter }) {
+                challengeId = id;
+                otpMobile.textContent = maskedMobile || 'شمارهٔ ثبت‌شده';
+                otpCode.value = '';
+                showOtpMessage('');
+                form.hidden = true;
+                otpForm.hidden = false;
+                startCountdown(expiresIn);
+                startResendCooldown(resendAfter);
+                otpCode.focus();
+            }
+
+            function backToLoginStep() {
+                stopTimers();
+                challengeId = null;
+                otpForm.hidden = true;
+                form.hidden = false;
+                showOtpMessage('');
+                showMessage('');
+                password.value = '';
+                if (captchaEnabled) loadCaptcha(false);
+                password.focus();
+            }
+
+            // ✅ هدایت بر اساس نقش (یک منبع حقیقت مشترک با سرور)
+            function goToLanding(authService) {
+                const role = authService.getUserRole();
+                if (['super_admin', 'admin'].includes(role)) {
+                    window.location.href = '/admin';
+                } else if (role === 'sub_admin' || role === 'expert') {
+                    window.location.href = '/';
+                } else {
+                    window.location.href = '/customer-info';
                 }
             }
+
+            // ✅ «ذخیرهٔ دستگاه» حذف شد (ورود دومرحله‌ای برای همهٔ نقش‌ها)؛
+            //    فقط نام کاربریِ آخرین ورود برای راحتی نگه داشته می‌شود.
+            const lastUsername = localStorage.getItem('savedUsername');
+            if (lastUsername) username.value = lastUsername;
 
             // ✅ دریافت کد امنیتی هنگام باز شدن صفحه
             loadCaptcha(false);
@@ -625,7 +856,6 @@
 
                 const user = username.value.trim();
                 const pass = password.value;
-                const remember = rememberMe.checked;
 
                 if (!user || !pass) {
                     showMessage('لطفاً نام کاربری و رمز عبور را وارد کنید', 'error');
@@ -651,27 +881,28 @@
                         answer: captchaCode,
                     });
 
-                    if (result) {
-                        showMessage('✅ ورود با موفقیت انجام شد', 'success');
-
-                        if (remember) {
+                    // 🔐 مرحلهٔ ۲ لازم است ⇒ هیچ توکنی صادر نشده است
+                    if (result && result.requiresOtp) {
+                        // آخرین نام کاربری برای راحتیِ ورود بعدی نگه داشته می‌شود
+                        try {
                             localStorage.setItem('savedUsername', user);
-                            localStorage.setItem('rememberMe', 'true');
-                        } else {
-                            localStorage.removeItem('savedUsername');
                             localStorage.removeItem('rememberMe');
-                        }
+                        } catch { /* حالت خصوصی مرورگر */ }
 
-                        setTimeout(() => {
-                            const userRole = authService.getUserRole();
-                            if (['super_admin', 'admin'].includes(userRole)) {
-                                window.location.href = '/admin';
-                            } else if (userRole === 'sub_admin' || userRole === 'expert') {
-                                window.location.href = '/';
-                            } else {
-                                window.location.href = '/customer-info';
-                            }
-                        }, 1000);
+                        showMessage('');
+                        showOtpStep(result);
+                        showOtpMessage(result.message || 'کد ورود پیامک شد', 'success');
+                        return;
+                    }
+
+                    // ✅ ورود کامل (فقط وقتی دومرحله‌ای سمت سرور خاموش است)
+                    if (result) {
+                        try {
+                            localStorage.setItem('savedUsername', user);
+                        } catch { /* حالت خصوصی مرورگر */ }
+
+                        showMessage('✅ ورود با موفقیت انجام شد', 'success');
+                        setTimeout(() => goToLanding(authService), 800);
                     }
                 } catch (error) {
                     showMessage(error.message || 'نام کاربری یا رمز عبور اشتباه است', 'error');
@@ -683,6 +914,91 @@
                     loginBtn.disabled = false;
                     loginBtn.classList.remove('loading');
                 }
+            });
+
+            // ===== مرحلهٔ ۲: تایید کد پیامکی =====
+            otpForm.addEventListener('submit', async function (e) {
+                e.preventDefault();
+
+                const code = otpCode.value.replace(/[^0-9]/g, '').slice(0, 6);
+
+                if (!challengeId) {
+                    backToLoginStep();
+                    showMessage('لطفاً دوباره وارد شوید', 'warning');
+                    return;
+                }
+
+                if (code.length !== 6) {
+                    showOtpMessage('کد ۶ رقمی را کامل وارد کنید', 'error');
+                    otpCode.focus();
+                    return;
+                }
+
+                otpBtn.disabled = true;
+                otpBtn.classList.add('loading');
+
+                try {
+                    const { authService } = await import('/core/services/auth.service.js');
+                    await authService.verifyLoginOtp(challengeId, code);
+
+                    stopTimers();
+                    showOtpMessage('✅ ورود با موفقیت انجام شد', 'success');
+                    setTimeout(() => goToLanding(authService), 400);
+                } catch (error) {
+                    showOtpMessage(error.message || 'کد وارد‌شده معتبر نیست', 'error');
+                    otpCode.value = '';
+                    otpCode.focus();
+                } finally {
+                    otpBtn.disabled = false;
+                    otpBtn.classList.remove('loading');
+                }
+            });
+
+            // ===== مرحلهٔ ۲: ارسال مجدد کد =====
+            otpResend.addEventListener('click', async function () {
+                if (!challengeId) {
+                    backToLoginStep();
+                    return;
+                }
+
+                otpResend.disabled = true;
+
+                try {
+                    const { authService } = await import('/core/services/auth.service.js');
+                    const result = await authService.resendLoginOtp(challengeId);
+
+                    if (result.maskedMobile) otpMobile.textContent = result.maskedMobile;
+                    otpCode.value = '';
+                    startCountdown(result.expiresIn);
+                    startResendCooldown(result.resendAfter);
+                    showOtpMessage('کد جدید پیامک شد', 'success');
+                    otpCode.focus();
+                } catch (error) {
+                    // اگر سرور بگوید «زود است»، شمارش معکوس با همان ثانیه‌ها ادامه می‌یابد
+                    if (error.waitSeconds) {
+                        startResendCooldown(error.waitSeconds);
+                    } else {
+                        otpResend.disabled = false;
+                    }
+                    showOtpMessage(error.message || 'ارسال مجدد ناموفق بود', 'error');
+                }
+            });
+
+            // ===== مرحلهٔ ۲: بازگشت به مرحلهٔ ۱ =====
+            otpBack.addEventListener('click', async function () {
+                if (challengeId) {
+                    try {
+                        const { authService } = await import('/core/services/auth.service.js');
+                        await authService.cancelLoginOtp(challengeId);
+                    } catch { /* لغو اختیاری است */ }
+                }
+                backToLoginStep();
+            });
+
+            // فقط رقم پذیرفته می‌شود (چسباندن کد پیامک هم درست کار می‌کند)
+            otpCode.addEventListener('input', () => {
+                otpCode.value = otpCode.value.replace(/[^0-9]/g, '').slice(0, 6);
+                showOtpMessage('');
             });
 
             document.getElementById('forgotPasswordBtn').addEventListener('click', function (e) {

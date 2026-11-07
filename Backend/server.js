@@ -64,6 +64,8 @@ const sessionRoutes = require("./routes/sessionRoutes");
 const activityRoutes = require("./routes/activityRoutes");
 const activityLog = require("./middleware/activityLog");
 const activityService = require("./services/activityService");
+// ✅ ورود دومرحله‌ای (فاز ۱۳.۱) — پاک‌سازی چالش‌های ورود
+const otpService = require("./services/otpService");
 
 // ================== ###==========
 
@@ -542,6 +544,24 @@ const server = app.listen(PORT, () => {
     }
   } catch (error) {
     console.warn("⚠️ خطا در راه‌اندازی پاک‌سازی ردّ فعالیت:", error.message);
+  }
+
+  // ✅ «چالش‌های ورود» (فاز ۱۳.۱): پاک‌سازی دوره‌ای کدهای منقضی/کهنه
+  //    (LOGIN_OTP_PURGE_INTERVAL_HOURS=0 ⇒ خاموش نیست؛ حداقل ۱ ساعت)
+  try {
+    otpService.startHousekeeping();
+    console.log(
+      `🔐 ورود دومرحله‌ای ${otpService.isEnforced() ? "فعال" : "غیرفعال"} است (TTL کد: ${otpService.ttlSeconds()} ثانیه)`,
+    );
+
+    // ⚠️ بدون فلفل، هشِ کد در دیتابیس با یک دیتابیس بیرونی قابل تطبیق است
+    if (otpService.isEnforced() && !String(process.env.OTP_PEPPER || "").trim()) {
+      console.warn(
+        "⚠️ OTP_PEPPER تنظیم نشده است؛ برای امنیت کامل کد ورود، یک رشتهٔ تصادفی طولانی در .env بگذارید.",
+      );
+    }
+  } catch (error) {
+    console.warn("⚠️ خطا در راه‌اندازی پاک‌سازی چالش‌های ورود:", error.message);
   }
 });
 

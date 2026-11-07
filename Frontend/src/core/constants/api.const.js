@@ -3,6 +3,10 @@ export const API_CONSTANTS = {
   ENDPOINTS: {
     AUTH: {
       LOGIN: "/users/login",
+      // ✅ فاز ۱۳.۱ — مرحلهٔ ۲ ورود (کد پیامکی)
+      LOGIN_VERIFY: "/users/login/verify",
+      LOGIN_RESEND: "/users/login/resend",
+      LOGIN_CANCEL: "/users/login/cancel",
       LOGOUT: "/users/logout",
       CAPTCHA: "/captcha",
       SETUP_ADMIN: "/users/setup-admin",

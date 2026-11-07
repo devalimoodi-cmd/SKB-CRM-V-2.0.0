@@ -74,6 +74,8 @@ const EXPECTED_TABLES = [
   "user_sessions",
   // ✅ «ردّ فعالیت» (فاز ۱۲.۲)
   "activity_logs",
+  // ✅ «چالش‌های ورود» (فاز ۱۳.۱)
+  "login_challenges",
   "SequelizeMeta",
 ];
 
@@ -205,6 +207,29 @@ const EXPECTED_COLUMNS = {
     "created_at",
     "updated_at",
   ],
+  // ✅ «چالش‌های ورود» (فاز ۱۳.۱)
+  //    ⚠️ هیچ ستون «code» ی وجود ندارد — فقط code_hash.
+  //    اگر روزی کسی ستون خام اضافه کرد، همین لیست آن را آشکار می‌کند.
+  login_challenges: [
+    "challenge_id",
+    "user_id",
+    "username",
+    "role",
+    "purpose",
+    "code_hash",
+    "attempts",
+    "max_attempts",
+    "resend_count",
+    "expires_at",
+    "last_sent_at",
+    "mobile_masked",
+    "ip",
+    "ua_hash",
+    "status",
+    "used_at",
+    "created_at",
+    "updated_at",
+  ],
 };
 
 const EXPECTED_INDEXES = [
@@ -244,6 +269,10 @@ const EXPECTED_INDEXES = [
   "activity_logs_action",
   // ✅ موج ۱۲.۵ — «تازه‌ترین تغییرات این مشتری»
   "activity_logs_customer",
+  // ✅ «چالش‌های ورود» (فاز ۱۳.۱)
+  "login_challenges_challenge_id_unique",
+  "login_challenges_user_status",
+  "login_challenges_expires_at",
 ];
 
 const COUNT_TABLES = [
@@ -260,6 +289,8 @@ const COUNT_TABLES = [
   "user_sessions",
   // ✅ «ردّ فعالیت» (فاز ۱۲.۲)
   "activity_logs",
+  // ✅ «چالش‌های ورود» (فاز ۱۳.۱)
+  "login_challenges",
 ];
 
 // ============================================

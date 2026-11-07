@@ -641,3 +641,28 @@ npm run test:toast    :: کم‌مزاحمتی توست‌ها (ضدتکرار /
 npm run test:cache    :: نگهبانهای UI (وجود بخش، سه‌حالته‌بودن، وجود سرویس و API)
 ```
 
+
+---
+
+## ورود دومرحله‌ای با کد پیامکی (فاز ۱۳.۱)
+
+هر ورود، **در هر نقش**، دو مرحله دارد: رمز عبور ⇒ کد ۶ رقمی پیامکی ⇒ نشست/توکن.
+
+| مرحله | مسیر | خروجی |
+|---|---|---|
+| ۱ | `POST /api/users/login` (شناسه + رمز + کپچا) | `{ requires_otp, challenge_id, masked_mobile, expires_in, resend_after }` — **بدون توکن** |
+| ۲ | `POST /api/users/login/verify` (`challenge_id` + کد) | `{ user, token, landing }` — نشست ساخته می‌شود |
+| — | `POST /api/users/login/resend` · `POST /api/users/login/cancel` | کد تازه (فاصلهٔ ۶۰ ثانیه) · لغو و بازگشت |
+
+- **شناسهٔ ورود:** نام کاربری، ایمیل یا شمارهٔ موبایل (`mobile_number`).
+- **صفحه:** `src/pages/login.html` — مرحلهٔ دوم روی همان صفحه (`#otpForm`): ورودی کد، شمارش معکوس
+  `03:00` (`LOGIN_OTP_TTL_SECONDS`)، دکمهٔ ارسال مجدد با شمارش ۶۰ ثانیه، دکمهٔ بازگشت.
+- **سرویس:** `authService.login()` در صورت `requiresOtp` توکن ذخیره **نمی‌کند**؛
+  `verifyLoginOtp()` · `resendLoginOtp()` · `cancelLoginOtp()` و تنها `_finishLogin()` توکن را می‌نویسد.
+- **حذف‌شده:** گزینهٔ «ذخیرهٔ دستگاه» (هر تیک، ۲FA را بی‌اثر می‌کرد). فقط نام کاربریِ آخرین ورود
+  برای راحتی نگه داشته می‌شود.
+- **امنیت:** کد فقط به‌صورت `SHA-256(code + OTP_PEPPER)` در جدول `login_challenges` ذخیره می‌شود؛
+  چالش یک‌بارمصرف است؛ سقف ۵ تلاش و ۸ کد در ساعت؛ کد خام هرگز در `sms_logs` نوشته نمی‌شود.
+- **تست:** `npm run test:login-otp` (۵۶ بررسی) — در گیت هم اجرا می‌شود.
+- **خاموش‌کردن برای توسعهٔ محلی:** `LOGIN_OTP_ENFORCE=false` (پیش‌فرض: در production روشن، در توسعه خاموش).
+

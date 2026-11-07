@@ -104,6 +104,16 @@ class AuthService {
   // ===== لاگین و خروج =====
   // core/services/auth.service.js
 
+  /**
+   * مرحلهٔ ۱ ورود: شناسه (نام کاربری/ایمیل/موبایل) + رمز + کپچا
+   * ------------------------------------------------------------
+   * ⭐ فاز ۱۳.۱: اگر سرور ورود دومرحله‌ای را اجباری کرده باشد،
+   *    هیچ توکنی برنمی‌گردد؛ خروجی چنین است:
+   *      { requiresOtp: true, challengeId, maskedMobile, expiresIn, resendAfter }
+   *    و فراخوان باید مرحلهٔ ۲ را با verifyLoginOtp انجام دهد.
+   *    اگر دومرحله‌ای خاموش باشد، همان رفتار قبلی (ورود کامل) است
+   *    تا این تابع برای همهٔ فراخوان‌های موجود سازگار بماند.
+   */
   async login(username, password, captcha = null) {
     try {
       const payload = { username, password };
@@ -119,21 +129,107 @@ class AuthService {
         payload,
       );
 
-      if (response.success) {
-        this.setToken(response.data.token);
-        this.setUser(response.data.user);
-
-        await this.updateOnlineStatus(response.data.user.id, true);
-
-        // ✅ «حضور»: حلقهٔ heartbeat شروع می‌شود (سرور هم نرخ نوشتن را می‌کاهد)
-        presenceService.start();
-        return response.data;
+      if (!response.success) {
+        throw new Error(response.message || "خطا در ورود");
       }
-      throw new Error(response.message || "خطا در ورود");
+
+      // 🔐 مرحلهٔ ۲ لازم است: توکن/نشستی صادر نشده است
+      if (response.data?.requires_otp) {
+        return {
+          requiresOtp: true,
+          challengeId: response.data.challenge_id,
+          maskedMobile: response.data.masked_mobile || "",
+          expiresIn: Number(response.data.expires_in) || 180,
+          resendAfter: Number(response.data.resend_after) || 60,
+          message: response.message || "",
+        };
+      }
+
+      // ✅ دومرحله‌ای خاموش است ⇒ ورود مستقیم (مسیر قدیمی)
+      return await this._finishLogin(response.data);
     } catch (error) {
       console.error("❌ Login error:", error);
       throw error;
     }
+  }
+
+  /**
+   * مرحلهٔ ۲ ورود: تایید کد پیامکی و دریافت توکن/نشست
+   */
+  async verifyLoginOtp(challengeId, code) {
+    try {
+      const response = await apiService.post(
+        API_CONSTANTS.ENDPOINTS.AUTH.LOGIN_VERIFY,
+        { challenge_id: challengeId, code: String(code || "").trim() },
+      );
+
+      if (!response.success) {
+        throw new Error(response.message || "کد وارد‌شده معتبر نیست");
+      }
+
+      return await this._finishLogin(response.data);
+    } catch (error) {
+      console.error("❌ Login OTP verify error:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * ارسال مجدد کد ورود (با فاصلهٔ اجباری سمت سرور)
+   */
+  async resendLoginOtp(challengeId) {
+    const response = await apiService.post(
+      API_CONSTANTS.ENDPOINTS.AUTH.LOGIN_RESEND,
+      { challenge_id: challengeId },
+    );
+
+    if (!response.success) {
+      const wait = response.errors?.wait_seconds;
+      const error = new Error(response.message || "ارسال مجدد ناموفق بود");
+      error.waitSeconds = Number(wait) || null;
+      throw error;
+    }
+
+    return {
+      expiresIn: Number(response.data?.expires_in) || 180,
+      resendAfter: Number(response.data?.resend_after) || 60,
+      maskedMobile: response.data?.masked_mobile || "",
+    };
+  }
+
+  /**
+   * لغو چالش ورود (بازگشت به مرحلهٔ ۱)
+   */
+  async cancelLoginOtp(challengeId) {
+    try {
+      await apiService.post(API_CONSTANTS.ENDPOINTS.AUTH.LOGIN_CANCEL, {
+        challenge_id: challengeId,
+      });
+    } catch (error) {
+      // لغو نباید هرگز کاربر را زمین‌گیر کند
+      console.warn("⚠️ لغو چالش ورود ناموفق بود:", error?.message);
+    }
+    return true;
+  }
+
+  /**
+   * پایان ورود: ذخیرهٔ توکن/کاربر + اعلام آنلاین + شروع heartbeat
+   * (تنها جایی که «ورود موفق» واقعاً ثبت می‌شود)
+   */
+  async _finishLogin(data) {
+    if (!data?.token || !data?.user) {
+      throw new Error("پاسخ سرور برای ورود کامل نبود");
+    }
+
+    this.setToken(data.token);
+    this.setUser(data.user);
+
+    await this.updateOnlineStatus(data.user.id, true);
+
+    // ✅ «حضور»: حلقهٔ heartbeat شروع می‌شود (سرور هم نرخ نوشتن را می‌کاهد)
+    presenceService.start();
+
+    return data;
   }
   logout(redirectUrl = "/login") {
     const user = this.getUser();

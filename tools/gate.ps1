@@ -59,6 +59,7 @@ $steps = @(
   'test:activity',
   'test:activity:panel',
   'test:activity:history',
+  'test:login-otp',
   'audit:size', 'audit:dead-exports', 'audit:surface', 'audit:big-methods'
 )
 

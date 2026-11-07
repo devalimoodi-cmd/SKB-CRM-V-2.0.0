@@ -156,11 +156,14 @@ const shouldRecord = ({
 };
 
 // ===== شناسایی رویداد ورود/خروج (مسیرِ بدون تغییر در کنترلر) =====
-// POST /api/users/login  → "login"
-// POST /api/users/logout → "logout"
+// POST /api/users/login         → "login" (مرحلهٔ ۱: رمز)
+// POST /api/users/login/verify  → "login" (مرحلهٔ ۲: کد پیامکی — فاز ۱۳.۱)
+// POST /api/users/logout        → "logout"
 const isAuthEvent = (path) => {
   const clean = String(path || "").toLowerCase();
   if (!clean) return null;
+  // ⚠️ باید قبل از الگوی «/login$» بیاید (چون مسیر طولانی‌تر است)
+  if (/\/users\/login\/verify$/.test(clean)) return "login";
   if (/\/users\/login$/.test(clean) || /\/auth\/login$/.test(clean)) return "login";
   if (/\/users\/logout$/.test(clean) || /\/auth\/logout$/.test(clean)) return "logout";
   return null;
