@@ -40,8 +40,13 @@ const payloadDataOf = (payload) => (payload && payload.data ? payload.data : {})
 const SECTION_LIMIT = 20;
 
 // پیکربندی چهار بخش دادهٔ کامل — کلید = مقدار data-portal-tab در HTML
+// ✅ ۱۳.۵: هر بخش کلید مجوز خودش را دارد؛ بستنِ هر تب از پنل مدیریت
+//    (customer.portal.{halls,flocks,weeks,visits}) دکمه و پنل همان تب را
+//    پنهان می‌کند و هیچ درخواستی هم نمی‌فرستد.
 const SECTION_CONF = {
   halls: {
+    permission: "customer.portal.halls",
+    title: "سالن‌ها",
     listId: "portalHallsList",
     pagerId: "portalHallsPager",
     statusId: "portalHallsStatus",
@@ -49,6 +54,8 @@ const SECTION_CONF = {
     render: renderHallList,
   },
   flocks: {
+    permission: "customer.portal.flocks",
+    title: "گله‌ها",
     listId: "portalFlocksList",
     pagerId: "portalFlocksPager",
     statusId: "portalFlocksStatus",
@@ -56,6 +63,8 @@ const SECTION_CONF = {
     render: renderFlockList,
   },
   weeks: {
+    permission: "customer.portal.weeks",
+    title: "هفته‌های مدیریتی",
     listId: "portalWeeksList",
     pagerId: "portalWeeksPager",
     statusId: "portalWeeksStatus",
@@ -63,6 +72,8 @@ const SECTION_CONF = {
     render: renderWeekList,
   },
   visits: {
+    permission: "customer.portal.visits",
+    title: "بازدیدها",
     listId: "portalVisitsList",
     pagerId: "portalVisitsPager",
     statusId: "portalVisitsStatus",
@@ -84,6 +95,8 @@ class PortalService {
     this._retryBound = false;
     this._tabsBound = false;
     this._detailBound = false;
+    this._permBound = false; // ۱۳.۵: شنوندهٔ permissions:applied
+    this._loading = false; // ضد درخواست هم‌زمان
     this.detailOpen = false;
     this.activeTab = TAB_KEYS[0];
     this.sections = {};
@@ -124,7 +137,25 @@ class PortalService {
     this.bindRetry();
     this.bindTabs();
     this.bindDetail();
+    this.bindPermissions();
     await this.load();
+  }
+
+  // ✅ ۱۳.۵: اگر مدیر در همان نشست سطح دسترسی را عوض کرد، کش کلاینت
+  //    (permission.service) رویداد permissions:applied می‌دهد و تب‌ها
+  //    بدون بارگذاری دوبارهٔ صفحه هم‌راستا می‌شوند.
+  bindPermissions() {
+    if (this._permBound) return;
+    if (typeof document === "undefined" || !document.addEventListener) return;
+    this._permBound = true;
+    document.addEventListener("permissions:applied", () => {
+      if (!this.initialized) return;
+      if (this.state === "unlinked" || this.state === "loading") return;
+      // «sections» ذخیره‌شده از سرور ممکن است قدیمی شده باشد (مدیر همین
+      // حالا کلیدی را باز/بسته کرده) ⇒ خلاصه دوباره خوانده می‌شود تا
+      // هم تب‌ها و هم کارت‌های شمارنده هم‌راستا شوند.
+      this.load();
+    });
   }
 
   // ===== مجوز «متن گزارش و پیوست» (۱۳.۴) =====
@@ -141,6 +172,75 @@ class PortalService {
   sectionOptions(key) {
     if (key !== "visits") return {};
     return { canViewReport: this.canViewReport() };
+  }
+
+  // ===== مجوز «دیدن هر تب» (۱۳.۵) =====
+  // منبع اول: پاسخ سرور (/api/portal/me ⇒ data.sections) که همان چیزی
+  //   است که سرور واقعاً اجرا می‌کند.
+  // منبع دوم (fallback): مجوزهای کلاینت (customer.portal.<tab>).
+  // در نبود هر دو ⇒ باز (fail-open) تا خطای شبکه صفحه را خالی نکند.
+  canSee(key) {
+    const conf = SECTION_CONF[key];
+    if (!conf) return false;
+
+    const sections = this.data && this.data.sections;
+    if (sections && typeof sections[key] === "boolean") return sections[key];
+
+    const service =
+      typeof window !== "undefined" ? window.permissionService : null;
+    if (!service || typeof service.can !== "function") return true;
+    if (typeof service.hasData === "function" && !service.hasData()) return true;
+    return Boolean(service.can(conf.permission));
+  }
+
+  visibleTabKeys() {
+    return TAB_KEYS.filter((key) => this.canSee(key));
+  }
+
+  // تبِ بسته: دکمه و پنل پنهان می‌شود (نه فقط غیرفعال) + اگر همه بسته
+  // باشند یک پیام روشن جای کل بلوک تب‌ها می‌آید.
+  applyTabVisibility() {
+    const visible = this.visibleTabKeys();
+
+    this.all("[data-portal-tab]").forEach((button) => {
+      const key = button.getAttribute("data-portal-tab");
+      const show = visible.includes(key);
+      button.hidden = !show;
+      if (!show) button.classList.remove("is-active");
+    });
+
+    this.all("[data-portal-panel]").forEach((panel) => {
+      if (!visible.includes(panel.getAttribute("data-portal-panel"))) {
+        panel.hidden = true;
+      }
+    });
+
+    const block = this.el("portalFullData");
+    if (block) block.hidden = visible.length === 0;
+
+    const notice = this.el("portalTabsNotice");
+    if (notice) {
+      const closed = TAB_KEYS.filter((key) => !visible.includes(key));
+      if (visible.length === 0) {
+        notice.innerHTML = renderNotice(
+          "بخش‌های پروندهٔ شما بسته است",
+          "همهٔ بخش‌های پرونده (سالن‌ها، گله‌ها، هفته‌ها و بازدیدها) توسط مدیر سیستم بسته شده است. برای فعال‌سازی با مدیر تماس بگیرید.",
+          "info",
+        );
+      } else if (closed.length > 0) {
+        notice.innerHTML = renderNotice(
+          "برخی بخش‌ها بسته شده است",
+          `این بخش‌ها توسط مدیر سیستم بسته شده‌اند: ${closed
+            .map((key) => SECTION_CONF[key].title)
+            .join("، ")}`,
+          "info",
+        );
+      } else {
+        notice.innerHTML = "";
+      }
+    }
+
+    return visible;
   }
 
   bindRetry() {
@@ -306,6 +406,10 @@ class PortalService {
   }
 
   async load() {
+    // ضد درخواست هم‌زمان (رویداد permissions:applied ممکن است وسط
+    // بارگذاری اول برسد)
+    if (this._loading) return;
+    this._loading = true;
     this.setState("loading");
 
     try {
@@ -323,8 +427,14 @@ class PortalService {
       this.render(data);
       this.setState("ready");
       this.setTabsEnabled(true);
+      // ✅ ۱۳.۵: تب‌هایی که مجوزشان بسته است پنهان می‌شوند و درخواستی
+      //    نمی‌فرستند؛ تب فعال هم اگر بسته بود به اولین تبِ مجاز می‌رود.
+      const visible = this.applyTabVisibility();
       // تب پیش‌فرض یک‌بار و تنبل بارگذاری می‌شود
-      this.activateTab(this.activeTab || TAB_KEYS[0]);
+      const first = visible.includes(this.activeTab)
+        ? this.activeTab
+        : visible[0];
+      if (first) this.activateTab(first);
     } catch (error) {
       const message = String(error?.message || "");
 
@@ -346,6 +456,8 @@ class PortalService {
         type: "error",
         cooldownMs: 30000,
       });
+    } finally {
+      this._loading = false;
     }
   }
 
@@ -369,6 +481,8 @@ class PortalService {
   // ===== تب‌ها =====
   activateTab(key) {
     if (!SECTION_CONF[key] || this.state === "unlinked") return;
+    // ۱۳.۵: تبِ بسته حتی اگر با کلیک/کد صدا زده شود بارگذاری نمی‌شود
+    if (!this.canSee(key)) return;
     this.activeTab = key;
 
     this.all("[data-portal-tab]").forEach((button) => {
@@ -403,6 +517,8 @@ class PortalService {
     const conf = SECTION_CONF[key];
     const state = this.sections[key];
     if (!conf || !state || state.loading || this.state === "unlinked") return;
+    // ۱۳.۵: تبِ بسته هیچ درخواستی به سرور نمی‌فرستد (ضد سیل ۴۰۳)
+    if (!this.canSee(key)) return;
 
     const page = append ? state.page + 1 : 1;
     state.loading = true;

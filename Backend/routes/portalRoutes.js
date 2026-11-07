@@ -1,6 +1,6 @@
 // ============================================================
 // routes/portalRoutes.js
-// «پورتال مشتری» — فاز ۱۳.۲، ۱۳.۳ و ۱۳.۴
+// «پورتال مشتری» — فاز ۱۳.۲، ۱۳.۳، ۱۳.۴ و ۱۳.۵
 // ------------------------------------------------------------
 // ⚠️ تنها مسیرهای اختصاصی نقش مشتری. هیچ‌یک از ۲۰+ فایل مسیر موجود
 //    باز نشده‌اند: نقش «مشتری» به هیچ GET موجودی اضافه نشده است.
@@ -12,6 +12,8 @@
 //   1) protect                 ⇒ توکن معتبر + کاربر فعال + نشست باز
 //   2) authorize("customer")    ⇒ فقط نقش مشتری (کارکنان ۴۰۳ می‌گیرند)
 //   3) کلید مجوز customer.portal.view  (قابل بستن از پنل مدیریت)
+//      ← ۱۳.۵: هر تب کلید مستقل خودش را دارد (tabChain):
+//        customer.portal.halls / .flocks / .weeks / .visits
 //      ← مسیرهای جزئیات بازدید/پیوست کلید جدا دارند:
 //        customer.portal.visit.report  (۱۳.۴)
 //   4) requireCustomerLink      ⇒ مشتری بدون پروندهٔ متصل ⇒ ۴۰۳ روشن
@@ -41,30 +43,57 @@ const customerChain = [
   requireCustomerLink,
 ];
 
-// ✅ ۱۳.۴: زنجیرهٔ «محتوای گزارش بازدید» = همان زنجیره + کلید جدا
+// ✅ ۱۳.۵: زنجیرهٔ «هر تب» = زنجیرهٔ مشترک + کلید همان تب.
+//    هر مسیر تازهٔ پورتال باید از tabChain استفاده کند، نه customerChain،
+//    تا مدیر بتواند هر بخش را جدا ببندد (کلیدهای customer.portal.*).
+const tabChain = (key) => [...customerChain, requirePermission(key)];
+
+// ✅ ۱۳.۴: زنجیرهٔ «محتوای گزارش بازدید» = زنجیرهٔ تب بازدیدها + کلید جدا
 //    (متن گزارش، پیوست‌ها و دانلود فایل — حساس‌ترین بخش پرونده)
 const visitReportChain = [
   ...customerChain,
+  requirePermission("customer.portal.visits"),
   requirePermission("customer.portal.visit.report"),
 ];
 
-// خلاصهٔ پروندهٔ خودم (شمارنده‌ها + ۳ ردیف آخر)
+// خلاصهٔ پروندهٔ خودم (شمارنده‌ها + ۳ ردیف آخر) — محتوای هر بخش در
+// کنترلر با همان کلیدهای customer.portal.* فیلتر می‌شود
 router.get("/me", ...customerChain, portalController.getPortalSummary);
 
 // فهرست صفحه‌بندی‌شدهٔ سالن‌های خودم
-router.get("/halls", ...customerChain, portalController.getMyHalls);
+router.get(
+  "/halls",
+  ...tabChain("customer.portal.halls"),
+  portalController.getMyHalls,
+);
 
 // فهرست صفحه‌بندی‌شدهٔ گله‌های خودم
-router.get("/flocks", ...customerChain, portalController.getMyFlocks);
+router.get(
+  "/flocks",
+  ...tabChain("customer.portal.flocks"),
+  portalController.getMyFlocks,
+);
 
 // فهرست صفحه‌بندی‌شدهٔ هفته‌های مدیریتی خودم
-router.get("/weeks", ...customerChain, portalController.getMyWeeks);
+router.get(
+  "/weeks",
+  ...tabChain("customer.portal.weeks"),
+  portalController.getMyWeeks,
+);
 
 // فهرست صفحه‌بندی‌شدهٔ بازدیدهای خودم (تاریخ/وضعیت + نشانهٔ وجود گزارش)
-router.get("/visits", ...customerChain, portalController.getMyVisits);
+router.get(
+  "/visits",
+  ...tabChain("customer.portal.visits"),
+  portalController.getMyVisits,
+);
 
 // ۱۳.۴ — جزئیات یک هفتهٔ مدیریتی (بیماری/واکسن/دارو/خوراک)
-router.get("/weeks/:id", ...customerChain, portalController.getMyWeekDetail);
+router.get(
+  "/weeks/:id",
+  ...tabChain("customer.portal.weeks"),
+  portalController.getMyWeekDetail,
+);
 
 // ۱۳.۴ — جزئیات یک بازدید: متن گزارش + فهرست پیوست‌ها
 router.get(

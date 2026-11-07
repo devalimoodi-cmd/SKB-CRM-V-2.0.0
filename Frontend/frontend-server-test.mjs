@@ -726,12 +726,14 @@ const run = async () => {
       globalCssSrc.includes(".perm-denied-box {"),
   );
   check(
-    "عدم دسترسی: ضدحلقهٔ ریدایرکت (صفحهٔ معاف مشتری + صفحهٔ مقصد) رعایت شده است",
-    // ✅ فاز ۱۳.۲: استثنای «همهٔ صفحات» برای نقش مشتری به یک استثنای
-    //    دقیق تبدیل شد (isCustomerExemptPage) تا پورتال قابل بستن باشد.
+    "عدم دسترسی: ضدحلقهٔ ریدایرکت (صفحهٔ مقصد) و خروج مشتری از صفحهٔ کارکنان",
+    // ✅ فاز ۱۳.۵: صفحهٔ «پروندهٔ مشتری» دیگر برای نقش مشتری معاف نیست؛
+    //    مشتری پیش از هر درخواست به پورتال خودش می‌رود.
     appServiceSrc.includes("isCustomerExemptPage()") &&
       appServiceSrc.includes('permissionService.role !== "customer"') &&
       appServiceSrc.includes("isLandingPage()") &&
+      appServiceSrc.includes("redirectCustomerFromStaffPages()") &&
+      appServiceSrc.includes('window.location.replace("/portal.html")') &&
       appServiceSrc.includes("async handlePagePermissionLoss("),
   );
 

@@ -32,8 +32,27 @@ check(
   "کاتالوگ: تعداد کلیدها و گروه‌ها طبق طراحی است",
   // ✅ فاز ۱۳.۲: گروه «پورتال مشتری» + کلید customer.portal.view
   // ✅ فاز ۱۳.۴: کلید customer.portal.visit.report (متن گزارش + پیوست‌ها)
-  catalog.TOTAL_PERMISSIONS === 169 && catalog.PERMISSION_GROUPS.length === 17,
+  // ✅ فاز ۱۳.۵: چهار کلید تب پورتال (halls/flocks/weeks/visits)
+  catalog.TOTAL_PERMISSIONS === 173 && catalog.PERMISSION_GROUPS.length === 17,
   `keys=${catalog.TOTAL_PERMISSIONS} groups=${catalog.PERMISSION_GROUPS.length}`,
+);
+
+check(
+  "کاتالوگ: کلیدهای تب پورتال مشتری (۱۳.۵) با پیش‌فرض «فقط مشتری» ثبت شده‌اند",
+  ["halls", "flocks", "weeks", "visits"].every((name) => {
+    const key = `customer.portal.${name}`;
+    const entry = catalog.PERMISSIONS[key];
+    return (
+      Boolean(entry) &&
+      entry.group === "portal" &&
+      entry.defaults.customer === true &&
+      entry.defaults.super_admin === false &&
+      entry.defaults.admin === false &&
+      entry.defaults.sub_admin === false &&
+      entry.defaults.expert === false &&
+      entry.lockedTo.length === 0
+    );
+  }),
 );
 
 check(
@@ -154,17 +173,36 @@ check(
     .filter((file) => file.endsWith(".js"));
 
   const used = new Set();
+  const dynamicArgs = [];
+
   files.forEach((file) => {
     const source = fs.readFileSync(path.join(routesDir, file), "utf8");
-    const matches = source.matchAll(/requirePermission\(([^)]*)\)/g);
-    for (const match of matches) {
-      match[1]
+
+    const collect = (raw) =>
+      raw
         .split(",")
-        .map((part) => part.trim().replace(/^["']|["']$/g, ""))
-        .filter(Boolean)
-        .forEach((key) => used.add(key));
-    }
+        .map((part) => part.trim())
+        .forEach((part) => {
+          const literal = /^["']([^"']+)["']$/.exec(part);
+          if (literal) used.add(literal[1]);
+          else if (part) dynamicArgs.push(`${file}:${part}`);
+        });
+
+    // ۱) requirePermission("a.b", "c.d")
+    source.matchAll(/requirePermission\(([^)]*)\)/g).forEach((match) => {
+      collect(match[1]);
+    });
+
+    // ۲) ✅ ۱۳.۵: کلیدهایی که به زنجیره‌ساز داده می‌شوند
+    //    (tabChain("customer.portal.halls")) — بدون این، کلیدهای پویا
+    //    از نگهبان قلم می‌افتادند.
+    source.matchAll(/tabChain\(([^)]*)\)/g).forEach((match) => {
+      collect(match[1]);
+    });
   });
+
+  // تنها آرگومانِ متغیرِ مجاز: پارامتر خودِ زنجیره‌ساز در portalRoutes
+  const allowedDynamic = new Set(["portalRoutes.js:key"]);
 
   const unknown = Array.from(used).filter(
     (key) => !catalog.isValidPermission(key),
@@ -174,6 +212,12 @@ check(
     "نگهبان مسیرها: همهٔ مجوزهای استفاده‌شده در routes در کاتالوگ تعریف شده‌اند",
     unknown.length === 0,
     `used=${used.size} unknown=${unknown.join("|") || "-"}`,
+  );
+
+  check(
+    "نگهبان مسیرها: کلیدهای پویا فقط از زنجیره‌سازِ مجاز (tabChain) می‌آیند",
+    dynamicArgs.every((item) => allowedDynamic.has(item)),
+    dynamicArgs.join("|") || "-",
   );
 
   const customerRoutes = fs.readFileSync(

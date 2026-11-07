@@ -329,17 +329,27 @@ class AppService {
   // تاریخچه:
   //  • پیش از ۱۳.۲ همهٔ صفحات برای نقش مشتری معاف بودند (تا مشتری
   //    با پیش‌فرض‌های کاتالوگ که همه برای او false است، قفل نشود).
-  //  • از ۱۳.۲ فقط «/customer-info» معاف است؛ صفحهٔ «/portal» عمداً
-  //    گیت مجوز دارد تا مدیر بتواند با بستن customer.portal.view
-  //    دسترسی مشتری به پورتال را واقعاً قطع کند.
+  //  • ۱۳.۲: تنها «/customer-info» معاف شد.
+  //  • ۱۳.۵: هیچ صفحهٔ کارکنان معاف نیست. مشتری در checkAccess از
+  //    «/customer-info» به «/portal.html» می‌رود و صفحهٔ پورتال گیت
+  //    مجوز خودش (customer.portal.view) را دارد ⇒ مدیر می‌تواند
+  //    دسترسی مشتری به پرونده را واقعاً قطع کند.
   // ============================================================
   isCustomerExemptPage() {
     if (permissionService.role !== "customer") return false;
-    // ۱) پروفایل مشتری: تنها راه ورود مشتری (پیش از ۱۳.۲ قفل می‌شد)
-    if (this.currentPage === "customer-info") return true;
-    // ۲) صفحهٔ مقصد: برای مشتری فقط «اطلاع» است و ریدایرکت نمی‌شود
-    //    (ضدحلقه) ⇒ معاف می‌ماند تا پیام تکراری نگیرد.
+    // صفحهٔ مقصد: برای مشتری فقط «اطلاع» است و ریدایرکت نمی‌شود
+    // (ضدحلقه) ⇒ تنها معافِ باقی‌مانده.
     return this.isLandingPage();
+  }
+
+  // ✅ ۱۳.۵: صفحهٔ «پروفایل مشتری» یک صفحهٔ کارکنان است. حساب نقش
+  //    «مشتری» حتی با لینک مستقیم/تبِ باز قدیمی نباید آن را باز کند؛
+  //    پیش از هر درخواستی به پورتال خودش می‌رود (صفر ۴۰۳).
+  redirectCustomerFromStaffPages() {
+    if (permissionService.role !== "customer") return false;
+    if (this.currentPage !== "customer-info") return false;
+    window.location.replace("/portal.html");
+    return true;
   }
 
   // ===== بررسی دسترسی =====
@@ -358,11 +368,15 @@ class AppService {
       return;
     }
 
+    // ✅ ۱۳.۵: نقش «مشتری» در صفحهٔ پروفایل مشتری (صفحهٔ کارکنان) کاری
+    //    ندارد ⇒ بی‌درنگ و پیش از هر درخواست، به پورتال خودش می‌رود.
+    if (this.redirectCustomerFromStaffPages()) return;
+
     // ✅ گیت مجوزمحور صفحه: اگر کلید این صفحه برای نقش کاربر بسته باشد
     //    (مثلاً مدیر اصلی ‏admin.panel.access را از «مدیر» گرفته باشد)
     //    پیام قابل‌فهم می‌گیرد و به داشبورد برمی‌گردد.
     //    ⚠️ استثناها (ضدحلقه/ضدقفل‌شدن کاربر):
-    //      ۱) نقش «مشتری» از این گیت مستثناست (پورتال خودش)
+    //      ۱) نقش «مشتری» فقط در صفحهٔ مقصد معاف است (۱۳.۵)
     //      ۲) صفحهٔ مقصد (داشبورد) کسی را بیرون نمی‌اندازد
     //      ۳) اگر مجوزها در دسترس نباشند (خطای شبکه) هیچ‌کس مسدود نمی‌شود
     const requiredPageKeys = [].concat(config.requiresPermission || []);
@@ -525,8 +539,8 @@ class AppService {
       const config = this.pageConfigs[this.currentPage];
       const keys = [].concat(config?.requiresPermission || []);
       if (!keys.length || !permissionService.hasData()) return;
-      // ✅ فاز ۱۳.۲: تنها صفحهٔ معاف برای مشتری «/customer-info» است؛
-      //    پورتال گیت دارد تا «بستن پورتال از پنل مدیریت» واقعاً اثر کند.
+      // ✅ فاز ۱۳.۵: تنها معافِ باقی‌مانده «صفحهٔ مقصد» است؛ پروندهٔ
+      //    مشتری صفحهٔ کارکنان است و مشتری به پورتال می‌رود.
       if (this.isCustomerExemptPage()) return;
       if (permissionService.canAny(keys)) return;
 

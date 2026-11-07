@@ -70,6 +70,11 @@ const FILES = {
   portalHtml: "Frontend/src/pages/portal.html",
   appService: "Frontend/src/core/services/app.service.js",
   customerInfo: "Frontend/src/features/customer-info/customer-info.service.js",
+  headerBookmarks:
+    "Frontend/src/shared/layouts/Header/header-bookmarks.service.js",
+  permissionManager:
+    "Frontend/src/features/admin-panel/permission.manager.js",
+  adminPanelCss: "Frontend/src/features/admin-panel/admin-panel.css",
   frontendServer: "Frontend/server.js",
   pkg: "Frontend/package.json",
   gateMjs: "tools/gate.mjs",
@@ -77,6 +82,7 @@ const FILES = {
   docs: "docs/REVIEW-WAVE-13.2.md",
   docs133: "docs/REVIEW-WAVE-13.3.md",
   docs134: "docs/REVIEW-WAVE-13.4.md",
+  docs135: "docs/REVIEW-WAVE-13.5.md",
 };
 
 check(
@@ -103,9 +109,13 @@ const SRC = {
   portalApi: read(FILES.portalApi),
   portalRenderer: read(FILES.portalRenderer),
   portalService: read(FILES.portalService),
+  portalCss: read(FILES.portalCss),
   portalHtml: read(FILES.portalHtml),
   appService: read(FILES.appService),
   customerInfo: read(FILES.customerInfo),
+  headerBookmarks: read(FILES.headerBookmarks),
+  permissionManager: read(FILES.permissionManager),
+  adminPanelCss: read(FILES.adminPanelCss),
   frontendServer: read(FILES.frontendServer),
   pkg: read(FILES.pkg),
   gateMjs: read(FILES.gateMjs),
@@ -495,9 +505,27 @@ check(
 );
 
 check(
-  "مسیر: مسیرهای فهرست/خلاصه از زنجیرهٔ مشترک customerChain عبور می‌کنند",
+  "مسیر: خلاصه از زنجیرهٔ مشترک و هر تب از زنجیرهٔ خودش (۱۳.۵) عبور می‌کند",
   /const customerChain = \[/.test(SRC.routes) &&
-    (SRC.routes.match(/\.\.\.customerChain,/g) || []).length === 7,
+    /router\.get\("\/me", \.\.\.customerChain/.test(SRC.routes) &&
+    /const tabChain = \(key\) => \[\.\.\.customerChain, requirePermission\(key\)\]/.test(
+      SRC.routes,
+    ) &&
+    (SRC.routes.match(/\.\.\.tabChain\("customer\.portal\.[a-z]+"\)/g) || [])
+      .length === 5,
+);
+
+// ✅ ۱۳.۵ — هر تب پورتال کلید مجوز مستقل خودش را دارد
+check(
+  "مسیر (۱۳.۵): هر تب پورتال کلید مجوز مستقل خودش را دارد",
+  ["halls", "flocks", "weeks", "visits"].every((name) =>
+    new RegExp(`\\.\\.\\.tabChain\\("customer\\.portal\\.${name}"\\)`).test(
+      SRC.routes,
+    ),
+  ) &&
+    /requirePermission\("customer\.portal\.visits"\),\s*requirePermission\("customer\.portal\.visit\.report"\)/.test(
+      SRC.routes,
+    ),
 );
 
 // ۱۳.۴ — مسیرهای محتوای گزارش بازدید، کلید مجوز جدا دارند
@@ -576,9 +604,9 @@ check(
 
 check(
   "کاتالوگ: شمارش کلیدها/گروه‌ها با permissions-test هم‌خوان است",
-  catalog.TOTAL_PERMISSIONS === 169 &&
+  catalog.TOTAL_PERMISSIONS === 173 &&
     catalog.PERMISSION_GROUPS.length === 17 &&
-    /TOTAL_PERMISSIONS === 169 && catalog\.PERMISSION_GROUPS\.length === 17/.test(
+    /TOTAL_PERMISSIONS === 173 && catalog\.PERMISSION_GROUPS\.length === 17/.test(
       SRC.permissionsTest,
     ),
   `keys=${catalog.TOTAL_PERMISSIONS} groups=${catalog.PERMISSION_GROUPS.length}`,
@@ -676,9 +704,17 @@ check(
 );
 
 check(
-  "app.service: استثنای مشتری به صفحهٔ مشخص محدود شده است",
+  "app.service: نقش مشتری در صفحهٔ کارکنان معاف نیست و به پورتال می‌رود (۱۳.۵)",
   /isCustomerExemptPage\(\)/.test(SRC.appService) &&
-    /this\.currentPage === "customer-info"/.test(SRC.appService),
+    /redirectCustomerFromStaffPages\(\)/.test(SRC.appService) &&
+    /window\.location\.replace\("\/portal\.html"\)/.test(SRC.appService) &&
+    !/this\.currentPage === "customer-info"\) return true;/.test(SRC.appService),
+);
+
+check(
+  "پروندهٔ مشتری: گارد نقش مشتری پیش از هر درخواست به پورتال می‌فرستد (۱۳.۵)",
+  /role === "customer"/.test(SRC.customerInfo) &&
+    /window\.location\.replace\("\/portal\.html"\)/.test(SRC.customerInfo),
 );
 
 check(
@@ -961,7 +997,7 @@ check(
 
 check(
   "۱۳.۴ · مجوز: بازدید/پیوست از زنجیرهٔ کلید جدا و همان requireCustomerLink عبور می‌کنند",
-  /const visitReportChain = \[\s*\.\.\.customerChain,\s*requirePermission\("customer\.portal\.visit\.report"\),?\s*\]/.test(
+  /const visitReportChain = \[\s*\.\.\.customerChain,\s*requirePermission\("customer\.portal\.visits"\),\s*requirePermission\("customer\.portal\.visit\.report"\),?\s*\]/.test(
     SRC.routes.replace(/\r\n/g, "\n"),
   ) &&
     /const customerChain = \[[\s\S]{0,200}?requireCustomerLink/.test(
@@ -1055,6 +1091,99 @@ check(
   exists(FILES.docs134) &&
     /customer\.portal\.visit\.report/.test(read(FILES.docs134)) &&
     /\/api\/portal\/weeks\/:id/.test(read(FILES.docs134)),
+);
+
+// ============================================================
+// ۱۱) ۱۳.۵ — کنترل دسترسی پورتال (نقش مشتری + تک‌کاربر) + صفر سیل ۴۰۳
+// ------------------------------------------------------------
+// خواستهٔ کارفرما: «پروفایل مشتری برای کارکنان دست‌نخورده بماند، ولی
+// سطح دسترسی پورتال از پنل مدیریت (هم نقش، هم کاربر) قابل تغییر باشد.»
+// ============================================================
+const portalSectionKeys = ["halls", "flocks", "weeks", "visits"];
+
+check(
+  "۱۳.۵ · کاتالوگ: چهار کلید تب پورتال با پیش‌فرض «فقط مشتری» و بی‌قفل",
+  portalSectionKeys.every((name) => {
+    const entry = catalog.PERMISSIONS[`customer.portal.${name}`];
+    return (
+      Boolean(entry) &&
+      entry.group === "portal" &&
+      entry.defaults.customer === true &&
+      entry.defaults.super_admin === false &&
+      entry.defaults.admin === false &&
+      entry.defaults.sub_admin === false &&
+      entry.defaults.expert === false &&
+      entry.lockedTo.length === 0
+    );
+  }),
+);
+
+check(
+  "۱۳.۵ · کنترلر: خلاصهٔ پرونده بخش‌های بسته را لو نمی‌دهد (sections + null)",
+  /userHasPermission\(req, "customer\.portal\.halls"\)/.test(SRC.controller) &&
+    /userHasPermission\(req, "customer\.portal\.flocks"\)/.test(SRC.controller) &&
+    /userHasPermission\(req, "customer\.portal\.weeks"\)/.test(SRC.controller) &&
+    /userHasPermission\(req, "customer\.portal\.visits"\)/.test(SRC.controller) &&
+    /const sections = \{/.test(SRC.controller) &&
+    /sections,\s*\n\s*counters: \{/.test(SRC.controller) &&
+    (SRC.controller.match(/orNull\(can/g) || []).length >= 5 &&
+    /latest: \{[\s\S]{0,320}?canFlocks\s*\n?\s*\?[\s\S]{0,200}?: \[\]/.test(
+      SRC.controller,
+    ),
+);
+
+check(
+  "۱۳.۵ · فرانت: هر تب پورتال کلید مجوز خودش را دارد (SECTION_CONF.permission)",
+  portalSectionKeys.every((name) =>
+    new RegExp(`permission: "customer\\.portal\\.${name}"`).test(
+      SRC.portalService,
+    ),
+  ),
+);
+
+check(
+  "۱۳.۵ · فرانت: تب بسته پنهان می‌شود و هیچ درخواستی نمی‌فرستد",
+  /canSee\(key\)/.test(SRC.portalService) &&
+    /visibleTabKeys\(\)/.test(SRC.portalService) &&
+    /applyTabVisibility\(\)/.test(SRC.portalService) &&
+    /if \(!this\.canSee\(key\)\) return;/.test(SRC.portalService) &&
+    /button\.hidden = !show;/.test(SRC.portalService) &&
+    /block\.hidden = visible\.length === 0;/.test(SRC.portalService),
+);
+
+check(
+  "۱۳.۵ · صفحهٔ پورتال: جای پیام «بخش بسته است» وجود دارد",
+  /id="portalTabsNotice"/.test(SRC.portalHtml) &&
+    /id="portalFullData"/.test(SRC.portalHtml),
+);
+
+check(
+  "۱۳.۵ · فرانت: هدر برای حساب بدون مجوز بوکمارک درخواست نمی‌فرستد",
+  /canLoadBookmarks\(\)/.test(SRC.headerBookmarks) &&
+    /service\.can\("bookmarks\.view"\)/.test(SRC.headerBookmarks) &&
+    /!token \|\| !this\.canLoadBookmarks\(\)/.test(SRC.headerBookmarks),
+);
+
+check(
+  "۱۳.۵ · پنل: راهنمای «نقش مشتری فقط پورتال دارد» + برچسب «بی‌اثر برای مشتری»",
+  /renderCustomerHint\(\)/.test(SRC.permissionManager) &&
+    /orderedGroupsFor\(role\)/.test(SRC.permissionManager) &&
+    /startsWith\("customer\.portal\."\)/.test(SRC.permissionManager) &&
+    /class="perm-inert"/.test(SRC.permissionManager) &&
+    /\.perm-hint \{/.test(SRC.adminPanelCss) &&
+    /\.perm-inert \{/.test(SRC.adminPanelCss),
+);
+
+check(
+  "۱۳.۵ · استایل: تبِ بستهٔ پورتال واقعاً پنهان می‌شود (.portal-tab[hidden])",
+  /\.portal-tab\[hidden\]\s*\{[^}]*display:\s*none/.test(SRC.portalCss),
+);
+
+check(
+  "۱۳.۵ · مستندات: docs/REVIEW-WAVE-13.5.md موجود و کامل است",
+  exists(FILES.docs135) &&
+    /customer\.portal\.halls/.test(read(FILES.docs135)) &&
+    /customer\.portal\.visits/.test(read(FILES.docs135)),
 );
 
 // ============================================================

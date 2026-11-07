@@ -77,6 +77,17 @@ class CustomerInfoService {
   async init() {
     if (this.initialized) return;
 
+    // ✅ ۱۳.۵: صفحهٔ «پروندهٔ مشتری» مخصوص کارکنان است. اگر حسابِ نقش
+    //    «مشتری» با لینک قدیمی/تبِ باز به اینجا برسد، پیش از هر درخواست
+    //    به پورتال خودش می‌رود ⇒ صفر ۴۰۳ و صفر ۴۰۳ تکراری.
+    if (authService.getUser()?.role === "customer") {
+      this.initialized = true;
+      if (typeof window !== "undefined" && window.location) {
+        window.location.replace("/portal.html");
+      }
+      return;
+    }
+
     // دریافت ID از URL (یا پروندهٔ متصل به حساب کاربر واردشده — فاز ۱۳.۰)
     this.customerId = this.resolveCustomerId();
 

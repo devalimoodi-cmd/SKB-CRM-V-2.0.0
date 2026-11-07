@@ -46,32 +46,35 @@ export const statusLabel = (status) =>
   STATUS_LABELS[text(status).trim()] || text(status) || "—";
 
 // ===== کارت‌های آماری (داده → مدل، بدون DOM) =====
+// value === null ⇒ «این بخش برای این حساب بسته است» ⇒ کارت رندر نمی‌شود
+const countOrZero = (value) => (value === null || value === undefined ? 0 : value);
+
 export const counterCards = (counters = {}) => [
   {
     key: "halls",
     label: "سالن‌ها",
-    value: counters.active_halls ?? 0,
-    total: counters.halls ?? 0,
+    value: counters.active_halls === null ? null : countOrZero(counters.active_halls),
+    total: counters.halls === null ? null : countOrZero(counters.halls),
     icon: "fa-warehouse",
   },
   {
     key: "flocks",
     label: "گله‌های فعال",
-    value: counters.active_flocks ?? 0,
+    value: counters.active_flocks === null ? null : countOrZero(counters.active_flocks),
     total: null,
     icon: "fa-egg",
   },
   {
     key: "weeks",
     label: "هفته‌های ثبت‌شده",
-    value: counters.weeks_recorded ?? 0,
+    value: counters.weeks_recorded === null ? null : countOrZero(counters.weeks_recorded),
     total: null,
     icon: "fa-chart-line",
   },
   {
     key: "visits",
     label: "بازدیدهای خوانده‌نشده",
-    value: counters.unread_visits ?? 0,
+    value: counters.unread_visits === null ? null : countOrZero(counters.unread_visits),
     total: null,
     icon: "fa-clipboard-list",
   },
@@ -79,6 +82,7 @@ export const counterCards = (counters = {}) => [
 
 export const renderCounters = (counters = {}) =>
   counterCards(counters)
+    .filter((card) => card.value !== null)
     .map(
       (card) => `
       <article class="portal-kpi" data-kpi="${escapeHtml(card.key)}">

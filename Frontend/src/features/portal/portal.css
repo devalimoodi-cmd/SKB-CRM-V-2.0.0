@@ -337,6 +337,13 @@
   cursor: not-allowed;
 }
 
+/* ✅ ۱۳.۵: تبِ بسته (مجوز بسته) کاملاً پنهان می‌شود.
+   نکته: display:.portal-tab قاعدهٔ [hidden] مرورگر را خنثی می‌کند،
+   پس قاعدهٔ اختصاصی لازم است (مثل .portal-tabpanel[hidden]). */
+.portal-tab[hidden] {
+  display: none;
+}
+
 .portal-tabpanel[hidden] {
   display: none;
 }

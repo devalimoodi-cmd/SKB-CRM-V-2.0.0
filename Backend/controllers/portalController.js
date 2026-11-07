@@ -42,6 +42,7 @@ const VisitReport = require("../models/VisitReport");
 const VisitReportAttachment = require("../models/VisitReportAttachment");
 const VisitReportHall = require("../models/VisitReportHall");
 const { normalizeCustomerId } = require("../services/customerScopeRules");
+const { userHasPermission } = require("../middleware/permissions");
 const { parsePagination } = require("../utils/pagination");
 const { successResponse, errorResponse } = require("../utils/response");
 
@@ -196,6 +197,27 @@ const getPortalSummary = async (req, res) => {
       }),
     ]);
 
+    // ✅ ۱۳.۵: بخشی که مدیر برای نقش/کاربرِ مشتری بسته است، در خلاصه هم
+    //    لو نمی‌رود: شمارندهٔ آن null می‌شود (کارت مربوطه در UI حذف
+    //    می‌شود) و «آخرین ردیف‌ها»ی آن خالی برمی‌گردد.
+    //    کلیدها: customer.portal.{halls,flocks,weeks,visits}
+    const [canHalls, canFlocks, canWeeks, canVisits] = await Promise.all([
+      userHasPermission(req, "customer.portal.halls"),
+      userHasPermission(req, "customer.portal.flocks"),
+      userHasPermission(req, "customer.portal.weeks"),
+      userHasPermission(req, "customer.portal.visits"),
+    ]);
+
+    const sections = {
+      halls: canHalls,
+      flocks: canFlocks,
+      weeks: canWeeks,
+      visits: canVisits,
+    };
+
+    // null = «این بخش بسته است» (با 0 اشتباه نشود)
+    const orNull = (allowed, value) => (allowed ? value : null);
+
     return successResponse(
       res,
       {
@@ -205,17 +227,25 @@ const getPortalSummary = async (req, res) => {
           user_id: req.user?.id ?? null,
           customer_id: customerId,
         },
+        // ✅ منبع حقیقت برای فرانت: کدام تب‌ها برای این حساب باز است
+        sections,
         counters: {
-          halls: hallsTotal,
-          active_halls: hallsActive,
-          active_flocks: flocksActive,
-          weeks_recorded: weeksRecorded,
-          unread_visits: visitsUnread,
+          halls: orNull(canHalls, hallsTotal),
+          active_halls: orNull(canHalls, hallsActive),
+          active_flocks: orNull(canFlocks, flocksActive),
+          weeks_recorded: orNull(canWeeks, weeksRecorded),
+          unread_visits: orNull(canVisits, visitsUnread),
         },
         latest: {
-          flocks: latestFlocks.map((row) => flockView(toPlain(row))),
-          weeks: latestWeeks.map((row) => weekView(toPlain(row))),
-          visits: latestVisits.map((row) => visitView(toPlain(row))),
+          flocks: canFlocks
+            ? latestFlocks.map((row) => flockView(toPlain(row)))
+            : [],
+          weeks: canWeeks
+            ? latestWeeks.map((row) => weekView(toPlain(row)))
+            : [],
+          visits: canVisits
+            ? latestVisits.map((row) => visitView(toPlain(row)))
+            : [],
         },
         meta: {
           scope: "self",

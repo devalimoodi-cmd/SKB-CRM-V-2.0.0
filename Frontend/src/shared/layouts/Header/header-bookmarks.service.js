@@ -19,11 +19,25 @@ class HeaderBookmarksService {
     console.log("✅ HeaderBookmarksService initialized");
   }
 
+  // ✅ ۱۳.۵: آیا این حساب اصلاً مجاز به دیدن بوکمارک‌هاست؟
+  //    مشتری پیش‌فرض bookmarks.view ندارد ⇒ بدون این گارد، هدر در هر
+  //    صفحه یک ۴۰۳ می‌گیرد و آن را تکرار می‌کند.
+  //    در نبود دادهٔ مجوز (خطای شبکه) fail-open است.
+  canLoadBookmarks() {
+    const service =
+      typeof window !== "undefined" ? window.permissionService : null;
+    if (!service || typeof service.can !== "function") return true;
+    if (typeof service.hasData === "function" && !service.hasData()) return true;
+    return Boolean(service.can("bookmarks.view"));
+  }
+
   async loadBookmarks() {
     try {
       const token = localStorage.getItem("adminToken");
-      if (!token) {
+      if (!token || !this.canLoadBookmarks()) {
         this.bookmarks = [];
+        this.reminders = [];
+        this.messages = [];
         this.renderDropdown();
         return;
       }

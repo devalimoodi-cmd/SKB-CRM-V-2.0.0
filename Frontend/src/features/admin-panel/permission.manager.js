@@ -45,6 +45,7 @@ export class PermissionManager {
     this.activeRole = "expert";
     this.roleQuery = "";
     this.onlyDiff = false;
+    this._openGroupKey = ""; // ۱۳.۵: گروهی که برای نقش مشتری خودکار باز می‌شود
     this.pendingRoleChanges = new Map(); // key → allowed (اختلاف با ماتریس ذخیره‌شده)
 
     this.selectedUser = null; // { id, role, fullName, username }
@@ -206,7 +207,11 @@ export class PermissionManager {
       )
       .join("");
 
-    const groups = this.catalog.groups
+    // ✅ ۱۳.۵: برای نقش مشتری، گروه «پورتال مشتری» اول و باز نمایش داده
+    //    می‌شود تا مدیر فقط همان‌جا را ببیند (بقیه برای این نقش بی‌اثرند).
+    this._openGroupKey = this.activeRole === "customer" ? "portal" : "";
+
+    const groups = this.orderedGroupsFor(this.activeRole)
       .map((group) => this.renderGroup(group, "role"))
       .filter(Boolean)
       .join("");
@@ -228,9 +233,45 @@ export class PermissionManager {
           </button>
         </div>
       </div>
+      ${this.activeRole === "customer" ? this.renderCustomerHint() : ""}
       <div class="perm-groups">
         ${groups || `<div class="perm-empty-small">موردی با این جستجو پیدا نشد.</div>`}
       </div>`;
+  }
+
+  // ============================================================
+  // ✅ ۱۳.۵: نقش «مشتری» فقط پورتال دارد
+  // ------------------------------------------------------------
+  // هر مسیر کارکنان authorize(کارکنان) دارد، پس کلیدهای ماژول‌های
+  // کارکنان (halls.view، weekly.view، charts.view …) برای نقش مشتری
+  // هیچ اثری ندارند. این راهنما جلوی «روشن‌کردن ده‌ها کلید بی‌اثر»
+  // را می‌گیرد و مسیر درست (گروه «پورتال مشتری») را نشان می‌دهد.
+  // ============================================================
+  portalKeyCount() {
+    const group = this.catalog?.groups?.find((item) => item.key === "portal");
+    return group ? group.items.length : 0;
+  }
+
+  renderCustomerHint() {
+    return `
+      <div class="perm-hint">
+        <i class="fas fa-door-open"></i>
+        <div>
+          <strong>نقش «مشتری» فقط پورتال دارد.</strong>
+          دسترسی مشتری از گروه «پورتال مشتری» (${this.portalKeyCount()} کلید) تنظیم می‌شود:
+          مشاهدهٔ پورتال، سالن‌ها، گله‌ها، هفته‌های مدیریتی، بازدیدها و متن گزارش/پیوست‌ها.
+          کلیدهای ماژول‌های کارکنان (سالن‌ها، هفته‌ها، دیکشنری، نمودارها…) روی این نقش اثری ندارند
+          و صفحهٔ «پروندهٔ مشتری» مخصوص کارکنان است.
+        </div>
+      </div>`;
+  }
+
+  // گروه «پورتال مشتری» برای نقش مشتری اول می‌آید (بقیه دست‌نخورده)
+  orderedGroupsFor(role) {
+    const groups = this.catalog?.groups || [];
+    if (role !== "customer") return groups;
+    const rank = (group) => (group.key === "portal" ? 0 : 1);
+    return [...groups].sort((a, b) => rank(a) - rank(b));
   }
 
   // ============================================================
@@ -248,7 +289,7 @@ export class PermissionManager {
     const changed = items.filter((item) => this._isChanged(item.key)).length;
 
     return `
-      <details class="perm-group" ${this.roleQuery || this.onlyDiff ? "open" : ""}>
+      <details class="perm-group" ${this.roleQuery || this.onlyDiff || group.key === this._openGroupKey ? "open" : ""}>
         <summary>
           <i class="fas ${group.icon || "fa-folder"}"></i>
           <span>${escapeHtml(group.title)}</span>
@@ -267,6 +308,11 @@ export class PermissionManager {
     const alwaysOn = (item.alwaysOnFor || []).includes(role);
     const changed = this._isChanged(item.key);
 
+    // ✅ ۱۳.۵: نقش مشتری فقط از مسیر /api/portal/* داده می‌گیرد؛ کلیدهای
+    //    ماژول‌های کارکنان برای این نقش اجرا نمی‌شوند ⇒ برچسب «بی‌اثر».
+    const inertForCustomer =
+      role === "customer" && !String(item.key).startsWith("customer.portal.");
+
     const lockNote = locked
       ? `<span class="perm-lock" title="فقط مدیر اصلی می‌تواند این مجوز را داشته باشد">
            <i class="fas fa-lock"></i></span>`
@@ -274,6 +320,10 @@ export class PermissionManager {
         ? `<span class="perm-lock" title="برای این نقش همیشه فعال است">
              <i class="fas fa-circle-check"></i></span>`
         : "";
+
+    const inertNote = inertForCustomer
+      ? `<span class="perm-inert" title="این کلید روی صفحهٔ مشتری اثری ندارد؛ دسترسی مشتری از گروه «پورتال مشتری» تنظیم می‌شود">بی‌اثر برای مشتری</span>`
+      : "";
 
     const control =
       mode === "role"
@@ -288,7 +338,7 @@ export class PermissionManager {
     return `
       <div class="perm-item ${changed ? "changed" : ""}">
         <div class="perm-item-info">
-          <span class="perm-item-title">${escapeHtml(item.title)} ${lockNote}</span>
+          <span class="perm-item-title">${escapeHtml(item.title)} ${lockNote} ${inertNote}</span>
           <code class="perm-item-key">${escapeHtml(item.key)}</code>
         </div>
         <div class="perm-item-control">${control}</div>
@@ -382,7 +432,10 @@ export class PermissionManager {
       this.catalog.roleTitles[state.user.role] ||
       state.user.role;
     const overridesCount = Object.keys(state.overrides || {}).length;
-    const groups = this.catalog.groups
+    // ✅ ۱۳.۵: اگر کاربرِ انتخاب‌شده نقش «مشتری» دارد، گروه پورتال اول
+    //    و باز می‌شود (بقیه کلیدها برای این نقش بی‌اثرند).
+    this._openGroupKey = state.user.role === "customer" ? "portal" : "";
+    const groups = this.orderedGroupsFor(state.user.role)
       .map((group) => this.renderGroup(group, "user"))
       .filter(Boolean)
       .join("");
@@ -405,6 +458,7 @@ export class PermissionManager {
             <i class="fas fa-rotate-left"></i> بازگردانی به سطح نقش
           </button>
         </div>
+        ${state.user.role === "customer" ? this.renderCustomerHint() : ""}
         <div class="perm-groups">${groups}</div>
       </div>`;
   }
