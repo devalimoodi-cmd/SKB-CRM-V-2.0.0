@@ -31,7 +31,8 @@ const { requirePermission } = require("./middleware/permissions.js");
 check(
   "کاتالوگ: تعداد کلیدها و گروه‌ها طبق طراحی است",
   // ✅ فاز ۱۳.۲: گروه «پورتال مشتری» + کلید customer.portal.view
-  catalog.TOTAL_PERMISSIONS === 168 && catalog.PERMISSION_GROUPS.length === 17,
+  // ✅ فاز ۱۳.۴: کلید customer.portal.visit.report (متن گزارش + پیوست‌ها)
+  catalog.TOTAL_PERMISSIONS === 169 && catalog.PERMISSION_GROUPS.length === 17,
   `keys=${catalog.TOTAL_PERMISSIONS} groups=${catalog.PERMISSION_GROUPS.length}`,
 );
 

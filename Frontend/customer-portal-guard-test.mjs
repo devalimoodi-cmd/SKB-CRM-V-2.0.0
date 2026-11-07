@@ -42,6 +42,12 @@ const read = (relPath) => {
 };
 const exists = (relPath) => fs.existsSync(path.join(ROOT, relPath));
 
+// حذف توضیحات تا بررسی‌های «نبود الگو» با متن کامنت گمراه نشوند
+const stripComments = (source) =>
+  String(source || "")
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/^\s*\/\/.*$/gm, "");
+
 // ============================================================
 // ۰) فایل‌های این فاز
 // ============================================================
@@ -70,6 +76,7 @@ const FILES = {
   gatePs1: "tools/gate.ps1",
   docs: "docs/REVIEW-WAVE-13.2.md",
   docs133: "docs/REVIEW-WAVE-13.3.md",
+  docs134: "docs/REVIEW-WAVE-13.4.md",
 };
 
 check(
@@ -384,16 +391,38 @@ check(
 // ۴) کنترلر: مرز دادهٔ خودم، بدون پارامتر کلاینت
 // ============================================================
 check(
-  "کنترلر: هیچ شناسه‌ای از req.query / req.body / req.params خوانده نمی‌شود",
-  !/req\.(query|body|params)(\.|\[\s*["'])(customer_id|customerId|id)\b/.test(
+  "کنترلر: هیچ شناسهٔ «مشتری» از req.query / req.body / req.params خوانده نمی‌شود",
+  !/req\.(query|body|params)(\.|\[\s*["'])(customer_id|customerId)\b/.test(
     SRC.controller,
   ) &&
     !/req\.body/.test(SRC.controller) &&
-    !/req\.params/.test(SRC.controller) &&
     // تنها استفادهٔ مجاز از req.query: کل شیء به صفحه‌بندی داده می‌شود
     (SRC.controller.match(/paging\(req\.query\)/g) || []).length === 4 &&
     !/req\.query\./.test(SRC.controller) &&
     !/req\.query\[/.test(SRC.controller),
+);
+
+// ۱۳.۴ — استثنای محدود و ممیزی‌شده: فقط شناسهٔ «ردیف خودم» از مسیر
+const portalParamReads = (SRC.controller.match(/req\.params\.[A-Za-z_]+/g) || []).sort();
+check(
+  "کنترلر (۱۳.۴): از req.params فقط id و attachmentId خوانده می‌شود",
+  portalParamReads.length > 0 &&
+    portalParamReads.every((read) =>
+      ["req.params.id", "req.params.attachmentId"].includes(read),
+    ),
+  [...new Set(portalParamReads)].join(",") || "none",
+);
+
+// ۱۳.۴ — مالکیت: هر خواندن ردیف (هفته/بازدید) با customer_id در همان where
+const portalOwnershipChecks = (
+  SRC.controller.match(
+    /(WeeklyManagement|VisitReport)\.(findOne|count)\(\{\s*where:\s*\{\s*id:[^}]*customer_id:\s*customerId/g,
+  ) || []
+).length;
+check(
+  "کنترلر (۱۳.۴): مالکیت ردیف با customer_id در همان where سنجیده می‌شود",
+  portalOwnershipChecks >= 3,
+  `ownership=${portalOwnershipChecks}`,
 );
 
 check(
@@ -460,15 +489,23 @@ check(
 );
 
 check(
-  "مسیر: پنج GET (خلاصه + چهار فهرست) و بدون هیچ POST/PUT/PATCH/DELETE",
-  (SRC.routes.match(/router\.get\(/g) || []).length === 5 &&
+  "مسیر: هشت GET (خلاصه + چهار فهرست + سه جزئیات) و بدون هیچ POST/PUT/PATCH/DELETE",
+  (SRC.routes.match(/router\.get\(/g) || []).length === 8 &&
     !/router\.(post|put|patch|delete)\(/.test(SRC.routes),
 );
 
 check(
-  "مسیر: هر پنج مسیر از زنجیرهٔ مشترک customerChain عبور می‌کنند",
+  "مسیر: مسیرهای فهرست/خلاصه از زنجیرهٔ مشترک customerChain عبور می‌کنند",
   /const customerChain = \[/.test(SRC.routes) &&
-    (SRC.routes.match(/\.\.\.customerChain,/g) || []).length === 5,
+    (SRC.routes.match(/\.\.\.customerChain,/g) || []).length === 7,
+);
+
+// ۱۳.۴ — مسیرهای محتوای گزارش بازدید، کلید مجوز جدا دارند
+check(
+  "مسیر (۱۳.۴): بازدید/پیوست از زنجیرهٔ visitReportChain (کلید جدا) عبور می‌کنند",
+  /const visitReportChain = \[/.test(SRC.routes) &&
+    /requirePermission\("customer\.portal\.visit\.report"\)/.test(SRC.routes) &&
+    (SRC.routes.match(/\.\.\.visitReportChain,/g) || []).length === 2,
 );
 
 check(
@@ -539,9 +576,9 @@ check(
 
 check(
   "کاتالوگ: شمارش کلیدها/گروه‌ها با permissions-test هم‌خوان است",
-  catalog.TOTAL_PERMISSIONS === 168 &&
+  catalog.TOTAL_PERMISSIONS === 169 &&
     catalog.PERMISSION_GROUPS.length === 17 &&
-    /TOTAL_PERMISSIONS === 168 && catalog\.PERMISSION_GROUPS\.length === 17/.test(
+    /TOTAL_PERMISSIONS === 169 && catalog\.PERMISSION_GROUPS\.length === 17/.test(
       SRC.permissionsTest,
     ),
   `keys=${catalog.TOTAL_PERMISSIONS} groups=${catalog.PERMISSION_GROUPS.length}`,
@@ -700,9 +737,9 @@ check(
 check(
   "۱۳.۳ · کنترلر: هر چهار فهرست اسکوپِ اجباری دارند (بدون skope ⇒ ۴۰۳)",
   (SRC.controller.match(/const customerId = scopeIdOf\(req\);/g) || []).length ===
-    4 &&
+    7 &&
     (SRC.controller.match(/if \(!customerId\) return denyUnlinked\(res\);/g) || [])
-      .length === 4,
+      .length === 7,
 );
 
 check(
@@ -715,7 +752,10 @@ check(
 
 check(
   "۱۳.۳ · کنترلر: خروجی بازدید بدون متن گزارش و بدون مسیر فایل است",
-  !/report_text|file_path|VisitReportAttachment/.test(SRC.controller),
+  !/file_path/.test(
+    (SRC.controller.match(/const getMyVisits = async \(req, res\) => \{[\s\S]*?\n\};/) ||
+      [""])[0],
+  ),
 );
 
 check(
@@ -794,11 +834,13 @@ check(
 );
 
 check(
-  "۱۳.۳ · فرانت: لایهٔ API چهار متد دارد و هیچ شناسهٔ مشتری نمی‌فرستد",
+  "۱۳.۳ · فرانت: لایهٔ API چهار متد فهرست دارد و هیچ شناسهٔ مشتری نمی‌فرستد",
   ["getHalls", "getFlocks", "getWeeks", "getVisits"].every((name) =>
     new RegExp(`${name}\\(params = \\{\\}\\)`).test(SRC.portalApi),
   ) &&
-    !/customer_id|\?id=|PORTAL\.\w+\s*,\s*\{\s*customer/.test(SRC.portalApi),
+    !/customer_id|\?id=|PORTAL\.\w+\s*,\s*\{\s*customer/.test(
+      stripComments(SRC.portalApi),
+    ),
 );
 
 check(
@@ -866,6 +908,153 @@ check(
   exists(FILES.docs133) &&
     /\/api\/portal\/halls/.test(read(FILES.docs133)) &&
     /landingForRole/.test(read(FILES.docs133)),
+);
+
+// ============================================================
+// ۱۱) موج ۱۳.۴ — جزئیات هفته/بازدید، پیوست و نمودار
+// ============================================================
+
+check(
+  "۱۳.۴ · کنترلر: سه کنترلر جزئیات/دانلود صادر شده‌اند",
+  /getMyWeekDetail/.test(SRC.controller) &&
+    /getMyVisitDetail/.test(SRC.controller) &&
+    /downloadMyAttachment/.test(SRC.controller) &&
+    /module\.exports\s*=\s*\{[^}]*getMyWeekDetail[^}]*getMyVisitDetail[^}]*downloadMyAttachment/s.test(
+      SRC.controller,
+    ),
+);
+
+check(
+  "۱۳.۴ · کنترلر: مسیر فایل با path.resolve و محدود به uploads مهار شده است",
+  /const UPLOADS_ROOT = path\.join\(__dirname, "\.\.", "uploads"\)/.test(
+    SRC.controller,
+  ) &&
+    /path\.resolve/.test(SRC.controller) &&
+    /startsWith\(rootPrefix\)/.test(SRC.controller) &&
+    /fs\.existsSync\(resolved\)/.test(SRC.controller) &&
+    /res\.download\(resolved/.test(SRC.controller),
+);
+
+check(
+  "۱۳.۴ · کنترلر: پیوست با کلید خارجی همان بازدید خوانده می‌شود (نه فقط id)",
+  /VisitReportAttachment\.findOne\(\{\s*where:\s*\{\s*id:\s*attachmentId,\s*visit_report_id:\s*visitId/s.test(
+    SRC.controller,
+  ),
+);
+
+check(
+  "۱۳.۴ · حریم خصوصی: file_path و هویت کارشناس در خروجی پورتال نیست",
+  !/file_path:\s*row\.file_path/.test(SRC.controller) &&
+    !/created_by:/.test(SRC.controller) &&
+    !/service_expert_id:/.test(SRC.controller) &&
+    !/additional_notes:/.test(SRC.controller),
+);
+
+check(
+  "۱۳.۴ · حریم خصوصی: فهرست بازدید متن گزارش را برنمی‌گرداند",
+  (() => {
+    const listView = /const visitListView[\s\S]{0,400}?\}\);/;
+    const match = SRC.controller.match(listView);
+    return Boolean(match) && !/report_text:/.test(match[0]);
+  })(),
+);
+
+check(
+  "۱۳.۴ · مجوز: بازدید/پیوست از زنجیرهٔ کلید جدا و همان requireCustomerLink عبور می‌کنند",
+  /const visitReportChain = \[\s*\.\.\.customerChain,\s*requirePermission\("customer\.portal\.visit\.report"\),?\s*\]/.test(
+    SRC.routes.replace(/\r\n/g, "\n"),
+  ) &&
+    /const customerChain = \[[\s\S]{0,200}?requireCustomerLink/.test(
+      SRC.routes.replace(/\r\n/g, "\n"),
+    ),
+);
+
+check(
+  "۱۳.۴ · کاتالوگ مجوز: کلید customer.portal.visit.report فقط برای مشتری پیش‌فرض دارد",
+  (() => {
+    const entry = catalog.PERMISSIONS["customer.portal.visit.report"];
+    if (!entry || !entry.defaults) return false;
+    const roles = Object.keys(entry.defaults);
+    return (
+      entry.defaults.customer === true &&
+      roles.every((role) => (role === "customer" ? true : entry.defaults[role] === false))
+    );
+  })(),
+);
+
+check(
+  "۱۳.۴ · فرانت: ثابت‌های API سه مسیر جزئیات/پیوست را دارند",
+  /WEEK_DETAIL: \(id\) => `\/portal\/weeks\/\$\{id\}`/.test(SRC.apiConst) &&
+    /VISIT_DETAIL: \(id\) => `\/portal\/visits\/\$\{id\}`/.test(SRC.apiConst) &&
+    /VISIT_ATTACHMENT: \(visitId, attachmentId\)/.test(SRC.apiConst),
+);
+
+check(
+  "۱۳.۴ · فرانت: portal.api شناسهٔ ردیف را با الگوی عددی اعتبارسنجی می‌کند",
+  /const ROW_ID_PATTERN = \/\^\\d\{1,9\}\$\//.test(SRC.portalApi) &&
+    /throw new Error\("شناسهٔ ردیف نامعتبر است"\)/.test(SRC.portalApi) &&
+    /getWeekDetail\(id\)/.test(SRC.portalApi) &&
+    /getVisitDetail\(id\)/.test(SRC.portalApi) &&
+    /apiService\.download\(/.test(SRC.portalApi),
+);
+
+check(
+  "۱۳.۴ · فرانت: هیچ درخواست نوشتنی در لایهٔ پورتال نیست",
+  !/apiService\.(post|put|patch|delete)\(/.test(SRC.portalApi) &&
+    !/apiService\.(post|put|patch|delete)\(/.test(SRC.portalService),
+);
+
+check(
+  "۱۳.۴ · فرانت: دانلود با هدر احراز هویت (نه لینک عمومی)",
+  /async download\(endpoint, fallbackName = "download"\)/.test(
+    read("Frontend/src/core/services/api.service.js"),
+  ) &&
+    /getFormDataHeaders\(\)/.test(
+      read("Frontend/src/core/services/api.service.js"),
+    ),
+);
+
+check(
+  "۱۳.۴ · فرانت: رندرر سه تابع جزئیات/پیوست/نمودار را صادر می‌کند",
+  /export const renderWeekDetail/.test(SRC.portalRenderer) &&
+    /export const renderVisitDetail/.test(SRC.portalRenderer) &&
+    /export const renderAttachments/.test(SRC.portalRenderer) &&
+    /export const renderWeeklyChart/.test(SRC.portalRenderer),
+);
+
+check(
+  "۱۳.۴ · فرانت: نمودار فقط SVG دست‌ساز است (بدون کتابخانهٔ تازه)",
+  /<svg class="portal-chart__svg"/.test(SRC.portalRenderer) &&
+    !/chart\.js|d3|apexcharts|echarts|highcharts/i.test(SRC.portalRenderer) &&
+    !/<script/.test(SRC.portalRenderer),
+);
+
+check(
+  "۱۳.۴ · فرانت: پنل جزئیات و نمودار در HTML ثبت شده‌اند",
+  /id="portalDetail"/.test(SRC.portalHtml) &&
+    /id="portalDetailBody"/.test(SRC.portalHtml) &&
+    /id="portalChart"/.test(SRC.portalHtml) &&
+    /data-portal-close/.test(SRC.portalHtml),
+);
+
+check(
+  "۱۳.۴ · فرانت: سرویس پنل جزئیات را می‌بندد/باز می‌کند و Esc را می‌شنود",
+  /async openDetail\(kind, id\)/.test(SRC.portalService) &&
+    /closeDetail\(\)/.test(SRC.portalService) &&
+    /event\.key === "Escape"/.test(SRC.portalService) &&
+    /bindDetail\(\)/.test(SRC.portalService),
+);
+
+check(
+  "۱۳.۴ · فرانت: گیت UI متن گزارش به کلید customer.portal.visit.report وصل است",
+  /customer\.portal\.visit\.report/.test(SRC.portalService),
+);
+
+check(
+  "۱۳.۴ · مستندات: docs/REVIEW-WAVE-13.4.md موجود و کامل است",
+  exists(FILES.docs134) &&
+    /customer\.portal\.visit\.report/.test(read(FILES.docs134)) &&
+    /\/api\/portal\/weeks\/:id/.test(read(FILES.docs134)),
 );
 
 // ============================================================

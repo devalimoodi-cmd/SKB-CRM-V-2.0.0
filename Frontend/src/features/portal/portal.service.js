@@ -24,11 +24,17 @@ import {
   renderWeekList,
   renderVisitList,
   renderPager,
+  renderWeekDetail,
+  renderVisitDetail,
+  renderWeeklyChart,
 } from "./portal.renderer.js";
 import { notificationService } from "../../core/services/notification.service.js";
 
 // پیام ۴۰۳ِ «بدون پروندهٔ متصل» از سرور همین عبارت را دارد
 const LINK_MISSING = /متصل نشده است/;
+
+// پوشش ایمن پاسخ سرور: { success, data } ⇒ data یا {}
+const payloadDataOf = (payload) => (payload && payload.data ? payload.data : {});
 
 // اندازهٔ صفحهٔ هر تب (سرور سقف ۵۰ می‌گذارد)
 const SECTION_LIMIT = 20;
@@ -77,6 +83,8 @@ class PortalService {
     this.state = "idle";
     this._retryBound = false;
     this._tabsBound = false;
+    this._detailBound = false;
+    this.detailOpen = false;
     this.activeTab = TAB_KEYS[0];
     this.sections = {};
     TAB_KEYS.forEach((key) => {
@@ -115,7 +123,24 @@ class PortalService {
     this.initialized = true;
     this.bindRetry();
     this.bindTabs();
+    this.bindDetail();
     await this.load();
+  }
+
+  // ===== مجوز «متن گزارش و پیوست» (۱۳.۴) =====
+  // ⚠️ گیت UI فقط برای تجربهٔ کاربر است؛ سرور مستقل از آن ۴۰۳ می‌دهد
+  //    (customer.portal.visit.report). در نبود دادهٔ مجوز fail-open.
+  canViewReport() {
+    const service = typeof window !== "undefined" ? window.permissionService : null;
+    if (!service || typeof service.can !== "function") return true;
+    if (typeof service.hasData === "function" && !service.hasData()) return true;
+    return Boolean(service.can("customer.portal.visit.report"));
+  }
+
+  // گزینه‌های رندرِ هر بخش (فقط «بازدیدها» گزینه دارد)
+  sectionOptions(key) {
+    if (key !== "visits") return {};
+    return { canViewReport: this.canViewReport() };
   }
 
   bindRetry() {
@@ -156,6 +181,126 @@ class PortalService {
         this.loadSection(button.getAttribute("data-portal-more"), {
           append: true,
         });
+      });
+    }
+  }
+
+  // ===== ۱۳.۴: پنل جزئیات (هفتهٔ مدیریتی / بازدید) =====
+  //  • دکمه‌های «جزئیات» و «دریافت پیوست» با delegation مدیریت می‌شوند
+  //  • Esc / کلیک پس‌زمینه / دکمهٔ × ⇒ بستن
+  //  ❌ هیچ عملیات نوشتنی در این پنل وجود ندارد
+  bindDetail() {
+    if (this._detailBound) return;
+    const panel = this.el("portalDetail");
+    if (!panel) return;
+    this._detailBound = true;
+
+    panel.addEventListener("click", (event) => {
+      if (event.target.closest("[data-portal-close]")) {
+        event.preventDefault();
+        this.closeDetail();
+        return;
+      }
+
+      const attachBtn = event.target.closest("[data-portal-attachment]");
+      if (attachBtn) {
+        event.preventDefault();
+        this.downloadAttachment(
+          attachBtn.getAttribute("data-portal-visit"),
+          attachBtn.getAttribute("data-portal-attachment"),
+          attachBtn.getAttribute("data-portal-name") || "",
+        );
+      }
+    });
+
+    if (typeof document !== "undefined" && document.addEventListener) {
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape" && this.detailOpen) this.closeDetail();
+      });
+    }
+
+    // دکمه‌های «جزئیات» داخل فهرست تب‌ها
+    const panels = this.el("portalTabPanels");
+    if (panels) {
+      panels.addEventListener("click", (event) => {
+        const button = event.target.closest("[data-portal-open]");
+        if (!button) return;
+        event.preventDefault();
+        this.openDetail(
+          button.getAttribute("data-portal-open"),
+          button.getAttribute("data-portal-id"),
+        );
+      });
+    }
+  }
+
+  async openDetail(kind, id) {
+    const panel = this.el("portalDetail");
+    const body = this.el("portalDetailBody");
+    const title = this.el("portalDetailTitle");
+    if (!panel || !body) return;
+
+    const type = String(kind || "").toLowerCase();
+    if (type !== "week" && type !== "visit") return;
+
+    this.detailOpen = true;
+    panel.hidden = false;
+    panel.classList.add("is-open");
+    if (title) {
+      title.textContent = type === "week" ? "جزئیات هفتهٔ مدیریتی" : "جزئیات بازدید";
+    }
+    body.innerHTML = `<p class="portal-detail__loading">
+      <i class="fas fa-spinner fa-spin" aria-hidden="true"></i> در حال دریافت…
+    </p>`;
+
+    try {
+      if (type === "week") {
+        const payload = await portalApi.getWeekDetail(id);
+        body.innerHTML = renderWeekDetail((payload && payload.data && payload.data.week) || {});
+      } else {
+        const data = (payloadDataOf(await portalApi.getVisitDetail(id)));
+        body.innerHTML = renderVisitDetail(data.visit || {}, data.attachments || [], {
+          canViewReport: this.canViewReport(),
+        });
+      }
+    } catch (error) {
+      body.innerHTML = renderNotice(
+        "دریافت جزئیات ناموفق بود",
+        this.detailErrorMessage(error),
+        "error",
+      );
+    }
+  }
+
+  detailErrorMessage(error) {
+    const message = String(error?.message || "").trim();
+    if (!message || /^HTTP error/i.test(message)) {
+      return "ارتباط با سرور برقرار نشد. لطفاً دوباره تلاش کنید.";
+    }
+    return message;
+  }
+
+  closeDetail() {
+    const panel = this.el("portalDetail");
+    const body = this.el("portalDetailBody");
+    this.detailOpen = false;
+    if (panel) {
+      panel.hidden = true;
+      panel.classList.remove("is-open");
+    }
+    if (body) body.innerHTML = "";
+  }
+
+  // دانلود پیوست با هدر احراز هویت (هیچ لینک عمومی ساخته نمی‌شود)
+  async downloadAttachment(visitId, attachmentId, fileName = "") {
+    try {
+      await portalApi.downloadAttachment(visitId, attachmentId, fileName || "attachment");
+    } catch (error) {
+      notificationService.notifyOnce({
+        key: "portal-download-error",
+        message: `⚠️ ${String(error?.message || "دریافت فایل ناموفق بود")}`,
+        type: "error",
+        cooldownMs: 15000,
       });
     }
   }
@@ -300,13 +445,23 @@ class PortalService {
     const list = this.el(conf.listId);
     const pager = this.el(conf.pagerId);
 
-    if (list) list.innerHTML = conf.render(state.items);
+    if (list) list.innerHTML = conf.render(state.items, this.sectionOptions(key));
     if (pager) {
       pager.innerHTML = renderPager(
         { page: state.page, pages: state.pages, total: state.total },
         key,
       );
     }
+
+    // ۱۳.۴: نمودار روند وزن فقط در تب «هفته‌های مدیریتی»
+    if (key === "weeks") this.renderChart(state.items);
+  }
+
+  // نمودار SVG از همان دادهٔ صفحه (بدون درخواست اضافه)
+  renderChart(items) {
+    const box = this.el("portalChart");
+    if (!box) return;
+    box.innerHTML = renderWeeklyChart(items);
   }
 
   setSectionStatus(key, status) {

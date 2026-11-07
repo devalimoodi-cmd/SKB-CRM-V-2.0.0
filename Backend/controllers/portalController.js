@@ -1,34 +1,56 @@
 // ============================================================
 // controllers/portalController.js
-// «پورتال مشتری» — دادهٔ خواندنیِ پروندهٔ خودِ مشتری (فاز ۱۳.۲ و ۱۳.۳)
+// «پورتال مشتری» — دادهٔ خواندنیِ پروندهٔ خودِ مشتری
+// (فاز ۱۳.۲، ۱۳.۳ و ۱۳.۴)
 // ------------------------------------------------------------
-// 🔒 سه قانون تغییرناپذیر:
-//  ۱) هیچ شناسه‌ای از پارامترهای درخواست (آدرس، بدنه، مسیر) خوانده نمی‌شود.
-//     تنها منبع، req.customerScopeId است (که middleware/customerScope.js
-//     از users.customer_id توکن ساخته است).
-//     ⚠️ تنها استثنا در ۱۳.۳: page/limit برای صفحه‌بندی (parsePagination).
-//  ۲) هر کوئری با where: { customer_id: customerId } اجرا می‌شود
-//     (بازهٔ داده = یک پرونده، نه کل دیتابیس).
-//  ۳) خروجی فقط «خواندنی» و حداقلی است: شمارنده‌ها + ۳ ردیف آخر
-//     (+ در ۱۳.۳: فهرست‌های صفحه‌بندی‌شدهٔ سالن/گله/هفته/بازدید).
-//     هیچ فیلد حساس/مالی/داخلی به مشتری نمی‌رسد: کد ملی، کد پستی،
-//     آدرس مزرعه، شمارهٔ پیام‌رسان، مسیر فایل پیوست و متن گزارش بازدید
-//     هرگز در خروجی نیستند.
+// 🔒 قوانین تغییرناپذیر:
+//  ۱) شناسهٔ «پرونده» (customer_id) هرگز از پارامترهای درخواست خوانده
+//     نمی‌شود. تنها منبع، req.customerScopeId است (که
+//     middleware/customerScope.js از users.customer_id توکن ساخته است).
+//     ⚠️ از ۱۳.۴ یک استثنای محدود: شناسهٔ «ردیف خودم» در مسیر
+//     (req.params.id / req.params.attachmentId) — فقط برای جزئیات یک
+//     هفته/بازدید/پیوست. این شناسه همیشه همراه customer_id در همان
+//     WHERE می‌آید و ردیف غیرخودی پاسخ ۴۰۴ می‌گیرد (نه ۴۰۳) تا وجود
+//     ردیف مشتری دیگر لو نرود.
+//  ۲) هر کوئری روی دادهٔ مشتری با customer_id همراه است
+//     (بازهٔ داده = یک پرونده، نه کل دیتابیس). جدول‌های فرزند
+//     (weekly_*، attachments، visit_report_halls) از طریق «والدِ
+//     تأییدشده» خوانده می‌شوند، چون customer_id آن‌ها null‌پذیر است و
+//     ردیف‌های قدیمی آن را خالی دارند.
+//  ۳) خروجی فقط «خواندنی» و حداقلی است. هرگز بیرون نمی‌رود: کد ملی،
+//     کد پستی، آدرس مزرعه، شمارهٔ پیام‌رسان، مسیر فیزیکی فایل پیوست
+//     (file_path)، نام/شناسهٔ کارشناس بازدید و یادداشت‌های داخلی هفته.
 // ============================================================
 "use strict";
 
+const fs = require("fs");
+const path = require("path");
 const { Op } = require("sequelize");
 const CustomerPersonalInfo = require("../models/CustomerPersonalInfo");
 const Hall = require("../models/Hall");
 const Flock = require("../models/Flock");
 const WeeklyManagement = require("../models/WeeklyManagement");
+const WeeklyDisease = require("../models/WeeklyDisease");
+const WeeklyMedicine = require("../models/WeeklyMedicine");
+const WeeklyVaccine = require("../models/WeeklyVaccine");
+const WeeklyFeed = require("../models/WeeklyFeed");
+const Disease = require("../models/Disease");
+const Medicine = require("../models/Medicine");
+const Vaccine = require("../models/Vaccine");
+const FeedType = require("../models/FeedType");
 const VisitReport = require("../models/VisitReport");
+const VisitReportAttachment = require("../models/VisitReportAttachment");
+const VisitReportHall = require("../models/VisitReportHall");
 const { normalizeCustomerId } = require("../services/customerScopeRules");
 const { parsePagination } = require("../utils/pagination");
 const { successResponse, errorResponse } = require("../utils/response");
 
 // سقف ردیف‌های «آخرین‌ها» (پورتال سبک بماند)
 const LATEST_LIMIT = 3;
+
+// ریشهٔ مجاز فایل‌های پیوست (هیچ فایلی بیرون این پوشه سرو نمی‌شود)
+const UPLOADS_ROOT = path.join(__dirname, "..", "uploads");
+
 
 const toPlain = (row) =>
   row && typeof row.get === "function" ? row.get({ plain: true }) : row || {};
@@ -73,6 +95,14 @@ const visitView = (row) => ({
   id: row.id,
   visit_date: row.visit_date || null,
   status: row.status || "unread",
+});
+
+// ۱۳.۴: ردیف فهرست بازدید + دو نشانهٔ کمکی
+// (خودِ متن گزارش و فهرست پیوست‌ها فقط در اندپوینت جزئیات می‌آید)
+const visitListView = (row, attachmentCount) => ({
+  ...visitView(row),
+  has_report: Boolean(String(row.report_text || "").trim()),
+  attachment_count: Number.isInteger(attachmentCount) ? attachmentCount : 0,
 });
 
 
@@ -240,6 +270,81 @@ const pagedPayload = (items, total, page, limit) => ({
   meta: { scope: "self", generated_at: new Date().toISOString() },
 });
 
+// ============================================
+// کمک‌های موج ۱۳.۴ (جزئیات ردیف + دانلود امن)
+// ============================================
+// شناسهٔ ردیف در مسیر: فقط عدد صحیح مثبت و کوتاه
+// (ضد تزریق/سرریز؛ «۱۲abc» یا «-۳» همان‌جا ۴۰۰ می‌گیرد)
+const ROW_ID_PATTERN = /^\d{1,9}$/;
+
+const parseRowId = (value) => {
+  const raw = String(value === null || value === undefined ? "" : value).trim();
+  if (!ROW_ID_PATTERN.test(raw)) return null;
+  const parsed = Number(raw);
+  return parsed > 0 ? parsed : null;
+};
+
+// نام سالن‌ها با کوئری دومِ اسکوپ‌شده (هم‌الگو با فهرست هفته‌ها؛ include ممنوع)
+const scopedHallNames = async (customerId, hallIds) => {
+  const unique = [
+    ...new Set((hallIds || []).filter((id) => Number.isInteger(id) && id > 0)),
+  ];
+  const nameById = new Map();
+  if (unique.length === 0) return nameById;
+
+  const halls = await Hall.findAll({
+    where: { customer_id: customerId, id: { [Op.in]: unique } },
+    attributes: ["id", "hall_name"],
+  });
+  halls.forEach((row) => {
+    const plain = toPlain(row);
+    nameById.set(plain.id, plain.hall_name || "");
+  });
+  return nameById;
+};
+
+// نام کاتالوگ (بیماری/واکسن/دارو/خوراک) — فقط ستون نام
+const catalogNames = async (Model, ids) => {
+  const unique = [
+    ...new Set((ids || []).filter((id) => Number.isInteger(id) && id > 0)),
+  ];
+  const nameById = new Map();
+  if (unique.length === 0) return nameById;
+
+  const rows = await Model.findAll({
+    where: { id: { [Op.in]: unique } },
+    attributes: ["id", "name"],
+  });
+  rows.forEach((row) => {
+    const plain = toPlain(row);
+    nameById.set(plain.id, plain.name || "");
+  });
+  return nameById;
+};
+
+// [{ id, name }] — خروجی جزئیات هفته
+const nameList = (ids, nameById) =>
+  (ids || []).map((id) => ({ id, name: nameById.get(id) || "" }));
+
+// شناسه‌های ستون کلید خارجی از ردیف‌های فرزند (فقط عدد مثبت)
+const idsOf = (rows, field) =>
+  (rows || [])
+    .map((row) => toPlain(row)[field])
+    .filter((id) => Number.isInteger(id) && id > 0);
+
+// مسیر فایل پیوست: باید داخل uploads/ باشد (ضد path traversal)
+const resolveUploadPath = (filePath) => {
+  const raw = String(filePath || "").trim();
+  if (!raw) return null;
+
+  const rootPrefix = UPLOADS_ROOT + path.sep;
+  const candidates = path.isAbsolute(raw)
+    ? [path.resolve(raw)]
+    : [path.resolve(raw), path.resolve(__dirname, "..", raw)];
+
+  return candidates.find((candidate) => candidate.startsWith(rootPrefix)) || null;
+};
+
 // ===== نگاشت امن ردیف‌ها (هیچ فیلد داخلی/حساس بیرون نمی‌رود) =====
 const hallView = (row) => ({
   id: row.id,
@@ -259,6 +364,33 @@ const weekDetailView = (row, hallName) => ({
   weekly_mortality: toNumber(row.weekly_mortality),
   weekly_feed_intake: toNumber(row.weekly_feed_intake),
   hall_name: hallName || "",
+});
+
+// ===== جزئیات هفته (۱۳.۴): همان نگاشت فهرست + چهار گروه کاتالوگ =====
+// ⚠️ additional_notes و service_expert_id عمداً در خروجی نیستند.
+const weekFullView = (row, hallName, groups) => ({
+  ...weekDetailView(row, hallName),
+  diseases: groups.diseases,
+  vaccines: groups.vaccines,
+  medicines: groups.medicines,
+  feeds: groups.feeds,
+});
+
+// ===== پیوست‌ها: فقط متادیتا؛ file_path هرگز بیرون نمی‌رود =====
+const attachmentView = (row) => ({
+  id: row.id,
+  file_name: row.file_name || "",
+  file_size: row.file_size ?? null,
+  mime_type: row.mime_type || "",
+});
+
+// ===== گزارش بازدید (۱۳.۴): متن + نام سالن‌ها، بدون هویت کارشناس =====
+const visitReportView = (row, hallNames) => ({
+  id: row.id,
+  visit_date: row.visit_date || null,
+  status: row.status || "unread",
+  report_text: String(row.report_text || ""),
+  hall_names: hallNames,
 });
 
 // ============================================
@@ -426,8 +558,9 @@ const getMyWeeks = async (req, res) => {
 // ============================================
 // GET /api/portal/visits
 // ------------------------------------------------------------
-// فقط تاریخ و وضعیت: متن گزارش، پیوست‌ها و نام کارشناس
-// در این موج عمداً بیرون نمی‌روند (موج ۱۳.۴ با کلید مجوز جدا).
+// فهرست بازدیدها: تاریخ، وضعیت و دو نشانهٔ کمکی (has_report،
+// attachment_count). خودِ متن گزارش و فهرست پیوست‌ها فقط از
+// اندپوینت جزئیات (/visits/:id) و با کلید مجوز جدا می‌آید.
 // ============================================
 const getMyVisits = async (req, res) => {
   try {
@@ -439,7 +572,9 @@ const getMyVisits = async (req, res) => {
 
     const { rows, count } = await VisitReport.findAndCountAll({
       where: { ...scope },
-      attributes: ["id", "visit_date", "status"],
+      // report_text فقط برای محاسبهٔ «has_report» خوانده می‌شود و
+      // هرگز در پاسخ فهرست قرار نمی‌گیرد (متن فقط در /visits/:id)
+      attributes: ["id", "visit_date", "status", "report_text"],
       order: [
         ["visit_date", "DESC"],
         ["id", "DESC"],
@@ -448,10 +583,33 @@ const getMyVisits = async (req, res) => {
       offset,
     });
 
+    const plains = rows.map((row) => toPlain(row));
+    const reportIds = plains
+      .map((row) => row.id)
+      .filter((id) => Number.isInteger(id) && id > 0);
+
+    // شمارش پیوست‌ها با یک کوئری گروهی برای همین صفحه
+    const attachmentCountById = new Map();
+    if (reportIds.length > 0) {
+      const grouped = await VisitReportAttachment.count({
+        where: { visit_report_id: { [Op.in]: reportIds } },
+        group: ["visit_report_id"],
+      });
+      (grouped || []).forEach((row) => {
+        const plain = toPlain(row);
+        attachmentCountById.set(
+          plain.visit_report_id,
+          Number(plain.count) || 0,
+        );
+      });
+    }
+
     return successResponse(
       res,
       pagedPayload(
-        rows.map((row) => visitView(toPlain(row))),
+        plains.map((row) =>
+          visitListView(row, attachmentCountById.get(row.id)),
+        ),
         count,
         page,
         limit,
@@ -464,10 +622,227 @@ const getMyVisits = async (req, res) => {
   }
 };
 
+// ============================================
+// GET /api/portal/weeks/:id   (فاز ۱۳.۴)
+// ------------------------------------------------------------
+// جزئیات یک هفتهٔ مدیریتی + چهار گروه کاتالوگ (بیماری/واکسن/دارو/خوراک).
+// 🔒 شناسهٔ مسیر فقط «ردیف خودم» است: در همان کوئری همراه customer_id
+//    می‌آید و ردیف غیرخودی ۴۰۴ می‌گیرد (نه ۴۰۳، تا وجودش لو نرود).
+//    جدول‌های فرزند از طریق والدِ تأییدشده خوانده می‌شوند.
+// ============================================
+const getMyWeekDetail = async (req, res) => {
+  try {
+    const customerId = scopeIdOf(req);
+    if (!customerId) return denyUnlinked(res);
+
+    const weekId = parseRowId(req.params.id);
+    if (!weekId) {
+      return errorResponse(res, "شناسهٔ هفتهٔ مدیریتی نامعتبر است", 400);
+    }
+
+    const weekRow = await WeeklyManagement.findOne({
+      where: { id: weekId, customer_id: customerId },
+      attributes: [
+        "id",
+        "week_number",
+        "week_start_date",
+        "week_end_date",
+        "flock_age_days",
+        "weekly_weight",
+        "weekly_mortality",
+        "weekly_feed_intake",
+        "hall_id",
+      ],
+    });
+
+    if (!weekRow) {
+      return errorResponse(res, "این هفتهٔ مدیریتی در پروندهٔ شما یافت نشد", 404);
+    }
+
+    const plain = toPlain(weekRow);
+
+    const [diseaseRows, vaccineRows, medicineRows, feedRows] =
+      await Promise.all([
+        WeeklyDisease.findAll({
+          where: { weekly_management_id: weekId },
+          attributes: ["disease_id"],
+        }),
+        WeeklyVaccine.findAll({
+          where: { weekly_management_id: weekId },
+          attributes: ["vaccine_id"],
+        }),
+        WeeklyMedicine.findAll({
+          where: { weekly_management_id: weekId },
+          attributes: ["medicine_id"],
+        }),
+        WeeklyFeed.findAll({
+          where: { weekly_management_id: weekId },
+          attributes: ["feed_type_id"],
+        }),
+      ]);
+
+    const diseaseIds = idsOf(diseaseRows, "disease_id");
+    const vaccineIds = idsOf(vaccineRows, "vaccine_id");
+    const medicineIds = idsOf(medicineRows, "medicine_id");
+    const feedIds = idsOf(feedRows, "feed_type_id");
+
+    const [diseaseNames, vaccineNames, medicineNames, feedNames, hallNames] =
+      await Promise.all([
+        catalogNames(Disease, diseaseIds),
+        catalogNames(Vaccine, vaccineIds),
+        catalogNames(Medicine, medicineIds),
+        catalogNames(FeedType, feedIds),
+        scopedHallNames(customerId, [plain.hall_id]),
+      ]);
+
+    return successResponse(
+      res,
+      {
+        week: weekFullView(plain, hallNames.get(plain.hall_id), {
+          diseases: nameList(diseaseIds, diseaseNames),
+          vaccines: nameList(vaccineIds, vaccineNames),
+          medicines: nameList(medicineIds, medicineNames),
+          feeds: nameList(feedIds, feedNames),
+        }),
+        meta: { scope: "self", generated_at: new Date().toISOString() },
+      },
+      "جزئیات هفتهٔ مدیریتی پروندهٔ شما",
+    );
+  } catch (error) {
+    console.error("❌ خطا در جزئیات هفتهٔ پورتال:", error.message);
+    return errorResponse(res, "خطا در دریافت جزئیات هفتهٔ مدیریتی", 500);
+  }
+};
+
+// ============================================
+// GET /api/portal/visits/:id   (فاز ۱۳.۴)
+// ------------------------------------------------------------
+// متن گزارش + فهرست پیوست‌ها (فقط متادیتا) + نام سالن‌های بازدیدشده.
+// ⚠️ نام/شناسهٔ کارشناس، file_path و created_by هرگز بیرون نمی‌روند.
+// ============================================
+const getMyVisitDetail = async (req, res) => {
+  try {
+    const customerId = scopeIdOf(req);
+    if (!customerId) return denyUnlinked(res);
+
+    const visitId = parseRowId(req.params.id);
+    if (!visitId) {
+      return errorResponse(res, "شناسهٔ بازدید نامعتبر است", 400);
+    }
+
+    const visitRow = await VisitReport.findOne({
+      where: { id: visitId, customer_id: customerId },
+      attributes: ["id", "visit_date", "status", "report_text"],
+    });
+
+    if (!visitRow) {
+      return errorResponse(res, "این بازدید در پروندهٔ شما یافت نشد", 404);
+    }
+
+    const plain = toPlain(visitRow);
+
+    const [attachmentRows, hallRows] = await Promise.all([
+      VisitReportAttachment.findAll({
+        where: { visit_report_id: visitId },
+        attributes: ["id", "file_name", "file_size", "mime_type"],
+        order: [["id", "ASC"]],
+      }),
+      VisitReportHall.findAll({
+        where: { visit_report_id: visitId },
+        attributes: ["hall_id"],
+      }),
+    ]);
+
+    const hallNames = await scopedHallNames(
+      customerId,
+      idsOf(hallRows, "hall_id"),
+    );
+
+    return successResponse(
+      res,
+      {
+        visit: visitReportView(plain, Array.from(hallNames.values())),
+        attachments: attachmentRows.map((row) => attachmentView(toPlain(row))),
+        meta: { scope: "self", generated_at: new Date().toISOString() },
+      },
+      "جزئیات بازدید پروندهٔ شما",
+    );
+  } catch (error) {
+    console.error("❌ خطا در جزئیات بازدید پورتال:", error.message);
+    return errorResponse(res, "خطا در دریافت جزئیات بازدید", 500);
+  }
+};
+
+// ============================================
+// GET /api/portal/visits/:id/attachments/:attachmentId   (فاز ۱۳.۴)
+// ------------------------------------------------------------
+// 🔒 سه سد پشت‌سرهم:
+//   ۱) بازدید باید متعلق به همین پرونده باشد (customer_id در همان WHERE)
+//   ۲) پیوست باید متعلق به همان بازدید باشد (کلید خارجی، نه فقط id)
+//   ۳) مسیر فایل باید داخل uploads/ باشد (ضد path traversal) و موجود باشد
+// ============================================
+const downloadMyAttachment = async (req, res) => {
+  try {
+    const customerId = scopeIdOf(req);
+    if (!customerId) return denyUnlinked(res);
+
+    const visitId = parseRowId(req.params.id);
+    const attachmentId = parseRowId(req.params.attachmentId);
+    if (!visitId || !attachmentId) {
+      return errorResponse(res, "شناسهٔ بازدید یا پیوست نامعتبر است", 400);
+    }
+
+    const owned = await VisitReport.count({
+      where: { id: visitId, customer_id: customerId },
+    });
+    if (!owned) {
+      return errorResponse(res, "این بازدید در پروندهٔ شما یافت نشد", 404);
+    }
+
+    const attachmentRow = await VisitReportAttachment.findOne({
+      where: { id: attachmentId, visit_report_id: visitId },
+      attributes: ["id", "file_name", "file_path"],
+    });
+    if (!attachmentRow) {
+      return errorResponse(res, "پیوست موردنظر یافت نشد", 404);
+    }
+
+    const attachment = toPlain(attachmentRow);
+    const resolved = resolveUploadPath(attachment.file_path);
+    if (!resolved) {
+      console.warn(
+        `⚠️ [portal] مسیر پیوست خارج از uploads بود (id=${attachment.id})`,
+      );
+      return errorResponse(res, "دسترسی به این فایل مجاز نیست", 403);
+    }
+
+    if (!fs.existsSync(resolved)) {
+      return errorResponse(res, "فایل این پیوست در سرور موجود نیست", 404);
+    }
+
+    // لاگ حسابرسی سبک (بدون دادهٔ حساس — فقط شناسه‌ها)
+    console.info(
+      `📎 [portal] دانلود پیوست ${attachment.id} (بازدید ${visitId}) برای پرونده ${customerId}`,
+    );
+
+    const downloadName =
+      path.basename(String(attachment.file_name || "").trim()) ||
+      path.basename(resolved);
+
+    return res.download(resolved, downloadName);
+  } catch (error) {
+    console.error("❌ خطا در دانلود پیوست پورتال:", error.message);
+    return errorResponse(res, "خطا در دریافت فایل پیوست", 500);
+  }
+};
+
 module.exports = {
   getPortalSummary,
   getMyHalls,
   getMyFlocks,
   getMyWeeks,
   getMyVisits,
+  getMyWeekDetail,
+  getMyVisitDetail,
+  downloadMyAttachment,
 };

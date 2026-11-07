@@ -56,6 +56,8 @@
             "baseURL",
             "constructor",
             "delete",
+            "download",
+            "fileNameFromDisposition",
             "get",
             "getFormDataHeaders",
             "getHeaders",
@@ -74,6 +76,7 @@
           "properties": [
             "baseURL",
             "cache",
+            "fileNameFromDisposition",
             "getFormDataHeaders",
             "getHeaders",
             "getToken",
@@ -98,6 +101,7 @@
       "classes": {
         "AppService": {
           "methods": [
+            "afterDenyLanding",
             "checkAccess",
             "constructor",
             "deniedText",
@@ -113,6 +117,8 @@
             "initPermissions",
             "initSharedComponents",
             "installPagePermissionWatch",
+            "isCustomerExemptPage",
+            "isCustomerSession",
             "isLandingPage",
             "loadFeature",
             "refresh",
@@ -121,6 +127,7 @@
           ],
           "properties": [
             "_pageWatchInstalled",
+            "afterDenyLanding",
             "checkAccess",
             "currentPage",
             "deniedText",
@@ -135,6 +142,8 @@
             "initSharedComponents",
             "initialized",
             "installPagePermissionWatch",
+            "isCustomerExemptPage",
+            "isCustomerSession",
             "isLandingPage",
             "loadFeature",
             "pageConfigs",
@@ -969,6 +978,7 @@
             "loadSectionData",
             "refresh",
             "renderMetaInfo",
+            "resolveCustomerId",
             "setupDatepickers",
             "showWrapper"
           ],
@@ -989,6 +999,7 @@
             "lockedSections",
             "menuToWrapper",
             "renderMetaInfo",
+            "resolveCustomerId",
             "sectionPermissions",
             "setupDatepickers",
             "showWrapper",
@@ -2506,6 +2517,81 @@
         "messagesService"
       ]
     },
+    "src/features/portal/portal.service.js": {
+      "instances": {
+        "portalService": "PortalService"
+      },
+      "classes": {
+        "PortalService": {
+          "methods": [
+            "activateTab",
+            "all",
+            "bindDetail",
+            "bindRetry",
+            "bindTabs",
+            "canViewReport",
+            "clearStatus",
+            "closeDetail",
+            "constructor",
+            "detailErrorMessage",
+            "downloadAttachment",
+            "el",
+            "init",
+            "load",
+            "loadSection",
+            "openDetail",
+            "render",
+            "renderChart",
+            "renderNoticeBox",
+            "renderSection",
+            "renderUnlinked",
+            "sectionOptions",
+            "setSectionStatus",
+            "setState",
+            "setTabsEnabled"
+          ],
+          "properties": [
+            "_detailBound",
+            "_retryBound",
+            "_tabsBound",
+            "activateTab",
+            "activeTab",
+            "all",
+            "bindDetail",
+            "bindRetry",
+            "bindTabs",
+            "canViewReport",
+            "clearStatus",
+            "closeDetail",
+            "data",
+            "detailErrorMessage",
+            "detailOpen",
+            "downloadAttachment",
+            "el",
+            "initialized",
+            "load",
+            "loadSection",
+            "openDetail",
+            "render",
+            "renderChart",
+            "renderNoticeBox",
+            "renderSection",
+            "renderUnlinked",
+            "sectionOptions",
+            "sections",
+            "setSectionStatus",
+            "setState",
+            "setTabsEnabled",
+            "state"
+          ],
+          "mixins": {}
+        }
+      },
+      "windowGlobals": [
+        "PortalService",
+        "portalService"
+      ]
+    },
     "src/features/profile/profile.renderer.js": {
       "instances": {
         "profileRenderer": "ProfileRenderer"
@@ -3372,6 +3458,7 @@
     "HeaderService",
     "ModalService",
     "PermissionManager",
+    "PortalService",
     "PresenceService",
     "ProfileService",
     "SMS_CONST",
@@ -3507,6 +3594,7 @@
     "openUnitEdit",
     "permissionManager",
     "permissionService",
+    "portalService",
     "presenceService",
     "printFlockCompletionReport",
     "printFlockSmsReport",

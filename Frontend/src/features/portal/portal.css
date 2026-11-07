@@ -415,4 +415,315 @@
   }
 }
 
+
+/* ============================================================
+   ۱۳.۴ — دکمهٔ «جزئیات» ردیف‌ها، پنل جزئیات، پیوست‌ها و نمودار
+   ⚠️ همهٔ کلاس‌ها با پیشوند portal- تا با استایل صفحهٔ دیگری
+      تداخل نکنند (پورتال CSS مستقل خودش را دارد).
+   ============================================================ */
+
+.portal-row__open {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 6px 12px;
+  font-size: 0.76rem;
+  font-family: inherit;
+  color: var(--primary);
+  background: var(--primary-soft);
+  border: 1px solid var(--primary);
+  border-radius: 9px;
+  cursor: pointer;
+}
+
+.portal-row__open:hover {
+  background: var(--primary);
+  color: var(--text-inverse);
+}
+
+/* ===== چیپ نام کاتالوگ (بیماری/واکسن/دارو/دان) ===== */
+.portal-chip {
+  display: inline-block;
+  margin: 0 0 6px 6px;
+  padding: 3px 10px;
+  font-size: 0.76rem;
+  color: var(--text-main);
+  background: var(--surface-muted, #f1f5f9);
+  border-radius: 999px;
+}
+
+/* ===== پنل جزئیات (روی صفحه، فقط خواندنی) ===== */
+.portal-detail {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.portal-detail[hidden] {
+  display: none;
+}
+
+.portal-detail__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+}
+
+.portal-detail__box {
+  position: relative;
+  width: 100%;
+  max-width: 680px;
+  max-height: 86vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface, #fff);
+  border-radius: 16px;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.25);
+  overflow: hidden;
+}
+
+.portal-detail__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border, #e2e8f0);
+}
+
+.portal-detail__heading {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.portal-detail__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  font-size: 0.9rem;
+  color: var(--text-light);
+  background: transparent;
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 9px;
+  cursor: pointer;
+}
+
+.portal-detail__close:hover {
+  color: var(--text-inverse);
+  background: var(--danger, #dc2626);
+  border-color: var(--danger, #dc2626);
+}
+
+.portal-detail__body {
+  padding: 16px 18px 22px;
+  overflow-y: auto;
+  font-size: 0.85rem;
+  color: var(--text-main);
+}
+
+.portal-detail__loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 18px 4px;
+  color: var(--text-light);
+}
+
+.portal-detail__title {
+  margin-bottom: 12px;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.portal-detail__row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px dashed var(--border, #e2e8f0);
+}
+
+.portal-detail__row:last-of-type {
+  border-bottom: 0;
+}
+
+.portal-detail__label {
+  flex: 0 0 auto;
+  font-size: 0.79rem;
+  color: var(--text-light);
+}
+
+.portal-detail__value {
+  flex: 1 1 auto;
+  text-align: left;
+  font-size: 0.82rem;
+}
+
+.portal-detail__muted {
+  font-size: 0.78rem;
+  color: var(--text-light);
+}
+
+.portal-detail__groups {
+  margin-top: 14px;
+  display: grid;
+  gap: 12px;
+}
+
+.portal-detail__group {
+  margin-top: 14px;
+  padding: 12px 14px;
+  background: var(--surface-muted, #f8fafc);
+  border-radius: 12px;
+}
+
+.portal-detail__group-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.portal-detail__report {
+  font-size: 0.82rem;
+  line-height: 1.9;
+  white-space: normal;
+  word-break: break-word;
+}
+
+/* ===== پیوست‌ها ===== */
+.portal-attachments {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.portal-attachments__row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px dashed var(--border, #e2e8f0);
+}
+
+.portal-attachments__row:last-child {
+  border-bottom: 0;
+}
+
+.portal-attachments__name {
+  flex: 1 1 auto;
+  font-size: 0.8rem;
+  word-break: break-all;
+}
+
+.portal-attachments__size {
+  flex: 0 0 auto;
+  font-size: 0.74rem;
+  color: var(--text-light);
+}
+
+.portal-attachments__btn {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-size: 0.76rem;
+  font-family: inherit;
+  color: var(--primary);
+  background: var(--primary-soft);
+  border: 1px solid var(--primary);
+  border-radius: 9px;
+  cursor: pointer;
+}
+
+.portal-attachments__btn:hover {
+  background: var(--primary);
+  color: var(--text-inverse);
+}
+
+/* ===== نمودار روند وزن (SVG) ===== */
+.portal-chart {
+  padding: 4px 16px 12px;
+}
+
+.portal-chart__empty {
+  margin: 0;
+  padding: 10px 0;
+  font-size: 0.78rem;
+  color: var(--text-light);
+}
+
+.portal-chart__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.portal-chart__title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.portal-chart__range {
+  font-size: 0.74rem;
+  color: var(--text-light);
+}
+
+.portal-chart__svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.portal-chart__axis {
+  stroke: var(--border, #e2e8f0);
+  stroke-width: 1;
+}
+
+.portal-chart__line {
+  fill: none;
+  stroke: var(--primary, #0ea5e9);
+  stroke-width: 2.5;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.portal-chart__dot {
+  fill: var(--primary, #0ea5e9);
+}
+
+.portal-chart__hint {
+  margin: 6px 0 0;
+  font-size: 0.72rem;
+  color: var(--text-light);
+}
+
+/* در نمایشگر کوچک، پنل جزئیات تمام‌عرض شود */
+@media (max-width: 480px) {
+  .portal-detail {
+    padding: 0;
+    align-items: flex-end;
+  }
+
+  .portal-detail__box {
+    max-width: 100%;
+    max-height: 92vh;
+    border-radius: 16px 16px 0 0;
+  }
 }

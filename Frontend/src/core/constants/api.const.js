@@ -206,16 +206,23 @@ export const API_CONSTANTS = {
       // جزئیات یک رویداد
       DETAIL: "/activity/:id",
     },
-    // ===== پورتال مشتری (فاز ۱۳.۲ و ۱۳.۳) — دادهٔ پروندهٔ خودِ مشتری =====
-    //  🔒 هیچ اندپوینتی شناسهٔ پرونده نمی‌گیرد: سرور آن را از توکن
+    // ===== پورتال مشتری (فاز ۱۳.۲، ۱۳.۳ و ۱۳.۴) — دادهٔ پروندهٔ خودِ مشتری =====
+    //  🔒 هیچ اندپوینتی شناسهٔ «مشتری» نمی‌گیرد: سرور آن را از توکن
     //     می‌سازد (req.customerScopeId)؛ هیچ ?id= ای فرستاده نمی‌شود.
     //     تنها پارامتر مجاز: page/limit (صفحه‌بندی فهرست‌ها).
+    //     ⚠️ از ۱۳.۴ شناسهٔ «ردیف خودم» در مسیر می‌آید (WEEK_DETAIL/
+    //     VISIT_DETAIL/VISIT_ATTACHMENT) و فقط از پاسخ فهرست گرفته
+    //     می‌شود، نه از ورودی کاربر.
     PORTAL: {
       ME: "/portal/me",
       HALLS: "/portal/halls",
       FLOCKS: "/portal/flocks",
       WEEKS: "/portal/weeks",
       VISITS: "/portal/visits",
+      WEEK_DETAIL: (id) => `/portal/weeks/${id}`,
+      VISIT_DETAIL: (id) => `/portal/visits/${id}`,
+      VISIT_ATTACHMENT: (visitId, attachmentId) =>
+        `/portal/visits/${visitId}/attachments/${attachmentId}`,
     },
   },
   TIMEOUT: 30000,

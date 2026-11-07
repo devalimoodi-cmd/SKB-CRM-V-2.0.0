@@ -107,6 +107,68 @@ class ApiService {
   }
 
   // ============================================================
+  // ✅ دانلود فایل با هدر احراز هویت (فاز ۱۳.۴ — پورتال مشتری)
+  // ------------------------------------------------------------
+  // چرا متد جدا؟ پاسخ این درخواست «فایل» است نه JSON، پس request()
+  // کار نمی‌کند. هدرها از getFormDataHeaders() می‌آید (توکن Bearer،
+  // بدون Content-Type) ⇒ فایل هیچ‌وقت با لینک عمومی سرو نمی‌شود و
+  // فقط کاربر دارای مجوز می‌تواند آن را بگیرد.
+  // ============================================================
+  async download(endpoint, fallbackName = "download") {
+    const url = endpoint.startsWith("http")
+      ? endpoint
+      : `${this.baseURL}${endpoint}`;
+
+    const response = await fetch(url, { headers: this.getFormDataHeaders() });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      if (response.status === 401) this.handleUnauthorized();
+      if (response.status === 403) {
+        this.notifyPermissionDenied(endpoint, errorData);
+      }
+      throw new Error(
+        errorData.message || `HTTP error! status: ${response.status}`,
+      );
+    }
+
+    const blob = await response.blob();
+    const objectUrl = URL.createObjectURL(blob);
+    const fileName =
+      this.fileNameFromDisposition(
+        response.headers.get("content-disposition"),
+      ) || fallbackName;
+
+    const anchor = document.createElement("a");
+    anchor.href = objectUrl;
+    anchor.download = fileName;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    setTimeout(() => URL.revokeObjectURL(objectUrl), 5000);
+
+    return fileName;
+  }
+
+  // نام فایل از هدر Content-Disposition (پشتیبانی از UTF-8 / RFC 5987)
+  fileNameFromDisposition(header) {
+    const value = String(header || "");
+    if (!value) return "";
+
+    const utf8 = /filename\*=UTF-8''([^;]+)/i.exec(value);
+    if (utf8) {
+      try {
+        return decodeURIComponent(utf8[1].trim());
+      } catch {
+        return "";
+      }
+    }
+
+    const plain = /filename="?([^";]+)"?/i.exec(value);
+    return plain ? plain[1].trim() : "";
+  }
+
+  // ============================================================
   // ✅ ۴۰۳ = نبود مجوز ⇒ پیام قابل‌فهم به کاربر + هم‌راستاسازی UI
   // ------------------------------------------------------------
   // • پیام دقیق («دسترسی «حذف سالن» برای نقش شما بسته است»)

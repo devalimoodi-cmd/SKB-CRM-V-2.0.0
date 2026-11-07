@@ -136,6 +136,8 @@
                         </div>
                         <div class="portal-tab__status" id="portalWeeksStatus"></div>
                         <ul class="portal-list" id="portalWeeksList"></ul>
+                        <!-- ۱۳.۴ — نمودار SVG از دادهٔ همین صفحه (بدون کتابخانه/اندپوینت تازه) -->
+                        <div class="portal-chart" id="portalChart"></div>
                         <div class="portal-list__pager" id="portalWeeksPager"></div>
                     </div>
 
@@ -175,6 +177,22 @@
         </div>
     </main>
 
+    <!-- ===== پنل جزئیات (فاز ۱۳.۴) =====
+         🔒 فقط خواندنی: یک GET برای جزئیات + یک GET برای دریافت پیوست.
+         هیچ فرم/دکمهٔ ثبت و ویرایشی در آن نیست؛ بستن با Esc، پس‌زمینه یا ×. ===== -->
+    <div class="portal-detail" id="portalDetail" hidden>
+        <div class="portal-detail__backdrop" data-portal-close></div>
+        <div class="portal-detail__box" role="dialog" aria-modal="true" aria-labelledby="portalDetailTitle">
+            <div class="portal-detail__head">
+                <span class="portal-detail__heading" id="portalDetailTitle">جزئیات</span>
+                <button type="button" class="portal-detail__close" data-portal-close aria-label="بستن">
+                    <i class="fas fa-xmark" aria-hidden="true"></i>
+                </button>
+            </div>
+            <div class="portal-detail__body" id="portalDetailBody"></div>
+        </div>
+    </div>
+
     <footer id="main-footer"></footer>
 
     <!-- ===== Vendor Scripts ===== -->
@@ -190,6 +208,7 @@
     <script type="module" src="/core/services/auth.service.js"></script>
     <script type="module" src="/core/services/state.service.js"></script>
     <script type="module" src="/core/services/notification.service.js"></script>
+    <script type="module" src="/core/services/permission.service.js"></script>
     <script type="module" src="/core/services/router.service.js"></script>
     <script type="module" src="/core/utils/date.utils.js"></script>
     <script type="module" src="/core/utils/string.utils.js"></script>
