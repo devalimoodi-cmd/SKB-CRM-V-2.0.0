@@ -72,6 +72,9 @@ const FILES = {
   customerInfo: "Frontend/src/features/customer-info/customer-info.service.js",
   headerBookmarks:
     "Frontend/src/shared/layouts/Header/header-bookmarks.service.js",
+  headerHtml: "Frontend/src/shared/layouts/Header/header.html",
+  messagesService: "Frontend/src/features/messages/messages.service.js",
+  infoPagesCss: "Frontend/src/styles/info-pages.css",
   permissionManager:
     "Frontend/src/features/admin-panel/permission.manager.js",
   adminPanelCss: "Frontend/src/features/admin-panel/admin-panel.css",
@@ -83,6 +86,7 @@ const FILES = {
   docs133: "docs/REVIEW-WAVE-13.3.md",
   docs134: "docs/REVIEW-WAVE-13.4.md",
   docs135: "docs/REVIEW-WAVE-13.5.md",
+  docs1351: "docs/REVIEW-WAVE-13.5.1.md",
 };
 
 check(
@@ -114,6 +118,9 @@ const SRC = {
   appService: read(FILES.appService),
   customerInfo: read(FILES.customerInfo),
   headerBookmarks: read(FILES.headerBookmarks),
+  headerHtml: read(FILES.headerHtml),
+  messagesService: read(FILES.messagesService),
+  infoPagesCss: read(FILES.infoPagesCss),
   permissionManager: read(FILES.permissionManager),
   adminPanelCss: read(FILES.adminPanelCss),
   frontendServer: read(FILES.frontendServer),
@@ -1184,6 +1191,68 @@ check(
   exists(FILES.docs135) &&
     /customer\.portal\.halls/.test(read(FILES.docs135)) &&
     /customer\.portal\.visits/.test(read(FILES.docs135)),
+);
+
+// ============================================================
+// ۱۲) ۱۳.۵.۱ — مودال «نظرات و پیشنهادات» در پورتال مشتری
+// ------------------------------------------------------------
+//  ریشهٔ خطری که این گارد از بازگشتش جلوگیری می‌کند:
+//   مودال پیام‌ها از پارشال هدر تزریق می‌شود و استایلش
+//   (.msg-modal-overlay → position:fixed + display:none) در
+//   styles/info-pages.css است. اگر صفحهٔ میزبان آن فایل را لود
+//   نکند، overlay بدون هیچ CSS به‌صورت بلوک خام داخل <header>
+//   چسبان می‌افتد و کل صفحه را به‌هم می‌ریزد (باگ واقعی /portal).
+// ============================================================
+const hasHeaderCssLink = (html) =>
+  /href="[^"]*shared\/layouts\/Header\/header\.css"/.test(html);
+const hasInfoPagesCssLink = (html) =>
+  /href="[^"]*styles\/info-pages\.css"/.test(html);
+
+check(
+  "۱۳.۵.۱ · صفحهٔ پورتال: استایل مودال پیام‌ها (styles/info-pages.css) لود می‌شود",
+  hasHeaderCssLink(SRC.portalHtml) &&
+    hasInfoPagesCssLink(SRC.portalHtml) &&
+    /\.msg-modal-overlay\s*\{[^}]*position:\s*fixed/.test(SRC.infoPagesCss) &&
+    /\.msg-modal-overlay\s*\{[^}]*display:\s*none/.test(SRC.infoPagesCss),
+);
+
+const portalPagesDir = path.join(ROOT, "Frontend/src/pages");
+const pageFiles = fs.existsSync(portalPagesDir)
+  ? fs
+      .readdirSync(portalPagesDir)
+      .filter((file) => file.endsWith(".html"))
+      .sort()
+  : [];
+const pagesMissingInfoCss = pageFiles.filter((file) => {
+  const html = read(path.join("Frontend/src/pages", file));
+  return hasHeaderCssLink(html) && !hasInfoPagesCssLink(html);
+});
+
+check(
+  "۱۳.۵.۱ · قاعدهٔ کلی: هر صفحه‌ای که هدر دارد استایل مودال پیام‌ها را هم لود می‌کند",
+  pageFiles.length > 0 && pagesMissingInfoCss.length === 0,
+  `pages=${pageFiles.length}${
+    pagesMissingInfoCss.length ? " missing=" + pagesMissingInfoCss.join(",") : ""
+  }`,
+);
+
+check(
+  "۱۳.۵.۱ · هدر: مودال پیام‌ها پیش‌فرض hidden است (خارج از جریان صفحه)",
+  /<div[^>]*id="messageThreadModal"[^>]*\shidden(\s|>)/.test(SRC.headerHtml),
+);
+
+const messagesSvcSrc = stripComments(SRC.messagesService);
+check(
+  "۱۳.۵.۱ · سرویس پیام‌ها: hidden مودال در باز و بستن توگل می‌شود",
+  /openModal\([\s\S]{0,1200}?overlay\.hidden\s*=\s*false/.test(messagesSvcSrc) &&
+    /closeModal\([\s\S]{0,400}?overlay\.hidden\s*=\s*true/.test(messagesSvcSrc),
+);
+
+check(
+  "۱۳.۵.۱ · مستندات: docs/REVIEW-WAVE-13.5.1.md موجود و کامل است",
+  exists(FILES.docs1351) &&
+    /info-pages\.css/.test(read(FILES.docs1351)) &&
+    /msg-modal-overlay/.test(read(FILES.docs1351)),
 );
 
 // ============================================================

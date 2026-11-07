@@ -206,13 +206,18 @@ class MessagesService {
       if (footer) footer.style.display = "";
     }
 
+    // ۱۳.۵.۱: خروج از حالت hidden پیش از نمایش (پیش‌فرض امن در HTML)
+    overlay.hidden = false;
     overlay.classList.add("show");
     document.body.style.overflow = "hidden";
   }
 
   closeModal() {
     const overlay = document.getElementById("messageThreadModal");
-    if (overlay) overlay.classList.remove("show");
+    if (overlay) {
+      overlay.hidden = true;
+      overlay.classList.remove("show");
+    }
     document.body.style.overflow = "";
     this.currentThreadId = null;
   }
