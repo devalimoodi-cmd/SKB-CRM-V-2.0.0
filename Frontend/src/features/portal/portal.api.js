@@ -275,8 +275,15 @@ export const portalApi = {
     );
   },
 
-  async getDashboardAnalysis() {
-    return apiService.get(API_CONSTANTS.ENDPOINTS.PORTAL.DASHBOARD_ANALYSIS);
+  // 🔒 موج ۱۳.۱۰.۱ — تنها مقدار مجاز `scope`: رشتهٔ "all" (شامل گلهٔ بسته).
+  //    هر مقدار دیگری دور ریخته می‌شود (سرور هم فقط "all" را می‌شناسد).
+  async getDashboardAnalysis({ scope = "" } = {}) {
+    const params = {};
+    if (String(scope ?? "").trim().toLowerCase() === "all") params.scope = "all";
+    return apiService.get(
+      API_CONSTANTS.ENDPOINTS.PORTAL.DASHBOARD_ANALYSIS,
+      params,
+    );
   },
 
   // ============================================================

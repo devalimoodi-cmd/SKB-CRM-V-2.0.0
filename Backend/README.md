@@ -39,6 +39,23 @@ npm run db:verify         # تأیید
 
 ---
 
+## ⛔ قاعدهٔ دوم (Express 5): هرگز به `req.query` / `req.params` انتساب نده
+
+در Express 5 این دو property **فقط getter** هستند و از `req.url` از نو ساخته می‌شوند؛
+`req.query = ...` در حالت strict یک `TypeError` است و همان لحظه کل اندپوینت ۵۰۰ می‌شود
+(باگ موج ۱۳.۱۰.۱ در «داشبورد پورتال» دقیقاً همین بود: نمودارها و تحلیل‌ها ۵۰۰ می‌دادند).
+
+- برای «تحمیل اسکوپ» هرگز `req` را تغییر نده؛ یکی از این دو:
+  - `services/portalDashboardScope.scopedRequest(req)` (پروکسی با query سفیدشده — الگوی پورتال)،
+  - یا `Object.defineProperty(req, "query", { value, writable: true, configurable: true })`
+    (الگوی `middleware/customerScope.js`).
+- `req.body` یک property معمولی است و انتسابش مجاز است.
+- گارد: بخش **۱۶** در `Frontend/customer-portal-guard-test.mjs` کل
+  `controllers/middleware/routes/services` را اسکن می‌کند و رفتار Express 5 را با یک
+  درخواست شبیه‌سازی‌شده **اجرا** می‌کند.
+
+---
+
 ## دستورهای رایج
 
 | دستور | کار |

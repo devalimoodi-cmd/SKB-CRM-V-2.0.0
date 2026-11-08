@@ -88,6 +88,9 @@ export const portalExtraMixin = {
     this.mobileStage = null; // null | "request" | "confirm"
     this.mobileChallenge = null; // { challenge_id, mobile_masked }
     this.dashboardSelection = { flockGroupId: "" };
+    // ✅ موج ۱۳.۱۰.۱ — آیا کاربر خودش گله را انتخاب کرده است؟
+    //    اگر بله، «انتخاب پیش‌فرض = آخرین گله» هرگز رویش نمی‌نویسد.
+    this.dashboardUserPicked = false;
     this.extraBound = false;
     // ✅ موج ۱۳.۹ — وضعیت نصب‌پذیری (PWA)
     this.installEvent = null;
@@ -164,6 +167,8 @@ export const portalExtraMixin = {
       dashboardBody.addEventListener("change", (event) => {
         const select = event.target.closest("[data-dashboard-flock]");
         if (!select) return null;
+        // ✅ انتخاب دستی => پیش‌فرض خودکار دیگر اعمال نمی‌شود
+        this.dashboardUserPicked = true;
         this.dashboardSelection = { flockGroupId: select.value || "" };
         return this.applyDashboardSelection();
       });
@@ -591,6 +596,8 @@ export const portalExtraMixin = {
       state.options = options || {};
       state.summary = summary || {};
       state.loaded = true;
+      // ✅ موج ۱۳.۱۰.۱ — پیش از اولین بارگذاری، «آخرین گله» را انتخاب کن
+      this.applyDefaultDashboardSelection();
       this.renderDashboardSummaryBlock();
       this.renderDashboardOptionsBlock();
       await this.loadDashboardCharts();
@@ -600,6 +607,29 @@ export const portalExtraMixin = {
       state.loading = false;
       this.setExtraStatus("dashboard", "error", this.errorMessageOf(error));
     }
+  },
+
+  // ============================================================
+  // ✅ موج ۱۳.۱۰.۱ — «انتخاب پیش‌فرض: آخرین گلهٔ پرونده»
+  // ------------------------------------------------------------
+  //  چرا؟ سرور در حالت «بدون شناسهٔ گله» فقط جوجه‌ریزی‌های
+  //  `is_active` را می‌آورد؛ پس مشتریی که گله‌اش را بسته، نمودار خالی
+  //  («داده‌ای برای نمایش وجود ندارد») می‌دید. فهرست flocks از
+  //  /dashboard/options با `placement_date DESC` می‌آید ⇒ flocks[0]
+  //  آخرین دوره است (چه فعال چه بسته)، و شاخهٔ flockGroupId در سرور
+  //  برای گلهٔ پایانیافته هم از همهٔ سالن‌های همان دوره استفاده می‌کند.
+  //  🔒 انتخاب دستی کاربر محترم است (dashboardUserPicked) و هیچ شناسه‌ای
+  //     جز شناسهٔ همین فهرست ساخته نمی‌شود (اعتبارسنجی در portal.api).
+  // ============================================================
+  applyDefaultDashboardSelection() {
+    if (this.dashboardUserPicked) return false;
+    if (String(this.dashboardSelection.flockGroupId || "").trim()) return false;
+    const flocks = (this.extra.dashboard.options || {}).flocks;
+    const latest = Array.isArray(flocks) && flocks.length ? flocks[0] : null;
+    const id = latest ? String(latest.id ?? "").trim() : "";
+    if (!/^\d{1,9}$/.test(id)) return false;
+    this.dashboardSelection = { flockGroupId: id };
+    return true;
   },
 
   renderDashboardOptionsBlock() {
@@ -667,9 +697,14 @@ export const portalExtraMixin = {
     }
 
     // مقایسه با استاندارد نژاد — فقط اگر مجوزش باز باشد
+    // ✅ موج ۱۳.۱۰.۱ — `scope: "all"` تا گلهٔ **بسته** هم در نمودار
+    //    استاندارد نژاد بیاید (سرور فقط با scope=all دوره‌های گذشته را
+    //    هم می‌آورد و customerId همچنان از توکن تحمیل می‌شود).
     if (standardsBox && allowed.standards !== false) {
       try {
-        const analysis = payloadDataOf(await portalApi.getDashboardAnalysis());
+        const analysis = payloadDataOf(
+          await portalApi.getDashboardAnalysis({ scope: "all" }),
+        );
         state.analysis = analysis || {};
         standardsBox.innerHTML = renderStandardsChart(state.analysis, { charts: allowed });
       } catch (error) {

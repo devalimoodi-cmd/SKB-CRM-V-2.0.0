@@ -28,14 +28,12 @@ const Flock = require("../models/Flock");
 const Hall = require("../models/Hall");
 const WeeklyManagement = require("../models/WeeklyManagement");
 const dashboardController = require("./dashboardController");
+const {
+  scopeIdOf,
+  scopedRequest,
+} = require("../services/portalDashboardScope");
 const { userHasPermission } = require("../middleware/permissions");
 const { successResponse, errorResponse } = require("../utils/response");
-
-const scopeIdOf = (req) => {
-  const raw = req.portalScopeId ?? req.customerScopeId ?? req.customerScope?.customerId;
-  const parsed = Number(raw);
-  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
-};
 
 const denyUnlinked = (res) =>
   errorResponse(
@@ -240,23 +238,18 @@ const getMyDashboardSummary = async (req, res) => {
 //   و پورتال مشتری. این‌جا فقط مرزِ داده سخت می‌شود:
 //     customerId ← req.customerScopeId   (هر مقدار کلاینت دور ریخته می‌شود)
 //     flockId / flockGroupId ← قبلاً با portalOwnership سنجیده شده است
+//
+//  ⚠️ موج ۱۳.۱۰.۱ — باگ ۵۰۰:
+//   Express 5، `req.query` را getter-only تعریف می‌کند؛ پس این الگوی
+//   قبلی (`req.query = forcedQuery(req)`) در حالت strict یک TypeError
+//   می‌داد و پورتال به‌جای نمودار، ۵۰۰ می‌گرفت. الان اسکوپ با
+//   `scopedRequest` (پروکسی، بدون دست‌زدن به req اصلی) ساخته می‌شود.
 // ============================================
-const forcedQuery = (req) => {
-  const query = { ...(req.query || {}) };
-  // هر نوع شناسهٔ مشتری از کلاینت بی‌اثر است
-  delete query.customer_id;
-  delete query.customerId;
-  query.customerId = String(scopeIdOf(req));
-  return query;
-};
-
 const getMyCharts = async (req, res) => {
   try {
-    const customerId = scopeIdOf(req);
-    if (!customerId) return denyUnlinked(res);
+    if (!scopeIdOf(req)) return denyUnlinked(res);
 
-    req.query = forcedQuery(req);
-    return await dashboardController.getChartsData(req, res);
+    return await dashboardController.getChartsData(scopedRequest(req), res);
   } catch (error) {
     console.error("❌ خطا در نمودارهای داشبورد پورتال:", error.message);
     return errorResponse(res, "خطا در دریافت دادهٔ نمودارها", 500);
@@ -265,11 +258,9 @@ const getMyCharts = async (req, res) => {
 
 const getMyAnalysis = async (req, res) => {
   try {
-    const customerId = scopeIdOf(req);
-    if (!customerId) return denyUnlinked(res);
+    if (!scopeIdOf(req)) return denyUnlinked(res);
 
-    req.query = forcedQuery(req);
-    return await dashboardController.getAnalysisData(req, res);
+    return await dashboardController.getAnalysisData(scopedRequest(req), res);
   } catch (error) {
     console.error("❌ خطا در تحلیل‌های داشبورد پورتال:", error.message);
     return errorResponse(res, "خطا در دریافت تحلیل‌ها", 500);

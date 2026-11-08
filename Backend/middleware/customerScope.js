@@ -143,8 +143,18 @@ const enforceSelfCustomer =
     //    آن‌گاه مشتریِ بدون پارامتر، فیلتری نمی‌فرستد و همهٔ ردیف‌های
     //    *همهٔ* مشتریان را می‌گیرد. با این تزریق، کنترلر همیشه فیلتر دارد.
     if (source === "query") {
-      if (!req.query) req.query = {};
-      req.query[key] = String(result.id);
+      // ⚠️ موج ۱۳.۱۰.۱ — Express 5: `req.query` فقط getter است.
+      //    انتساب به آن TypeError می‌دهد و نوشتن روی آبجکتِ بازگشتی هم
+      //    بی‌اثر است (هر بار از req.url از نو ساخته می‌شود). پس یک
+      //    query واقعی با defineProperty جایگزین می‌کنیم.
+      const currentQuery =
+        req.query && typeof req.query === "object" ? req.query : {};
+      Object.defineProperty(req, "query", {
+        value: { ...currentQuery, [key]: String(result.id) },
+        writable: true,
+        enumerable: true,
+        configurable: true,
+      });
     } else if (source === "body") {
       if (!req.body || typeof req.body !== "object") req.body = {};
       req.body[key] = String(result.id);

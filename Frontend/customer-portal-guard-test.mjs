@@ -107,6 +107,10 @@ const FILES = {
   verifyDb: "Backend/scripts/verify-db.js",
   gitignore: ".gitignore",
   docs1310: "docs/REVIEW-WAVE-13.10.md",
+  // ✅ موج ۱۳.۱۰.۱ — رفع باگ ۵۰۰ داشبورد پورتال (Express 5)
+  portalDashboardController: "Backend/controllers/portalDashboardController.js",
+  dashboardScope: "Backend/services/portalDashboardScope.js",
+  docs13101: "docs/REVIEW-WAVE-13.10.1.md",
 };
 
 check(
@@ -157,6 +161,9 @@ const SRC = {
   uploadMiddleware: read(FILES.uploadMiddleware),
   verifyDb: read(FILES.verifyDb),
   gitignore: read(FILES.gitignore),
+  // ✅ موج ۱۳.۱۰.۱
+  portalDashboardController: read(FILES.portalDashboardController),
+  dashboardScope: read(FILES.dashboardScope),
 };
 
 // ============================================================
@@ -1424,14 +1431,27 @@ check(
 check(
   "۱۳.۸ · داشبورد: customerId از توکن تحمیل می‌شود (نه از کلاینت)",
   (() => {
-    const src = read("Backend/controllers/portalDashboardController.js");
+    // ⚠️ ۱۳.۱۰.۱: اسکوپ به services/portalDashboardScope منتقل شد (پروکسی،
+    //    چون در Express 5 انتساب به req.query ممنوع است).
+    const src = stripComments(
+      read("Backend/controllers/portalDashboardController.js"),
+    );
+    const scopeSrc = stripComments(
+      read("Backend/services/portalDashboardScope.js"),
+    );
     return (
-      /query\.customerId = String\(scopeIdOf\(req\)\)/.test(src) &&
-      /delete query\.customer_id/.test(src) &&
-      /delete query\.customerId/.test(src) &&
-      /dashboardController\.getChartsData\(req, res\)/.test(src) &&
-      /dashboardController\.getAnalysisData\(req, res\)/.test(src) &&
-      !/req\.query\.customerId\s*\)/.test(src)
+      /scopeIdOf/.test(src) &&
+      /ALLOWED_QUERY_KEYS = \["flockId", "flockGroupId"\]/.test(scopeSrc) &&
+      /query\.customerId = String\(customerId\)/.test(scopeSrc) &&
+      // هر شناسهٔ مشتری کلاینت (customer_id/customerId) در فهرست سفید نیست
+      !/customer_id/.test(scopeSrc) &&
+      // واگذاری همیشه با پروکسی اسکوپ‌شده، نه req خام کلاینت
+      /dashboardController\.getChartsData\(scopedRequest\(req\), res\)/.test(src) &&
+      /dashboardController\.getAnalysisData\(scopedRequest\(req\), res\)/.test(src) &&
+      !/getChartsData\(req, res\)/.test(src) &&
+      !/getAnalysisData\(req, res\)/.test(src) &&
+      !/req\.query\.customerId/.test(src) &&
+      !/req\.query\.customer_id/.test(src)
     );
   })(),
 );
@@ -1972,6 +1992,198 @@ check(
     /"portal_documents",/.test(SRC.verifyDb) &&
     /portal_documents_deleted_at/.test(SRC.verifyDb) &&
     /حذف نرم/.test(read(FILES.docs1310)),
+);
+
+// ============================================================
+// ۱۶) موج ۱۳.۱۰.۱ — رفع ۵۰۰ داشبورد پورتال (Express 5)
+// ------------------------------------------------------------
+// 🔒 ریشهٔ خطری که این بخش سنجیده می‌شود:
+//   ۱) در Express 5، `req.query` فقط getter است (هر بار از req.url
+//      از نو ساخته می‌شود، بدون setter). هر انتساب به آن در حالت
+//      strict یک TypeError است ⇒ کل اندپوینت ۵۰۰ می‌شود. دقیقاً همین
+//      باگ، «نمودارها» و «تحلیل‌ها»ی پورتال را خراب کرده بود.
+//   ۲) «تزریق اجباری» اسکوپ اگر روی آبجکتِ دورریز بنویسد، محافظت
+//      *ظاهری* است و فیلتر امنیتی واقعاً اعمال نمی‌شود.
+//   ۳) اگر مشتری گله‌اش را بسته باشد، درخواست بدون شناسهٔ گله فقط
+//      جوجه‌ریزی‌های فعال را می‌گیرد ⇒ نمودار خالی. پس آخرین گله باید
+//      پیش‌فرض انتخاب شود — ولی انتخاب دستی کاربر بازنویسی نشود.
+// ⭐ این بخش «منطق واقعی» را هم اجرا می‌کند (بدون دیتابیس/HTTP).
+// ============================================================
+const dashboardScopeService = require(
+  path.join(ROOT, "Backend/services/portalDashboardScope.js"),
+);
+const dashboardControllerClean = stripComments(SRC.portalDashboardController);
+const scopeServiceClean = stripComments(SRC.dashboardScope);
+const middlewareClean = stripComments(SRC.middleware);
+const portalApiClean = stripComments(SRC.portalApi);
+
+// (۱) اسکن کل بک‌اند: هیچ انتسابی به req.query/req.params نمانده باشد
+const BACKEND_DIRS = ["controllers", "middleware", "routes", "services"];
+const backendJsFiles = BACKEND_DIRS.flatMap((dir) => {
+  const full = path.join(ROOT, "Backend", dir);
+  if (!fs.existsSync(full)) return [];
+  return fs
+    .readdirSync(full, { withFileTypes: true })
+    .filter((entry) => entry.isFile() && entry.name.endsWith(".js"))
+    .map((entry) => path.join(full, entry.name));
+});
+// فقط کوئری و پارامتر مسیر: این دو در Express 5 getter-only هستند
+// (`req.body` یک property معمولی است و انتسابش مجاز است).
+const READONLY_REQUEST_PROP = /\breq\.(query|params)\s*=(?!=)/;
+const offenders = backendJsFiles
+  .filter((file) =>
+    READONLY_REQUEST_PROP.test(stripComments(fs.readFileSync(file, "utf8"))),
+  )
+  .map((file) => path.relative(ROOT, file));
+
+check(
+  "۱۳.۱۰.۱ · بک‌اند: صفر انتساب به `req.query`/`req.params` (قاعدهٔ Express 5)",
+  backendJsFiles.length > 30 && offenders.length === 0,
+  offenders.join(", "),
+);
+
+// (۲) درخواست شبیه‌سازی‌شده با همان رفتار Express 5 (query فقط getter)
+const expressLikeRequest = () => {
+  const url =
+    "/api/portal/dashboard/charts?customerId=999&customer_id=999&flockGroupId=7&scope=ALL&evil=1&flockId[]=5";
+  const req = {
+    url,
+    method: "GET",
+    customerScopeId: 5,
+    user: { id: 12, role: "customer", customer_id: 5 },
+  };
+  Object.defineProperty(req, "query", {
+    get: () =>
+      Object.fromEntries(new URL(url, "http://localhost").searchParams.entries()),
+    enumerable: true,
+    configurable: true,
+  });
+  return req;
+};
+
+const getterOnlyRejectsAssignment = (() => {
+  const req = expressLikeRequest();
+  try {
+    req.query = { customerId: "1" };
+    return false;
+  } catch (error) {
+    return error instanceof TypeError;
+  }
+})();
+
+check(
+  "۱۳.۱۰.۱ · شبیه‌سازی Express 5: انتساب به query واقعاً TypeError می‌دهد",
+  getterOnlyRejectsAssignment,
+);
+
+const forcedQueryResult = (() => {
+  try {
+    return dashboardScopeService.forcedQuery(expressLikeRequest());
+  } catch {
+    return null;
+  }
+})();
+
+check(
+  "۱۳.۱۰.۱ · forcedQuery: تحمیل customerId از توکن + دور ریختن customer_id/پارامتر ناشناخته",
+  forcedQueryResult !== null &&
+    forcedQueryResult.customerId === "5" &&
+    forcedQueryResult.flockGroupId === "7" &&
+    forcedQueryResult.scope === "all" &&
+    forcedQueryResult.customer_id === undefined &&
+    forcedQueryResult.evil === undefined &&
+    forcedQueryResult["flockId[]"] === undefined,
+  forcedQueryResult === null ? "threw" : JSON.stringify(forcedQueryResult),
+);
+
+const scopedRequestResult = (() => {
+  try {
+    const req = expressLikeRequest();
+    const proxy = dashboardScopeService.scopedRequest(req);
+    return {
+      ok: true,
+      query: proxy.query,
+      method: proxy.method,
+      scopeId: proxy.customerScopeId,
+      originalQuery: req.query,
+    };
+  } catch (error) {
+    return { ok: false, error: error.message };
+  }
+})();
+
+check(
+  "۱۳.۱۰.۱ · scopedRequest: پروکسی بدون TypeError، وراثت req اصلی، بدون تغییر در req",
+  scopedRequestResult.ok === true &&
+    scopedRequestResult.query.customerId === "5" &&
+    scopedRequestResult.method === "GET" &&
+    scopedRequestResult.scopeId === 5 &&
+    scopedRequestResult.originalQuery.customerId === "999",
+  scopedRequestResult.ok ? "" : scopedRequestResult.error,
+);
+
+// (۳) کنترلر پورتال: واگذاری با پروکسی، نه دست‌کاری req
+check(
+  "۱۳.۱۰.۱ · کنترلر پورتال: getChartsData/getAnalysisData با scopedRequest و صفر انتساب",
+  /scopedRequest\(req\)/.test(dashboardControllerClean) &&
+    !READONLY_REQUEST_PROP.test(dashboardControllerClean) &&
+    /dashboardController\.getChartsData\(scopedRequest\(req\),\s*res\)/.test(
+      dashboardControllerClean,
+    ) &&
+    /dashboardController\.getAnalysisData\(scopedRequest\(req\),\s*res\)/.test(
+      dashboardControllerClean,
+    ) &&
+    /require\("\.\.\/services\/portalDashboardScope"\)/.test(
+      dashboardControllerClean,
+    ),
+);
+
+// (۴) سرویس اسکوپ: فهرست سفید + پروکسی بدون کپی req
+check(
+  "۱۳.۱۰.۱ · سرویس اسکوپ: فهرست سفید flockId/flockGroupId/scope + defineProperty + Object.create",
+  /ALLOWED_QUERY_KEYS = \["flockId", "flockGroupId"\]/.test(scopeServiceClean) &&
+    /ALLOWED_SCOPES = \["all"\]/.test(scopeServiceClean) &&
+    /Object\.create\(req/.test(scopeServiceClean) &&
+    /Object\.defineProperty\(\s*proxy,\s*"query"/.test(scopeServiceClean) &&
+    /query\.customerId = String\(customerId\)/.test(scopeServiceClean),
+);
+
+// (۵) تزریق اجباری اسکوپ در middleware با defineProperty (نه انتساب)
+check(
+  "۱۳.۱۰.۱ · customerScope: تزریق اسکوپ با defineProperty روی query",
+  /Object\.defineProperty\(req,\s*"query"/.test(middlewareClean) &&
+    !READONLY_REQUEST_PROP.test(middlewareClean),
+);
+
+// (۶) فرانت: انتخاب پیش‌فرض «آخرین گله» + حفظ انتخاب دستی
+check(
+  "۱۳.۱۰.۱ · پورتال: پیش‌فرض = آخرین گلهٔ پرونده و انتخاب دستی کاربر محفوظ می‌ماند",
+  /applyDefaultDashboardSelection\(\)\s*\{/.test(SRC.portalExtra) &&
+    /this\.dashboardUserPicked = false/.test(SRC.portalExtra) &&
+    /this\.dashboardUserPicked = true/.test(SRC.portalExtra) &&
+    /flocks\[0\]/.test(SRC.portalExtra) &&
+    // فراخوانی پیش از رندر فهرست (تا <select> همان گله را نشان دهد)
+    SRC.portalExtra.indexOf("this.applyDefaultDashboardSelection();") !== -1 &&
+    SRC.portalExtra.indexOf("this.applyDefaultDashboardSelection();") <
+      SRC.portalExtra.indexOf("this.renderDashboardOptionsBlock();"),
+);
+
+// (۷) scope=all برای گلهٔ بسته: کلاینت فقط "all" می‌فرستد
+check(
+  "۱۳.۱۰.۱ · scope=all: کلاینت فقط «all» را مجاز می‌داند و استاندارد نژاد آن را می‌خواهد",
+  /getDashboardAnalysis\(\{ scope: "all" \}\)/.test(SRC.portalExtra) &&
+    /async getDashboardAnalysis\(\{ scope = "" \} = \{\}\)/.test(portalApiClean) &&
+    /params\.scope = "all"/.test(portalApiClean) &&
+    !/getDashboardAnalysis\(\)/.test(portalApiClean),
+);
+
+// (۸) مستندات موج + قاعدهٔ عمومی Express 5
+check(
+  "۱۳.۱۰.۱ · مستندات موج و قاعدهٔ Express 5 ثبت شده",
+  exists(FILES.docs13101) &&
+    /Express 5/.test(read(FILES.docs13101)) &&
+    /req\.query/.test(read(FILES.docs13101)) &&
+    /۱۳\.۱۰\.۱/.test(read(FILES.docs13101)),
 );
 
 // ============================================================
