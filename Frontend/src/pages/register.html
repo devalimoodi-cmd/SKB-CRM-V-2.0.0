@@ -1,4 +1,4 @@
-<!-- pages/register.html — ثبت‌نام عمومی مشتری (فاز ۱۳.۶ / بازطراحی ۱۳.۷ / چیدمان سه‌ستونه ۱۳.۷.۱) -->
+<!-- pages/register.html — ثبت‌نام عمومی مشتری (فاز ۱۳.۶ / بازطراحی ۱۳.۷ / چیدمان سه‌ستونه ۱۳.۷.۱ / فرم کامل پرونده ۱۳.۷.۲) -->
 <!DOCTYPE html>
 <html dir="rtl" lang="fa">
 
@@ -174,15 +174,90 @@
                         </div>
                     </div>
 
-                    <!-- ۱۰) توضیح (تمام‌عرض) -->
-                    <div class="reg-field">
-                        <label class="reg-label" for="regNote">
-                            توضیح
-                            <span class="reg-optional">(اختیاری)</span>
-                        </label>
-                        <textarea class="reg-textarea" id="regNote" data-field="note" maxlength="500"
-                            placeholder="هر توضیحی که به بررسی درخواست شما کمک می‌کند"></textarea>
-                        <span class="reg-error" data-field="note" hidden></span>
+                    <!-- ===== ✅ موج ۱۳.۷.۲ — اطلاعات پروندهٔ مشتری (پیش‌تر مدیر آن را دستی وارد می‌کرد) ===== -->
+                    <div class="reg-grid reg-grid--profile">
+
+                        <!-- ۱۰) نوع مشتری (اجباری — از دیکشنری) -->
+                        <div class="reg-field">
+                            <label class="reg-label" for="regCustomerType">نوع مشتری</label>
+                            <div class="reg-control">
+                                <select class="reg-select" id="regCustomerType" data-field="customer_type_id">
+                                    <option value="">در حال بارگذاری…</option>
+                                </select>
+                                <i class="fas fa-chevron-down"></i>
+                            </div>
+                            <span class="reg-error" data-field="customer_type_id" hidden></span>
+                        </div>
+
+                        <!-- ۱۱) کد ملی (اختیاری — ۱۰ رقم) -->
+                        <div class="reg-field">
+                            <label class="reg-label" for="regNationalCode">
+                                کد ملی
+                                <span class="reg-optional">(اختیاری)</span>
+                            </label>
+                            <div class="reg-control">
+                                <input class="reg-input" id="regNationalCode" data-field="national_code"
+                                    type="text" maxlength="10" inputmode="numeric" autocomplete="off"
+                                    placeholder="۱۰ رقم">
+                                <i class="fas fa-id-card"></i>
+                            </div>
+                            <span class="reg-error" data-field="national_code" hidden></span>
+                        </div>
+
+                        <!-- ۱۲) نام واحد/مزرعه (اختیاری) -->
+                        <div class="reg-field">
+                            <label class="reg-label" for="regFarmName">
+                                نام واحد / مزرعه
+                                <span class="reg-optional">(اختیاری)</span>
+                            </label>
+                            <div class="reg-control">
+                                <input class="reg-input" id="regFarmName" data-field="farm_name" type="text"
+                                    maxlength="200" placeholder="مثال: مرغداری نمونه">
+                                <i class="fas fa-warehouse"></i>
+                            </div>
+                            <span class="reg-error" data-field="farm_name" hidden></span>
+                        </div>
+
+                        <!-- ۱۳) استان (اختیاری — از دیکشنری) -->
+                        <div class="reg-field">
+                            <label class="reg-label" for="regProvince">
+                                استان
+                                <span class="reg-optional">(اختیاری)</span>
+                            </label>
+                            <div class="reg-control">
+                                <select class="reg-select" id="regProvince" data-field="province">
+                                    <option value="">در حال بارگذاری…</option>
+                                </select>
+                                <i class="fas fa-chevron-down"></i>
+                            </div>
+                            <span class="reg-error" data-field="province" hidden></span>
+                        </div>
+
+                        <!-- ۱۴) شهرستان (وابسته به استان) -->
+                        <div class="reg-field">
+                            <label class="reg-label" for="regCounty">
+                                شهرستان
+                                <span class="reg-optional">(اختیاری)</span>
+                            </label>
+                            <div class="reg-control">
+                                <select class="reg-select" id="regCounty" data-field="county" disabled>
+                                    <option value="">— ابتدا استان را انتخاب کنید —</option>
+                                </select>
+                                <i class="fas fa-chevron-down"></i>
+                            </div>
+                            <span class="reg-error" data-field="county" hidden></span>
+                        </div>
+
+                        <!-- ۱۵) توضیح (اختیاری) -->
+                        <div class="reg-field">
+                            <label class="reg-label" for="regNote">
+                                توضیح
+                                <span class="reg-optional">(اختیاری)</span>
+                            </label>
+                            <textarea class="reg-textarea" id="regNote" data-field="note" maxlength="500"
+                                placeholder="هر توضیحی که به بررسی درخواست شما کمک می‌کند"></textarea>
+                            <span class="reg-error" data-field="note" hidden></span>
+                        </div>
                     </div>
 
                     <button type="submit" class="reg-submit" id="regSubmitBtn">

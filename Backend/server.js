@@ -341,8 +341,8 @@ connectDB();
 // مسیرهای API
 // ============================================
 app.use("/api/customers", customerRegistrationRoutes);
-// ✅ «ثبت‌نام عمومی مشتری + صف تأیید» (فاز ۱۳.۶)
-//    عمومی: GET /api/registrations/config و POST /api/registrations
+// ✅ «ثبت‌نام عمومی مشتری + صف تأیید» (فاز ۱۳.۶ / فرم کامل پرونده ۱۳.۷.۲)
+//    عمومی: GET /api/registrations/config · GET /api/registrations/customer-types · POST /api/registrations
 //    مدیریت: فهرست/شمارش/تأیید/رد با کلیدهای users.registrations.*
 app.use("/api/registrations", registrationRoutes);
 app.use("/api/cities", cityRoutes);

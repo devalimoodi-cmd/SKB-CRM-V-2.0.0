@@ -21,6 +21,7 @@ const { parsePagination } = require("../utils/pagination");
 const { verifyChallenge, isEnabled: isCaptchaEnabled } = require("../utils/captcha");
 const { userHasPermission } = require("../middleware/permissions");
 const settingsController = require("./settingsController");
+const CustomerType = require("../models/CustomerType");
 const rules = require("../services/registrationRules");
 const service = require("../services/registrationService");
 
@@ -77,6 +78,41 @@ const getPublicConfig = async (req, res) => {
     );
   } catch (error) {
     console.error("❌ خطا در خواندن پیکربندی ثبت‌نام:", error);
+    return errorResponse(res, error.message, 500);
+  }
+};
+
+// ============================================
+// GET /api/registrations/customer-types  (عمومی)
+// ------------------------------------------------------------
+// فرم /register برای کشوی «نوع مشتری» به دیکشنری نیاز دارد، ولی مسیر
+// مدیریتی /api/dictionaries/customer-types مجوز dictionary.customer-types.view
+// می‌خواهد. پس یک نسخهٔ عمومی و **حداقلی** اینجا ساخته شد:
+//   • فقط انواع «فعال»
+//   • فقط دو ستون id و name (بدون description/sort_order/تاریخ/سازنده)
+//   • پشت لیمیتر سبک (ضدّ اسکرپ دیکشنری)
+// ============================================
+const PUBLIC_CUSTOMER_TYPES_LIMIT = 100;
+
+const getPublicCustomerTypes = async (req, res) => {
+  try {
+    const rows = await CustomerType.findAll({
+      where: { active: true },
+      attributes: ["id", "name"],
+      order: [
+        ["sort_order", "ASC"],
+        ["name", "ASC"],
+      ],
+      limit: PUBLIC_CUSTOMER_TYPES_LIMIT,
+    });
+
+    const items = (rows || []).map((row) => ({ id: row.id, name: row.name }));
+
+    // فهرست کم‌تغییر است ⇒ کش کوتاه سمت مرورگر/پروکسی (فقط همین پاسخ عمومی)
+    res.set("Cache-Control", "public, max-age=300");
+    return successResponse(res, items, "فهرست انواع مشتری دریافت شد");
+  } catch (error) {
+    console.error("❌ خطا در دریافت انواع مشتری برای فرم ثبت‌نام:", error);
     return errorResponse(res, error.message, 500);
   }
 };
@@ -285,6 +321,7 @@ const rejectRegistration = async (req, res) => {
 module.exports = {
   REGISTRATION_CLOSED_MESSAGE,
   getPublicConfig,
+  getPublicCustomerTypes,
   publicRegister,
   listRegistrations,
   getPendingCount,

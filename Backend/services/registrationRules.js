@@ -51,6 +51,12 @@ const ALLOWED_FIELDS = [
   "confirm_password",
   "requested_customer_code",
   "note",
+  // موج ۱۳.۷.۲ — اطلاعات پروندهٔ مشتری (پیش‌تر فقط مدیر آن را وارد می‌کرد)
+  "customer_type_id",
+  "national_code",
+  "farm_name",
+  "province",
+  "county",
 ];
 
 // فیلدهایی که در بدنه **دیده شدنشان** هم ارزش هشدار دارد (تلاش ارتقای نقش)
@@ -103,6 +109,14 @@ const validateRegistration = (body = {}) => {
   const requested_customer_code = cleanText(input.requested_customer_code);
   const note = cleanText(input.note);
 
+  // ===== موج ۱۳.۷.۲ — اطلاعات پروندهٔ مشتری (فرم عمومی) =====
+  const rawTypeId = normalizeDigits(input.customer_type_id).trim();
+  const customer_type_id = rawTypeId === "" ? null : Number(rawTypeId);
+  const national_code = normalizeDigits(input.national_code).replace(/\D/g, "");
+  const farm_name = cleanText(input.farm_name);
+  const province = cleanText(input.province);
+  const county = cleanText(input.county);
+
   if (first_name.length < MIN_NAME_LENGTH || first_name.length > MAX_NAME_LENGTH) {
     errors.first_name = `نام باید بین ${MIN_NAME_LENGTH} تا ${MAX_NAME_LENGTH} کاراکتر باشد`;
   }
@@ -137,6 +151,28 @@ const validateRegistration = (body = {}) => {
     errors.note = `توضیح حداکثر ${MAX_NOTE_LENGTH} کاراکتر است`;
   }
 
+  // ===== موج ۱۳.۷.۲ — قواعد اطلاعات پروندهٔ مشتری =====
+  // نوع مشتری در فرم عمومی اجباری است (بدون آن پروندهٔ مشتری معنا ندارد)
+  if (!Number.isInteger(customer_type_id) || customer_type_id <= 0) {
+    errors.customer_type_id = "نوع مشتری را از فهرست انتخاب کنید";
+  }
+  if (national_code !== "" && national_code.length !== NATIONAL_CODE_LENGTH) {
+    errors.national_code = `کد ملی باید ${NATIONAL_CODE_LENGTH} رقم باشد`;
+  }
+  if (farm_name.length > MAX_FARM_NAME_LENGTH) {
+    errors.farm_name = `نام واحد/مزرعه حداکثر ${MAX_FARM_NAME_LENGTH} کاراکتر است`;
+  }
+  if (province.length > MAX_REGION_LENGTH) {
+    errors.province = `استان حداکثر ${MAX_REGION_LENGTH} کاراکتر است`;
+  }
+  if (county.length > MAX_REGION_LENGTH) {
+    errors.county = `شهرستان حداکثر ${MAX_REGION_LENGTH} کاراکتر است`;
+  }
+  // شهرستان بدون استان معنا ندارد (هم‌قاعده با فرم مدیر در موج ۱۳.۷.۱)
+  if (county !== "" && province === "") {
+    errors.county = "برای انتخاب شهرستان، ابتدا استان را انتخاب کنید";
+  }
+
   const values = {
     first_name,
     last_name,
@@ -146,6 +182,14 @@ const validateRegistration = (body = {}) => {
     password,
     requested_customer_code: requested_customer_code || null,
     note: note || null,
+    // نوع مشتری فقط اگر عدد صحیح مثبت باشد عبور می‌کند (خطا در بالا ثبت شده است)
+    customer_type_id:
+      Number.isInteger(customer_type_id) && customer_type_id > 0 ? customer_type_id : null,
+    national_code: national_code || null,
+    farm_name: farm_name || null,
+    province: province || null,
+    // بدون استان، شهرستان ذخیره نمی‌شود (حتی اگر اعتبارسنجی نادیده گرفته شود)
+    county: province && county ? county : null,
   };
 
   return { ok: Object.keys(errors).length === 0, errors, values };
@@ -169,6 +213,12 @@ const buildRequestRow = (values = {}, ctx = {}) => {
     mobile_number: values.mobile_number,
     requested_customer_code: values.requested_customer_code || null,
     note: values.note || null,
+    // موج ۱۳.۷.۲ — اطلاعات پروندهٔ مشتری (خالی ⇒ null)
+    customer_type_id: values.customer_type_id ?? null,
+    national_code: values.national_code || null,
+    farm_name: values.farm_name || null,
+    province: values.province || null,
+    county: values.county || null,
     status: STATUS.PENDING,
     ip: ip || null,
     user_agent: userAgent || null,
@@ -245,6 +295,14 @@ const validateNewCustomer = (input = {}, request = {}) => {
   const errors = {};
   const src = input || {};
 
+  // ✅ موج ۱۳.۷.۲ — هر فیلدی که مدیر **نفرستد** (null/undefined) از «درخواست»
+  //    خوانده می‌شود؛ رشتهٔ خالی عمداً «پاک‌کردن فیلد» است (نه fallback)
+  const pick = (key) => {
+    const fromInput = src[key];
+    if (fromInput === undefined || fromInput === null) return request[key];
+    return fromInput;
+  };
+
   const fullName = cleanName(src.full_name) || cleanName(
     `${request.first_name || ""} ${request.last_name || ""}`,
   );
@@ -254,30 +312,33 @@ const validateNewCustomer = (input = {}, request = {}) => {
     errors.full_name = `نام مشتری حداکثر ${MAX_FULL_NAME_LENGTH} کاراکتر است`;
   }
 
-  const rawType = normalizeDigits(src.customer_type_id).trim();
+  const rawType = normalizeDigits(pick("customer_type_id")).trim();
   const typeId = rawType === "" ? NaN : Number(rawType);
   if (!Number.isInteger(typeId) || typeId <= 0) {
     errors.customer_type_id = "نوع مشتری را از فهرست انتخاب کنید";
   }
 
-  const rawNational = normalizeDigits(src.national_code).replace(/\D/g, "");
+  const rawNational = normalizeDigits(pick("national_code")).replace(/\D/g, "");
   if (rawNational !== "" && rawNational.length !== NATIONAL_CODE_LENGTH) {
     errors.national_code = `کد ملی باید ${NATIONAL_CODE_LENGTH} رقم باشد`;
   }
 
-  const farmName = cleanText(src.farm_name);
+  const farmName = cleanText(pick("farm_name"));
   if (farmName.length > MAX_FARM_NAME_LENGTH) {
     errors.farm_name = `نام واحد/مزرعه حداکثر ${MAX_FARM_NAME_LENGTH} کاراکتر است`;
   }
 
-  const province = cleanText(src.province);
+  const province = cleanText(pick("province"));
   if (province.length > MAX_REGION_LENGTH) {
     errors.province = `استان حداکثر ${MAX_REGION_LENGTH} کاراکتر است`;
   }
 
-  const county = cleanText(src.county);
+  const county = cleanText(pick("county"));
   if (county.length > MAX_REGION_LENGTH) {
     errors.county = `شهرستان حداکثر ${MAX_REGION_LENGTH} کاراکتر است`;
+  }
+  if (county !== "" && province === "") {
+    errors.county = "برای انتخاب شهرستان، ابتدا استان را انتخاب کنید";
   }
 
   const farmAddress = cleanText(src.farm_address);
@@ -299,7 +360,7 @@ const validateNewCustomer = (input = {}, request = {}) => {
       national_code: rawNational === "" ? null : rawNational,
       farm_name: farmName || null,
       province: province || null,
-      county: county || null,
+      county: province && county ? county : null,
       farm_address: farmAddress || null,
       collection_name: collectionName || null,
     },
@@ -343,6 +404,12 @@ const adminRequestView = (row = {}) => ({
   mobile_masked: maskMobile(row.mobile_number),
   requested_customer_code: row.requested_customer_code || null,
   note: row.note || null,
+  // ✅ موج ۱۳.۷.۲ — اطلاعات پروندهٔ مشتری (مودال تأیید از همین‌ها پیش‌پر می‌شود)
+  customer_type_id: row.customer_type_id ?? null,
+  national_code: row.national_code || null,
+  farm_name: row.farm_name || null,
+  province: row.province || null,
+  county: row.county || null,
   status: row.status,
   reject_reason: row.reject_reason || null,
   reviewed_by: row.reviewed_by ?? null,

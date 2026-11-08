@@ -4,13 +4,14 @@
 // ------------------------------------------------------------
 // مسیرها (router روی /api/registrations نصب می‌شود):
 //   GET  /config                 عمومی  → { enabled, captcha_enabled, ... }
+//   GET  /customer-types         عمومی  → [{ id, name }] انواع فعال (موج ۱۳.۷.۲)
 //   POST /                       عمومی  → ثبت درخواست (کپچا + rate-limit)
 //   GET  /pending-count          users.registrations.view
 //   GET  /                       users.registrations.view
 //   POST /:id/approve            users.registrations.review (+ users.customer.link در کنترلر)
 //   POST /:id/reject             users.registrations.review
 // ------------------------------------------------------------
-// ⚠️ عمومی فقط `GET /config` و `POST /` است؛ بقیه پشت protect + مجوز.
+// ⚠️ عمومی فقط `GET /config`، `GET /customer-types` و `POST /` است؛ بقیه پشت protect + مجوز.
 // ⚠️ هیچ توکنی در ثبت‌نام صادر نمی‌شود (کاربر تا تأیید مدیر وجود ندارد).
 // ============================================================
 const express = require("express");
@@ -29,8 +30,17 @@ const registerLimiter = createRateLimiter({
     "تعداد درخواست‌های ثبت‌نام از این دستگاه بیش از حد مجاز است. لطفاً بعداً تلاش کنید.",
 });
 
+// لیمیتر سبک برای دیکشنری عمومی فرم (ضدّ اسکرپ — سخاوتمندانه‌تر از ثبت‌نام)
+const publicDictLimiter = createRateLimiter({
+  windowMs: 60 * 60 * 1000,
+  max: Number(process.env.PUBLIC_DICT_RATE_MAX || 120),
+  message: "تعداد درخواست‌های شما بیش از حد مجاز است. لطفاً کمی بعد تلاش کنید.",
+});
+
 // ===== عمومی =====
 router.get("/config", controller.getPublicConfig);
+// ✅ موج ۱۳.۷.۲ — دیکشنری «نوع مشتری» برای فرم عمومی (فقط id + name انواع فعال)
+router.get("/customer-types", publicDictLimiter, controller.getPublicCustomerTypes);
 router.post("/", registerLimiter, controller.publicRegister);
 
 // ===== مدیریت (ترتیب مهم: مسیرهای ثابت پیش از /:id) =====

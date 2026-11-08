@@ -155,6 +155,18 @@
   row-gap: 0;
 }
 
+/* ✅ ۱۳.۷.۲ — بلوک «اطلاعات پروندهٔ مشتری» با جداکنندهٔ نازک از بلوک حساب */
+.reg-grid--profile {
+  border-top: 1px dashed var(--border-light, #eef2f6);
+  margin-top: 2px;
+  padding-top: 8px;
+}
+
+/* در شبکهٔ سه‌ستونه، textarea یک سلول است ⇒ فشرده‌تر از حالت تمام‌عرض */
+.reg-grid .reg-textarea {
+  min-height: 46px;
+}
+
 .reg-field {
   margin-bottom: 12px;
   min-width: 0;
@@ -211,6 +223,48 @@
   min-height: 58px;
   resize: vertical;
   line-height: 1.8;
+}
+
+/* ✅ ۱۳.۷.۲ — کشوی نوع مشتری/استان/شهرستان (هم‌ظاهر ورودی‌های متنی) */
+.reg-select {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1.5px solid var(--gray-200, #e5e7eb);
+  border-radius: 10px;
+  font-size: 14px;
+  font-family: inherit;
+  background: var(--bg-surface-2, #f8fafc);
+  color: var(--text-dark, #1e293b);
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.reg-control > .reg-select {
+  padding: 12px 42px 12px 14px;
+}
+
+.reg-select:focus {
+  outline: none;
+  border-color: var(--primary, #2c7a6e);
+  background: var(--bg-surface, #fff);
+  box-shadow: 0 0 0 3px rgba(var(--primary-rgb, 44, 122, 110), 0.12);
+}
+
+.reg-control > .reg-select:focus + i,
+.reg-control > .reg-select:focus ~ i {
+  color: var(--primary, #2c7a6e);
+}
+
+.reg-select:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.reg-select.invalid {
+  border-color: var(--danger-strong, #ef4444);
+  background: var(--danger-soft, #fef2f2);
 }
 
 .reg-input::placeholder,
@@ -536,6 +590,27 @@
     margin-bottom: 10px;
   }
 
+  /* ✅ ۱۳.۷.۲ — ورودی‌های کوتاه‌تر برای جا شدن ۵ ردیف فرم در ارتفاع کم */
+  .reg-input,
+  .reg-select {
+    padding-top: 9px;
+    padding-bottom: 9px;
+  }
+
+  .reg-control > .reg-input,
+  .reg-control > .reg-select {
+    padding-top: 9px;
+    padding-bottom: 9px;
+  }
+
+  .reg-grid .reg-textarea {
+    min-height: 42px;
+  }
+
+  .reg-grid--profile {
+    padding-top: 6px;
+  }
+
   .reg-footer {
     margin-top: 12px;
     padding-top: 10px;
@@ -543,19 +618,23 @@
   }
 }
 
-/* ارتفاع خیلی کم: زیرعنوان تک‌خطی و پاورقی جمع‌وجور */
+/* ارتفاع خیلی کم: پاورقی کامل پنهان، لوگو کوچک‌تر، زیرعنوان تک‌خطی */
 @media (max-height: 720px) {
   .reg-subtitle-extra {
     display: none;
   }
 
-  .reg-footer-links,
-  .reg-copyright {
-    display: none !important;
+  /* ✅ ۱۳.۷.۲ — فرم ۵ ردیفه در ارتفاع کم بدون اسکرول جا شود */
+  .reg-footer {
+    display: none;
   }
 
   .reg-brand img {
-    height: 38px;
+    height: 34px;
+  }
+
+  .reg-title {
+    font-size: 17px;
   }
 }
 

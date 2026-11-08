@@ -12,6 +12,8 @@
 import { registrationApi } from "./registration.api.js";
 
 const MIN_PASSWORD_LENGTH = 8;
+// ✅ موج ۱۳.۷.۲ — همان قاعدهٔ سرور/models (CustomerPersonalInfo)
+const NATIONAL_CODE_LENGTH = 10;
 
 const el = (id) => document.getElementById(id);
 
@@ -20,6 +22,9 @@ const state = {
   captchaEnabled: false,
   captchaId: null,
   submitting: false,
+  // دیکشنری‌های پرونده (موج ۱۳.۷.۲)
+  customerTypesLoaded: false,
+  provincesLoaded: false,
 };
 
 // ===== پیام بالای فرم =====
@@ -39,13 +44,22 @@ const hideMessage = () => {
 };
 
 // ===== پاک‌کردن خطاهای فیلدها =====
+const FIELD_SELECTOR = ".reg-input, .reg-select, .reg-textarea";
+
+const showFieldError = (field, message) => {
+  const errorNode = document.querySelector(`.reg-error[data-field="${field}"]`);
+  if (!errorNode) return;
+  errorNode.textContent = String(message || "");
+  errorNode.hidden = false;
+};
+
 const clearFieldErrors = () => {
   document.querySelectorAll(".reg-error").forEach((node) => {
     node.textContent = "";
     node.hidden = true;
   });
-  document.querySelectorAll(".reg-input.invalid").forEach((node) => {
-    node.classList.remove("invalid");
+  document.querySelectorAll(".invalid").forEach((node) => {
+    if (node.matches?.(FIELD_SELECTOR)) node.classList.remove("invalid");
   });
 };
 
@@ -54,7 +68,9 @@ const applyFieldErrors = (errors) => {
   let shown = false;
   Object.entries(errors).forEach(([field, message]) => {
     const errorNode = document.querySelector(`.reg-error[data-field="${field}"]`);
-    const input = document.querySelector(`.reg-input[data-field="${field}"]`);
+    const input = document.querySelector(
+      `.reg-input[data-field="${field}"], .reg-select[data-field="${field}"], .reg-textarea[data-field="${field}"]`,
+    );
     if (errorNode) {
       errorNode.textContent = String(message || "");
       errorNode.hidden = false;
@@ -111,6 +127,129 @@ const loadCaptcha = async () => {
   }
 };
 
+// ===== ✅ موج ۱۳.۷.۲ — دیکشنری‌های پروندهٔ مشتری =====
+// انواع مشتری: کشوی اجباری (فقط انواع فعال، از اندپوینت عمومی حداقلی)
+const loadCustomerTypes = async () => {
+  const select = el("regCustomerType");
+  if (!select) return;
+
+  const result = await registrationApi.getCustomerTypes();
+  const list = result.ok && Array.isArray(result.data) ? result.data : [];
+
+  select.innerHTML = "";
+  const placeholder = document.createElement("option");
+  placeholder.value = "";
+  placeholder.textContent = list.length ? "— انتخاب نوع مشتری —" : "— نوع مشتری یافت نشد —";
+  select.add(placeholder);
+
+  list.forEach((type) => {
+    const id = Number(type?.id);
+    const name = String(type?.name || "").trim();
+    if (!Number.isInteger(id) || id <= 0 || !name) return;
+    const option = document.createElement("option");
+    option.value = String(id);
+    option.textContent = name;
+    select.add(option);
+  });
+
+  state.customerTypesLoaded = select.options.length > 1;
+  if (!state.customerTypesLoaded) {
+    showFieldError(
+      "customer_type_id",
+      "دریافت فهرست «انواع مشتری» ناموفق بود؛ صفحه را دوباره بارگذاری کنید",
+    );
+  }
+};
+
+// استان‌ها (دیکشنری عمومی cities — نام استان، نه کد)
+const loadProvinces = async () => {
+  const select = el("regProvince");
+  if (!select) return;
+
+  const result = await registrationApi.getProvinces();
+  const list = result.ok && Array.isArray(result.data) ? result.data : [];
+
+  select.innerHTML = "";
+  const placeholder = document.createElement("option");
+  placeholder.value = "";
+  placeholder.textContent = "— انتخاب استان (اختیاری) —";
+  select.add(placeholder);
+
+  list.forEach((province) => {
+    const name = String(province?.state_name || "").trim();
+    if (!name) return;
+    const option = document.createElement("option");
+    option.value = name;
+    option.textContent = name;
+    select.add(option);
+  });
+
+  state.provincesLoaded = select.options.length > 1;
+  if (!state.provincesLoaded) {
+    // استان/شهرستان اختیاری است ⇒ فقط اطلاع‌رسانی، نه قفل فرم
+    showFieldError("province", "دریافت فهرست استان‌ها ناموفق بود؛ می‌توانید خالی بگذارید");
+  }
+};
+
+// شهرستان‌ها: صفر و غیرفعال (وابسته به استان)
+const resetCountyOptions = (message = "— ابتدا استان را انتخاب کنید —") => {
+  const select = el("regCounty");
+  if (!select) return;
+
+  select.innerHTML = "";
+  const option = document.createElement("option");
+  option.value = "";
+  option.textContent = message;
+  select.add(option);
+  select.value = "";
+  select.disabled = true;
+};
+
+// شهرستان‌های استان انتخاب‌شده
+const loadCounties = async (province = "", selected = "") => {
+  const select = el("regCounty");
+  if (!select) return;
+
+  const provinceName = String(province || "").trim();
+  if (!provinceName) {
+    resetCountyOptions();
+    return;
+  }
+
+  select.disabled = true;
+  select.innerHTML = '<option value="">در حال بارگذاری…</option>';
+
+  const result = await registrationApi.getCitiesByProvince(provinceName);
+  const list = result.ok && Array.isArray(result.data) ? result.data : [];
+
+  select.innerHTML = "";
+  const placeholder = document.createElement("option");
+  placeholder.value = "";
+  placeholder.textContent = list.length
+    ? "— انتخاب شهرستان (اختیاری) —"
+    : "— شهرستانی یافت نشد —";
+  select.add(placeholder);
+
+  list.forEach((city) => {
+    const cityName = String(city?.city_name || "").trim();
+    if (!cityName) return;
+    const option = document.createElement("option");
+    option.value = cityName;
+    option.textContent = cityName;
+    select.add(option);
+  });
+
+  if (!list.length) {
+    resetCountyOptions("— شهرستانی یافت نشد —");
+    return;
+  }
+
+  select.disabled = false;
+  if (selected && Array.from(select.options).some((option) => option.value === selected)) {
+    select.value = selected;
+  }
+};
+
 // ===== خواندن فرم =====
 const readForm = () => ({
   first_name: el("regFirstName")?.value.trim() || "",
@@ -122,6 +261,12 @@ const readForm = () => ({
   confirm_password: el("regConfirmPassword")?.value || "",
   requested_customer_code: el("regCustomerCode")?.value.trim() || "",
   note: el("regNote")?.value.trim() || "",
+  // ✅ موج ۱۳.۷.۲ — اطلاعات پروندهٔ مشتری (همان نام‌های ستون سرور)
+  customer_type_id: el("regCustomerType")?.value || "",
+  national_code: (el("regNationalCode")?.value || "").replace(/\D/g, ""),
+  farm_name: el("regFarmName")?.value.trim() || "",
+  province: el("regProvince")?.value || "",
+  county: el("regCounty")?.disabled ? "" : el("regCounty")?.value || "",
   captcha_id: state.captchaEnabled ? state.captchaId : undefined,
   captcha_answer: state.captchaEnabled ? el("regCaptchaAnswer")?.value.trim() : undefined,
 });
@@ -146,6 +291,16 @@ const validate = (values) => {
   }
   if (values.password !== values.confirm_password) {
     errors.confirm_password = "تکرار رمز با رمز عبور یکسان نیست";
+  }
+  // ✅ موج ۱۳.۷.۲ — نوع مشتری اجباری؛ کد ملی ۱۰ رقم؛ شهرستان بدون استان ممنوع
+  if (!values.customer_type_id) {
+    errors.customer_type_id = "نوع مشتری را از فهرست انتخاب کنید";
+  }
+  if (values.national_code && values.national_code.length !== NATIONAL_CODE_LENGTH) {
+    errors.national_code = `کد ملی باید ${NATIONAL_CODE_LENGTH} رقم باشد`;
+  }
+  if (values.county && !values.province) {
+    errors.county = "برای انتخاب شهرستان، ابتدا استان را انتخاب کنید";
   }
   if (state.captchaEnabled && !values.captcha_answer) {
     errors.captcha_answer = "کد امنیتی را وارد کنید";
@@ -246,11 +401,21 @@ export const registrationService = {
     // ۲) کپچا (اگر سرور فعال کرده باشد)
     if (data.captcha_enabled !== false) await loadCaptcha();
 
-    // ۳) رویدادها
+    // ۳) ✅ موج ۱۳.۷.۲ — دیکشنری‌های پروندهٔ مشتری (نوع مشتری + استان/شهرستان)
+    //    موازی و مستقل: خطای هر کدام فقط پیام همان فیلد را نشان می‌دهد
+    await Promise.all([loadCustomerTypes(), loadProvinces()]);
+    resetCountyOptions();
+
+    // ۴) رویدادها
     form.addEventListener("submit", submit);
     el("regCaptchaRefresh")?.addEventListener("click", (event) => {
       event.preventDefault();
       loadCaptcha();
+    });
+
+    // استان ⇒ شهرستان (وابسته) — تغییر استان، شهرستان را صفر می‌کند
+    el("regProvince")?.addEventListener("change", (event) => {
+      loadCounties(event.target.value);
     });
 
     // فقط رقم برای موبایل (کیبورد فارسی هم پذیرفته می‌شود)
@@ -258,6 +423,14 @@ export const registrationService = {
       event.target.value = String(event.target.value)
         .replace(/[۰-۹]/g, (d) => String(d.charCodeAt(0) - 0x06f0))
         .replace(/[^0-9]/g, "");
+    });
+
+    // فقط رقم برای کد ملی (حداکثر ۱۰ رقم)
+    el("regNationalCode")?.addEventListener("input", (event) => {
+      event.target.value = String(event.target.value)
+        .replace(/[۰-۹]/g, (d) => String(d.charCodeAt(0) - 0x06f0))
+        .replace(/[^0-9]/g, "")
+        .slice(0, NATIONAL_CODE_LENGTH);
     });
   },
 };

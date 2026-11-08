@@ -228,6 +228,8 @@ export const API_CONSTANTS = {
     //  ⚠️ CONFIG و CREATE عمومی‌اند (بدون ورود)؛ بقیه پنل مدیریت.
     REGISTRATIONS: {
       CONFIG: "/registrations/config",
+      // ✅ موج ۱۳.۷.۲ — دیکشنری عمومی «نوع مشتری» برای فرم ثبت‌نام
+      CUSTOMER_TYPES: "/registrations/customer-types",
       CREATE: "/registrations",
       LIST: "/registrations",
       PENDING_COUNT: "/registrations/pending-count",

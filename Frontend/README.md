@@ -798,6 +798,19 @@ npm run test:cache    :: نگهبانهای UI (وجود بخش، سه‌حال�
 | تست | `registration-guard-test.mjs` ۵۲ → **۶۰** بررسی (بخش ۸) · بک‌اند بدون تغییر (**۶۹**) |
 | مستند | `docs/REVIEW-WAVE-13.7.1.md` |
 
+### موج ۱۳.۷.۲ — همهٔ فیلدهای پرونده روی فرم عمومی
+
+| موضوع | مقدار |
+|---|---|
+| صفحه | پنج فیلد تازه در `.reg-grid--profile`: **نوع مشتری** (اجباری، `<select>`)، کد ملی، نام واحد/مزرعه، استان، شهرستان ⇒ فرم ۵ ردیفه؛ توضیح (`#regNote`) به سلول سوم ردیف پنجم منتقل شد تا **اسکرول عمودی برنگردد** |
+| دیکشنری نوع مشتری | اندپوینت عمومی تازهٔ `GET /api/registrations/customer-types` (فقط `id`/`name` انواع فعال، با `publicDictLimiter` و `ENDPOINTS.REGISTRATIONS.CUSTOMER_TYPES`) |
+| استان/شهرستان | همان `ENDPOINTS.CITIES`؛ `#regCounty` تا انتخاب استان `disabled` است و با تغییر استان صفر می‌شود |
+| استایل | `.reg-select` (+`:focus`/`:disabled`/`.invalid`)، `.reg-grid--profile`، `.reg-grid .reg-textarea { min-height: 46px }`، فشرده‌سازی ورودی‌ها در `≤860px`، پاورقی کامل پنهان در `≤720px` |
+| اعتبارسنجی کلاینت | نوع مشتری اجباری، کد ملی ۱۰ رقم، شهرستان بی‌استان ممنوع (آینهٔ `registrationRules`) |
+| پنل | مودال تأیید از دادهٔ درخواست **پیش‌پر** می‌شود (`newCustomerPrefill` + `applyRegistrationNewCustomerPrefill`)، پیش‌فرض «پروندهٔ تازه» وقتی درخواست نوع مشتری دارد، و خلاصهٔ مودال نام واحد/استان/شهرستان/کد ملی را نشان می‌دهد |
+| تست | `registration-guard-test.mjs` ۶۰ → **۷۸** بررسی (بخش ۹) · بک‌اند ۶۹ → **۹۳** |
+| مستند | `docs/REVIEW-WAVE-13.7.2.md` |
+
 
 
 

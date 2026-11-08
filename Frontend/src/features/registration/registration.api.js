@@ -13,6 +13,8 @@
 import { API_CONSTANTS } from "../../core/constants/api.const.js";
 
 const endpoints = API_CONSTANTS.ENDPOINTS.REGISTRATIONS;
+// ✅ موج ۱۳.۷.۲ — دیکشنری استان/شهرستان (همان منبع عمومی فرم مشتری و پنل ادمین)
+const CITIES = API_CONSTANTS.ENDPOINTS.CITIES;
 
 // آدرس پایه به‌صورت پویا (هم‌قاعده با api.service.js)
 const baseURL = () =>
@@ -71,5 +73,24 @@ export const registrationApi = {
   // چالش کپچا (عمومی — همان مسیر صفحهٔ ورود)
   async getCaptcha() {
     return requestJson(API_CONSTANTS.ENDPOINTS.AUTH.CAPTCHA);
+  },
+
+  // ✅ موج ۱۳.۷.۲ — انواع مشتری فعال (دیکشنری عمومی: فقط id و name)
+  async getCustomerTypes() {
+    return requestJson(endpoints.CUSTOMER_TYPES);
+  },
+
+  // ✅ موج ۱۳.۷.۲ — استان‌ها (دیکشنری عمومی cities: { state_code, state_name })
+  async getProvinces() {
+    return requestJson(CITIES.PROVINCES);
+  },
+
+  // ✅ موج ۱۳.۷.۲ — شهرستان‌های یک استان (نام استان، نه کد)
+  async getCitiesByProvince(stateName) {
+    const endpoint = CITIES.CITIES_BY_PROVINCE.replace(
+      ":state",
+      encodeURIComponent(String(stateName || "").trim()),
+    );
+    return requestJson(endpoint);
   },
 };

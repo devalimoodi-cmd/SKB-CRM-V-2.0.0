@@ -206,9 +206,116 @@ const createCustomerForRequest = async (values, request, reviewerId, transaction
 };
 
 // ============================================================
+// ابزارهای «دیکشنری» فرم عمومی (موج ۱۳.۷.۲)
+// ------------------------------------------------------------
+//   • نوع مشتری: باید وجود داشته و فعال باشد (کلید customer_types)
+//   • استان/شهرستان: باید در دیکشنری cities موجود و **هم‌جفت** باشند
+//     (شهرستانِ استانِ دیگر پذیرفته نمی‌شود)
+// ⚠️ fail-open فقط زمانی که دیکشنری cities خالی/در دسترس نیست؛ ثبت‌نام
+//    عمومی نباید به‌خاطر یک جدول جانبی کاملاً قفل شود.
+// ============================================================
+const assertCustomerTypeActive = async (customerTypeId) => {
+  const typeId = Number(customerTypeId);
+  if (!Number.isInteger(typeId) || typeId <= 0) {
+    return {
+      ok: false,
+      field: "customer_type_id",
+      message: "نوع مشتری را از فهرست انتخاب کنید",
+    };
+  }
+
+  const type = await CustomerType.findByPk(typeId, {
+    attributes: ["id", "name", "active"],
+  });
+  if (!type) {
+    return {
+      ok: false,
+      field: "customer_type_id",
+      message: "نوع مشتری انتخاب‌شده یافت نشد",
+    };
+  }
+  if (type.active === false) {
+    return {
+      ok: false,
+      field: "customer_type_id",
+      message: "نوع مشتری انتخاب‌شده غیرفعال است؛ نوع دیگری انتخاب کنید",
+    };
+  }
+
+  return { ok: true };
+};
+
+// آیا دیکشنری استان/شهرستان قابل استفاده است؟ (جدول cities پر است؟)
+const regionDictionaryUsable = async () => {
+  try {
+    const [rows] = await sequelize.query("SELECT 1 AS ok FROM cities LIMIT 1");
+    return Array.isArray(rows) && rows.length > 0;
+  } catch (error) {
+    console.warn("⚠️ دیکشنری شهرها در دسترس نیست؛ بررسی استان/شهرستان رد شد:", error?.message);
+    return false;
+  }
+};
+
+// جفت «استان ⇒ شهرستان» باید در دیکشنری رسمی باشد
+const assertRegionPair = async ({ province = null, county = null } = {}) => {
+  const provinceName = String(province || "").trim();
+  const countyName = String(county || "").trim();
+
+  if (!provinceName && !countyName) return { ok: true };
+  if (!provinceName && countyName) {
+    return {
+      ok: false,
+      field: "county",
+      message: "برای انتخاب شهرستان، ابتدا استان را انتخاب کنید",
+    };
+  }
+
+  if (!(await regionDictionaryUsable())) return { ok: true };
+
+  const [provinceRows] = await sequelize.query(
+    "SELECT 1 AS ok FROM cities WHERE state_name = :province LIMIT 1",
+    { replacements: { province: provinceName } },
+  );
+  if (!Array.isArray(provinceRows) || provinceRows.length === 0) {
+    return {
+      ok: false,
+      field: "province",
+      message: "استان انتخاب‌شده در فهرست رسمی استان‌ها نیست",
+    };
+  }
+
+  if (!countyName) return { ok: true };
+
+  const [countyRows] = await sequelize.query(
+    "SELECT 1 AS ok FROM cities WHERE state_name = :province AND city_name = :county LIMIT 1",
+    { replacements: { province: provinceName, county: countyName } },
+  );
+  if (!Array.isArray(countyRows) || countyRows.length === 0) {
+    return {
+      ok: false,
+      field: "county",
+      message: "شهرستان انتخاب‌شده در استان انتخابی نیست",
+    };
+  }
+
+  return { ok: true };
+};
+
+// ============================================================
 // ۱) ساخت درخواست ثبت‌نام
 // ============================================================
 const createRequest = async (values = {}, ctx = {}) => {
+  // ۰) دیکشنری‌ها (موج ۱۳.۷.۲): نوع مشتری فعال + جفت استان/شهرستان معتبر
+  //    (پیش از هر کوئری سنگین/هش رمز، تا خطای فیلدی سریع برگردد)
+  const typeCheck = await assertCustomerTypeActive(values.customer_type_id);
+  if (!typeCheck.ok) return typeCheck;
+
+  const regionCheck = await assertRegionPair({
+    province: values.province,
+    county: values.county,
+  });
+  if (!regionCheck.ok) return regionCheck;
+
   // ۱-الف) تکراری بودن مقابل حساب‌های موجود
   const existingUser = await User.findOne({
     where: {
@@ -559,6 +666,10 @@ module.exports = {
   nextCustomerCode,
   pickCustomerEmail,
   createCustomerForRequest,
+  // دیکشنری‌های فرم عمومی (موج ۱۳.۷.۲)
+  assertCustomerTypeActive,
+  regionDictionaryUsable,
+  assertRegionPair,
   createRequest,
   listRequests,
   pendingCount,

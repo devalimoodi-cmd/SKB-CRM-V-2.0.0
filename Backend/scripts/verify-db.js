@@ -254,6 +254,12 @@ const EXPECTED_COLUMNS = {
     // ✅ موج ۱۳.۷ — ممیزی پروندهٔ مشتری (اتصال یا ساخت تازه)
     "created_customer_id",
     "customer_created",
+    // ✅ موج ۱۳.۷.۲ — اطلاعات پروندهٔ مشتری از فرم عمومی
+    "customer_type_id",
+    "national_code",
+    "farm_name",
+    "province",
+    "county",
     "ip",
     "user_agent",
     "created_at",

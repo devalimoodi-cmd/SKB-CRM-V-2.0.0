@@ -36,6 +36,11 @@ const migration = read(
 const customerMigration = read(
   "migrations/20261108000001-add-customer-link-to-registration-requests.js",
 );
+// ✅ موج ۱۳.۷.۲ — پنج ستون اطلاعات پروندهٔ مشتری روی صف ثبت‌نام
+const customerProfileMigration = read(
+  "migrations/20261108000002-add-customer-fields-to-registration-requests.js",
+);
+const registrationModel = read("models/RegistrationRequest.js");
 
 const results = [];
 const check = (name, ok, extra = "") => {
@@ -52,6 +57,8 @@ const baseForm = {
   mobile_number: "09151234567",
   password: "Secret@123",
   confirm_password: "Secret@123",
+  // ✅ موج ۱۳.۷.۲ — نوع مشتری در فرم عمومی اجباری شد
+  customer_type_id: "1",
 };
 
 const validate = (overrides = {}) =>
@@ -493,6 +500,210 @@ check(
 check(
   "verify-db: ستون‌های جدید در اسکن registration_requests هستند",
   /created_customer_id/.test(verifyDb) && /customer_created/.test(verifyDb),
+);
+
+// ============================================================
+// ۸) اطلاعات پروندهٔ مشتری در فرم عمومی (موج ۱۳.۷.۲)
+// ------------------------------------------------------------
+//  ریسکی که این بخش از بازگشتش جلوگیری می‌کند:
+//    • فرم عمومی بدون «نوع مشتری» ⇒ پروندهٔ مشتریِ بی‌نوع
+//    • کد ملی نامعتبر/کمتر از ۱۰ رقم در صف ثبت شود
+//    • شهرستان بدون استان (دادهٔ ناسازگار) ذخیره شود
+//    • فرم عمومی به دیکشنری مدیریتی (پشت مجوز) وابسته شود
+//    • فیلدهای تازه در buildRequestRow/adminRequestView جا بیفتند
+// ============================================================
+const PROFILE_FIELDS = ["customer_type_id", "national_code", "farm_name", "province", "county"];
+
+check(
+  "ALLOWED_FIELDS: پنج فیلد پروندهٔ مشتری در فیلدهای سفید هستند",
+  PROFILE_FIELDS.every((field) => rules.ALLOWED_FIELDS.includes(field)),
+);
+check(
+  "فرم بدون نوع مشتری → خطای customer_type_id",
+  Boolean(validate({ customer_type_id: "" }).errors.customer_type_id),
+);
+check(
+  'نوع مشتری غیرعددی ("abc") → خطای customer_type_id',
+  Boolean(validate({ customer_type_id: "abc" }).errors.customer_type_id),
+);
+check(
+  "نوع مشتری عددی → values.customer_type_id عدد صحیح است",
+  validate({ customer_type_id: "3" }).values.customer_type_id === 3 &&
+    validate().values.customer_type_id === 1,
+);
+check(
+  "فیلدهای اختیاری خالی → null (نه رشتهٔ خالی)",
+  (() => {
+    const values = validate().values;
+    return (
+      values.national_code === null &&
+      values.farm_name === null &&
+      values.province === null &&
+      values.county === null
+    );
+  })(),
+);
+check(
+  "کد ملی با ارقام فارسی نرمال می‌شود",
+  validate({ national_code: "۰۰۱۲۳۴۵۶۷۸" }).values.national_code === "0012345678",
+);
+check(
+  "کد ملی ۹ رقمی → خطای national_code",
+  Boolean(validate({ national_code: "123456789" }).errors.national_code),
+);
+check(
+  "نام واحد/مزرعه بیش از ۲۰۰ کاراکتر → خطای farm_name",
+  Boolean(validate({ farm_name: "x".repeat(201) }).errors.farm_name),
+);
+check(
+  "استان بیش از ۵۰ کاراکتر → خطای province",
+  Boolean(validate({ province: "x".repeat(51) }).errors.province),
+);
+check(
+  "شهرستان بدون استان → خطای county و مقدار null",
+  Boolean(validate({ province: "", county: "بیرجند" }).errors.county) &&
+    validate({ province: "", county: "بیرجند" }).values.county === null,
+);
+check(
+  "استان + شهرستان معتبر → هر دو در values",
+  validate({ province: "خراسان جنوبی", county: "بیرجند" }).values.province ===
+    "خراسان جنوبی" &&
+    validate({ province: "خراسان جنوبی", county: "بیرجند" }).values.county === "بیرجند",
+);
+
+const profileRow = rules.buildRequestRow(
+  validate({
+    national_code: "0012345678",
+    farm_name: "مرغداری نمونه",
+    province: "خراسان جنوبی",
+    county: "بیرجند",
+  }).values,
+  { ip: "1.2.3.4" },
+);
+check(
+  "buildRequestRow: پنج فیلد پرونده به ردیف اضافه می‌شوند",
+  profileRow.customer_type_id === 1 &&
+    profileRow.national_code === "0012345678" &&
+    profileRow.farm_name === "مرغداری نمونه" &&
+    profileRow.province === "خراسان جنوبی" &&
+    profileRow.county === "بیرجند",
+);
+check(
+  "buildRequestRow: فیلدهای خالی پرونده null می‌شوند",
+  rules.buildRequestRow(validate().values, {}).national_code === null &&
+    rules.buildRequestRow(validate().values, {}).province === null,
+);
+check(
+  "adminRequestView: پنج فیلد پرونده برای پیش‌پرکردن مودال برمی‌گردند",
+  (() => {
+    const view = rules.adminRequestView({
+      ...sampleRow,
+      customer_type_id: 4,
+      national_code: "0012345678",
+      farm_name: "مرغداری نمونه",
+      province: "خراسان جنوبی",
+      county: "بیرجند",
+    });
+    return (
+      view.customer_type_id === 4 &&
+      view.national_code === "0012345678" &&
+      view.farm_name === "مرغداری نمونه" &&
+      view.province === "خراسان جنوبی" &&
+      view.county === "بیرجند" &&
+      !("password_hash" in view)
+    );
+  })(),
+);
+
+const requestWithProfile = {
+  first_name: "علی",
+  last_name: "محمدی",
+  customer_type_id: 5,
+  national_code: "1122334455",
+  farm_name: "واحد مرغداری",
+  province: "خراسان جنوبی",
+  county: "بیرجند",
+};
+check(
+  "validateNewCustomer: با بدنهٔ خالی همه‌چیز از درخواست خوانده می‌شود",
+  (() => {
+    const result = rules.validateNewCustomer({}, requestWithProfile);
+    return (
+      result.ok &&
+      result.values.customer_type_id === 5 &&
+      result.values.national_code === "1122334455" &&
+      result.values.farm_name === "واحد مرغداری" &&
+      result.values.province === "خراسان جنوبی" &&
+      result.values.county === "بیرجند"
+    );
+  })(),
+);
+check(
+  "validateNewCustomer: مقدار ارسالی مدیر بر درخواست اولویت دارد",
+  (() => {
+    const result = rules.validateNewCustomer(
+      { customer_type_id: 9, farm_name: "واحد مدیر", province: "تهران", county: "" },
+      requestWithProfile,
+    );
+    return (
+      result.ok &&
+      result.values.customer_type_id === 9 &&
+      result.values.farm_name === "واحد مدیر" &&
+      result.values.province === "تهران" &&
+      result.values.county === null
+    );
+  })(),
+);
+
+check(
+  "service: نوع مشتری در ثبت عمومی وجود/فعال بودنش سنجیده می‌شود",
+  /assertCustomerTypeActive/.test(service) &&
+    /findByPk\(typeId/.test(service) &&
+    /active === false/.test(service),
+);
+check(
+  "service: جفت استان/شهرستان در دیکشنری cities سنجیده می‌شود (با fail-open)",
+  /assertRegionPair/.test(service) &&
+    /regionDictionaryUsable/.test(service) &&
+    /state_name = :province/.test(service) &&
+    /city_name = :county/.test(service),
+);
+check(
+  "service: بررسی دیکشنری پیش از هش رمز انجام می‌شود",
+  service.indexOf("assertCustomerTypeActive(values.customer_type_id)") <
+    service.indexOf("bcrypt.hash("),
+);
+check(
+  "controller: اندپوینت عمومی انواع مشتری فقط id/name انواع فعال را می‌دهد",
+  /getPublicCustomerTypes/.test(controller) &&
+    /attributes:\s*\["id",\s*"name"\]/.test(controller) &&
+    /where:\s*\{\s*active:\s*true\s*\}/.test(controller),
+);
+check(
+  "routes: مسیر customer-types عمومی است (بدون protect) و لیمیتر سبک دارد",
+  (() => {
+    const line = routes.split("\n").find((row) => row.includes('"/customer-types"')) || "";
+    return (
+      /publicDictLimiter/.test(line) &&
+      /controller\.getPublicCustomerTypes/.test(line) &&
+      !/protect/.test(line)
+    );
+  })(),
+);
+check(
+  "migration: پنج ستون پرونده با describeTable (idempotent) اضافه می‌شوند",
+  PROFILE_FIELDS.every((field) => customerProfileMigration.includes(`"${field}"`)) &&
+    /describeTable/.test(customerProfileMigration) &&
+    /addColumn/.test(customerProfileMigration) &&
+    /removeColumn/.test(customerProfileMigration),
+);
+check(
+  "model: پنج ستون در RegistrationRequest تعریف شده‌اند (هم‌نام مایگریشن)",
+  PROFILE_FIELDS.every((field) => new RegExp(`\\b${field}:\\s*\\{`).test(registrationModel)),
+);
+check(
+  "verify-db: پنج ستون پرونده در اسکن registration_requests هستند",
+  PROFILE_FIELDS.every((field) => verifyDb.includes(`"${field}"`)),
 );
 
 // ============================================================

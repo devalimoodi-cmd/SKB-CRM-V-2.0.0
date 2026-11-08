@@ -76,6 +76,42 @@ const RegistrationRequest = sequelize.define(
       type: DataTypes.TEXT,
       allowNull: true,
     },
+    // ===== موج ۱۳.۷.۲ — اطلاعات پروندهٔ مشتری از فرم عمومی =====
+    // ⚠️ همه NULL-پذیر: درخواست‌های قدیمی و فرم‌های ناقص نباید بشکنند.
+    // ⚠️ بدون FK به customer_types (هم‌الگو با created_customer_id)؛ درستی
+    //    مقدار (وجود + فعال بودن) در services/registrationService سنجیده می‌شود.
+    customer_type_id: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      field: "customer_type_id",
+    },
+    national_code: {
+      type: DataTypes.STRING(10),
+      allowNull: true,
+      field: "national_code",
+      validate: {
+        // همان قاعدهٔ CustomerPersonalInfo: فقط ۱۰ رقم عددی (بدون رقم کنترلی)
+        isNationalCode(value) {
+          if (value === null || value === undefined || value === "") return;
+          if (!/^[0-9]{10}$/.test(String(value).trim())) {
+            throw new Error("کد ملی باید ۱۰ رقم باشد");
+          }
+        },
+      },
+    },
+    farm_name: {
+      type: DataTypes.STRING(200),
+      allowNull: true,
+      field: "farm_name",
+    },
+    province: {
+      type: DataTypes.STRING(50),
+      allowNull: true,
+    },
+    county: {
+      type: DataTypes.STRING(50),
+      allowNull: true,
+    },
     status: {
       type: DataTypes.STRING(20),
       allowNull: false,

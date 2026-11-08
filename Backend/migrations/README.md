@@ -51,6 +51,7 @@ npm run db:verify   # فقط تأیید ساختار
 | `20261007000000-add-users-customer-id.js` | افزودن `users.customer_id` (یکتا، FK به `customer_personal_information` با `ON DELETE SET NULL`) — پیوند حساب با پروندهٔ مشتری |
 | `20261108000000-create-registration-requests.js` | **جدول مستقل صف ثبت‌نام عمومی** (`registration_requests`) + سه ایندکس یکتای جزئی `WHERE status='pending'` + ایندکس `(status, created_at)` — تا تأیید مدیر هیچ ردیفی در `users` ساخته نمی‌شود (فاز ۱۳.۶) |
 | `20261108000001-add-customer-link-to-registration-requests.js` | افزودن دو ستون ممیزی به `registration_requests`: `created_customer_id` (پروندهٔ مشتری‌ای که در تأیید به حساب متصل شد) و `customer_created` (آیا در همان تأیید **پروندهٔ تازه** ساخته شد؟) — مسیر «تأیید با ساخت پروندهٔ مشتری جدید» (موج ۱۳.۷) |
+| `20261108000002-add-customer-fields-to-registration-requests.js` | افزودن پنج ستون «اطلاعات پروندهٔ مشتری» به `registration_requests`: `customer_type_id`، `national_code`، `farm_name`، `province`، `county` (همه NULL-پذیر، بدون FK) — تا متقاضی همهٔ فیلدهای پرونده را در فرم عمومی `/register` پر کند و تأیید مدیر آن‌ها را به پروندهٔ مشتری منتقل کند (موج ۱۳.۷.۲) |
 
 
 همهٔ مایگریشن‌ها **idempotent** هستند (اگر جدول/ستون موجود باشد، دست نمی‌زنند) تا اجرای دوباره روی سرور خطا ندهد.

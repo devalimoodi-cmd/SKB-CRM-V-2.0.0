@@ -408,6 +408,7 @@ ALLOW_DB_TESTS=true npm run test:db     # ۱۰ بررسی: ساختار (flocks)
 | متد | مسیر | دسترسی |
 |---|---|---|
 | GET | `/api/registrations/config` | عمومی — `{ enabled, captcha_enabled, min_password_length }` |
+| GET | `/api/registrations/customer-types` | عمومی — `[{ id, name }]` فقط انواع **فعال** (موج ۱۳.۷.۲؛ `publicDictLimiter` ۱۲۰/ساعت + `Cache-Control: max-age=300`) |
 | POST | `/api/registrations` | عمومی — کپچا + `registerLimiter` (۵/ساعت/IP) + پرچم `registration_enabled` |
 | GET | `/api/registrations` | `protect` + `users.registrations.view` |
 | GET | `/api/registrations/pending-count` | `protect` + `users.registrations.view` |
@@ -422,8 +423,15 @@ ALLOW_DB_TESTS=true npm run test:db     # ۱۰ بررسی: ساختار (flocks)
   ردیف درخواست برداشته می‌شوند (بدنهٔ مدیر حق تغییرشان را ندارد).
 - موبایل تکراری در `customer_personal_information` ⇒ **۴۰۹** `CUSTOMER_MOBILE_TAKEN`
   («همان پرونده را انتخاب کنید»). ممیزی: `created_customer_id` + `customer_created`.
-- تست: `npm run test:registration` (`registration-test.mjs` — **۶۹** بررسی) و
-  `Frontend/registration-guard-test.mjs` (**۵۲** بررسی). مستند: `docs/REVIEW-WAVE-13.7.md`.
+- **موج ۱۳.۷.۲:** فرم عمومی حالا پنج فیلد پرونده را هم می‌فرستد
+  (`customer_type_id` اجباری + `national_code`/`farm_name`/`province`/`county` اختیاری) و
+  در همان ردیف `registration_requests` ذخیره می‌شود (مایگریشن
+  `20261108000002-add-customer-fields-to-registration-requests`).
+  در ثبت عمومی: نوع مشتری باید **وجود داشته و فعال** باشد و جفت استان/شهرستان در دیکشنری
+  `cities` سنجیده می‌شود (fail-open فقط اگر جدول خالی/در دسترس نباشد).
+  در تأیید: هر فیلدی که مدیر نفرستد **از درخواست** پر می‌شود (ارسال رشتهٔ خالی = پاک‌کردن).
+- تست: `node registration-test.mjs` (`npm run test:registration` — **۹۳** بررسی) و
+  `Frontend/registration-guard-test.mjs` (**۷۸** بررسی). مستند: `docs/REVIEW-WAVE-13.7.2.md`.
 
 
 

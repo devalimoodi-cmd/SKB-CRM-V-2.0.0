@@ -467,6 +467,126 @@ check(
 );
 
 // ============================================================
+// ۹) موج ۱۳.۷.۲ — «همهٔ فیلدهای پرونده روی فرم عمومی»
+// ------------------------------------------------------------
+//  ریسک‌هایی که این بخش قفل می‌کند:
+//   ۱) حذف/پنهان‌شدن فیلدهای پرونده از فرم عمومی ⇒ بازگشت کار دستی ادمین.
+//   ۲) فراموش‌شدن وابستگی «استان ⇒ شهرستان» در فرم عمومی.
+//   ۳) وابسته‌شدن فرم عمومی به دیکشنری مدیریتی (پشت مجوز) ⇒ ۴۰۱/۴۰۳ مهمان.
+//   ۴) جا افتادن فیلدها در payload (readForm) یا اعتبارسنجی سمت کلاینت.
+//   ۵) خالی‌ماندن مودال تأیید از دادهٔ درخواست (دوباره‌کاری ادمین).
+// ============================================================
+check(
+  "۱۳.۷.۲ · فرم: پنج فیلد پرونده (نوع مشتری/کد ملی/نام واحد/استان/شهرستان) موجودند",
+  /id="regCustomerType"/.test(registerHtml) &&
+    /id="regNationalCode"/.test(registerHtml) &&
+    /id="regFarmName"/.test(registerHtml) &&
+    /id="regProvince"/.test(registerHtml) &&
+    /id="regCounty"/.test(registerHtml),
+);
+check(
+  "۱۳.۷.۲ · فرم: نوع مشتری/استان/شهرستان <select> هستند (نه ورودی متنی)",
+  /<select[^>]*id="regCustomerType"/.test(registerHtml) &&
+    /<select[^>]*id="regProvince"/.test(registerHtml) &&
+    /<select[^>]*id="regCounty"/.test(registerHtml),
+);
+check(
+  "۱۳.۷.۲ · فرم: شهرستان پیش از انتخاب استان غیرفعال است",
+  /id="regCounty"[^>]*disabled/.test(registerHtml),
+);
+check(
+  "۱۳.۷.۲ · فرم: فیلدهای پرونده در شبکهٔ سه‌ستونهٔ .reg-grid--profile هستند",
+  /class="reg-grid reg-grid--profile"/.test(registerHtml) &&
+    /\.reg-grid--profile\s*\{/.test(registerCss),
+);
+check(
+  "۱۳.۷.۲ · فرم: هر فیلد پرونده data-field و .reg-error مخصوص خود را دارد",
+  ["customer_type_id", "national_code", "farm_name", "province", "county"].every(
+    (field) =>
+      new RegExp(`data-field="${field}"`).test(registerHtml) &&
+      new RegExp(`class="reg-error" data-field="${field}"`).test(registerHtml),
+  ),
+);
+check(
+  "۱۳.۷.۲ · CSS: .reg-select هم‌ظاهر ورودی‌ها + حالت invalid + focus",
+  /\.reg-select\s*\{/.test(registerCss) &&
+    /\.reg-select\.invalid/.test(registerCss) &&
+    /\.reg-select:focus/.test(registerCss) &&
+    /\.reg-select:disabled/.test(registerCss),
+);
+check(
+  "۱۳.۷.۲ · CSS: حالت فشردهٔ کم‌ارتفاع برای ورودی‌های select هم اعمال می‌شود",
+  /@media\s*\(max-height:\s*860px\)[\s\S]{0,1200}\.reg-select\s*\{/.test(registerCss),
+);
+check(
+  "۱۳.۷.۲ · API: اندپوینت عمومی انواع مشتری تعریف شده است",
+  /CUSTOMER_TYPES:\s*"\/registrations\/customer-types"/.test(apiConstSource),
+);
+check(
+  "۱۳.۷.۲ · API صفحه: انواع مشتری + استان/شهرستان از اندپوینت‌های عمومی",
+  /getCustomerTypes\(\)/.test(registerApi) &&
+    /endpoints\.CUSTOMER_TYPES/.test(registerApi) &&
+    /CITIES\.PROVINCES/.test(registerApi) &&
+    /CITIES\.CITIES_BY_PROVINCE/.test(registerApi),
+);
+check(
+  "۱۳.۷.۲ · سرویس صفحه: بارگذاری دیکشنری‌ها در init (انواع مشتری + استان)",
+  /loadCustomerTypes\(\)/.test(registerService) &&
+    /loadProvinces\(\)/.test(registerService) &&
+    /Promise\.all\(\[loadCustomerTypes\(\), loadProvinces\(\)\]\)/.test(registerService),
+);
+check(
+  "۱۳.۷.۲ · سرویس صفحه: زنجیرهٔ استان ⇒ شهرستان سیم‌کشی شده است",
+  /const loadCounties = async \(province = "", selected = ""\)/.test(registerService) &&
+    /resetCountyOptions\(/.test(registerService) &&
+    /el\("regProvince"\)\?\.addEventListener\("change"/.test(registerService),
+);
+check(
+  "۱۳.۷.۲ · سرویس صفحه: پنج فیلد در payload ارسالی هستند",
+  /customer_type_id: el\("regCustomerType"\)/.test(registerService) &&
+    /national_code: \(el\("regNationalCode"\)/.test(registerService) &&
+    /farm_name: el\("regFarmName"\)/.test(registerService) &&
+    /province: el\("regProvince"\)/.test(registerService) &&
+    /county: el\("regCounty"\)/.test(registerService),
+);
+check(
+  "۱۳.۷.۲ · سرویس صفحه: اعتبارسنجی کلاینت نوع مشتری/کد ملی/شهرستانِ بی‌استان",
+  /errors\.customer_type_id/.test(registerService) &&
+    /NATIONAL_CODE_LENGTH/.test(registerService) &&
+    /errors\.county/.test(registerService),
+);
+check(
+  "۱۳.۷.۲ · سرویس صفحه: خطای فیلدها روی select هم نشانه‌گذاری می‌شود",
+  /\.reg-select\[data-field=/.test(registerService) && /\.reg-select\.invalid/.test(registerCss),
+);
+check(
+  "۱۳.۷.۲ · پنل: فرم «پروندهٔ تازه» از دادهٔ درخواست پیش‌پر می‌شود",
+  /this\.newCustomerPrefill = \{/.test(adminService) &&
+    /applyRegistrationNewCustomerPrefill/.test(adminService) &&
+    /regNewCustomerNationalCode", this\.newCustomerPrefill\.national_code/.test(adminService) &&
+    /regNewCustomerFarmName", this\.newCustomerPrefill\.farm_name/.test(adminService),
+);
+check(
+  "۱۳.۷.۲ · پنل: پیش‌فرض «پروندهٔ تازه» وقتی درخواست نوع مشتری دارد",
+  /const preferNew = Boolean\(this\.newCustomerPrefill\.customer_type_id\)/.test(adminService),
+);
+check(
+  "۱۳.۷.۲ · پنل: خلاصهٔ مودال، نام واحد/استان/شهرستان/کد ملی متقاضی را نشان می‌دهد",
+  /item\.farm_name\s*\?/.test(adminService) &&
+    /item\.province\s*\?/.test(adminService) &&
+    /item\.county\s*\?/.test(adminService) &&
+    /item\.national_code\s*\?/.test(adminService),
+);
+check(
+  "۱۳.۷.۲ · سرور: مایگریشن ستون‌های پروندهٔ مشتری روی صف ثبت‌نام",
+  ["customer_type_id", "national_code", "farm_name", "province", "county"].every((field) =>
+    read(
+      "Backend/migrations/20261108000002-add-customer-fields-to-registration-requests.js",
+    ).includes(`"${field}"`),
+  ),
+);
+
+// ============================================================
 // جمع‌بندی
 // ============================================================
 const failed = results.filter((r) => !r.ok);

@@ -52,6 +52,8 @@ class AdminPanelService {
     this.reviewMode = null;
     // ✅ موج ۱۳.۷ — حالت پروندهٔ مشتری در مودال تأیید: existing | new
     this.registrationCustomerMode = "existing";
+    // ✅ موج ۱۳.۷.۲ — پیش‌پرکردن فرم «پروندهٔ تازه» از اطلاعات خود درخواست
+    this.newCustomerPrefill = null;
     this.initialized = false;
     // ✅ لودر سیستمی (تنظیمات سیستم)
     this.loaderStyle = "classic";
@@ -1774,6 +1776,22 @@ class AdminPanelService {
                 item.requested_customer_code,
               )}</span></div>`
             : ""
+        }
+        ${
+          // ✅ موج ۱۳.۷.۲ — اطلاعات پرونده‌ای که متقاضی خودش در فرم وارد کرده است
+          item.farm_name || item.province || item.national_code
+            ? `<div class="regq-summary-meta">
+                ${item.farm_name ? `<span><i class="fas fa-warehouse"></i> ${escapeHtml(item.farm_name)}</span>` : ""}
+                ${
+                  item.province
+                    ? `<span><i class="fas fa-location-dot"></i> ${escapeHtml(item.province)}${
+                        item.county ? ` / ${escapeHtml(item.county)}` : ""
+                      }</span>`
+                    : ""
+                }
+                ${item.national_code ? `<span><i class="fas fa-id-card"></i> کد ملی: ${escapeHtml(item.national_code)}</span>` : ""}
+              </div>`
+            : ""
         }`;
     }
 
@@ -1875,7 +1893,8 @@ class AdminPanelService {
   }
 
   // انتخاب حالت + نمایش/پنهان‌کردن بلوک‌ها
-  setRegistrationCustomerMode(mode = "existing") {
+  // ✅ ۱۳.۷.۲ — async شد تا پیش‌پرکردن بعد از بارگذاری دیکشنری‌ها اعمال شود
+  async setRegistrationCustomerMode(mode = "existing") {
     const next = mode === "new" && this.canRegisterCustomers() ? "new" : "existing";
     this.registrationCustomerMode = next;
 
@@ -1893,13 +1912,38 @@ class AdminPanelService {
 
     this.clearRegistrationNewCustomerError();
     if (next === "new") {
-      this.loadRegistrationCustomerTypes();
-      // ✅ موج ۱۳.۷.۱ — استان/شهرستان از دیکشنری (نه ورودی متنی آزاد)
-      this.loadRegistrationProvinces();
+      // دیکشنری‌ها موازی؛ بعد از بارگذاری، مقادیر «درخواست» دوباره نشانده می‌شوند
+      await Promise.all([this.loadRegistrationCustomerTypes(), this.loadRegistrationProvinces()]);
+      await this.applyRegistrationNewCustomerPrefill();
     }
   }
 
-  // بازنشانی فرم «پروندهٔ تازه» + پیش‌پر کردن نام از خود درخواست
+  // ✅ ۱۳.۷.۲ — نشاندن دادهٔ درخواست روی فرم «پروندهٔ تازه»
+  //  ⚠️ بعد از بارگذاری دیکشنری‌ها صدا زده می‌شود (گزینه‌ها باید موجود باشند)
+  async applyRegistrationNewCustomerPrefill() {
+    const prefill = this.newCustomerPrefill || {};
+    const selectValue = (id, value) => {
+      const select = document.getElementById(id);
+      if (!select || !value) return;
+      const exists = Array.from(select.options).some(
+        (option) => option.value === String(value),
+      );
+      if (exists) select.value = String(value);
+    };
+
+    selectValue("regNewCustomerType", prefill.customer_type_id);
+    selectValue("regNewCustomerProvince", prefill.province);
+
+    // شهرستان وابسته به استان است ⇒ پس از استان بارگذاری می‌شود
+    if (prefill.province) {
+      await this.loadRegistrationCounties(prefill.province, prefill.county || "");
+    } else {
+      this.resetRegistrationCounties();
+    }
+  }
+
+  // بازنشانی فرم «پروندهٔ تازه» + پیش‌پر کردن از خود درخواست
+  // ✅ ۱۳.۷.۲ — نوع مشتری/کد ملی/نام واحد/استان/شهرستان هم از درخواست می‌آید
   resetRegistrationNewCustomerForm(item = {}) {
     const fullName = `${item.first_name || ""} ${item.last_name || ""}`.trim();
     const setValue = (id, value = "") => {
@@ -1907,10 +1951,18 @@ class AdminPanelService {
       if (el) el.value = value;
     };
 
+    this.newCustomerPrefill = {
+      customer_type_id: item.customer_type_id ? String(item.customer_type_id) : "",
+      national_code: String(item.national_code || ""),
+      farm_name: String(item.farm_name || ""),
+      province: String(item.province || ""),
+      county: String(item.county || ""),
+    };
+
     setValue("regNewCustomerType", "");
     setValue("regNewCustomerFullName", fullName);
-    setValue("regNewCustomerNationalCode", "");
-    setValue("regNewCustomerFarmName", "");
+    setValue("regNewCustomerNationalCode", this.newCustomerPrefill.national_code);
+    setValue("regNewCustomerFarmName", this.newCustomerPrefill.farm_name);
     setValue("regNewCustomerProvince", "");
     // ✅ ۱۳.۷.۱ — شهرستان‌ها هم صفر و غیرفعال می‌شوند (وابسته به استان)
     this.resetRegistrationCounties();
@@ -1919,8 +1971,12 @@ class AdminPanelService {
     const newBtn = document.getElementById("regModeNewBtn");
     if (newBtn) newBtn.hidden = !this.canRegisterCustomers();
 
-    // پیش‌فرض همیشه «پروندهٔ موجود» است (سازگار با فاز ۱۳.۶)
-    this.setRegistrationCustomerMode("existing");
+    // پیش‌فرض: درخواست‌های تازه خودشان اطلاعات پرونده را دارند ⇒ «پروندهٔ تازه»
+    // درخواست‌های قدیمی (بدون customer_type_id) همان «پروندهٔ موجود» می‌مانند.
+    const preferNew = Boolean(this.newCustomerPrefill.customer_type_id);
+    this.setRegistrationCustomerMode(preferNew ? "new" : "existing")?.catch?.((error) => {
+      console.warn("⚠️ آماده‌سازی فرم «پروندهٔ تازه» ناموفق بود:", error?.message || error);
+    });
   }
 
   // انواع مشتری (تنبل — یک‌بار از سرور، بعد از آن از حافظه)
@@ -2073,6 +2129,9 @@ class AdminPanelService {
     }
 
     // ✅ ۱۳.۷.۱ — استان/شهرستان از دیکشنری می‌آیند؛ شهرستان بدون استان معنا ندارد
+    // ✅ ۱۳.۷.۲ — مقادیر خالی به‌صورت رشتهٔ خالی فرستاده می‌شوند تا «پاک‌کردن»
+    //    ممکن باشد (سرور فقط null/undefined را «نبود مقدار» می‌شناسد و از
+    //    درخواست پر می‌کند)
     const province = String(read("regNewCustomerProvince")).trim();
     const county = province ? String(read("regNewCustomerCounty")).trim() : "";
 
@@ -2080,10 +2139,10 @@ class AdminPanelService {
       values: {
         customer_type_id: typeId,
         full_name: fullName,
-        national_code: nationalCode || null,
-        farm_name: String(read("regNewCustomerFarmName")).trim() || null,
-        province: province || null,
-        county: county || null,
+        national_code: nationalCode,
+        farm_name: String(read("regNewCustomerFarmName")).trim(),
+        province,
+        county,
       },
     };
   }
