@@ -22,6 +22,8 @@ const state = {
   captchaEnabled: false,
   captchaId: null,
   submitting: false,
+  // ✅ موج ۱۳.۷.۳ — «تأیید خودکار» (فقط برای متن پیام موفقیت و یادداشت فرم)
+  autoApprove: false,
   // دیکشنری‌های پرونده (موج ۱۳.۷.۲)
   customerTypesLoaded: false,
   provincesLoaded: false,
@@ -88,11 +90,27 @@ const applyClosedState = () => {
   const panel = el("regFormPanel");
   const notice = el("regClosed");
   const success = el("regSuccess");
+  const autoNote = el("regAutoApproveNote");
   if (form) form.hidden = true;
   if (panel) panel.hidden = true;
   if (success) success.hidden = true;
+  if (autoNote) autoNote.hidden = true;
   if (notice) notice.hidden = false;
   hideMessage();
+};
+
+// ===== ✅ موج ۱۳.۷.۳ — یادداشت «تأیید خودکار» =====
+// فقط وقتی سرور auto_approve بدهد نمایش داده می‌شود؛ هیچ منطق امنیتی روی
+// این پرچم نیست (سرور مستقل همان را می‌سنجد).
+const PENDING_SUCCESS_TEXT =
+  "درخواست ثبت‌نام شما ثبت شد. پس از بررسی و تأیید مدیر، می‌توانید وارد شوید.";
+const AUTO_APPROVED_SUCCESS_TEXT =
+  "ثبت‌نام شما کامل شد و حساب مشتری‌تان فعال است؛ اکنون می‌توانید با همان نام کاربری و رمز وارد شوید.";
+
+const applyAutoApproveNote = (autoApprove) => {
+  state.autoApprove = autoApprove === true;
+  const note = el("regAutoApproveNote");
+  if (note) note.hidden = !state.autoApprove;
 };
 
 // ===== کپچا =====
@@ -345,12 +363,20 @@ const submit = async (event) => {
       if (form) form.hidden = true;
       if (panel) panel.hidden = true;
       if (success) success.hidden = false;
+      // ✅ موج ۱۳.۷.۳ — نتیجهٔ واقعی سرور (نه فقط پرچم زمان بارگذاری صفحه)
+      const autoApproved = result.data?.auto_approved === true || state.autoApprove;
       if (successText) {
+        // پیام سرور اولویت دارد؛ در نبود آن، متن بر اساس «تأیید خودکار» انتخاب می‌شود
         successText.textContent =
           result.data?.message ||
-          "درخواست ثبت‌نام شما ثبت شد. پس از تأیید مدیر می‌توانید وارد شوید.";
+          (autoApproved ? AUTO_APPROVED_SUCCESS_TEXT : PENDING_SUCCESS_TEXT);
       }
-      showMessage("درخواست شما با موفقیت ثبت شد", "success");
+      showMessage(
+        autoApproved
+          ? "ثبت‌نام شما با موفقیت انجام شد؛ اکنون می‌توانید وارد شوید"
+          : "درخواست شما با موفقیت ثبت شد",
+        "success",
+      );
       return;
     }
 
@@ -397,6 +423,9 @@ export const registrationService = {
     state.enabled = true;
     const host = el("regFormPanel");
     if (host) host.hidden = false;
+
+    // ✅ موج ۱۳.۷.۳ — آیا ثبت‌نام‌های تازه خودکار تأیید می‌شوند؟
+    applyAutoApproveNote(data.auto_approve === true);
 
     // ۲) کپچا (اگر سرور فعال کرده باشد)
     if (data.captcha_enabled !== false) await loadCaptcha();

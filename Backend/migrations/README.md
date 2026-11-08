@@ -52,6 +52,7 @@ npm run db:verify   # فقط تأیید ساختار
 | `20261108000000-create-registration-requests.js` | **جدول مستقل صف ثبت‌نام عمومی** (`registration_requests`) + سه ایندکس یکتای جزئی `WHERE status='pending'` + ایندکس `(status, created_at)` — تا تأیید مدیر هیچ ردیفی در `users` ساخته نمی‌شود (فاز ۱۳.۶) |
 | `20261108000001-add-customer-link-to-registration-requests.js` | افزودن دو ستون ممیزی به `registration_requests`: `created_customer_id` (پروندهٔ مشتری‌ای که در تأیید به حساب متصل شد) و `customer_created` (آیا در همان تأیید **پروندهٔ تازه** ساخته شد؟) — مسیر «تأیید با ساخت پروندهٔ مشتری جدید» (موج ۱۳.۷) |
 | `20261108000002-add-customer-fields-to-registration-requests.js` | افزودن پنج ستون «اطلاعات پروندهٔ مشتری» به `registration_requests`: `customer_type_id`، `national_code`، `farm_name`، `province`، `county` (همه NULL-پذیر، بدون FK) — تا متقاضی همهٔ فیلدهای پرونده را در فرم عمومی `/register` پر کند و تأیید مدیر آن‌ها را به پروندهٔ مشتری منتقل کند (موج ۱۳.۷.۲) |
+| `20261108000003-add-auto-approval-to-registration-requests.js` | افزودن دو ستون ممیزی «تأیید خودکار» به `registration_requests`: `auto_approved` (BOOLEAN NOT NULL DEFAULT false — آیا بدون بازبینی مدیر تأیید شد؟) و `auto_approve_error` (VARCHAR(200) NULL — دلیل ناموفق‌بودن تأیید خودکار؛ ردیف در این حالت `pending` می‌ماند) — سوییچ `registration_auto_approve` (موج ۱۳.۷.۳) |
 
 
 همهٔ مایگریشن‌ها **idempotent** هستند (اگر جدول/ستون موجود باشد، دست نمی‌زنند) تا اجرای دوباره روی سرور خطا ندهد.

@@ -25,6 +25,16 @@ const KEY_DEFS = {
     default: false,
     title: "ثبت‌نام عمومی مشتریان (صفحهٔ /register)",
   },
+  // ✅ موج ۱۳.۷.۳ — «تأیید خودکار ثبت‌نام»
+  //    پیش‌فرض: خاموش. اگر روشن باشد، هر درخواست ثبت‌نام بلافاصله تأیید
+  //    می‌شود (پروندهٔ مشتری + حساب کاربری ساخته می‌شود) و در صف نمی‌ماند.
+  // ⚠️ عمداً در PUBLIC_KEYS نیست؛ فقط از GET /api/registrations/config
+  //    به‌صورت یک بولین نمایشی به صفحهٔ /register می‌رسد.
+  registration_auto_approve: {
+    type: "boolean",
+    default: false,
+    title: "تأیید خودکار ثبت‌نام عمومی (ساخت فوری حساب مشتری بدون بازبینی مدیر)",
+  },
 };
 
 // کلیدهایی که برای کاربران مهمان (بدون ورود) هم قابل خواندن‌اند
@@ -84,29 +94,43 @@ const getSettings = async (req, res) => {
 };
 
 // ================================================================
+// نوشتن یک تنظیم (منبع مشترک نوشتن)
+// ----------------------------------------------------------------
+// ✅ موج ۱۳.۷.۳ — از این پس دو مسیر از همین تابع استفاده می‌کنند:
+//    • PUT /api/settings/:key           (مجوز settings.edit)
+//    • PUT /api/registrations/settings  (مجوز users.registrations.review)
+//    تا اعتبارسنجی و نرمال‌سازی مقدار در یک نقطه بماند.
+// خروجی: { ok:true, key, value } یا { ok:false, message }
+// ================================================================
+const writeSetting = async (key, rawValue, userId = null) => {
+  const def = KEY_DEFS[key];
+  if (!def) return { ok: false, message: "کلید تنظیم نامعتبر است" };
+
+  const value = toStoredValue(def, rawValue);
+  const row = await AppSetting.findOne({ where: { key } });
+  if (row) {
+    await row.update({ value, updated_by: userId ?? null });
+  } else {
+    await AppSetting.create({ key, value, updated_by: userId ?? null });
+  }
+
+  return { ok: true, key, value: toApiValue(def, value) };
+};
+
+// ================================================================
 // بروزرسانی یک تنظیم (فقط مدیر میانی/اصلی/سوپر ادمین)
 // ================================================================
 const updateSetting = async (req, res) => {
   try {
     const { key } = req.params;
-    const def = KEY_DEFS[key];
-    if (!def) {
-      return errorResponse(res, "کلید تنظیم نامعتبر است", 400);
-    }
-
-    const value = toStoredValue(def, req.body?.value);
-    const userId = req.user?.id || null;
-
-    let row = await AppSetting.findOne({ where: { key } });
-    if (row) {
-      await row.update({ value, updated_by: userId });
-    } else {
-      row = await AppSetting.create({ key, value, updated_by: userId });
+    const written = await writeSetting(key, req.body?.value, req.user?.id || null);
+    if (!written.ok) {
+      return errorResponse(res, written.message, 400);
     }
 
     successResponse(
       res,
-      { key, value: toApiValue(def, value) },
+      { key: written.key, value: written.value },
       "تنظیم با موفقیت بروزرسانی شد",
     );
   } catch (error) {
@@ -165,6 +189,7 @@ module.exports = {
   getSettings,
   getPublicSettings,
   updateSetting,
+  writeSetting,
   readSetting,
   KEY_DEFS,
   PUBLIC_KEYS,

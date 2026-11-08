@@ -155,6 +155,21 @@ const RegistrationRequest = sequelize.define(
       defaultValue: false,
       field: "customer_created",
     },
+    // ===== موج ۱۳.۷.۳ — ممیزی «تأیید خودکار» =====
+    // ⚠️ در حالت تأیید خودکار reviewed_by خالی می‌ماند؛ تفکیک «تأیید خودکار»
+    //    از «تأیید دستی» فقط با همین ستون ممکن است.
+    auto_approved: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+      field: "auto_approved",
+    },
+    // دلیل ناموفق‌بودن تأیید خودکار (ردیف در این حالت pending می‌ماند)
+    auto_approve_error: {
+      type: DataTypes.STRING(200),
+      allowNull: true,
+      field: "auto_approve_error",
+    },
     ip: {
       type: DataTypes.STRING(45),
       allowNull: true,

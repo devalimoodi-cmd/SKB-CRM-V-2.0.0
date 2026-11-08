@@ -66,11 +66,16 @@ const sendServiceError = (res, result) => {
 // ============================================
 const getPublicConfig = async (req, res) => {
   try {
-    const flag = await settingsController.readSetting("registration_enabled");
+    const [flag, autoFlag] = await Promise.all([
+      settingsController.readSetting("registration_enabled"),
+      // ✅ موج ۱۳.۷.۳ — «تأیید خودکار» فقط برای متن پیام موفقیت لازم است
+      settingsController.readSetting("registration_auto_approve"),
+    ]);
     return successResponse(
       res,
       {
         enabled: rules.isRegistrationEnabled(flag),
+        auto_approve: rules.isAutoApproveEnabled(autoFlag),
         captcha_enabled: isCaptchaEnabled(),
         min_password_length: rules.MIN_PASSWORD_LENGTH,
       },
@@ -128,6 +133,10 @@ const publicRegister = async (req, res) => {
       return errorResponse(res, REGISTRATION_CLOSED_MESSAGE, 403);
     }
 
+    // ۱-ب) پرچم «تأیید خودکار» (موج ۱۳.۷.۳) — فقط پس از باز بودن ثبت‌نام
+    const autoFlag = await settingsController.readSetting("registration_auto_approve");
+    const autoApprove = rules.isAutoApproveEnabled(autoFlag);
+
     // ۲) کپچا (اگر فعال باشد) — پیش از هر خواندن از دیتابیس
     if (isCaptchaEnabled()) {
       const captchaId = req.body?.captcha_id ?? req.body?.captchaId;
@@ -168,8 +177,17 @@ const publicRegister = async (req, res) => {
       });
     }
 
-    // ۶) پاسخ حداقلی: بدون شناسهٔ داخلی و بدون توکن
-    return successResponse(res, rules.publicRequestView(), rules.publicRequestView().message, 201);
+    // ۶) تأیید خودکار (موج ۱۳.۷.۳)
+    //    ⚠️ شکست آن، ثبت‌نام را باطل نمی‌کند: ردیف pending می‌ماند، تراکنش
+    //    تأیید رول‌بک می‌شود و دلیل در auto_approve_error ثبت می‌گردد.
+    let auto = null;
+    if (autoApprove) {
+      auto = await service.autoApproveRequest(created.request);
+    }
+
+    // ۷) پاسخ حداقلی: بدون شناسهٔ داخلی و بدون توکن
+    const view = rules.publicRequestView(auto?.ok === true);
+    return successResponse(res, view, view.message, 201);
   } catch (error) {
     console.error("❌ خطا در ثبت درخواست ثبت‌نام:", error);
     return errorResponse(res, error.message, 500);
@@ -216,6 +234,106 @@ const getPendingCount = async (req, res) => {
     return successResponse(res, { count }, "تعداد درخواست‌های در انتظار دریافت شد");
   } catch (error) {
     console.error("❌ خطا در شمارش درخواست‌های ثبت‌نام:", error);
+    return errorResponse(res, error.message, 500);
+  }
+};
+
+// ============================================
+// GET /api/registrations/settings  (مدیر)
+// ------------------------------------------------------------
+// ✅ موج ۱۳.۷.۳ — سوییچ «تأیید خودکار» در کارت «درخواست‌های ثبت‌نام».
+// برای رندر درست سوییچ، فرانت باید هم مقدار فعلی و هم «اجازهٔ تغییر»
+// را بداند؛ پس هر دو در یک پاسخ می‌آیند.
+// ============================================
+const getReviewSettings = async (req, res) => {
+  try {
+    const [autoFlag, canReview, canRegisterCustomer] = await Promise.all([
+      settingsController.readSetting("registration_auto_approve"),
+      userHasPermission(req, "users.registrations.review"),
+      userHasPermission(req, "customers.register"),
+    ]);
+
+    return successResponse(
+      res,
+      {
+        auto_approve: rules.isAutoApproveEnabled(autoFlag),
+        // روشن‌کردن سوییچ = ساخت خودکار پروندهٔ مشتری بدون بازبینی
+        // ⇒ هم مجوز بازبینی و هم مجوز ثبت مشتری لازم است
+        can_review: canReview,
+        can_register_customer: canRegisterCustomer,
+        can_toggle: canReview && canRegisterCustomer,
+      },
+      "تنظیمات صف ثبت‌نام دریافت شد",
+    );
+  } catch (error) {
+    console.error("❌ خطا در خواندن تنظیمات صف ثبت‌نام:", error);
+    return errorResponse(res, error.message, 500);
+  }
+};
+
+// ============================================
+// PUT /api/registrations/settings  (مدیر)
+// ------------------------------------------------------------
+// 🔒 برخلاف PUT /api/settings/:key (که settings.edit می‌خواهد)، این مسیر
+//    مستقیماً «اجازهٔ ساخت خودکار پروندهٔ مشتری» می‌دهد؛ پس:
+//      • تغییر (روشن یا خاموش) ⇒ users.registrations.review
+//      • روشن‌کردن ⇒ additionally customers.register
+//    مقدار از طریق settingsController.writeSetting ذخیره می‌شود تا همان
+//    اعتبارسنجی/نرمال‌سازی درِ تنظیمات اجرا شود.
+// ============================================
+const updateReviewSettings = async (req, res) => {
+  try {
+    const canReview = await userHasPermission(req, "users.registrations.review");
+    if (!canReview) {
+      return errorResponse(
+        res,
+        "برای تغییر تنظیمات صف ثبت‌نام، مجوز «بازبینی درخواست‌های ثبت‌نام» لازم است",
+        403,
+      );
+    }
+
+    const raw = req.body?.auto_approve;
+    if (raw === undefined || raw === null) {
+      return errorResponse(res, "مقدار «تأیید خودکار» ارسال نشده است", 400);
+    }
+    const desired = rules.isAutoApproveEnabled(raw);
+
+    if (desired) {
+      const canRegisterCustomer = await userHasPermission(req, "customers.register");
+      if (!canRegisterCustomer) {
+        return errorResponse(
+          res,
+          "برای روشن‌کردن «تأیید خودکار»، مجوز «ثبت مشتری جدید» لازم است (تأیید خودکار پروندهٔ مشتری می‌سازد)",
+          403,
+        );
+      }
+    }
+
+    const written = await settingsController.writeSetting(
+      "registration_auto_approve",
+      desired,
+      req.user?.id ?? null,
+    );
+    if (!written.ok) {
+      return errorResponse(res, written.message, 400);
+    }
+
+    // ممیزی سبک: چه کسی این پرچم را روشن/خاموش کرد
+    console.warn(
+      `🔁 [registration] «تأیید خودکار ثبت‌نام» توسط کاربر ${req.user?.id ?? "?"} ${
+        desired ? "روشن" : "خاموش"
+      } شد`,
+    );
+
+    return successResponse(
+      res,
+      { auto_approve: written.value === true },
+      desired
+        ? "«تأیید خودکار ثبت‌نام» روشن شد؛ ثبت‌نام‌های تازه بی‌درنگ تأیید می‌شوند"
+        : "«تأیید خودکار ثبت‌نام» خاموش شد؛ درخواست‌های تازه در صف بازبینی می‌مانند",
+    );
+  } catch (error) {
+    console.error("❌ خطا در بروزرسانی تنظیمات صف ثبت‌نام:", error);
     return errorResponse(res, error.message, 500);
   }
 };
@@ -325,6 +443,8 @@ module.exports = {
   publicRegister,
   listRegistrations,
   getPendingCount,
+  getReviewSettings,
+  updateReviewSettings,
   approveRegistration,
   rejectRegistration,
 };

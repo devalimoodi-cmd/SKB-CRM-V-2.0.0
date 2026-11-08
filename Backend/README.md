@@ -407,11 +407,13 @@ ALLOW_DB_TESTS=true npm run test:db     # ۱۰ بررسی: ساختار (flocks)
 
 | متد | مسیر | دسترسی |
 |---|---|---|
-| GET | `/api/registrations/config` | عمومی — `{ enabled, captcha_enabled, min_password_length }` |
+| GET | `/api/registrations/config` | عمومی — `{ enabled, auto_approve, captcha_enabled, min_password_length }` |
 | GET | `/api/registrations/customer-types` | عمومی — `[{ id, name }]` فقط انواع **فعال** (موج ۱۳.۷.۲؛ `publicDictLimiter` ۱۲۰/ساعت + `Cache-Control: max-age=300`) |
-| POST | `/api/registrations` | عمومی — کپچا + `registerLimiter` (۵/ساعت/IP) + پرچم `registration_enabled` |
+| POST | `/api/registrations` | عمومی — کپچا + `registerLimiter` (۵/ساعت/IP) + پرچم `registration_enabled` (+ تأیید خودکار اگر `registration_auto_approve` روشن باشد) |
 | GET | `/api/registrations` | `protect` + `users.registrations.view` |
 | GET | `/api/registrations/pending-count` | `protect` + `users.registrations.view` |
+| GET | `/api/registrations/settings` | `protect` + `users.registrations.view` — `{ auto_approve, can_review, can_register_customer, can_toggle }` (موج ۱۳.۷.۳) |
+| PUT | `/api/registrations/settings` | `protect` + `users.registrations.review` — بدنه `{ auto_approve: boolean }` (روشن‌کردن: **+** `customers.register`) |
 | POST | `/api/registrations/:id/approve` | `protect` + `users.registrations.review` + `users.customer.link` |
 | POST | `/api/registrations/:id/reject` | `protect` + `users.registrations.review` |
 
@@ -430,8 +432,27 @@ ALLOW_DB_TESTS=true npm run test:db     # ۱۰ بررسی: ساختار (flocks)
   در ثبت عمومی: نوع مشتری باید **وجود داشته و فعال** باشد و جفت استان/شهرستان در دیکشنری
   `cities` سنجیده می‌شود (fail-open فقط اگر جدول خالی/در دسترس نباشد).
   در تأیید: هر فیلدی که مدیر نفرستد **از درخواست** پر می‌شود (ارسال رشتهٔ خالی = پاک‌کردن).
-- تست: `node registration-test.mjs` (`npm run test:registration` — **۹۳** بررسی) و
-  `Frontend/registration-guard-test.mjs` (**۷۸** بررسی). مستند: `docs/REVIEW-WAVE-13.7.2.md`.
+- تست: `node registration-test.mjs` (`npm run test:registration` — **۱۱۷** بررسی) و
+  `Frontend/registration-guard-test.mjs` (**۸۹** بررسی). مستند: `docs/REVIEW-WAVE-13.7.2.md`.
+
+#### موج ۱۳.۷.۳ — «تأیید خودکار ثبت‌نام»
+
+- کلید تنظیم تازه: **`registration_auto_approve`** (boolean، پیش‌فرض `false`) در
+  `controllers/settingsController.js` — **در `PUBLIC_KEYS` نیست**؛ فقط به‌صورت
+  `auto_approve` در `GET /api/registrations/config` به صفحهٔ `/register` می‌رسد.
+- اگر روشن باشد، `POST /api/registrations` پس از ساخت ردیف،
+  `services/registrationService.autoApproveRequest(request)` را اجرا می‌کند:
+  همان مسیر `approveRequest` (تراکنش اتمیک + پروندهٔ مشتری + کاربر `customer`)
+  با `reviewerId: null` و پرچم ممیزی `auto_approved = true`. توکنی صادر نمی‌شود.
+- 🔒 اگر موبایل متقاضی از قبل در `customer_personal_information` باشد، تأیید
+  خودکار **انجام نمی‌شود** (اتصال خودکار = تصاحب پروندهٔ دیگران)؛ ردیف
+  `pending` می‌ماند و دلیلش در ستون `auto_approve_error` ثبت می‌شود.
+- مایگریشن `20261108000003-add-auto-approval-to-registration-requests` دو ستون
+  `auto_approved` (BOOLEAN NOT NULL DEFAULT false) و `auto_approve_error`
+  (VARCHAR(200) NULL) را اضافه می‌کند؛ `verify-db` هم می‌شناسد.
+- منبع نوشتن تنظیم: `settingsController.writeSetting(key, raw, userId)` (هم
+  `PUT /api/settings/:key` و هم `PUT /api/registrations/settings`).
+- مستند کامل: `docs/REVIEW-WAVE-13.7.3.md`.
 
 
 

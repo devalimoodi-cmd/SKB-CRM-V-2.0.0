@@ -265,6 +265,7 @@ GET /api/server-status
 | `auto_welcome_sms` | boolean | `true` | ارسال خودکار پیامک خوش‌آمدگویی بعد از ثبت مشتری |
 | `loader_style` | enum (`classic` / `logo`) | `classic` | لودر سیستمی: دایرهٔ چرخان یا لوگوی ستاره کیان |
 | `registration_enabled` | boolean | `false` | **ثبت‌نام عمومی مشتری** (`/register` + `POST /api/registrations`) — تا روشن نشود، هر دو بسته‌اند (فاز ۱۳.۶) |
+| `registration_auto_approve` | boolean | `false` | **تأیید خودکار ثبت‌نام**: هر ثبت‌نام عمومی بی‌درنگ تأیید و حساب مشتری ساخته می‌شود. نوشتن از پنل با `PUT /api/registrations/settings` (`users.registrations.review` + `customers.register`)؛ در `PUBLIC_KEYS` **نیست** و فقط به‌صورت `auto_approve` در `GET /api/registrations/config` دیده می‌شود (موج ۱۳.۷.۳) |
 
 
 اندپوینت‌ها:
@@ -274,6 +275,8 @@ GET /api/server-status
 
 > ⚠️ هر کلید جدید که به لیست عمومی (`PUBLIC_KEYS`) اضافه می‌شود باید بی‌خطر و نمایشی باشد.
 > مقادیر نامعتبر (مثل `loader_style="x"`) خودکار به مقدار پیش‌فرض برمی‌گردند.
+> نوشتن تنظیم در کد از `settingsController.writeSetting(key, raw, userId)` انجام می‌شود
+> (هم `PUT /api/settings/:key` و هم `PUT /api/registrations/settings` از همین تابع می‌گذرند).
 
 ---
 

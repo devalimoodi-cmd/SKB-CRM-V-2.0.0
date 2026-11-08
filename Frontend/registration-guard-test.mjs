@@ -587,6 +587,90 @@ check(
 );
 
 // ============================================================
+// ✅ موج ۱۳.۷.۳ — «تأیید خودکار ثبت‌نام»
+// ============================================================
+const autoApproveMigration = read(
+  "Backend/migrations/20261108000003-add-auto-approval-to-registration-requests.js",
+);
+
+check(
+  "۱۳.۷.۳ · پنل: سوییچ «تأیید خودکار» در کارت درخواست‌های ثبت‌نام وجود دارد",
+  /id="regAutoApproveBar"/.test(adminHtml) &&
+    /id="autoApproveRegistrationToggle"/.test(adminHtml) &&
+    /id="autoApproveRegistrationState"/.test(adminHtml) &&
+    /type="checkbox" id="autoApproveRegistrationToggle"/.test(adminHtml),
+);
+check(
+  "۱۳.۷.۳ · پنل: متن هشدار سوییچ، ساخت خودکار پرونده/حساب را توضیح می‌دهد",
+  /id="regAutoApproveHint"/.test(adminHtml) &&
+    /بی‌درنگ تأیید/.test(adminHtml) &&
+    /بدون بازبینی شما/.test(adminHtml),
+);
+check(
+  "۱۳.۷.۳ · پنل CSS: استایل سوییچ/نوار/بج/دلیل شکست تعریف شده است",
+  /\.regq-auto\s*\{/.test(adminCss) &&
+    /\.regq-switch-track/.test(adminCss) &&
+    /\.regq-auto\.is-on/.test(adminCss) &&
+    /\.regq-auto\.is-disabled/.test(adminCss) &&
+    /\.regq-badge\.auto/.test(adminCss) &&
+    /\.regq-auto-error/.test(adminCss),
+);
+check(
+  "۱۳.۷.۳ · پنل API: خواندن/نوشتن تنظیمات صف روی REGISTRATIONS.SETTINGS",
+  /SETTINGS: "\/registrations\/settings"/.test(apiConst) &&
+    /getRegistrationSettings\(\)/.test(adminApi) &&
+    /updateRegistrationSettings\(payload = \{\}\)/.test(adminApi) &&
+    /apiService\.get\(endpoints\.SETTINGS\)/.test(adminApi) &&
+    /apiService\.put\(endpoints\.SETTINGS, payload\)/.test(adminApi),
+);
+check(
+  "۱۳.۷.۳ · پنل سرویس: بارگذاری/ذخیرهٔ سوییچ با گارد مجوز و بازگشت در خطا",
+  /setupAutoApproveRegistration\(\)/.test(adminService) &&
+    /async loadRegistrationReviewSettings\(\)/.test(adminService) &&
+    /async saveAutoApproveRegistration\(toggle\)/.test(adminService) &&
+    /this\.autoApproveCanToggle = data\.can_toggle === true/.test(adminService) &&
+    /await this\.loadRegistrationReviewSettings\(\)/.test(adminService),
+);
+check(
+  "۱۳.۷.۳ · پنل سرویس: سوییچ در باز شدن بخش «درخواست‌های ثبت‌نام» تازه می‌شود",
+  /case "registration-requests":[\s\S]{0,260}?loadRegistrationReviewSettings/.test(
+    adminService,
+  ),
+);
+check(
+  "۱۳.۷.۳ · پنل رندرر: بج «تأیید خودکار» و دلیل شکست نمایش داده می‌شود",
+  /item\.auto_approved === true/.test(adminRenderer) &&
+    /regq-badge auto/.test(adminRenderer) &&
+    /item\.auto_approve_error/.test(adminRenderer) &&
+    /regq-auto-error/.test(adminRenderer),
+);
+check(
+  "۱۳.۷.۳ · صفحهٔ /register: یادداشت «تأیید خودکار» با پرچم سرور نمایش داده می‌شود",
+  /id="regAutoApproveNote"/.test(registerHtml) &&
+    /\.reg-auto-note/.test(registerCss) &&
+    /applyAutoApproveNote\(data\.auto_approve === true\)/.test(registerService),
+);
+check(
+  "۱۳.۷.۳ · صفحهٔ /register: پیام موفقیت بر اساس نتیجهٔ سرور انتخاب می‌شود",
+  /AUTO_APPROVED_SUCCESS_TEXT/.test(registerService) &&
+    /PENDING_SUCCESS_TEXT/.test(registerService) &&
+    /result\.data\?\.auto_approved === true/.test(registerService) &&
+    /result\.data\?\.message/.test(registerService),
+);
+check(
+  "۱۳.۷.۳ · سرور: مایگریشن ستون‌های ممیزی تأیید خودکار روی صف ثبت‌نام",
+  ["auto_approved", "auto_approve_error"].every((field) =>
+    autoApproveMigration.includes(`"${field}"`),
+  ) && /defaultValue: false/.test(autoApproveMigration),
+);
+check(
+  "۱۳.۷.۳ · سرور: تنظیم registration_auto_approve در settingsController با پیش‌فرض خاموش",
+  /registration_auto_approve:\s*\{[\s\S]{0,300}?default:\s*false/.test(
+    read("Backend/controllers/settingsController.js"),
+  ),
+);
+
+// ============================================================
 // جمع‌بندی
 // ============================================================
 const failed = results.filter((r) => !r.ok);

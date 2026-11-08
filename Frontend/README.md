@@ -811,6 +811,19 @@ npm run test:cache    :: نگهبانهای UI (وجود بخش، سه‌حال�
 | تست | `registration-guard-test.mjs` ۶۰ → **۷۸** بررسی (بخش ۹) · بک‌اند ۶۹ → **۹۳** |
 | مستند | `docs/REVIEW-WAVE-13.7.2.md` |
 
+### موج ۱۳.۷.۳ — سوییچ «تأیید خودکار ثبت‌نام» در پنل
+
+| موضوع | مقدار |
+|---|---|
+| سوییچ | نوار `.regq-auto` بالای صف: `#autoApproveRegistrationToggle` + `#autoApproveRegistrationState` + متن هشدار `#regAutoApproveHint` |
+| اندپوینت‌ها | `GET /api/registrations/settings` (`users.registrations.view`) · `PUT .../settings` (`users.registrations.review`؛ روشن‌کردن **+** `customers.register`) در `ENDPOINTS.REGISTRATIONS.SETTINGS` |
+| سرویس پنل | `setupAutoApproveRegistration` · `loadRegistrationReviewSettings` · `renderAutoApproveRegistration` · `saveAutoApproveRegistration`؛ سوییچ بدون `can_toggle` **غیرفعال** و با tooltip دلیل |
+| ردیف صف | بج `.regq-badge.auto` («⚡ تأیید خودکار») روی `auto_approved` و `.regq-auto-error` روی `pending`هایی که `auto_approve_error` دارند |
+| صفحهٔ `/register` | `config.auto_approve` ⇒ یادداشت `#regAutoApproveNote` بالای دکمهٔ ارسال + پیام موفقیت «اکنون می‌توانید وارد شوید» |
+| استایل | `.regq-auto`/`.is-on`/`.is-disabled`، `.regq-switch` + `.regq-switch-track` (بدون تصویر، RTL-safe)، `.regq-switch-label`، `.regq-badge.auto`، `.regq-auto-error`، `.reg-auto-note` |
+| تست | `registration-guard-test.mjs` ۷۸ → **۸۹** بررسی (بخش ۱۰) · بک‌اند ۹۳ → **۱۱۷** |
+| مستند | `docs/REVIEW-WAVE-13.7.3.md` |
+
 
 
 

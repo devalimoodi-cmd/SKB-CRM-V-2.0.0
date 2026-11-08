@@ -436,6 +436,18 @@ export const adminPanelRenderer = {
             )}${item.customer_created ? " (تازه ساخته شد)" : ""}</span></div>`
           : "";
 
+        // ✅ موج ۱۳.۷.۳ — بج «تأیید خودکار» (بدون بازبینی مدیر)
+        const autoBadge = item.auto_approved === true
+          ? '<span class="regq-badge auto" title="این درخواست بدون بازبینی مدیر تأیید شد"><i class="fas fa-bolt"></i> تأیید خودکار</span>'
+          : "";
+
+        // ✅ موج ۱۳.۷.۳ — چرا تأیید خودکار انجام نشد؟ (ردیف در صف مانده است)
+        const autoError = item.auto_approve_error
+          ? `<div class="regq-auto-error"><i class="fas fa-triangle-exclamation"></i> ${escapeHtml(
+              item.auto_approve_error,
+            )}</div>`
+          : "";
+
         const actions = canReview && item.status === "pending"
           ? `<div class="regq-row-actions">
                <button type="button" class="regq-icon-btn approve" title="تأیید و ساخت حساب"
@@ -455,6 +467,7 @@ export const adminPanelRenderer = {
               <div class="regq-name">
                 ${escapeHtml(fullName || item.username || "بدون نام")}
                 ${this.registrationStatusBadge(item.status)}
+                ${autoBadge}
               </div>
               <div class="regq-meta">
                 <span><i class="fas fa-user"></i> ${escapeHtml(item.username || "-")}</span>
@@ -469,6 +482,7 @@ export const adminPanelRenderer = {
               </div>
               ${linkedCustomer}
               <div class="regq-note"><i class="fas fa-comment-dots"></i> ${note}</div>
+              ${autoError}
               ${rejectReason}
             </div>
             ${actions}

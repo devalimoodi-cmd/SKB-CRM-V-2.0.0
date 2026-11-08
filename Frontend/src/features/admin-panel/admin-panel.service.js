@@ -54,6 +54,9 @@ class AdminPanelService {
     this.registrationCustomerMode = "existing";
     // ✅ موج ۱۳.۷.۲ — پیش‌پرکردن فرم «پروندهٔ تازه» از اطلاعات خود درخواست
     this.newCustomerPrefill = null;
+    // ✅ موج ۱۳.۷.۳ — سوییچ «تأیید خودکار ثبت‌نام» (مقدار + اجازهٔ تغییر)
+    this.autoApproveRegistration = false;
+    this.autoApproveCanToggle = false;
     this.initialized = false;
     // ✅ لودر سیستمی (تنظیمات سیستم)
     this.loaderStyle = "classic";
@@ -854,6 +857,8 @@ class AdminPanelService {
         // ✅ «درخواست‌های ثبت‌نام» (فاز ۱۳.۶) — صف تأیید مشتریان
         this.stopSuggestionsPolling();
         await this.loadRegistrationRequests();
+        // ✅ موج ۱۳.۷.۳ — مقدار سوییچ «تأیید خودکار» هم از سرور تازه می‌شود
+        await this.loadRegistrationReviewSettings();
         break;
       default:
         console.log("📌 بخش:", menuId);
@@ -1680,6 +1685,121 @@ class AdminPanelService {
 
     // بج تعداد در انتظار تأیید (بی‌صدا اگر مجوز نباشد)
     this.refreshRegistrationsBadge();
+
+    // ✅ موج ۱۳.۷.۳ — سوییچ «تأیید خودکار» (bind + بارگذاری مقدار)
+    this.setupAutoApproveRegistration();
+    this.loadRegistrationReviewSettings();
+  }
+
+  // ============================================================
+  // ✅ موج ۱۳.۷.۳ — سوییچ «تأیید خودکار ثبت‌نام»
+  // ------------------------------------------------------------
+  // • خواندن:  GET /api/registrations/settings   (users.registrations.view)
+  // • نوشتن:   PUT /api/registrations/settings   (users.registrations.review
+  //            و برای «روشن‌کردن» additionally customers.register)
+  // ⚠️ اگر کاربر مجوز لازم را نداشته باشد سوییچ غیرفعال می‌شود و دلیلش در
+  //    tooltip دیده می‌شود؛ مقدار نمایش‌داده‌شده همیشه از سرور می‌آید
+  //    (سرور منبع حقیقت است، نه حافظهٔ مرورگر).
+  // ============================================================
+
+  setupAutoApproveRegistration() {
+    document
+      .getElementById("autoApproveRegistrationToggle")
+      ?.addEventListener("change", (event) =>
+        this.saveAutoApproveRegistration(event.target),
+      );
+  }
+
+  // رندر وضعیت سوییچ بر اساس دادهٔ سرور
+  renderAutoApproveRegistration() {
+    const toggle = document.getElementById("autoApproveRegistrationToggle");
+    const stateLabel = document.getElementById("autoApproveRegistrationState");
+    const bar = document.getElementById("regAutoApproveBar");
+    const on = this.autoApproveRegistration === true;
+    const canToggle = this.autoApproveCanToggle === true;
+
+    if (toggle) {
+      toggle.checked = on;
+      toggle.disabled = !canToggle;
+      toggle.title = canToggle
+        ? "با روشن‌کردن، هر ثبت‌نام تازه بی‌درنگ تأیید و حساب مشتری ساخته می‌شود"
+        : "برای تغییر این سوییچ به مجوز «بازبینی درخواست‌های ثبت‌نام» و «ثبت مشتری جدید» نیاز دارید";
+    }
+    if (bar) {
+      bar.classList.toggle("is-on", on);
+      bar.classList.toggle("is-disabled", !canToggle);
+    }
+    if (stateLabel) {
+      stateLabel.textContent = !canToggle ? "بدون مجوز" : on ? "روشن" : "خاموش";
+    }
+  }
+
+  async loadRegistrationReviewSettings() {
+    try {
+      const response = await adminPanelApi.getRegistrationSettings();
+      if (!response?.success) {
+        throw new Error(response?.message || "دریافت تنظیمات صف ناموفق بود");
+      }
+
+      const data = response.data || {};
+      this.autoApproveRegistration = data.auto_approve === true;
+      this.autoApproveCanToggle = data.can_toggle === true;
+      this.renderAutoApproveRegistration();
+      return this.autoApproveRegistration;
+    } catch (error) {
+      console.warn(
+        "⚠️ دریافت تنظیمات صف ثبت‌نام ناموفق بود:",
+        error?.message || error,
+      );
+      this.autoApproveCanToggle = false;
+      this.renderAutoApproveRegistration();
+      const stateLabel = document.getElementById("autoApproveRegistrationState");
+      if (stateLabel) stateLabel.textContent = "نامشخص";
+      return null;
+    }
+  }
+
+  async saveAutoApproveRegistration(toggle) {
+    const desired = toggle?.checked === true;
+    const stateLabel = document.getElementById("autoApproveRegistrationState");
+
+    if (toggle) toggle.disabled = true;
+    if (stateLabel) stateLabel.textContent = "در حال ذخیره…";
+
+    try {
+      const response = await adminPanelApi.updateRegistrationSettings({
+        auto_approve: desired,
+      });
+      if (!response?.success) {
+        throw new Error(response?.message || "ذخیرهٔ تنظیم ناموفق بود");
+      }
+
+      this.autoApproveRegistration = response.data?.auto_approve === true;
+      this.renderAutoApproveRegistration();
+
+      if (this.autoApproveRegistration) {
+        notificationService.warning(
+          "تأیید خودکار روشن شد: ثبت‌نام‌های تازه بی‌درنگ تأیید می‌شوند — تا زمانی که کپچا و محدودیت نرخ فعال باشند این حالت امن است",
+        );
+      } else {
+        notificationService.success(
+          "تأیید خودکار خاموش شد؛ درخواست‌های تازه در صف بازبینی می‌مانند",
+        );
+      }
+
+      // صف دوباره خوانده شود (درخواست‌های «تأیید خودکار» در فیلتر approved دیده می‌شوند)
+      await this.loadRegistrationRequests();
+    } catch (error) {
+      console.error("❌ Error saving registration auto-approve:", error);
+      notificationService.error(
+        error?.message || "ذخیرهٔ تنظیم «تأیید خودکار» ناموفق بود",
+      );
+      // برگشت به مقدار سرور (نه مقدار آرزویی کاربر)
+      this.renderAutoApproveRegistration();
+      await this.loadRegistrationReviewSettings();
+    } finally {
+      if (toggle) toggle.disabled = this.autoApproveCanToggle !== true;
+    }
   }
 
   // بج «در انتظار تأیید» روی منوی سایدبار

@@ -233,6 +233,8 @@ export const API_CONSTANTS = {
       CREATE: "/registrations",
       LIST: "/registrations",
       PENDING_COUNT: "/registrations/pending-count",
+      // ✅ موج ۱۳.۷.۳ — تنظیمات صف (سوییچ «تأیید خودکار»)
+      SETTINGS: "/registrations/settings",
       APPROVE: (id) => `/registrations/${id}/approve`,
       REJECT: (id) => `/registrations/${id}/reject`,
     },

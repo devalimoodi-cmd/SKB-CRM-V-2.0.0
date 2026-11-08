@@ -194,6 +194,22 @@ export const adminPanelApi = {
     return apiService.get(endpoint);
   },
 
+  // ===== ✅ موج ۱۳.۷.۳ — تنظیمات صف (سوییچ «تأیید خودکار») =====
+  //  ⚠️ دسترسی سرور: خواندن = users.registrations.view
+  //     نوشتن = users.registrations.review (+ customers.register برای روشن‌کردن)
+
+  // { auto_approve, can_review, can_register_customer, can_toggle }
+  async getRegistrationSettings() {
+    const endpoints = API_CONSTANTS.ENDPOINTS.REGISTRATIONS;
+    return apiService.get(endpoints.SETTINGS);
+  },
+
+  // { auto_approve: true | false }
+  async updateRegistrationSettings(payload = {}) {
+    const endpoints = API_CONSTANTS.ENDPOINTS.REGISTRATIONS;
+    return apiService.put(endpoints.SETTINGS, payload);
+  },
+
   // رد درخواست با دلیل اجباری
   async rejectRegistration(id, reason) {
     const endpoints = API_CONSTANTS.ENDPOINTS.REGISTRATIONS;

@@ -33,6 +33,10 @@ const MAX_NOTE_LENGTH = 500;
 const MIN_REJECT_REASON = 3;
 const MAX_REJECT_REASON = 300;
 
+// ===== تأیید خودکار (موج ۱۳.۷.۳) =====
+// طول متن «دلیلِ شکست تأیید خودکار» — برابر با VARCHAR(200) ستون auto_approve_error
+const MAX_AUTO_APPROVE_ERROR = 200;
+
 // ===== پروندهٔ مشتری (حالت «ثبت مشتری جدید» در تأیید) =====
 const MAX_FULL_NAME_LENGTH = 200;
 const MAX_FARM_NAME_LENGTH = 200;
@@ -367,11 +371,20 @@ const validateNewCustomer = (input = {}, request = {}) => {
   };
 };
 
+// ============================================
+// «تأیید خودکار» ثبت‌نام (موج ۱۳.۷.۳)
+// ------------------------------------------------------------
+// وقتی پرچم registration_auto_approve روشن است، کنترلر بلافاصله پس از
+// ثبت درخواست، مسیر تأیید را اجرا می‌کند؛ پس هیچ مدیر بازبینی در حلقه
+// نیست و ممیزی با auto_approved=true (و reviewed_by = NULL) ثبت می‌شود.
+// ============================================
+// ستون‌های ممیزیِ نتیجهٔ تأیید: auto_approved + پاک‌کردن دلیل شکست قبلی
 const approvalPatch = ({
   reviewerId,
   userId,
   customerId = null,
   customerCreated = false,
+  autoApproved = false,
   now = new Date(),
 } = {}) => ({
   status: STATUS.APPROVED,
@@ -381,7 +394,17 @@ const approvalPatch = ({
   created_customer_id: customerId ?? null,
   customer_created: customerCreated === true,
   reject_reason: null,
+  // ✅ موج ۱۳.۷.۳ — تأیید بدون دخالت مدیر
+  auto_approved: autoApproved === true,
+  auto_approve_error: null,
 });
+
+// شکست تأیید خودکار ⇒ درخواست در صف می‌ماند و دلیلش ثبت می‌شود
+const autoApprovalFailurePatch = (reason) => {
+  const text = cleanText(reason).slice(0, MAX_AUTO_APPROVE_ERROR);
+  return { auto_approve_error: text || null };
+};
+
 
 const rejectionPatch = ({ reviewerId, reason, now = new Date() } = {}) => ({
   status: STATUS.REJECTED,
@@ -417,16 +440,29 @@ const adminRequestView = (row = {}) => ({
   created_user_id: row.created_user_id ?? null,
   created_customer_id: row.created_customer_id ?? null,
   customer_created: row.customer_created === true,
+  // ✅ موج ۱۳.۷.۳ — آیا این درخواست بدون بازبینی مدیر تأیید شد؟ و اگر نشد چرا؟
+  auto_approved: row.auto_approved === true,
+  auto_approve_error: row.auto_approve_error || null,
   created_at: row.created_at,
   updated_at: row.updated_at,
 });
 
 // پاسخ «ثبت درخواست» به کاربر مهمان — حداقلی و بدون شناسهٔ داخلی
-const publicRequestView = () => ({
-  status: STATUS.PENDING,
-  message:
-    "درخواست ثبت‌نام شما ثبت شد. پس از بررسی و تأیید مدیر، می‌توانید وارد شوید.",
-});
+const PUBLIC_PENDING_MESSAGE =
+  "درخواست ثبت‌نام شما ثبت شد. پس از بررسی و تأیید مدیر، می‌توانید وارد شوید.";
+const PUBLIC_AUTO_APPROVED_MESSAGE =
+  "ثبت‌نام شما کامل شد و حساب مشتری‌تان فعال است؛ اکنون می‌توانید با همان نام کاربری و رمز وارد شوید.";
+
+// autoApproved=true فقط وقتی فرستاده می‌شود که تأیید خودکار **موفق** بوده باشد
+const publicRequestView = (autoApproved = false) => {
+  const approved = autoApproved === true;
+  return {
+    status: approved ? STATUS.APPROVED : STATUS.PENDING,
+    auto_approved: approved,
+    message: approved ? PUBLIC_AUTO_APPROVED_MESSAGE : PUBLIC_PENDING_MESSAGE,
+  };
+};
+
 
 
 // ============================================
@@ -441,6 +477,11 @@ const isRegistrationEnabled = (settingValue) => {
   const raw = String(settingValue ?? "").trim().toLowerCase();
   return raw === "true" || raw === "1" || raw === "yes";
 };
+
+// ✅ موج ۱۳.۷.۳ — پرچم «تأیید خودکار» هم‌قاعده با پرچم «ثبت‌نام باز است»
+// (پیش‌فرض خاموش؛ هر مقدار ناشناخته = خاموش ⇒ fail-closed)
+const isAutoApproveEnabled = (settingValue) => isRegistrationEnabled(settingValue);
+
 
 // فیلتر وضعیت صف (query منوی مدیر) — نامعتبر → همه
 const normalizeStatusFilter = (raw) => {
@@ -482,6 +523,12 @@ module.exports = {
   CUSTOMER_MODES,
   normalizeCustomerMode,
   validateNewCustomer,
+  // تأیید خودکار (موج ۱۳.۷.۳)
+  MAX_AUTO_APPROVE_ERROR,
+  autoApprovalFailurePatch,
+  isAutoApproveEnabled,
+  PUBLIC_PENDING_MESSAGE,
+  PUBLIC_AUTO_APPROVED_MESSAGE,
   // خروجی API
   adminRequestView,
   publicRequestView,

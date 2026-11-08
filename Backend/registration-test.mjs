@@ -41,6 +41,10 @@ const customerProfileMigration = read(
   "migrations/20261108000002-add-customer-fields-to-registration-requests.js",
 );
 const registrationModel = read("models/RegistrationRequest.js");
+// ✅ موج ۱۳.۷.۳ — دو ستون «تأیید خودکار» روی صف ثبت‌نام
+const autoApproveMigration = read(
+  "migrations/20261108000003-add-auto-approval-to-registration-requests.js",
+);
 
 const results = [];
 const check = (name, ok, extra = "") => {
@@ -704,6 +708,203 @@ check(
 check(
   "verify-db: پنج ستون پرونده در اسکن registration_requests هستند",
   PROFILE_FIELDS.every((field) => verifyDb.includes(`"${field}"`)),
+);
+
+// ============================================================
+// ✅ موج ۱۳.۷.۳ — «تأیید خودکار ثبت‌نام»
+// ============================================================
+const AUTO_APPROVE_FIELDS = ["auto_approved", "auto_approve_error"];
+const publicKeysDeclaration =
+  settings.split("\n").find((row) => row.includes("const PUBLIC_KEYS")) || "";
+
+check(
+  "۱۳.۷.۳ · settings: کلید registration_auto_approve با نوع boolean تعریف شده است",
+  /registration_auto_approve:\s*\{[\s\S]{0,200}?type:\s*"boolean"/.test(settings),
+);
+check(
+  "۱۳.۷.۳ · settings: پیش‌فرض «تأیید خودکار» خاموش است (امن به‌صورت پیش‌فرض)",
+  /registration_auto_approve:\s*\{[\s\S]{0,300}?default:\s*false/.test(settings),
+);
+check(
+  "۱۳.۷.۳ · settings: کلید در PUBLIC_KEYS نیست (فقط از config عمومی می‌آید)",
+  Boolean(publicKeysDeclaration) &&
+    !publicKeysDeclaration.includes("registration_auto_approve"),
+);
+check(
+  "۱۳.۷.۳ · settings: writeSetting استخراج شد و updateSetting از آن استفاده می‌کند",
+  /const writeSetting = async \(key, rawValue, userId = null\)/.test(settings) &&
+    /writeSetting\(key, req\.body\?\.value/.test(settings) &&
+    /writeSetting,/.test(settings),
+);
+check(
+  "۱۳.۷.۳ · rules: isAutoApproveEnabled فقط مقادیر صریح true/1/yes را روشن می‌داند",
+  rules.isAutoApproveEnabled(true) === true &&
+    rules.isAutoApproveEnabled(1) === true &&
+    rules.isAutoApproveEnabled("true") === true &&
+    rules.isAutoApproveEnabled("yes") === true &&
+    rules.isAutoApproveEnabled(false) === false &&
+    rules.isAutoApproveEnabled("0") === false &&
+    rules.isAutoApproveEnabled(null) === false &&
+    rules.isAutoApproveEnabled(undefined) === false,
+);
+check(
+  "۱۳.۷.۳ · rules: approvalPatch(autoApproved) پرچم ممیزی را ست و دلیل شکست را پاک می‌کند",
+  (() => {
+    const patch = rules.approvalPatch({
+      reviewerId: null,
+      userId: 12,
+      customerId: 34,
+      customerCreated: true,
+      autoApproved: true,
+    });
+    return (
+      patch.auto_approved === true &&
+      patch.auto_approve_error === null &&
+      patch.reviewed_by === null &&
+      patch.status === rules.STATUS.APPROVED
+    );
+  })(),
+);
+check(
+  "۱۳.۷.۳ · rules: تأیید دستی (بدون autoApproved) پرچم auto_approved را true نمی‌کند",
+  rules.approvalPatch({ reviewerId: 5 }).auto_approved === false,
+);
+check(
+  "۱۳.۷.۳ · rules: autoApprovalFailurePatch متن را به ۲۰۰ کاراکتر کوتاه می‌کند",
+  (() => {
+    const patch = rules.autoApprovalFailurePatch("x".repeat(500));
+    return (
+      typeof patch.auto_approve_error === "string" &&
+      patch.auto_approve_error.length === rules.MAX_AUTO_APPROVE_ERROR
+    );
+  })(),
+);
+check(
+  "۱۳.۷.۳ · rules: autoApprovalFailurePatch با متن خالی ⇒ null (نه رشتهٔ خالی)",
+  rules.autoApprovalFailurePatch("   ").auto_approve_error === null,
+);
+check(
+  "۱۳.۷.۳ · rules: publicRequestView(false) همان پیام «در انتظار تأیید» قبلی است",
+  (() => {
+    const view = rules.publicRequestView(false);
+    return (
+      view.status === rules.STATUS.PENDING &&
+      view.auto_approved === false &&
+      view.message === rules.PUBLIC_PENDING_MESSAGE
+    );
+  })(),
+);
+check(
+  "۱۳.۷.۳ · rules: publicRequestView(true) پیام «اکنون وارد شوید» می‌دهد و شناسه‌ای افشا نمی‌کند",
+  (() => {
+    const view = rules.publicRequestView(true);
+    const keys = Object.keys(view);
+    return (
+      view.status === rules.STATUS.APPROVED &&
+      view.auto_approved === true &&
+      view.message === rules.PUBLIC_AUTO_APPROVED_MESSAGE &&
+      view.message !== rules.PUBLIC_PENDING_MESSAGE &&
+      keys.every((key) => ["status", "auto_approved", "message"].includes(key)) &&
+      !JSON.stringify(view).includes("password_hash")
+    );
+  })(),
+);
+check(
+  "۱۳.۷.۳ · rules: adminRequestView دو ستون ممیزی «تأیید خودکار» را برمی‌گرداند",
+  (() => {
+    const view = rules.adminRequestView({
+      status: "approved",
+      auto_approved: true,
+      auto_approve_error: "دلیل",
+    });
+    return view.auto_approved === true && view.auto_approve_error === "دلیل";
+  })(),
+);
+
+check(
+  "۱۳.۷.۳ · service: autoApproveRequest از همان مسیر approveRequest با پرچم خودکار استفاده می‌کند",
+  /const autoApproveRequest = async/.test(service) &&
+    /reviewerId: null/.test(service) &&
+    /customerMode: rules\.CUSTOMER_MODE\.NEW/.test(service) &&
+    /autoApproved: true/.test(service) &&
+    /autoApproveRequest,/.test(service),
+);
+check(
+  "۱۳.۷.۳ · service: شکست تأیید خودکار ردیف pending را با دلیل ثبت می‌کند (نه حذف/تأیید)",
+  /const recordAutoApprovalFailure = async/.test(service) &&
+    /autoApprovalFailurePatch\(reason\)/.test(service) &&
+    /where: \{ id: requestId, status: rules\.STATUS\.PENDING \}/.test(service),
+);
+check(
+  "۱۳.۷.۳ · service: محافظ «موبایل از قبل پرونده دارد» پیش از تراکنش تأیید بررسی می‌شود",
+  /AUTO_CUSTOMER_EXISTS_MESSAGE/.test(service) &&
+    service.indexOf("AUTO_CUSTOMER_EXISTS_MESSAGE") <
+      service.indexOf("const result = await approveRequest({"),
+);
+check(
+  "۱۳.۷.۳ · service: autoApproveRequest هرگز throw نمی‌کند (catch + خروجی ok:false)",
+  /code: "AUTO_APPROVE_ERROR"/.test(service) &&
+    /تأیید خودکار انجام نشد؛ درخواست در صف بررسی می‌ماند/.test(service),
+);
+check(
+  "۱۳.۷.۳ · controller: config عمومی پرچم auto_approve را برای صفحهٔ /register می‌دهد",
+  /auto_approve: rules\.isAutoApproveEnabled\(autoFlag\)/.test(controller) &&
+    /readSetting\("registration_auto_approve"\)/.test(controller),
+);
+check(
+  "۱۳.۷.۳ · controller: ثبت عمومی پس از ساخت درخواست، تأیید خودکار را اجرا می‌کند",
+  /const autoApprove = rules\.isAutoApproveEnabled\(autoFlag\)/.test(controller) &&
+    /service\.autoApproveRequest\(created\.request\)/.test(controller) &&
+    /publicRequestView\(auto\?\.ok === true\)/.test(controller),
+);
+check(
+  "۱۳.۷.۳ · controller: روشن‌کردن سوییچ مجوز customers.register را هم می‌سنجد",
+  /const getReviewSettings = async/.test(controller) &&
+    /const updateReviewSettings = async/.test(controller) &&
+    /if \(desired\) \{[\s\S]{0,240}?customers\.register/.test(controller),
+);
+check(
+  "۱۳.۷.۳ · controller: مقدار نامعتبر/غایب برای auto_approve ⇒ ۴۰۰ (fail-closed)",
+  /raw === undefined \|\| raw === null/.test(controller) &&
+    /مقدار «تأیید خودکار» ارسال نشده است/.test(controller),
+);
+
+check(
+  "۱۳.۷.۳ · routes: GET /settings با users.registrations.view و PUT /settings با users.registrations.review",
+  (() => {
+    const lines = routes.split("\n");
+    const getIdx = lines.findIndex((row) => row.includes('"/settings"'));
+    const putIdx = lines.findIndex(
+      (row, index) => index > getIdx && row.includes('"/settings"'),
+    );
+    if (getIdx < 0 || putIdx < 0) return false;
+    const getBlock = lines.slice(getIdx, getIdx + 6).join("\n");
+    const putBlock = lines.slice(putIdx, putIdx + 6).join("\n");
+    return (
+      getBlock.includes("users.registrations.view") &&
+      getBlock.includes("controller.getReviewSettings") &&
+      putBlock.includes("users.registrations.review") &&
+      putBlock.includes("controller.updateReviewSettings")
+    );
+  })(),
+);
+check(
+  "۱۳.۷.۳ · migration: دو ستون تأیید خودکار با describeTable (idempotent) اضافه می‌شوند",
+  AUTO_APPROVE_FIELDS.every((field) => autoApproveMigration.includes(`"${field}"`)) &&
+    /describeTable/.test(autoApproveMigration) &&
+    /addColumn/.test(autoApproveMigration) &&
+    /removeColumn/.test(autoApproveMigration) &&
+    /defaultValue: false/.test(autoApproveMigration),
+);
+check(
+  "۱۳.۷.۳ · model: دو ستون در RegistrationRequest تعریف شده‌اند (هم‌نام مایگریشن)",
+  AUTO_APPROVE_FIELDS.every((field) =>
+    new RegExp(`\\b${field}:\\s*\\{`).test(registrationModel),
+  ),
+);
+check(
+  "۱۳.۷.۳ · verify-db: دو ستون تأیید خودکار در اسکن registration_requests هستند",
+  AUTO_APPROVE_FIELDS.every((field) => verifyDb.includes(`"${field}"`)),
 );
 
 // ============================================================

@@ -413,6 +413,8 @@ const approveRequest = async ({
   customerId,
   customerMode = rules.CUSTOMER_MODE.EXISTING,
   newCustomer = null,
+  // ✅ موج ۱۳.۷.۳ — اگر true باشد یعنی مدیر در حلقه نبوده (تأیید خودکار)
+  autoApproved = false,
 } = {}) => {
   const requestId = Number(id);
   if (!Number.isInteger(requestId) || requestId <= 0) {
@@ -562,6 +564,7 @@ const approveRequest = async ({
         userId: user.id,
         customerId: customer,
         customerCreated,
+        autoApproved,
         now: new Date(),
       }),
       { transaction },
@@ -616,6 +619,92 @@ const approveRequest = async ({
     }
 
     throw error;
+  }
+};
+
+// ============================================================
+// ۳-الف) تأیید خودکار ثبت‌نام (موج ۱۳.۷.۳)
+// ------------------------------------------------------------
+// وقتی مدیر سوییچ «تأیید خودکار» را روشن کرده باشد، کنترلر بلافاصله پس از
+// ساخت ردیف درخواست همین تابع را صدا می‌زند. مسیر تأیید **همان** مسیر
+// approveRequest است (تراکنش اتمیک + ساخت پرونده + ساخت کاربر) و فقط
+// پرچم ممیزی auto_approved اضافه می‌شود؛ پس کد تأیید دو نسخه نمی‌شود.
+// ------------------------------------------------------------
+// 🔒 تصمیم امنیتی (موج ۱۳.۷.۳):
+//   اگر شمارهٔ موبایل متقاضی از قبل در پرونده‌های مشتریان باشد، تأیید خودکار
+//   انجام **نمی‌شود**؛ چون احراز مالکیت موبایل انجام نشده و اتصال خودکار به
+//   پروندهٔ موجود = تصاحب پروندهٔ دیگران در پورتال. درخواست در صف می‌ماند و
+//   دلیلش در auto_approve_error ثبت می‌شود تا مدیر همان پرونده را دستی وصل کند.
+// ------------------------------------------------------------
+// خروجی هرگز throw نمی‌کند:
+//   • موفق          → { ok:true, request, approval }
+//   • ناموفق        → { ok:false, code, message }  (ردیف pending باقی می‌ماند)
+// ============================================================
+const AUTO_CUSTOMER_EXISTS_MESSAGE =
+  "این شمارهٔ موبایل از قبل پروندهٔ مشتری دارد؛ تأیید خودکار انجام نشد و اتصال به پروندهٔ موجود به تأیید مدیر نیاز دارد";
+
+// ثبت دلیل شکست روی همان ردیف (فقط اگر هنوز pending باشد)
+const recordAutoApprovalFailure = async (requestId, reason) => {
+  try {
+    await RegistrationRequest.update(rules.autoApprovalFailurePatch(reason), {
+      where: { id: requestId, status: rules.STATUS.PENDING },
+    });
+  } catch (error) {
+    console.warn("⚠️ ثبت دلیل شکست تأیید خودکار ناموفق بود:", error?.message);
+  }
+};
+
+const autoApproveRequest = async (request = {}) => {
+  const requestId = Number(request?.id);
+  if (!Number.isInteger(requestId) || requestId <= 0) {
+    return { ok: false, code: "NOT_FOUND", message: "درخواست یافت نشد" };
+  }
+
+  try {
+    // ۰) محافظ «پروندهٔ موجود» — عمداً پیش از باز کردن تراکنش
+    const sameMobile = await CustomerPersonalInfo.findOne({
+      where: { mobile_number: request.mobile_number },
+      attributes: ["id"],
+    });
+    if (sameMobile) {
+      await recordAutoApprovalFailure(requestId, AUTO_CUSTOMER_EXISTS_MESSAGE);
+      console.warn(
+        `⚠️ [registration] تأیید خودکار درخواست ${requestId} انجام نشد: موبایل از قبل پرونده دارد (customer_id=${sameMobile.id})`,
+      );
+      return {
+        ok: false,
+        code: "AUTO_CUSTOMER_EXISTS",
+        message: AUTO_CUSTOMER_EXISTS_MESSAGE,
+      };
+    }
+
+    // ۱) همان مسیر تأیید، ولی بدون مدیر بازبین و با پروندهٔ ساخته‌شده از
+    //    فیلدهای سفید خودِ درخواست ({} ⇒ validateNewCustomer از ردیف می‌خواند)
+    const result = await approveRequest({
+      id: requestId,
+      reviewerId: null,
+      customerMode: rules.CUSTOMER_MODE.NEW,
+      newCustomer: {},
+      autoApproved: true,
+    });
+
+    if (!result.ok) {
+      await recordAutoApprovalFailure(requestId, result.message);
+      console.warn(
+        `⚠️ [registration] تأیید خودکار درخواست ${requestId} ناموفق بود (${result.code}): ${result.message}`,
+      );
+      return { ok: false, code: result.code, message: result.message };
+    }
+
+    return { ok: true, request: result.request, approval: result };
+  } catch (error) {
+    await recordAutoApprovalFailure(requestId, "تأیید خودکار با خطای سیستمی متوقف شد");
+    console.error("❌ خطا در تأیید خودکار درخواست ثبت‌نام:", error);
+    return {
+      ok: false,
+      code: "AUTO_APPROVE_ERROR",
+      message: "تأیید خودکار انجام نشد؛ درخواست در صف بررسی می‌ماند",
+    };
   }
 };
 
@@ -675,5 +764,9 @@ module.exports = {
   pendingCount,
   findRequest,
   approveRequest,
+  // تأیید خودکار (موج ۱۳.۷.۳)
+  AUTO_CUSTOMER_EXISTS_MESSAGE,
+  recordAutoApprovalFailure,
+  autoApproveRequest,
   rejectRequest,
 };

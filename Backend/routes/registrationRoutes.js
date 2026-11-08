@@ -3,16 +3,20 @@
 // «ثبت‌نام عمومی مشتری» + «صف تأیید مدیر» — فاز ۱۳.۶
 // ------------------------------------------------------------
 // مسیرها (router روی /api/registrations نصب می‌شود):
-//   GET  /config                 عمومی  → { enabled, captcha_enabled, ... }
+//   GET  /config                 عمومی  → { enabled, auto_approve, captcha_enabled, ... }
 //   GET  /customer-types         عمومی  → [{ id, name }] انواع فعال (موج ۱۳.۷.۲)
 //   POST /                       عمومی  → ثبت درخواست (کپچا + rate-limit)
+//   GET  /settings               users.registrations.view   → { auto_approve, can_toggle, ... }
+//   PUT  /settings               users.registrations.review → روشن/خاموش «تأیید خودکار» (موج ۱۳.۷.۳)
 //   GET  /pending-count          users.registrations.view
 //   GET  /                       users.registrations.view
 //   POST /:id/approve            users.registrations.review (+ users.customer.link در کنترلر)
 //   POST /:id/reject             users.registrations.review
 // ------------------------------------------------------------
 // ⚠️ عمومی فقط `GET /config`، `GET /customer-types` و `POST /` است؛ بقیه پشت protect + مجوز.
-// ⚠️ هیچ توکنی در ثبت‌نام صادر نمی‌شود (کاربر تا تأیید مدیر وجود ندارد).
+// ⚠️ هیچ توکنی در ثبت‌نام صادر نمی‌شود (کاربر تا تأیید مدیر وجود ندارد)؛
+//    در حالت «تأیید خودکار» هم کاربر همان لحظه ساخته می‌شود ولی توکن
+//    صادر نمی‌شود — ورود از مسیر عادی /login انجام می‌شود.
 // ============================================================
 const express = require("express");
 const router = express.Router();
@@ -44,6 +48,21 @@ router.get("/customer-types", publicDictLimiter, controller.getPublicCustomerTyp
 router.post("/", registerLimiter, controller.publicRegister);
 
 // ===== مدیریت (ترتیب مهم: مسیرهای ثابت پیش از /:id) =====
+// ✅ موج ۱۳.۷.۳ — تنظیمات صف (سوییچ «تأیید خودکار»)
+router.get(
+  "/settings",
+  protect,
+  requirePermission("users.registrations.view"),
+  controller.getReviewSettings,
+);
+
+router.put(
+  "/settings",
+  protect,
+  requirePermission("users.registrations.review"),
+  controller.updateReviewSettings,
+);
+
 router.get(
   "/pending-count",
   protect,
