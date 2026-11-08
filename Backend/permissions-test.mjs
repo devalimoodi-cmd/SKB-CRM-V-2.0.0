@@ -35,7 +35,9 @@ check(
   // ✅ فاز ۱۳.۵: چهار کلید تب پورتال (halls/flocks/weeks/visits)
   // ✅ موج ۱۳.۸: ۱۲ کلید تازه (profile و ویرایشش، dashboard و زیربخش‌ها،
   //    ۶ نمودار) ⇒ ۱۷۶ + ۱۲ = ۱۸۸
-  catalog.TOTAL_PERMISSIONS === 188 && catalog.PERMISSION_GROUPS.length === 17,
+  // ✅ موج ۱۳.۱۰: ۳ کلید تازه («مدارک من»: تب/آپلود/حذف نرم)
+  //    ⇒ ۱۸۸ + ۳ = ۱۹۱
+  catalog.TOTAL_PERMISSIONS === 191 && catalog.PERMISSION_GROUPS.length === 17,
   `keys=${catalog.TOTAL_PERMISSIONS} groups=${catalog.PERMISSION_GROUPS.length}`,
 );
 

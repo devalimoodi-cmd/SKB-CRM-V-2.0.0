@@ -78,6 +78,8 @@ const EXPECTED_TABLES = [
   "login_challenges",
   // ✅ «درخواست‌های ثبت‌نام» (فاز ۱۳.۶)
   "registration_requests",
+  // ✅ «مدارک من» — آپلود مشتری از پورتال (موج ۱۳.۱۰)
+  "portal_documents",
   "SequelizeMeta",
 ];
 
@@ -270,6 +272,24 @@ const EXPECTED_COLUMNS = {
     "created_at",
     "updated_at",
   ],
+  // ✅ «مدارک من» (موج ۱۳.۱۰)
+  //    ⚠️ هیچ ستون «مسیر عمومی» ندارد: file_path نسبی و خصوصی است و
+  //    deleted_at/deleted_by نشانهٔ حذف نرم‌اند (فایل روی دیسک می‌ماند).
+  //    اگر روزی کسی ستون public_url اضافه کرد، همین لیست آن را آشکار می‌کند.
+  portal_documents: [
+    "customer_id",
+    "uploaded_by",
+    "title",
+    "kind",
+    "file_name",
+    "file_path",
+    "file_size",
+    "mime_type",
+    "deleted_by",
+    "created_at",
+    "updated_at",
+    "deleted_at",
+  ],
 };
 
 const EXPECTED_INDEXES = [
@@ -320,6 +340,10 @@ const EXPECTED_INDEXES = [
   "registration_requests_pending_email_unique",
   "registration_requests_pending_mobile_unique",
   "registration_requests_status_created_at",
+  // ✅ «مدارک من» (موج ۱۳.۱۰)
+  "portal_documents_customer_created",
+  "portal_documents_customer_kind",
+  "portal_documents_deleted_at",
 ];
 
 const COUNT_TABLES = [

@@ -507,3 +507,55 @@ start-frontend.bat:: ۴) ری‌استارت فرانت
   کلیدهای نمایشی (`loader_style`) را برمی‌گرداند تا سرور فرانت‌اند بتواند لودر سیستمی را در
   HTML تزریق کند. ⚠️ هیچ دادهٔ حساسی نباید به این اندپوینت اضافه شود.
 
+---
+
+## مدارک مشتری در پورتال (موج ۱۳.۱۰)
+
+مشتری می‌تواند از `/portal` مدرک بفرستد (کارت ملی، جواز، فاکتور) — تصویر یا PDF.
+این تنها مسیر **آپلود فایل** در کل پورتال است.
+
+### 🔒 چرا پوشهٔ خصوصی و نه `uploads/`؟
+
+`/uploads` در `server.js` **بدون احراز هویت** سرو می‌شود (فقط پسوندهای
+اسکریپتی بلاک شده‌اند). مدارک هویتی مشتری هرگز نباید آن‌جا بنشیند. پس:
+
+```
+Backend/private/portal_documents/customer_<customerId>/doc_<ts>_<rand>.<ext>
+```
+
+- `Backend/private/` در `.gitignore` است (دادهٔ شخصی وارد گیت نمی‌شود).
+- فایل فقط از `GET /api/portal/documents/:id/file` و با هدر `Authorization` بیرون می‌آید
+  (`res.download` ⇒ همیشه `attachment`).
+- نام فایل روی دیسک **تصادفی** است و پسوند از نگاشت mime مجاز ساخته می‌شود، نه از نام کاربر.
+
+### API (`/api/portal/documents`)
+
+| متد | مسیر | کلید مجوز | نکته |
+|---|---|---|---|
+| `GET` | `/api/portal/documents` | `customer.portal.documents` | فهرست + سهمیه (`meta`) |
+| `POST` | `/api/portal/documents` | `.documents` + `.documents.upload` | `FormData`: `file`/`title`/`kind` · `portalWriteLimiter` · سهمیه پیش از multer |
+| `GET` | `/api/portal/documents/:id/file` | `.documents` + `requireOwnedRow` | `res.download` با مرز مسیر |
+| `DELETE` | `/api/portal/documents/:id` | `.documents` + `.documents.delete` | **حذف نرم** (فایل می‌ماند) |
+
+### سقف‌ها (منبع واحد: `services/portalDocumentRules.js`)
+
+| مورد | مقدار |
+|---|---|
+| هر فایل | ۵ مگابایت · فقط `image/jpeg`/`image/png`/`image/webp`/`application/pdf` |
+| هر پرونده | ۱۰ مدرک و ۲۵ مگابایت مجموع |
+| سنجش سهمیه | **پیش از** multer ⇒ هیچ فایل یتیمی ساخته نمی‌شود |
+
+### حذف نرم
+
+مدل `PortalDocument` با `paranoid: true` است (هم‌الگو با `Hall`/`Unit`).
+`DELETE` فقط `deleted_by` را می‌نویسد و `destroy()` می‌کند: ردیف از دید مشتری
+پنهان می‌شود، سهمیه آزاد می‌گردد، دانلود با همان `id` **۴۰۴** می‌دهد، ولی
+**فایل روی دیسک می‌ماند** برای بازبینی کارشناس (هیچ `unlink` ای در این موج نیست).
+
+### مایگریشن
+
+`20261109000000-create-portal-documents.js` — جدول `portal_documents` + سه ایندکس
+(`customer_created` · `customer_kind` · `deleted_at`)، idempotent، با `down`.
+پس از استقرار: `npm run db:migrate && npm run db:verify`.
+
+

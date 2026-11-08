@@ -119,7 +119,106 @@ export const renderHero = (customer = {}) => {
 };
 
 // ===== حالت‌های غیرعادی =====
+// ============================================================
+// ✅ موج ۱۳.۱۰ — «مدارک من»
+// ------------------------------------------------------------
+//  ❌ هیچ تگ فرم و هیچ دکمهٔ submit ساخته نمی‌شود: پورتال با
+//     رویدادهای delegation کار می‌کند و ارسال صفحه‌ای وجود ندارد.
+//  🔒 هر متن/نام فایل از escapeHtml عبور می‌کند (نام فایل را مشتری
+//     انتخاب می‌کند، پس «دادهٔ کاربر» است).
+// ============================================================
+export const DOCUMENT_KIND_ICONS = {
+  id_card: "fa-id-card",
+  license: "fa-file-signature",
+  invoice: "fa-file-invoice",
+  other: "fa-paperclip",
+};
+
+// حجم خوانا (هم‌قاعده با سرور)
+export const formatFileSize = (bytes) => {
+  const value = Number(bytes) || 0;
+  if (value <= 0) return "۰";
+  const kb = value / 1024;
+  if (kb < 1024) return `${toPersianNumber(Math.max(1, Math.round(kb)))} کیلوبایت`;
+  return `${toPersianNumber((kb / 1024).toFixed(1))} مگابایت`;
+};
+
+// نوار سهمیه: «۳ از ۱۰ مدرک · ۴.۲ از ۲۵ مگابایت»
+export const renderDocumentQuota = (meta = {}) => {
+  const count = Number(meta.count) || 0;
+  const maxCount = Number(meta.max_count) || 10;
+  const totalBytes = Number(meta.total_bytes) || 0;
+  const maxTotal = Number(meta.max_total_bytes) || 0;
+  const percent = maxTotal > 0 ? Math.min(100, Math.round((totalBytes / maxTotal) * 100)) : 0;
+
+  return `
+    <div class="portal-docs__quota">
+      <div class="portal-docs__quota-text">
+        <i class="fas fa-folder-open" aria-hidden="true"></i>
+        <span>${toPersianNumber(count)} از ${toPersianNumber(maxCount)} مدرک</span>
+        <span class="portal-docs__dot">·</span>
+        <span>${formatFileSize(totalBytes)} از ${formatFileSize(maxTotal)}</span>
+      </div>
+      <div class="portal-docs__quota-bar" role="presentation">
+        <span style="width:${percent}%"></span>
+      </div>
+    </div>
+  `;
+};
+
+// فرم آپلود (بدون تگ فرم) — فقط وقتی مجوز آپلود باز است
+export const renderDocumentUploadBox = ({ canUpload = false, kinds = [] } = {}) => {
+  if (!canUpload) {
+    return `
+      <div class="portal-docs__locked">
+        <i class="fas fa-lock" aria-hidden="true"></i>
+        <span>ارسال مدرک تازه از سوی مدیر برای حساب شما بسته شده است. برای ثبت مدرک با کارشناس خود تماس بگیرید.</span>
+      </div>
+    `;
+  }
+
+  const options = (kinds.length ? kinds : [{ key: "other", label: "سایر مدارک" }])
+    .map(
+      (item) =>
+        `<option value="${escapeHtml(item.key)}">${escapeHtml(item.label)}</option>`,
+    )
+    .join("");
+
+  return `
+    <div class="portal-docs__form" id="portalDocsForm">
+      <div class="portal-docs__row">
+        <label class="portal-docs__label" for="portalDocsKind">نوع مدرک</label>
+        <select class="portal-docs__select" id="portalDocsKind">${options}</select>
+      </div>
+      <div class="portal-docs__row">
+        <label class="portal-docs__label" for="portalDocsTitle">عنوان (اختیاری)</label>
+        <input class="portal-docs__input" id="portalDocsTitle" type="text"
+          maxlength="120" placeholder="مثلاً: کارت ملی به‌نام" />
+      </div>
+      <div class="portal-docs__row">
+        <label class="portal-docs__label" for="portalDocsFile">فایل</label>
+        <input class="portal-docs__file" id="portalDocsFile" type="file"
+          accept="image/jpeg,image/png,image/webp,application/pdf" />
+      </div>
+      <div class="portal-docs__actions">
+        <button type="button" class="portal-btn portal-btn--primary" data-docs-upload>
+          <i class="fas fa-cloud-arrow-up" aria-hidden="true"></i> ارسال مدرک
+        </button>
+        <span class="portal-docs__hint">
+          حداکثر ۵ مگابایت · JPG/PNG/WEBP/PDF · تا ۱۰ مدرک
+        </span>
+      </div>
+      <div class="portal-docs__progress" id="portalDocsProgress" hidden>
+        <div class="portal-docs__bar"><span id="portalDocsBar" style="width:0%"></span></div>
+        <span class="portal-docs__percent" id="portalDocsPercent">۰٪</span>
+      </div>
+      <div class="portal-docs__error" id="portalDocsError"></div>
+    </div>
+  `;
+};
+
 export const renderNotice = (title, message, type = "info") => `
+
   <div class="portal-notice portal-notice--${escapeHtml(type)}" role="status">
     <i class="fas ${type === "error" ? "fa-triangle-exclamation" : "fa-circle-info"}"></i>
     <div>
@@ -1141,6 +1240,70 @@ export const buildDashboardCsv = (data = {}) => {
 
   return lines.join("\r\n");
 };
+
+// ============================================================
+// ✅ موج ۱۳.۱۰ — ردیف و فهرست «مدارک من»
+// ------------------------------------------------------------
+// 🔒 حذف دو مرحله‌ای: اولین کلیک فقط دکمه را به «تأیید حذف» تبدیل
+//    می‌کند (بدون window.confirm — پورتال هیچ alert/confirm بومی
+//    ندارد). حذف در سرور «نرم» است و فایل برای بازبینی می‌ماند،
+//    ولی متن دکمه همین را به مشتری می‌گوید تا انتظار درستی داشته باشد.
+// ============================================================
+export const renderDocumentRow = (item = {}, opts = {}) => {
+  const canDelete = opts.canDelete === true;
+  const pending = String(opts.pendingDelete ?? "") === String(item.id ?? "");
+  const kind = text(item.kind) || "other";
+  const icon = DOCUMENT_KIND_ICONS[kind] || DOCUMENT_KIND_ICONS.other;
+  const name = text(item.file_name) || "فایل";
+
+  const actions = [
+    `<button type="button" class="portal-btn portal-btn--ghost" data-docs-download="${escapeHtml(item.id)}" data-docs-name="${escapeHtml(name)}">
+       <i class="fas fa-download" aria-hidden="true"></i> دانلود
+     </button>`,
+  ];
+
+  if (canDelete && pending) {
+    actions.push(
+      `<button type="button" class="portal-btn portal-btn--danger" data-docs-delete-confirm="${escapeHtml(item.id)}">
+         تأیید حذف
+       </button>`,
+      `<button type="button" class="portal-btn portal-btn--ghost" data-docs-delete-cancel="1">
+         انصراف
+       </button>`,
+    );
+  } else if (canDelete) {
+    actions.push(
+      `<button type="button" class="portal-btn portal-btn--ghost portal-btn--muted" data-docs-delete="${escapeHtml(item.id)}">
+         <i class="fas fa-trash-can" aria-hidden="true"></i> حذف از فهرست
+       </button>`,
+    );
+  }
+
+  return `
+    <li class="portal-docs__item${pending ? " is-pending" : ""}">
+      <div class="portal-docs__meta">
+        <span class="portal-docs__kind">
+          <i class="fas ${icon}" aria-hidden="true"></i> ${escapeHtml(item.kind_label || kind)}
+        </span>
+        <strong class="portal-docs__title">${escapeHtml(item.title || "مدرک بدون عنوان")}</strong>
+        <span class="portal-docs__sub">
+          ${escapeHtml(name)} · ${formatFileSize(item.file_size)} · ${jalaliDate(text(item.created_at).slice(0, 10))}
+        </span>
+        ${pending ? `<span class="portal-docs__confirm">اگر حذف کنید، مدرک از فهرست شما پنهان می‌شود (نسخهٔ بایگانی برای کارشناس می‌ماند).</span>` : ""}
+      </div>
+      <div class="portal-docs__item-actions">${actions.join("")}</div>
+    </li>
+  `;
+};
+
+export const renderDocumentList = (items = [], opts = {}) => {
+  const rows = Array.isArray(items) ? items : [];
+  if (rows.length === 0) {
+    return `<li class="portal-empty">هنوز مدرکی ارسال نکرده‌اید. با دکمهٔ بالا می‌توانید کارت ملی، جواز یا فاکتور را بفرستید.</li>`;
+  }
+  return rows.map((item) => renderDocumentRow(item, opts)).join("");
+};
+
 
 
 

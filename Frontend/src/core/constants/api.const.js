@@ -236,6 +236,13 @@ export const API_CONSTANTS = {
       DASHBOARD_SUMMARY: "/portal/dashboard/summary",
       DASHBOARD_CHARTS: "/portal/dashboard/charts",
       DASHBOARD_ANALYSIS: "/portal/dashboard/analysis",
+      // ===== ✅ موج ۱۳.۱۰ — «مدارک من» =====
+      //  🔒 تنها بخش پورتال که «فایل» می‌فرستد. فایل با FormData به
+      //     همین مسیر می‌رود و با هدر Authorization خوانده می‌شود؛
+      //     هیچ لینک عمومی برای این مدارک وجود ندارد.
+      DOCUMENTS: "/portal/documents",
+      DOCUMENT_FILE: (id) => `/portal/documents/${id}/file`,
+      DOCUMENT_DELETE: (id) => `/portal/documents/${id}`,
     },
     // ===== ثبت‌نام عمومی مشتری + صف تأیید (فاز ۱۳.۶) =====
     //  ⚠️ CONFIG و CREATE عمومی‌اند (بدون ورود)؛ بقیه پنل مدیریت.

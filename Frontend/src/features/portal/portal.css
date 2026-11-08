@@ -1039,3 +1039,283 @@
 .portal-install__actions .portal-btn[hidden] {
   display: none;
 }
+
+/* ============================================================
+   ✅ موج ۱۳.۱۰ — «مدارک من» (آپلود/فهرست/حذف نرم)
+   ------------------------------------------------------------
+   🔒 همهٔ رنگ‌ها از توکن‌های همین فایل می‌آیند تا حالت تاریک بدون
+      قاعدهٔ جداگانه درست بماند (portal.css هیچ data-theme ندارد).
+   ============================================================ */
+
+.portal-btn--ghost {
+  background: transparent;
+}
+
+.portal-btn--muted {
+  color: var(--text-light);
+}
+
+.portal-btn--danger {
+  color: var(--text-inverse);
+  background: var(--danger);
+  border-color: var(--danger);
+}
+
+.portal-btn--danger:hover {
+  color: var(--text-inverse);
+  filter: brightness(0.94);
+}
+
+.portal-docs {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* ===== سهمیه ===== */
+.portal-docs__quota {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  background: var(--primary-soft);
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 12px;
+}
+
+.portal-docs__quota-text {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.78rem;
+  color: var(--text-main);
+}
+
+.portal-docs__dot {
+  color: var(--text-light);
+}
+
+.portal-docs__quota-bar {
+  height: 6px;
+  overflow: hidden;
+  background: #fff;
+  border-radius: 999px;
+}
+
+.portal-docs__quota-bar > span {
+  display: block;
+  height: 100%;
+  background: var(--primary);
+  border-radius: 999px;
+  transition: width 0.25s ease;
+}
+
+/* ===== فرم آپلود (بدون تگ فرم) ===== */
+.portal-docs__form {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  background: #fff;
+  border: 1px dashed var(--border, #e2e8f0);
+  border-radius: 14px;
+}
+
+.portal-docs__row {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  align-items: center;
+  gap: 10px;
+}
+
+.portal-docs__label {
+  font-size: 0.78rem;
+  color: var(--text-light);
+}
+
+.portal-docs__select,
+.portal-docs__input,
+.portal-docs__file {
+  width: 100%;
+  padding: 8px 10px;
+  font-family: inherit;
+  font-size: 0.8rem;
+  color: var(--text-main);
+  background: #fff;
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 10px;
+}
+
+.portal-docs__select:focus,
+.portal-docs__input:focus,
+.portal-docs__file:focus {
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
+}
+
+.portal-docs__actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.portal-docs__hint {
+  font-size: 0.72rem;
+  color: var(--text-light);
+}
+
+/* ===== نوار پیشرفت ===== */
+.portal-docs__progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.portal-docs__progress[hidden] {
+  display: none;
+}
+
+.portal-docs__bar {
+  flex: 1;
+  height: 8px;
+  overflow: hidden;
+  background: var(--primary-soft);
+  border-radius: 999px;
+}
+
+.portal-docs__bar > span {
+  display: block;
+  height: 100%;
+  background: var(--primary);
+  transition: width 0.2s ease;
+}
+
+.portal-docs__percent {
+  font-size: 0.72rem;
+  color: var(--text-light);
+}
+
+/* ===== خطای درون‌فرم ===== */
+.portal-docs__error {
+  font-size: 0.76rem;
+  color: var(--danger-deep);
+}
+
+.portal-docs__error:empty {
+  display: none;
+}
+
+.portal-docs__locked {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px 14px;
+  font-size: 0.78rem;
+  color: var(--text-light);
+  background: var(--primary-soft);
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 12px;
+}
+
+/* ===== فهرست مدارک ===== */
+.portal-docs__list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.portal-docs__item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  background: #fff;
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 14px;
+}
+
+.portal-docs__item.is-pending {
+  border-color: var(--danger);
+  background: var(--danger-soft);
+}
+
+.portal-docs__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.portal-docs__kind {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.72rem;
+  color: var(--primary);
+}
+
+.portal-docs__title {
+  font-size: 0.85rem;
+  color: var(--text-main);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 42ch;
+}
+
+.portal-docs__sub {
+  font-size: 0.72rem;
+  color: var(--text-light);
+  overflow-wrap: anywhere;
+}
+
+.portal-docs__confirm {
+  font-size: 0.72rem;
+  color: var(--danger-deep);
+}
+
+.portal-docs__item-actions {
+  display: inline-flex;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.portal-docs__note {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 12px 0 0;
+  font-size: 0.72rem;
+  line-height: 1.9;
+  color: var(--text-light);
+}
+
+/* ===== موبایل: فهرست و فرم تمام‌عرض ===== */
+@media (max-width: 640px) {
+  .portal-docs__row {
+    grid-template-columns: 1fr;
+  }
+
+  .portal-docs__item {
+    flex-direction: column;
+  }
+
+  .portal-docs__title {
+    max-width: 100%;
+  }
+
+  .portal-docs__item-actions {
+    width: 100%;
+  }
+
+  .portal-docs__item-actions .portal-btn {
+    flex: 1;
+    justify-content: center;
+  }
+}
+

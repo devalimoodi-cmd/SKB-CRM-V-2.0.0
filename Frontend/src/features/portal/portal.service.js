@@ -31,6 +31,14 @@ import {
 import { notificationService } from "../../core/services/notification.service.js";
 // ✅ موج ۱۳.۸ — تب‌های «پروفایل من» و «داشبورد تحلیلی» (mixin جدا)
 import { EXTRA_TABS, applyPortalExtra } from "./portal.extra.js";
+// ✅ موج ۱۳.۱۰ — تب «مدارک من» (آپلود/دانلود/حذف نرم — mixin جدا)
+import { DOCUMENT_TABS, applyPortalDocuments } from "./portal.documents.js";
+
+// 🔗 ۱۳.۱۰: تب «مدارک من» در همان رجیستری «تب‌های خاص» ثبت می‌شود تا
+//    چرخهٔ پنهان‌سازی/فعال‌سازی، `canSee` و `ALL_TAB_KEYS` بدون تغییر
+//    دوم کار کنند (tabConf/canSee از EXTRA_TABS می‌خوانند).
+//    ⚠️ این خط باید **قبل** از ساخت ALL_TAB_KEYS اجرا شود.
+Object.assign(EXTRA_TABS, DOCUMENT_TABS);
 
 // پیام ۴۰۳ِ «بدون پروندهٔ متصل» از سرور همین عبارت را دارد
 const LINK_MISSING = /متصل نشده است/;
@@ -122,6 +130,8 @@ class PortalService {
     });
     // ✅ ۱۳.۸: وضعیت تب‌های پروفایل/داشبورد
     this.initExtra();
+    // ✅ ۱۳.۱۰: وضعیت تب «مدارک من» (بعد از initExtra تا on this.extra بنشیند)
+    this.initDocumentsTab();
   }
 
   el(id) {
@@ -151,6 +161,8 @@ class PortalService {
     this.bindDetail();
     this.bindPermissions();
     this.bindExtra();
+    // ✅ ۱۳.۱۰: رویدادهای تب «مدارک من» (آپلود/دانلود/حذف)
+    this.bindDocuments();
     await this.load();
   }
 
@@ -660,6 +672,10 @@ class PortalService {
 // ✅ ۱۳.۸: متدهای تب‌های «پروفایل من» و «داشبورد تحلیلی» پیش از ساخت نمونه
 //    روی prototype سوار می‌شوند (Object.assign در portal.extra.js).
 applyPortalExtra(PortalService);
+
+// ✅ ۱۳.۱۰: متدهای تب «مدارک من» بعد از portal.extra سوار می‌شوند تا
+//    loadExtraTab این فایل بتواند نسخهٔ portal.extra.js را واگذار کند.
+applyPortalDocuments(PortalService);
 
 export const portalService = new PortalService();
 

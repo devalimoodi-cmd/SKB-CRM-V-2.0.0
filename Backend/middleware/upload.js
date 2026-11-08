@@ -1,6 +1,14 @@
 ﻿const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
+// ✅ موج ۱۳.۱۰ — قواعد خالص «مدارک من» (سقف‌ها/فهرست سفید/مسیر خصوصی)
+const {
+  DOCUMENT_MAX_FILE_BYTES,
+  DOCUMENT_MESSAGES,
+  DOCUMENT_FILE_PREFIX,
+  documentCustomerDir,
+  mimeDecision,
+} = require("../services/portalDocumentRules");
 
 // تابع ایجاد پوشه به صورت بازگشتی
 function ensureDirectoryExists(dirPath) {
@@ -153,4 +161,118 @@ const uploadProfile = multer({
   limits: { fileSize: 5 * 1024 * 1024, files: 1 },
 });
 
-module.exports = { upload, uploadProfile, fixUnicodeName };
+// ============================================================
+// ✅ موج ۱۳.۱۰ — multer «مدارک من» (پورتال مشتری)
+// ------------------------------------------------------------
+//  تفاوت‌های عمدی با upload / uploadProfile بالا:
+//   ۱) پوشهٔ مقصد **خصوصی** است: Backend/private/portal_documents
+//      (هیچ‌کدام از این فایل‌ها از /uploads سرو نمی‌شوند؛ فقط
+//      GET /api/portal/documents/:id/file با توکن).
+//   ۲) پوشه از `req.body.customer_id` ساخته **نمی‌شود** — مثل multer
+//      بازدیدها که ورودی کلاینت را می‌خواند. اینجا فقط
+//      `req.customerScopeId` معتبر است (requireCustomerLink از
+//      توکن ساخته است) ⇒ دستکاری بدنه درخواست بی‌اثر است.
+//   ۳) نام فایل تصادفی و پسوند از نگاشت mime مجاز ساخته می‌شود،
+//      نه از `file.originalname` (که می‌تواند `.php`/مسیر باشد).
+//   ۴) فهرست سفید باریک: jpeg/png/webp/pdf · ۵MB · یک فایل.
+// ============================================================
+const portalDocumentStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    try {
+      const scopeId = Number(req.customerScopeId || req.portalScopeId || 0);
+      if (!Number.isInteger(scopeId) || scopeId <= 0) {
+        // پرونده‌ای متصل نیست ⇒ هیچ پوشه‌ای ساخته نمی‌شود
+        return cb(new Error("scope_missing"));
+      }
+      const dir = documentCustomerDir(scopeId);
+      ensureDirectoryExists(dir);
+      req.portalDocumentDir = dir;
+      return cb(null, dir);
+    } catch (error) {
+      console.error("❌ خطا در ساخت مسیر مدارک پورتال:", error.message);
+      return cb(error);
+    }
+  },
+  filename: (req, file, cb) => {
+    try {
+      const decision = mimeDecision(file.mimetype);
+      if (!decision.ok) return cb(new Error("bad_mime"));
+
+      const scopeId = Number(req.customerScopeId || req.portalScopeId || 0);
+      const random = Math.round(Math.random() * 1e9);
+      const fileName = `${DOCUMENT_FILE_PREFIX}_${Date.now()}_${random}${decision.ext}`;
+
+      req.portalDocumentFileName = fileName;
+      // مسیر نسبی (برای ستون file_path) — همیشه با «/» تا در ویندوز و
+      // لینوکس یکسان ذخیره شود
+      req.portalDocumentRelativePath = `customer_${scopeId}/${fileName}`;
+      return cb(null, fileName);
+    } catch (error) {
+      console.error("❌ خطا در ساخت نام فایل مدرک:", error.message);
+      return cb(error);
+    }
+  },
+});
+
+// فقط تصویر/PDF — همان فهرست سفید سرویس قواعد
+const documentOnlyFilter = (req, file, cb) => {
+  const decision = mimeDecision(file.mimetype);
+  if (decision.ok) return cb(null, true);
+  return cb(new Error("bad_mime"));
+};
+
+const uploadPortalDocument = multer({
+  storage: portalDocumentStorage,
+  fileFilter: documentOnlyFilter,
+  limits: {
+    fileSize: DOCUMENT_MAX_FILE_BYTES, // ۵MB
+    files: 1,
+    fields: 6, // title / kind و چند فیلد کمکی
+  },
+});
+
+// ============================================================
+// پوشش خطاهای multer ⇒ پاسخ فارسی JSON (بدون stack برای کلاینت)
+// ------------------------------------------------------------
+// چرا لازم است؟ بدون این پوشش، خطای فیلتر/حجم به error handler
+// سراسری می‌رود و مشتری پیام نامفهوم می‌بیند. همچنین هیچ فایلی
+// برای درخواست رد‌شده باقی نمی‌ماند: multer فایل نیمه‌کارهٔ
+// LIMIT_FILE_SIZE را خودش پاک می‌کند و فیلتر mime پیش از نوشتن
+// اجرا می‌شود.
+// ============================================================
+const uploadPortalDocumentSingle = (req, res, next) => {
+  uploadPortalDocument.single("file")(req, res, (error) => {
+    if (!error) return next();
+
+    const reason =
+      error.code === "LIMIT_FILE_SIZE"
+        ? "too_large"
+        : error.code === "LIMIT_FILE_COUNT" || error.code === "LIMIT_UNEXPECTED_FILE"
+          ? "bad_mime"
+          : error.message === "bad_mime"
+            ? "bad_mime"
+            : error.message === "scope_missing"
+              ? "unlinked"
+              : "upload_failed";
+
+    console.warn(
+      `⚠️ [portal] آپلود مدرک رد شد: ${reason} (${error.code || error.message})`,
+    );
+
+    return res.status(400).json({
+      success: false,
+      code: String(reason).toUpperCase(),
+      message: DOCUMENT_MESSAGES[reason] || "آپلود فایل ناموفق بود",
+      timestamp: new Date().toISOString(),
+    });
+  });
+};
+
+module.exports = {
+  upload,
+  uploadProfile,
+  uploadPortalDocument,
+  uploadPortalDocumentSingle,
+  fixUnicodeName,
+};
+

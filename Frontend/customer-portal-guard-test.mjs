@@ -96,6 +96,17 @@ const FILES = {
   pwaManifest: "Frontend/src/public/manifest.webmanifest",
   pwaSw: "Frontend/src/public/sw.js",
   pwaOffline: "Frontend/src/public/offline.html",
+  // ✅ موج ۱۳.۱۰ — «مدارک من» (آپلود/دانلود/حذف نرم)
+  portalDocuments: "Frontend/src/features/portal/portal.documents.js",
+  documentsController: "Backend/controllers/portalDocumentsController.js",
+  documentsRules: "Backend/services/portalDocumentRules.js",
+  documentsModel: "Backend/models/PortalDocument.js",
+  documentsMigration:
+    "Backend/migrations/20261109000000-create-portal-documents.js",
+  uploadMiddleware: "Backend/middleware/upload.js",
+  verifyDb: "Backend/scripts/verify-db.js",
+  gitignore: ".gitignore",
+  docs1310: "docs/REVIEW-WAVE-13.10.md",
 };
 
 check(
@@ -137,6 +148,15 @@ const SRC = {
   pkg: read(FILES.pkg),
   gateMjs: read(FILES.gateMjs),
   gatePs1: read(FILES.gatePs1),
+  // ✅ موج ۱۳.۱۰
+  portalDocuments: read(FILES.portalDocuments),
+  documentsController: read(FILES.documentsController),
+  documentsRules: read(FILES.documentsRules),
+  documentsModel: read(FILES.documentsModel),
+  documentsMigration: read(FILES.documentsMigration),
+  uploadMiddleware: read(FILES.uploadMiddleware),
+  verifyDb: read(FILES.verifyDb),
+  gitignore: read(FILES.gitignore),
 };
 
 // ============================================================
@@ -532,13 +552,19 @@ check(
 );
 
 check(
-  "مسیر: ۱۳ GET خواندنی + فقط سه نوشتنِ پروفایل (بدون PUT/DELETE)",
-  // ✅ موج ۱۳.۸: ۸ مسیر خواندنی قبلی + pروفایل + چهار مسیر داشبورد = ۱۳
-  (SRC.routes.match(/router\.get\(/g) || []).length === 13 &&
+  "مسیر: ۱۵ GET خواندنی + نوشتن‌های محدود (پروفایل ۳ + مدارک ۲ · بدون PUT)",
+  // ✅ موج ۱۳.۸: ۸ مسیر خواندنی قبلی + پروفایل + چهار مسیر داشبورد = ۱۳
+  // ✅ موج ۱۳.۱۰: دو GET مدارک (فهرست + فایل) ⇒ ۱۵
+  (SRC.routes.match(/router\.get\(/g) || []).length === 15 &&
     (SRC.routes.match(/router\.patch\(/g) || []).length === 1 &&
-    (SRC.routes.match(/router\.post\(/g) || []).length === 2 &&
-    !/router\.(put|delete)\(/.test(SRC.routes) &&
-    // نوشتن‌ها فقط روی مسیرهای پروفایل‌اند
+    // ۲ پروفایل/موبایل + ۱ آپلود مدرک
+    (SRC.routes.match(/router\.post\(/g) || []).length === 3 &&
+    // ❌ هیچ PUT ای در کل پورتال نیست
+    !/router\.put\(/.test(SRC.routes) &&
+    // 🔒 تنها DELETE مجاز: حذف نرم مدرک خودم — نه هیچ منبع دیگری
+    (SRC.routes.match(/router\.delete\(/g) || []).length === 1 &&
+    /router\.delete\(\s*\n\s*"\/documents\/:id",/.test(SRC.routes) &&
+    // نوشتن‌های پروفایل فقط روی مسیرهای پروفایل‌اند
     /"\/profile",\s*\n\s*\.\.\.profileEditChain/.test(SRC.routes) &&
     /"\/profile\/mobile\/request"/.test(SRC.routes) &&
     /"\/profile\/mobile\/confirm"/.test(SRC.routes),
@@ -646,9 +672,10 @@ check(
   "کاتالوگ: شمارش کلیدها/گروه‌ها با permissions-test هم‌خوان است",
   // ✅ فاز ۱۳.۶: سه کلید صف ثبت‌نام (۱۷۳ ⇒ ۱۷۶)
   // ✅ موج ۱۳.۸: ۱۲ کلید پروفایل/داشبورد (۱۷۶ ⇒ ۱۸۸)
-  catalog.TOTAL_PERMISSIONS === 188 &&
+  // ✅ موج ۱۳.۱۰: ۳ کلید «مدارک من» (۱۸۸ ⇒ ۱۹۱)
+  catalog.TOTAL_PERMISSIONS === 191 &&
     catalog.PERMISSION_GROUPS.length === 17 &&
-    /TOTAL_PERMISSIONS === 188 && catalog\.PERMISSION_GROUPS\.length === 17/.test(
+    /TOTAL_PERMISSIONS === 191 && catalog\.PERMISSION_GROUPS\.length === 17/.test(
       SRC.permissionsTest,
     ),
   `keys=${catalog.TOTAL_PERMISSIONS} groups=${catalog.PERMISSION_GROUPS.length}`,
@@ -686,17 +713,22 @@ check(
 );
 
 check(
-  "فرانت: نوشتن‌های پورتال فقط سه مسیر پروفایل‌اند (سرویس بدون نوشتن)",
-  // ✅ موج ۱۳.۸: پورتال صاحبِ پرونده شده است، ولی سطح نوشتن بسته است:
-  //    PATCH پروفایل + دو مرحلهٔ موبایل — و هیچ نوشتن دیگری.
+  "فرانت: نوشتن‌های پورتال محدود و همه از portal.api (سرویس بدون نوشتن)",
+  // ✅ موج ۱۳.۸: PATCH پروفایل + دو مرحلهٔ موبایل
+  // ✅ موج ۱۳.۱۰: DELETE مدرک (حذف نرم) ⇒ چهار فراخوانی نوشتن
   (SRC.portalApi.match(/apiService\.(post|put|patch|delete)\(/g) || []).length ===
-    3 &&
+    4 &&
     /apiService\.patch\(\s*\n?\s*API_CONSTANTS\.ENDPOINTS\.PORTAL\.PROFILE,/.test(
       SRC.portalApi,
     ) &&
     /PORTAL\.PROFILE_MOBILE_REQUEST/.test(SRC.portalApi) &&
     /PORTAL\.PROFILE_MOBILE_CONFIRM/.test(SRC.portalApi) &&
+    /PORTAL\.DOCUMENT_DELETE/.test(SRC.portalApi) &&
+    // ❌ هیچ نوشتن خامی بیرون از لایهٔ api نیست
     !/apiService\.(post|put|patch|delete)\(/.test(SRC.portalService) &&
+    !/apiService\.(post|put|patch|delete|uploadFormData)\(/.test(
+      SRC.portalDocuments,
+    ) &&
     // 🔒 شمارهٔ موبایل هرگز در بدنهٔ PATCH نمی‌رود
     !/mobile_number:\s*patch/.test(SRC.portalApi),
 );
@@ -1089,8 +1121,9 @@ check(
 
 check(
   "۱۳.۴ · فرانت: نوشتن در لایهٔ پورتال فقط از portal.api و محدود است",
+  // ✅ موج ۱۳.۱۰: DELETE مدرک ⇒ ۴ (پروفایل ۳ + مدارک ۱)
   (SRC.portalApi.match(/apiService\.(post|put|patch|delete)\(/g) || []).length ===
-    3 &&
+    4 &&
     !/apiService\.(post|put|patch|delete)\(/.test(SRC.portalService) &&
     !/apiService\.(post|put|patch|delete)\(/.test(SRC.portalExtra),
 );
@@ -1408,8 +1441,9 @@ check(
   /const profileChain = \[/.test(SRC.routes) &&
     /requirePermission\("customer\.portal\.profile"\)/.test(SRC.routes) &&
     /requirePermission\("customer\.portal\.profile\.edit"\)/.test(SRC.routes) &&
+    // ✅ موج ۱۳.۱۰: سه نوشتنِ ۱۳.۸ + آپلود و حذف مدرک ⇒ ۵
     (SRC.routes.match(/(^|\r?\n)[ \t]+portalWriteLimiter,[ \t]*\r?\n/g) || [])
-      .length === 3 &&
+      .length === 5 &&
     (SRC.routes.match(/(^|\r?\n)[ \t]+otpLimiter,[ \t]*\r?\n/g) || []).length === 2 &&
     /requireOwnedRow\(\{\s*\n\s*model: Flock/.test(SRC.routes) &&
     /key: "flockGroupId"/.test(SRC.routes) &&
@@ -1686,6 +1720,258 @@ check(
     /offline\.html/.test(read(FILES.docs139)) &&
     /beforeinstallprompt/.test(read(FILES.docs139)) &&
     /SHELL_ASSETS/.test(read(FILES.docs139)),
+);
+
+// ============================================================
+// ۱۵) موج ۱۳.۱۰ — «مدارک من»: آپلود/دانلود/حذف نرم
+// ------------------------------------------------------------
+// خواستهٔ کارفرما: مشتری بتواند مدارکش (کارت ملی، جواز، فاکتور) را
+// از پورتال بفرستد، ببیند و «حذف» کند.
+// 🔒 ریشهٔ خطری که این بخش سنجیده می‌شود:
+//   ۱) اگر فایل زیر uploads/ ذخیره شود، در server.js **بدون احراز
+//      هویت** سرو می‌شود ⇒ هر کسی با دانستن نام فایل، کارت ملی
+//      مشتری را می‌گیرد. پس پوشه باید خصوصی باشد.
+//   ۲) اگر پوشه از req.body ساخته شود (مثل multer بازدیدها)، مشتری
+//      می‌تواند با یک فیلد فرم، فایل را در پوشهٔ پروندهٔ دیگری بنویسد.
+//   ۳) اگر نوع/حجم فایل سنجیده نشود، آپلود به محل تزریق فایل تبدیل
+//      می‌شود (svg/zip/اجرایی).
+//   ۴) «حذف» باید نرم بماند: سند هویتی را نمی‌شود قطعی پاک کرد؛
+//      هیچ unlink ای نباید در مسیر مدارک وجود داشته باشد.
+// ============================================================
+const portalUploadSrc = (() => {
+  const marker = SRC.uploadMiddleware.indexOf("const portalDocumentStorage");
+  return marker === -1 ? "" : SRC.uploadMiddleware.slice(marker);
+})();
+const docsRulesClean = stripComments(SRC.documentsRules);
+const docsControllerClean = stripComments(SRC.documentsController);
+// 🎯 الگوی «پاک‌کردن فایل» — دقیق، تا «unlinked» (پیام پروندهٔ متصل‌نشده)
+//    با «unlink()» اشتباه گرفته نشود.
+const DELETE_CALL_PATTERN =
+  /\b(unlink|unlinkSync|rmdir|rmdirSync)\s*\(|\bfs\.rm(Sync)?\s*\(/;
+
+check(
+  "۱۳.۱۰ · مسیرها: چهار مسیر مدارک با زنجیرهٔ تب + کلید آپلود/حذف + مالکیت ردیف",
+  /const documentsChain = tabChain\("customer\.portal\.documents"\)/.test(
+    SRC.routes,
+  ) &&
+    /requirePermission\("customer\.portal\.documents\.upload"\)/.test(SRC.routes) &&
+    /requirePermission\("customer\.portal\.documents\.delete"\)/.test(SRC.routes) &&
+    /requireOwnedRow\(\{ model: PortalDocument, label: "مدرک" \}\)/.test(
+      SRC.routes,
+    ) &&
+    /router\.get\(\s*\n\s*"\/documents",/.test(SRC.routes) &&
+    /router\.post\(\s*\n\s*"\/documents",/.test(SRC.routes) &&
+    /router\.get\(\s*\n\s*"\/documents\/:id\/file",/.test(SRC.routes) &&
+    /router\.delete\(\s*\n\s*"\/documents\/:id",/.test(SRC.routes),
+);
+
+check(
+  "۱۳.۱۰ · پوشهٔ خصوصی: مدارک هرگز زیر uploads/ نمی‌روند و در گیت ignore اند",
+  // 🔒 مسیر ذخیره در سرویس قواعد ساخته می‌شود، نه در کنترلر
+  /PRIVATE_DIRNAME = "private"/.test(docsRulesClean) &&
+    /DOCUMENT_STORAGE_DIRNAME = "portal_documents"/.test(docsRulesClean) &&
+    !/uploads/.test(docsRulesClean) &&
+    !/uploads/.test(docsControllerClean) &&
+    /Backend\/private\//.test(SRC.gitignore) &&
+    // هیچ مسیر عمومی/استاتیکی برای مدارک ساخته نشده است
+    !/res\.sendFile\(/.test(docsControllerClean) &&
+    !/express\.static/.test(docsControllerClean),
+);
+
+check(
+  "۱۳.۱۰ · multer: مقصد از req.customerScopeId، نام تصادفی، پسوند از mime مجاز",
+  /const portalDocumentStorage = multer\.diskStorage\(/.test(portalUploadSrc) &&
+    /const scopeId = Number\(req\.customerScopeId \|\| req\.portalScopeId \|\| 0\)/.test(
+      portalUploadSrc,
+    ) &&
+    /documentCustomerDir\(scopeId\)/.test(portalUploadSrc) &&
+    // ❌ برخلاف multer بازدیدها: هیچ ساخت مسیر از req.body
+    !/req\.body\.customer_id/.test(stripComments(portalUploadSrc)) &&
+    // ❌ پسوند از نام اصلی کاربر گرفته نمی‌شود
+    !/path\.extname\(file\.originalname\)/.test(portalUploadSrc) &&
+    /mimeDecision\(file\.mimetype\)/.test(portalUploadSrc) &&
+    /req\.portalDocumentRelativePath = `customer_\$\{scopeId\}\/\$\{fileName\}`;/.test(
+      portalUploadSrc,
+    ) &&
+    /fileSize: DOCUMENT_MAX_FILE_BYTES/.test(portalUploadSrc) &&
+    /files: 1/.test(portalUploadSrc) &&
+    /uploadPortalDocumentSingle/.test(portalUploadSrc),
+);
+
+check(
+  "۱۳.۱۰ · سرویس قواعد: فهرست سفید چهارتایی + سقف ۵MB / ۱۰ مدرک / ۲۵MB",
+  ["image/jpeg", "image/png", "image/webp", "application/pdf"].every((mime) =>
+    docsRulesClean.includes(`"${mime}"`),
+  ) &&
+    // 🔒 هیچ نوع خطرناکی در فهرست سفید نیست
+    !/zip|svg|mp4|x-msdownload|msword|officedocument/i.test(docsRulesClean) &&
+    /DOCUMENT_MAX_FILE_BYTES = 5 \* 1024 \* 1024/.test(docsRulesClean) &&
+    /DOCUMENT_MAX_COUNT = 10/.test(docsRulesClean) &&
+    /DOCUMENT_MAX_TOTAL_BYTES = 25 \* 1024 \* 1024/.test(docsRulesClean) &&
+    // سهمیه **پیش** از multer سنجیده می‌شود (هیچ فایل یتیمی نمی‌ماند)
+    /const ensureDocumentQuota = async \(req, res, next\)/.test(
+      docsControllerClean,
+    ) &&
+    /if \(safeCount >= DOCUMENT_MAX_COUNT\)/.test(docsRulesClean) &&
+    /safeTotal \+ DOCUMENT_MAX_FILE_BYTES > DOCUMENT_MAX_TOTAL_BYTES/.test(
+      docsRulesClean,
+    ),
+);
+
+check(
+  "۱۳.۱۰ · کنترلر: customer_id فقط از توکن + خروجی بدون مسیر دیسک",
+  /const scopeIdOf = \(req\) =>/.test(docsControllerClean) &&
+    /req\.customerScopeId \|\| req\.portalScopeId/.test(docsControllerClean) &&
+    // 🔒 در فهرست، آپلود و سهمیه — همه‌جا customer_id از توکن
+    /where: \{ customer_id: customerId \}/.test(docsControllerClean) &&
+    /customer_id: customerId,/.test(docsControllerClean) &&
+    // ❌ هیچ‌گاه شناسهٔ پرونده از ورودی درخواست خوانده نمی‌شود
+    !/req\.body\.customer_id|req\.query\.customer_id|req\.params\.customer_id/.test(
+      docsControllerClean,
+    ) &&
+    // ❌ مسیر دیسک در پاسخ نمی‌آید
+    (() => {
+      const attrs = /attributes: \[([\s\S]*?)\],/.exec(docsControllerClean);
+      return Boolean(attrs) && !attrs[1].includes("file_path");
+    })(),
+);
+
+check(
+  "۱۳.۱۰ · حذف نرم: paranoid + deleted_by + destroy و صفر unlink در کل موج",
+  /paranoid: true/.test(stripComments(SRC.documentsModel)) &&
+    /deleted_by/.test(stripComments(SRC.documentsModel)) &&
+    /deleted_at/.test(SRC.documentsMigration) &&
+    /await row\.update\(\{ deleted_by:/.test(docsControllerClean) &&
+    /await row\.destroy\(\);/.test(docsControllerClean) &&
+    // 🔒 فایل هیچ‌جا پاک نمی‌شود (سند هویتی برای ممیزی می‌ماند)
+    //    ⚠️ الگو دقیق است: «unlinked» (پیام «پروندهٔ متصل نیست») نباید
+    //    با «unlink()» (پاک‌کردن فایل) اشتباه گرفته شود.
+    !DELETE_CALL_PATTERN.test(docsControllerClean) &&
+    !DELETE_CALL_PATTERN.test(docsRulesClean) &&
+    !DELETE_CALL_PATTERN.test(portalUploadSrc),
+);
+
+check(
+  "۱۳.۱۰ · دانلود: فقط با توکن (res.download) + مرز مسیر ضد path traversal",
+  /const resolveStoredPath = \(relativePath\)/.test(docsRulesClean) &&
+    /path\.isAbsolute\(raw\)/.test(docsRulesClean) &&
+    /raw\.includes\("\.\."\)/.test(docsRulesClean) &&
+    /resolved\.startsWith\(rootWithSep\)/.test(docsRulesClean) &&
+    /resolveStoredPath\(row\.file_path\)/.test(docsControllerClean) &&
+    /res\.download\(resolved, downloadName\)/.test(docsControllerClean) &&
+    /fs\.existsSync\(resolved\)/.test(docsControllerClean),
+);
+
+check(
+  "۱۳.۱۰ · کاتالوگ: سه کلید «مدارک من» با پیش‌فرض فقط مشتری",
+  [
+    "customer.portal.documents",
+    "customer.portal.documents.upload",
+    "customer.portal.documents.delete",
+  ].every((key) => {
+    const entry = catalog.PERMISSIONS[key];
+    return (
+      Boolean(entry) &&
+      entry.group === "portal" &&
+      entry.defaults.customer === true &&
+      entry.defaults.admin === false &&
+      entry.defaults.expert === false
+    );
+  }),
+);
+
+
+// (شمارش نتیجه‌ها به انتهای فایل منتقل شد تا همهٔ بررسی‌ها شمرده شوند)
+
+check(
+  "۱۳.۱۰ · فرانت api: سه اندپوینت + آپلود FormData(file) و دانلود با توکن",
+  SRC.apiConst.includes('DOCUMENTS: "/portal/documents"') &&
+    /DOCUMENT_FILE: \(id\) => `\/portal\/documents\/\$\{id\}\/file`/.test(
+      SRC.apiConst,
+    ) &&
+    /DOCUMENT_DELETE: \(id\) => `\/portal\/documents\/\$\{id\}`/.test(
+      SRC.apiConst,
+    ) &&
+    /async uploadDocument\(file/.test(SRC.portalApi) &&
+    /formData\.append\("file", file\)/.test(SRC.portalApi) &&
+    /apiService\.uploadFormData\(/.test(SRC.portalApi) &&
+    /apiService\.download\(/.test(SRC.portalApi) &&
+    /apiService\.delete\(/.test(SRC.portalApi) &&
+    /documentFileError/.test(SRC.portalApi) &&
+    // ❌ هیچ درخواست خام fetch در لایهٔ api پورتال نیست
+    !/\bfetch\(/.test(stripComments(SRC.portalApi)),
+);
+
+check(
+  "۱۳.۱۰ · فرانت سرویس: mixin جدا، ثبت در EXTRA_TABS و گیت مجوز آپلود/حذف",
+  /export const DOCUMENT_TABS = \{/.test(SRC.portalDocuments) &&
+    /export const applyPortalDocuments = \(ServiceClass\) => \{/.test(
+      SRC.portalDocuments,
+    ) &&
+    /Object\.assign\(ServiceClass\.prototype, portalDocumentsMixin\)/.test(
+      SRC.portalDocuments,
+    ) &&
+    /import \{ DOCUMENT_TABS, applyPortalDocuments \} from "\.\/portal\.documents\.js"/.test(
+      SRC.portalService,
+    ) &&
+    /Object\.assign\(EXTRA_TABS, DOCUMENT_TABS\);/.test(SRC.portalService) &&
+    /this\.initDocumentsTab\(\);/.test(SRC.portalService) &&
+    /this\.bindDocuments\(\);/.test(SRC.portalService) &&
+    /applyPortalDocuments\(PortalService\);/.test(SRC.portalService) &&
+    // ترتیب اجباری: ثبت تب قبل از ALL_TAB_KEYS و mixin بعد از extra
+    SRC.portalService.indexOf("Object.assign(EXTRA_TABS, DOCUMENT_TABS)") <
+      SRC.portalService.indexOf("const ALL_TAB_KEYS") &&
+    SRC.portalService.indexOf("applyPortalDocuments(PortalService)") >
+      SRC.portalService.indexOf("applyPortalExtra(PortalService)") &&
+    // 🔒 گیت‌ها: بدون مجوز، هیچ درخواستی نمی‌رود
+    /if \(!this\.canUploadDocuments\(\)\) return;/.test(SRC.portalDocuments) &&
+    /if \(!this\.canDeleteDocuments\(\)\) return;/.test(SRC.portalDocuments) &&
+    // ❌ بدون alert/confirm بومی (حذف دو مرحله‌ای درجا)
+    !/\balert\(/.test(stripComments(SRC.portalDocuments)) &&
+    !/\bwindow\.confirm\(/.test(stripComments(SRC.portalDocuments)) &&
+    /pendingDelete/.test(SRC.portalDocuments),
+);
+
+check(
+  "۱۳.۱۰ · صفحه/رندرر/CSS: تب و پنل بدون تگ فرم + ورودی فایل + کلاس‌های استایل",
+  [
+    'data-portal-tab="documents"',
+    'data-portal-panel="documents"',
+    'id="portalDocsStatus"',
+    'id="portalDocsBody"',
+    'id="portalDocsQuota"',
+    'id="portalDocsFormSlot"',
+    'id="portalDocsList"',
+  ].every((needle) => SRC.portalHtml.includes(needle)) &&
+    !/<form|type="submit"|method="post"/i.test(SRC.portalHtml) &&
+    /export const renderDocumentList/.test(SRC.portalRenderer) &&
+    /export const renderDocumentRow/.test(SRC.portalRenderer) &&
+    /export const renderDocumentUploadBox/.test(SRC.portalRenderer) &&
+    /export const renderDocumentQuota/.test(SRC.portalRenderer) &&
+    /type="file"/.test(SRC.portalRenderer) &&
+    /accept="image\/jpeg,image\/png,image\/webp,application\/pdf"/.test(
+      SRC.portalRenderer,
+    ) &&
+    !/<form|type="submit"/i.test(SRC.portalRenderer) &&
+    [
+      ".portal-docs {",
+      ".portal-docs__quota",
+      ".portal-docs__item",
+      ".portal-btn--danger",
+    ].every((needle) => SRC.portalCss.includes(needle)),
+);
+
+check(
+  "۱۳.۱۰ · مایگریشن/مدل/verify-db + مستندات موج",
+  exists(FILES.documentsMigration) &&
+    exists(FILES.documentsModel) &&
+    exists(FILES.docs1310) &&
+    /portal_documents/.test(SRC.documentsMigration) &&
+    /deleted_at/.test(SRC.documentsMigration) &&
+    /showAllTables/.test(SRC.documentsMigration) &&
+    /"portal_documents",/.test(SRC.verifyDb) &&
+    /portal_documents_deleted_at/.test(SRC.verifyDb) &&
+    /حذف نرم/.test(read(FILES.docs1310)),
 );
 
 // ============================================================

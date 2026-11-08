@@ -161,6 +161,10 @@
                     <button type="button" class="portal-tab" role="tab" data-portal-tab="dashboard" aria-selected="false">
                         <i class="fas fa-chart-pie"></i> داشبورد تحلیلی
                     </button>
+                    <!-- ✅ موج ۱۳.۱۰ — تب «مدارک من» (آپلود/دانلود/حذف نرم) -->
+                    <button type="button" class="portal-tab" role="tab" data-portal-tab="documents" aria-selected="false">
+                        <i class="fas fa-folder-open"></i> مدارک من
+                    </button>
                 </div>
 
                 <div class="portal-tabpanels" id="portalTabPanels">
@@ -188,6 +192,30 @@
                             <div class="portal-chart" id="portalDashboardStandards"></div>
                         </div>
                         <div class="portal-dash__compare" id="portalDashboardCompare"></div>
+                    </div>
+
+                    <!-- ✅ موج ۱۳.۱۰ — «مدارک من»
+                         🔒 بدون تگ فرم: ورودی فایل + دکمه‌های type="button".
+                         ساختار ثابت است تا سرویس فقط محتوای هر بخش را
+                         عوض کند (گارد تست هم همین شناسه‌ها را می‌سنجد).
+                         ⚠️ فایل‌ها در پوشهٔ خصوصی سرور می‌نشینند و فقط با
+                         توکن خوانده می‌شوند؛ هیچ لینک عمومی ساخته نمی‌شود. -->
+                    <div class="portal-card portal-tabpanel" data-portal-panel="documents" role="tabpanel" hidden>
+                        <div class="portal-card__head">
+                            <i class="fas fa-folder-open"></i>
+                            <span>مدارک من (کارت ملی، جواز، فاکتور)</span>
+                        </div>
+                        <div class="portal-tab__status" id="portalDocsStatus"></div>
+                        <div class="portal-docs" id="portalDocsBody">
+                            <div class="portal-docs__quota-box" id="portalDocsQuota"></div>
+                            <div class="portal-docs__form-slot" id="portalDocsFormSlot"></div>
+                            <ul class="portal-docs__list" id="portalDocsList"></ul>
+                        </div>
+                        <p class="portal-docs__note">
+                            <i class="fas fa-shield-halved" aria-hidden="true"></i>
+                            فایل‌ها در پوشهٔ خصوصی سرور نگه‌داری می‌شوند (نه در مسیر عمومی) و فقط با ورود شما قابل دریافت‌اند؛
+                            هر مدرک را می‌توانید با یک کلیک «از فهرست» حذف کنید؛ نسخهٔ بایگانی برای بازبینی کارشناس باقی می‌ماند.
+                        </p>
                     </div>
                     <div class="portal-card portal-tabpanel" data-portal-panel="halls" role="tabpanel">
                         <div class="portal-card__head">

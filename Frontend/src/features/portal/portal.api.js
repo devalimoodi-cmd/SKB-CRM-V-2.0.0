@@ -82,6 +82,68 @@ export const profilePatch = (input = {}) => {
   return patch;
 };
 
+// ============================================================
+// ✅ موج ۱۳.۱۰ — آینهٔ کلاینتیِ قواعد «مدارک من»
+// ------------------------------------------------------------
+//  منبع حقیقت سرور: Backend/services/portalDocumentRules.js
+//  ⚠️ این آینه فقط برای «تجربهٔ بهتر» است (خطای فوری پیش از آپلود
+//     ۵ مگابایتی)؛ امنیت با همان سقف‌ها/فهرست سفید سرور تأمین می‌شود.
+//  🔒 پسوند/mime هرگز از نام فایل کاربر پذیرفته نمی‌شود؛ فقط همین
+//     چهار نوع و سرور هم مستقل همان را می‌سنجد.
+// ============================================================
+export const DOCUMENT_KINDS = [
+  { key: "id_card", label: "کارت ملی / مدارک هویتی" },
+  { key: "license", label: "جواز / پروانه بهره‌برداری" },
+  { key: "invoice", label: "فاکتور / مدارک مالی" },
+  { key: "other", label: "سایر مدارک" },
+];
+
+export const DOCUMENT_ALLOWED_MIME = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "application/pdf",
+];
+
+export const DOCUMENT_MAX_FILE_BYTES = 5 * 1024 * 1024; // ۵ مگابایت
+export const DOCUMENT_MAX_COUNT = 10;
+export const DOCUMENT_MAX_TOTAL_BYTES = 25 * 1024 * 1024;
+export const DOCUMENT_MAX_TITLE_LENGTH = 120;
+
+// برچسب پیش‌فرض وقتی مشتری عنوانی نمی‌نویسد (هم‌نام با سرور)
+export const DOCUMENT_DEFAULT_TITLE = "مدرک بدون عنوان";
+
+// عنوان: حذف کاراکترهای کنترلی/`<>` + فاصله‌سازی + سقف ۱۲۰
+export const documentTitle = (raw) => {
+  const clean = String(raw === null || raw === undefined ? "" : raw)
+    .replace(/[\u0000-\u001f\u007f]/g, " ")
+    .replace(/[<>]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  return clean ? clean.slice(0, DOCUMENT_MAX_TITLE_LENGTH) : DOCUMENT_DEFAULT_TITLE;
+};
+
+// نوع مدرک: نامعتبر ⇒ other (هم‌رفتار با سرور)
+export const documentKind = (raw) => {
+  const key = String(raw === null || raw === undefined ? "" : raw)
+    .trim()
+    .toLowerCase();
+  return DOCUMENT_KINDS.some((item) => item.key === key) ? key : "other";
+};
+
+// بررسی فایل پیش از ارسال — پیام فارسی یا رشتهٔ خالی (یعنی «مشکلی نیست»)
+export const documentFileError = (file) => {
+  if (!file) return "فایلی برای آپلود انتخاب نشده است";
+  const size = Number(file.size) || 0;
+  if (size <= 0) return "فایل انتخاب‌شده خالی است";
+  if (size > DOCUMENT_MAX_FILE_BYTES) return "حجم فایل بیشتر از ۵ مگابایت است";
+  const type = String(file.type || "").toLowerCase();
+  if (!DOCUMENT_ALLOWED_MIME.includes(type)) {
+    return "فقط تصویر (JPG/PNG/WEBP) یا PDF مجاز است";
+  }
+  return "";
+};
+
 export const portalApi = {
   // خلاصهٔ پروندهٔ خودِ کاربر واردشده
   async getSummary() {
@@ -215,5 +277,55 @@ export const portalApi = {
 
   async getDashboardAnalysis() {
     return apiService.get(API_CONSTANTS.ENDPOINTS.PORTAL.DASHBOARD_ANALYSIS);
+  },
+
+  // ============================================================
+  // ✅ موج ۱۳.۱۰ — «مدارک من» (تنها مسیر فایل در پورتال)
+  // ------------------------------------------------------------
+  //  🔒 قواعد:
+  //   ۱) هیچ شناسهٔ مشتری فرستاده نمی‌شود؛ سرور از توکن می‌سازد.
+  //   ۲) `title`/`kind` متن آزاد نیستند: kind با فهرست سفید و title با
+  //      بریدن طول پاک می‌شود (سرور هم دوباره پاک‌سازی می‌کند).
+  //   ۳) حجم/نوع فایل **قبل** از ارسال سنجیده می‌شود تا مشتری با
+  //      اینترنت کم‌سرعت ۵ مگابایت را بیهوده نفرستد؛ سرور هم مستقل
+  //      همان سقف‌ها را دارد (multer + سهمیه).
+  //   ۴) دانلود همیشه با هدر احراز هویت (apiService.download) — هیچ
+  //      لینک عمومی/بدون توکن برای مدارک ساخته نمی‌شود.
+  // ============================================================
+  async getDocuments(params = {}) {
+    return apiService.get(
+      API_CONSTANTS.ENDPOINTS.PORTAL.DOCUMENTS,
+      pageParams(params),
+    );
+  },
+
+  // آپلود با FormData + نوار پیشرفت
+  // (فیلد فایل عمداً «file» است — همان نامی که multer سرور انتظار دارد)
+  async uploadDocument(file, { title = "", kind = "other", onProgress = null } = {}) {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("title", documentTitle(title));
+    formData.append("kind", documentKind(kind));
+
+    return apiService.uploadFormData(
+      API_CONSTANTS.ENDPOINTS.PORTAL.DOCUMENTS,
+      formData,
+      onProgress,
+    );
+  },
+
+  // حذف (سرور: حذف نرم — فایل برای بازبینی می‌ماند)
+  async deleteDocument(id) {
+    return apiService.delete(
+      API_CONSTANTS.ENDPOINTS.PORTAL.DOCUMENT_DELETE(rowId(id)),
+    );
+  },
+
+  // دانلود فایل مدرک با توکن
+  async downloadDocument(id, fileName = "document") {
+    return apiService.download(
+      API_CONSTANTS.ENDPOINTS.PORTAL.DOCUMENT_FILE(rowId(id)),
+      fileName,
+    );
   },
 };

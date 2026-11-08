@@ -36,8 +36,12 @@ const { portalWriteLimiter, otpLimiter } = require("../middleware/rateLimit");
 const portalController = require("../controllers/portalController");
 const portalProfileOtpController = require("../controllers/portalProfileOtpController");
 const portalDashboardController = require("../controllers/portalDashboardController");
+// ✅ موج ۱۳.۱۰ — «مدارک من» (آپلود/حذف نرم/دانلود)
+const portalDocumentsController = require("../controllers/portalDocumentsController");
+const { uploadPortalDocumentSingle } = require("../middleware/upload");
 const Flock = require("../models/Flock");
 const ChickPlacement = require("../models/ChickPlacement");
+const PortalDocument = require("../models/PortalDocument");
 
 // ✅ همهٔ مسیرهای این روتر پشت احراز هویت هستند
 router.use(protect);
@@ -237,4 +241,70 @@ router.get(
   portalDashboardController.getMyAnalysis,
 );
 
+// ============================================================
+// ✅ ۱۳.۱۰ — «مدارک من»
+// ------------------------------------------------------------
+//  مشتری می‌تواند مدرک (تصویر/PDF) بفرستد، فهرست را ببیند، فایل را
+//  با توکن دانلود کند و مدرک را «حذف نرم» کند.
+//
+// 🔒 چرا این بخش با بقیهٔ پورتال متفاوت است؟
+//   • تنها مسیر آپلود فایل در پورتال است ⇒ سهمیه **پیش از** multer
+//     سنجیده می‌شود (هیچ فایل یتیمی ساخته نمی‌شود).
+//   • فایل در پوشهٔ خصوصی (private/portal_documents) می‌نشیند، نه
+//     زیر /uploads که در server.js بدون احراز هویت سرو می‌شود.
+//   • حذف نرم است (paranoid) ⇒ فایل برای بازبینی کارشناس می‌ماند.
+//   • مالکیت ردیف با requireOwnedRow سنجیده می‌شود؛ مدرک مشتری دیگر
+//     ⇒ ۴۰۴ (نه ۴۰۳) تا وجود ردیف لو نرود. مدرک حذف‌شده هم چون
+//     paranoid است در همان findOne دیده نمی‌شود ⇒ ۴۰۴.
+// ============================================================
+const documentsChain = tabChain("customer.portal.documents");
+
+// آپلود: مجوز نوشتن + سقف نوشتن + سهمیه + multer (به همین ترتیب)
+const documentsUploadChain = [
+  ...documentsChain,
+  requirePermission("customer.portal.documents.upload"),
+  portalWriteLimiter,
+  portalDocumentsController.ensureDocumentQuota,
+  uploadPortalDocumentSingle,
+];
+
+// حذف: مجوز حذف + سقف نوشتن + مالکیت ردیف
+const documentsDeleteChain = [
+  ...documentsChain,
+  requirePermission("customer.portal.documents.delete"),
+  portalWriteLimiter,
+  requireOwnedRow({ model: PortalDocument, label: "مدرک" }),
+];
+
+// دانلود: فقط مالکیت ردیف (نوشتن نیست، پس بدون سقف نوشتن)
+const documentsFileChain = [
+  ...documentsChain,
+  requireOwnedRow({ model: PortalDocument, label: "مدرک" }),
+];
+
+router.get(
+  "/documents",
+  ...documentsChain,
+  portalDocumentsController.listMyDocuments,
+);
+
+router.post(
+  "/documents",
+  ...documentsUploadChain,
+  portalDocumentsController.uploadMyDocument,
+);
+
+router.get(
+  "/documents/:id/file",
+  ...documentsFileChain,
+  portalDocumentsController.downloadMyDocument,
+);
+
+router.delete(
+  "/documents/:id",
+  ...documentsDeleteChain,
+  portalDocumentsController.deleteMyDocument,
+);
+
 module.exports = router;
+
