@@ -91,8 +91,11 @@ const FILES = {
   docs1351: "docs/REVIEW-WAVE-13.5.1.md",
   // ✅ موج ۱۳.۸ — پروفایل من + داشبورد تحلیلی
   docs138: "docs/REVIEW-WAVE-13.8.md",
+  // ✅ موج ۱۳.۹ — تکمیل PWA: پوستهٔ آفلاین + نوار نصب
+  docs139: "docs/REVIEW-WAVE-13.9.md",
   pwaManifest: "Frontend/src/public/manifest.webmanifest",
   pwaSw: "Frontend/src/public/sw.js",
+  pwaOffline: "Frontend/src/public/offline.html",
 };
 
 check(
@@ -1528,7 +1531,7 @@ check(
 );
 
 check(
-  "۱۳.۸ · PWA: manifest معتبر + service worker عبوری (بدون cache.put)",
+  "۱۳.۸ · PWA: manifest معتبر + service worker دارای شنوندهٔ fetch",
   (() => {
     const manifest = JSON.parse(read(FILES.pwaManifest));
     const sw = read(FILES.pwaSw);
@@ -1538,11 +1541,7 @@ check(
       manifest.scope === "/" &&
       Array.isArray(manifest.icons) &&
       manifest.icons.length >= 1 &&
-      /self\.addEventListener\("fetch"/.test(sw) &&
-      !/caches\.put\(/.test(sw) &&
-      !/addAll\(/.test(sw) &&
-      !/respondWith\(/.test(sw) &&
-      !/\/api\//.test(sw)
+      /self\.addEventListener\("fetch"/.test(sw)
     );
   })(),
 );
@@ -1556,6 +1555,138 @@ check(
     /navigator\.serviceWorker\.register\('\/sw\.js'/.test(SRC.portalHtml),
 );
 
+
+// ============================================================
+// ۱۴) موج ۱۳.۹ — تکمیل PWA: پوستهٔ آفلاین + نوار «نصب اپلیکیشن»
+// ------------------------------------------------------------
+// خواستهٔ کارفرما: پورتال روی گوشی «نصب‌شدنی» باشد و اگر اینترنت
+// قطع شد، به‌جای صفحهٔ خطای مرورگر یک پیام فارسی دیده شود — بدون
+// اینکه حتی یک بایت از دادهٔ پروندهٔ مشتری روی دستگاه کش شود.
+// 🔒 پس گارد این بخش دو طرفه است: هم «پوستهٔ آفلاین هست»، هم
+//    «هیچ داده/صفحه‌ای کش نمی‌شود».
+// ============================================================
+const swSrc = read(FILES.pwaSw);
+
+check(
+  "۱۳.۹ · SW: نسخه و کش صریح + precache فقط پوستهٔ آفلاین (یک قلم)",
+  (() => {
+    const assets = /const SHELL_ASSETS = \[([^\]]*)\]/.exec(swSrc);
+    const list = assets
+      ? assets[1]
+          .split(",")
+          .map((item) => item.trim())
+          .filter(Boolean)
+      : [];
+    return (
+      /const SW_VERSION = "13\.9\.0"/.test(swSrc) &&
+      /const SHELL_CACHE = `skb-shell-\$\{SW_VERSION\}`/.test(swSrc) &&
+      /const OFFLINE_URL = "\/offline\.html"/.test(swSrc) &&
+      list.length === 1 &&
+      list[0] === '"/offline.html"'
+    );
+  })(),
+);
+
+check(
+  "۱۳.۹ · SW: پاسخ‌دادن فقط برای ناوبری و فقط وقتی شبکه شکست بخورد",
+  (swSrc.match(/event\.respondWith\(/g) || []).length === 1 &&
+    /if \(request\.mode !== "navigate"\) return;/.test(swSrc) &&
+    /return await fetch\(request\);/.test(swSrc) &&
+    /catch \(error\) \{/.test(swSrc) &&
+    // 🔒 پوستهٔ آفلاین نباید در پیش‌فرض مسیر بیفتد
+    /if \(cached\) return cached;/.test(swSrc),
+);
+
+check(
+  "۱۳.۹ · SW: API و نوشتن‌ها هرگز از service worker پاسخ نمی‌گیرند",
+  /if \(request\.method !== "GET"\) return;/.test(swSrc) &&
+    /if \(url\.origin !== self\.location\.origin\) return;/.test(swSrc) &&
+    /if \(url\.pathname\.startsWith\("\/api\/"\)\) return;/.test(swSrc) &&
+    // 🔒 هیچ write-through/put در کش نیست
+    !/caches\.put\(/.test(swSrc) &&
+    !/cache\.put\(/.test(swSrc) &&
+    // فقط یک caches.match و همان هم با cacheName صریح
+    (swSrc.match(/caches\.match\(/g) || []).length === 1 &&
+    /caches\.match\(OFFLINE_URL, \{ cacheName: SHELL_CACHE \}\)/.test(swSrc),
+);
+
+check(
+  "۱۳.۹ · SW: هیچ صفحه/داده‌ای precache نمی‌شود (نه /portal نه API)",
+  (swSrc.match(/addAll\(/g) || []).length === 1 &&
+    /await cache\.addAll\(SHELL_ASSETS\);/.test(swSrc) &&
+    // 🔒 خود فهرست precache هیچ آدرس صفحه/API ندارد
+    (() => {
+      const assets = /const SHELL_ASSETS = \[([^\]]*)\]/.exec(swSrc);
+      const list = assets ? assets[1] : "";
+      return !/\/portal/.test(list) && !/\/api/.test(list) && !/\.html"/.test(list.replace("/offline.html", ""));
+    })() &&
+    // کش نسخه‌های قبل پاک می‌شود (بدون باقی‌ماندن داده)
+    /\.filter\(\(key\) => key !== SHELL_CACHE\)/.test(swSrc),
+);
+
+check(
+  "۱۳.۹ · پوستهٔ آفلاین: خودبسنده، فارسی/RTL و بدون منبع خارجی",
+  (() => {
+    const html = read(FILES.pwaOffline);
+    return (
+      /<html lang="fa" dir="rtl">/.test(html) &&
+      /id="portalOfflineRetry"/.test(html) &&
+      /location\.reload\(\)/.test(html) &&
+      /href="\/portal"/.test(html) &&
+      // 🔒 اگر به شبکه ارجاع بدهد، در حالت آفلاین همان هم نمی‌آید
+      !/src="http/i.test(html) &&
+      !/<link[^>]+stylesheet/i.test(html) &&
+      !/<script/i.test(html) &&
+      !/<form/i.test(html)
+    );
+  })(),
+);
+
+check(
+  "۱۳.۹ · سرور: offline.html از ریشه و با no-cache سرو می‌شود",
+  /"\/offline\.html": \{/.test(SRC.frontendServer) &&
+    /file: "offline\.html"/.test(SRC.frontendServer) &&
+    /type: "text\/html; charset=utf-8"/.test(SRC.frontendServer) &&
+    /setHeader\("Cache-Control", "no-cache"\)/.test(SRC.frontendServer) &&
+    /"\/manifest\.webmanifest"/.test(SRC.frontendServer) &&
+    /"\/sw\.js"/.test(SRC.frontendServer),
+);
+
+check(
+  "۱۳.۹ · نوار نصب: بلوک HTML بدون فرم + دکمه‌های type=button",
+  /class="portal-install" id="portalInstall" hidden/.test(SRC.portalHtml) &&
+    /id="portalInstallAction"/.test(SRC.portalHtml) &&
+    /id="portalInstallHint"/.test(SRC.portalHtml) &&
+    /data-portal-install>/.test(SRC.portalHtml) &&
+    /data-portal-install-dismiss/.test(SRC.portalHtml) &&
+    !/<form|type="submit"|method="post"/i.test(SRC.portalHtml),
+);
+
+check(
+  "۱۳.۹ · mixin: منطق نصب با گیت نصب‌شدگی/iOS/بستن و بدون alert",
+  /this\.initInstallPrompt\(\);/.test(SRC.portalExtra) &&
+    /"beforeinstallprompt"/.test(SRC.portalExtra) &&
+    /event\.preventDefault\(\)/.test(SRC.portalExtra) &&
+    /"appinstalled"/.test(SRC.portalExtra) &&
+    /\(display-mode: standalone\)/.test(SRC.portalExtra) &&
+    /window\.navigator\.standalone === true/.test(SRC.portalExtra) &&
+    /INSTALL_DISMISS_KEY = "skb_portal_install_dismissed"/.test(SRC.portalExtra) &&
+    /if \(this\.installDismissed\(\)\) return;/.test(SRC.portalExtra) &&
+    /isIosSafari\(\)/.test(SRC.portalExtra) &&
+    /installEvent\.prompt\(\)/.test(SRC.portalExtra) &&
+    !/\balert\(/.test(SRC.portalExtra),
+);
+
+check(
+  "۱۳.۹ · استایل و مستندات: کلاس‌های نوار + docs/REVIEW-WAVE-13.9.md",
+  [".portal-install {", ".portal-install[hidden]", ".portal-install__actions"].every(
+    (needle) => SRC.portalCss.includes(needle),
+  ) &&
+    exists(FILES.docs139) &&
+    /offline\.html/.test(read(FILES.docs139)) &&
+    /beforeinstallprompt/.test(read(FILES.docs139)) &&
+    /SHELL_ASSETS/.test(read(FILES.docs139)),
+);
 
 // ============================================================
 // خلاصه

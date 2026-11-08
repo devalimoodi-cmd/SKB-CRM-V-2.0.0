@@ -50,6 +50,19 @@ export const EXTRA_TABS = {
   },
 };
 
+// ============================================================
+// ✅ موج ۱۳.۹ — نوار «نصب اپلیکیشن» (PWA / Add to Home Screen)
+// ------------------------------------------------------------
+// 🔒 چرا شناسه‌ها اینجا (و نه در HTML به‌صورت رشته‌های پراکنده)؟
+//    تا گارد تست بتواند یک‌جا سنجید که بلوک HTML، دکمه‌ها و منطق
+//    JS همه به یک شناسه اشاره می‌کنند.
+// 🔒 هیچ فرم HTML ساخته نمی‌شود؛ فقط دو دکمهٔ type="button".
+// ============================================================
+const PORTAL_INSTALL_ID = "portalInstall";
+const PORTAL_INSTALL_ACTION_ID = "portalInstallAction";
+const PORTAL_INSTALL_HINT_ID = "portalInstallHint";
+const INSTALL_DISMISS_KEY = "skb_portal_install_dismissed";
+
 // قالب موبایل ایران (هم‌قاعده با سرور: ۱۱ رقم و شروع ۰۹)
 const MOBILE_PATTERN = /^09\d{9}$/;
 
@@ -76,6 +89,10 @@ export const portalExtraMixin = {
     this.mobileChallenge = null; // { challenge_id, mobile_masked }
     this.dashboardSelection = { flockGroupId: "" };
     this.extraBound = false;
+    // ✅ موج ۱۳.۹ — وضعیت نصب‌پذیری (PWA)
+    this.installEvent = null;
+    this.installBound = false;
+    this.initInstallPrompt();
   },
 
   // گیت UI برای «ویرایش پروفایل» — منبع اول: پاسخ سرور (features)
@@ -150,6 +167,132 @@ export const portalExtraMixin = {
         this.dashboardSelection = { flockGroupId: select.value || "" };
         return this.applyDashboardSelection();
       });
+    }
+  },
+
+  // ============================================================
+  // ✅ موج ۱۳.۹ — «نصب اپلیکیشن» (Add to Home Screen)
+  // ------------------------------------------------------------
+  // 🔒 چرا دستی و نه خودکار؟ مرورگر با رویداد beforeinstallprompt
+  //    اجازهٔ نمایش می‌دهد؛ ما preventDefault می‌کنیم تا فقط با
+  //    تصمیم کاربر (کلیک روی دکمهٔ خودمان) پرسش نصب باز شود.
+  // 🔒 سه حالت «هرگز نمایش نده»:
+  //    ۱) از قبل نصب شده (display-mode: standalone / navigator.standalone)
+  //    ۲) کاربر قبلاً «بستن» را زده (localStorage)
+  //    ۳) مرورگر پشتیبانی نمی‌کند و iOS هم نیست (دکمه بی‌فایده است)
+  // ============================================================
+  initInstallPrompt() {
+    if (typeof window === "undefined" || typeof document === "undefined") return;
+    if (this.isInstalledApp()) return;
+    if (this.installDismissed()) return;
+    this.bindInstallPrompt();
+  },
+
+  // نصب‌شده است؟ (اپ مستقل روی صفحهٔ اصلی)
+  isInstalledApp() {
+    if (typeof window === "undefined") return false;
+    if (window.navigator && window.navigator.standalone === true) return true;
+    if (typeof window.matchMedia !== "function") return false;
+    return Boolean(window.matchMedia("(display-mode: standalone)").matches);
+  },
+
+  // کاربر قبلاً نوار را بسته است؟
+  installDismissed() {
+    try {
+      return window.localStorage.getItem(INSTALL_DISMISS_KEY) === "1";
+    } catch (error) {
+      return void error;
+    }
+  },
+
+  bindInstallPrompt() {
+    if (this.installBound) return;
+    if (typeof window.addEventListener !== "function") return;
+    this.installBound = true;
+
+    const box = this.el(PORTAL_INSTALL_ID);
+    if (box) {
+      box.addEventListener("click", (event) => {
+        const target = event.target;
+        if (target.closest("[data-portal-install]")) return this.promptInstall();
+        if (target.closest("[data-portal-install-dismiss]")) return this.dismissInstall();
+        return null;
+      });
+    }
+
+    // مرورگر می‌گوید «نصب ممکن است» ⇒ نوار را باز کن
+    window.addEventListener("beforeinstallprompt", (event) => {
+      event.preventDefault();
+      this.installEvent = event;
+      this.showInstallBox();
+    });
+
+    // نصب انجام شد ⇒ نوار برای همیشه برود
+    window.addEventListener("appinstalled", () => {
+      this.installEvent = null;
+      this.hideInstallBox();
+    });
+
+    // iOS/Safari رویداد نصب نمی‌فرستد ⇒ فقط راهنمای متنی
+    if (this.isIosSafari()) this.showInstallBox({ hintOnly: true });
+  },
+
+  // iOS است و Safari؟ (Chrome/Firefox روی iOS نمی‌توانند نصب کنند)
+  isIosSafari() {
+    if (typeof window === "undefined") return false;
+    const userAgent = window.navigator && window.navigator.userAgent;
+    if (!userAgent) return false;
+    if (!/iphone|ipad|ipod/i.test(userAgent)) return false;
+    return /safari/i.test(userAgent) && !/crios|fxios|edgios|chrome/i.test(userAgent);
+  },
+
+  showInstallBox(options = {}) {
+    const box = this.el(PORTAL_INSTALL_ID);
+    if (!box) return;
+    const hintOnly = options.hintOnly === true;
+    const hint = this.el(PORTAL_INSTALL_HINT_ID);
+    const action = this.el(PORTAL_INSTALL_ACTION_ID);
+    // در iOS دکمهٔ نصب کار نمی‌کند ⇒ فقط راهنما
+    if (hint) hint.hidden = !hintOnly;
+    if (action) action.hidden = hintOnly;
+    box.hidden = false;
+  },
+
+  hideInstallBox() {
+    const box = this.el(PORTAL_INSTALL_ID);
+    if (box) box.hidden = true;
+  },
+
+  // کلیک روی «نصب اپلیکیشن»
+  // 🔒 رویداد ذخیره‌شده یک‌بارمصرف است (محدودیت مرورگر) ⇒ پاک می‌شود.
+  async promptInstall() {
+    const installEvent = this.installEvent;
+    if (!installEvent || typeof installEvent.prompt !== "function") return;
+    this.installEvent = null;
+    try {
+      installEvent.prompt();
+      if (installEvent.userChoice && typeof installEvent.userChoice.then === "function") {
+        await installEvent.userChoice;
+      }
+    } catch (error) {
+      notificationService.notifyOnce({
+        key: "portal-install-error",
+        message: `⚠️ ${this.errorMessageOf(error)}`,
+        type: "error",
+        cooldownMs: 15000,
+      });
+    }
+    this.hideInstallBox();
+  },
+
+  // «بستن» ⇒ تا پایان عمر همین مرورگر دیگر نمایش نده
+  dismissInstall() {
+    this.installEvent = null;
+    this.hideInstallBox();
+    try {
+      window.localStorage.setItem(INSTALL_DISMISS_KEY, "1");
+    } catch (error) {
+      return void error;
     }
   },
 

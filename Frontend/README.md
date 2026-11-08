@@ -739,6 +739,33 @@ npm run test:cache    :: نگهبانهای UI (وجود بخش، سه‌حال�
   داخل جریان صفحه نمی‌افتد. گارد: بخش ۱۲ در `test:customer-portal` (پیمایش همهٔ صفحه‌ها).
 - گزارش کامل: `docs/REVIEW-WAVE-13.2.md`، `docs/REVIEW-WAVE-13.3.md` و `docs/REVIEW-WAVE-13.4.md`.
 
+## PWA — پورتال نصب‌پذیر (موج ۱۳.۸ + تکمیل ۱۳.۹)
+
+پورتال `/portal` روی گوشی «نصب‌شدنی» است (Add to Home Screen) و در حالت آفلاین
+یک پیام فارسی می‌بیند — **بدون** اینکه حتی یک بایت از دادهٔ پرونده روی دستگاه
+کش شود.
+
+| موضوع | مقدار |
+|---|---|
+| manifest | `/manifest.webmanifest` — `start_url=/portal`، `scope=/`، `display=standalone`، `dir=rtl`، میان‌بر «پروفایل» و «داشبورد» |
+| service worker | `/sw.js` با هدر `Service-Worker-Allowed: /` (از ریشه، چون scope به پوشهٔ خودش محدود است) |
+| precache | **فقط** `SHELL_ASSETS = ["/offline.html"]` — نسخهٔ کش `skb-shell-13.9.0` |
+| پاسخ آفلاین | تنها برای `request.mode === "navigate"` و فقط وقتی `fetch` شکست بخورد |
+| همیشه رد می‌شود | غیر-GET · origin بیگانه · هر مسیر `/api/*` · همهٔ JS/CSS/تصویر (بدون کش) |
+| پوستهٔ آفلاین | `src/public/offline.html` — خودبسنده (CSS/SVG inline، بدون فونت‌آیکون و بدون `<script src>`)، سرو از ریشه با `Cache-Control: no-cache` |
+| نوار نصب | `#portalInstall` در `portal.html` (پیش‌فرض `hidden`) + منطق `initInstallPrompt()` در `portal.extra.js` |
+| بدون نصب مزاحم | اگر `display-mode: standalone` باشد یا کاربر «بستن» زده باشد (`localStorage.skb_portal_install_dismissed`) ⇒ نوار هرگز نمایش داده نمی‌شود |
+| iOS | `beforeinstallprompt` وجود ندارد ⇒ فقط راهنمای متنی «اشتراک‌گذاری ← افزودن به صفحهٔ اصلی» |
+| گارد | بخش **۱۴** در `npm run test:customer-portal` (۹ بررسی: نسخه/فهرست precache/تک‌بودن `respondWith`/رد API/خودبسندگی پوسته/هدرها/نوار/بدون `alert`) |
+
+⛔ **چرا دارایی‌های ثابت کش نمی‌شوند؟** `Frontend/server.js` آدرس CSS و
+اسکریپت‌های کلاسیک را خودکار با `?v=<ASSET_VERSION>` نسخه‌دار می‌کند (لایهٔ HTTP
+تازگی را تضمین می‌کند)، ولی ماژول‌های ES نسخه‌دار نمی‌شوند؛ کش‌کردنشان در SW
+یعنی «کد کهنه» بعد از استقرار. پس service worker عمداً فقط یک پاسخ آفلاین دارد.
+
+📄 گزارش کامل: `docs/REVIEW-WAVE-13.9.md` (و زیرساخت اولیه در `docs/REVIEW-WAVE-13.8.md`).
+
+
 ---
 
 ## ثبت‌نام عمومی مشتری + صف تأیید (موج ۱۳.۶)

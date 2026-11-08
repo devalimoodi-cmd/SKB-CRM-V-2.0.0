@@ -151,7 +151,7 @@ app.use(
 app.use("/public", assetCacheHeaders, express.static(path.join(srcPath, "public")));
 
 // ============================================
-// 8.1. ✅ موج ۱۳.۸ — PWA (نصب‌پذیری پورتال مشتری)
+// 8.1. ✅ موج ۱۳.۸ (+ تکمیل ۱۳.۹) — PWA (نصب‌پذیری پورتال مشتری)
 // ------------------------------------------------------------
 // چرا در ریشهٔ سایت و نه زیر /public؟
 //   scope یک service worker به پوشهٔ خودش محدود است؛ اگر از
@@ -160,7 +160,13 @@ app.use("/public", assetCacheHeaders, express.static(path.join(srcPath, "public"
 //   Service-Worker-Allowed: / سرو می‌شود.
 // ⚠️ manifest با نوع درست سرو می‌شود؛ وگرنه بعضی مرورگرها آن را
 //    نادیده می‌گیرند.
-// 🔒 sw.js هیچ چیزی کش نمی‌کند (نگاه کنید به src/public/sw.js).
+// ✅ ۱۳.۹: offline.html هم از ریشه سرو می‌شود تا:
+//    ۱) آدرس کش‌شده در SW ساده و ثابت باشد (/offline.html)،
+//    ۲) هدر no-cache بگیرد؛ اگر زیر /public بود کش immutable یک‌روزه
+//       می‌گرفت و نصب نسخهٔ تازهٔ SW ممکن بود پوستهٔ کهنه را
+//       precache کند.
+// 🔒 sw.js هیچ داده‌ای کش نمی‌کند و تنها پاسخ آفلاینش همین
+//    offline.html است (نگاه کنید به src/public/sw.js).
 // ============================================
 const PWA_FILES = {
   "/manifest.webmanifest": {
@@ -171,6 +177,10 @@ const PWA_FILES = {
     file: "sw.js",
     type: "text/javascript; charset=utf-8",
     workerAllowed: true,
+  },
+  "/offline.html": {
+    file: "offline.html",
+    type: "text/html; charset=utf-8",
   },
 };
 

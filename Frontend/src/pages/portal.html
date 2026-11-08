@@ -63,6 +63,8 @@
          استثناها: ویرایش «پروفایل من» (PATCH با فهرست سفید) و تغییر
          شمارهٔ موبایل با کد پیامکی. هیچ فرم HTML (form/submit) در صفحه
          نیست و هیچ مسیر دیگری نوشتن ندارد.
+         ✅ موج ۱۳.۹: نوار «نصب اپلیکیشن» (PWA) + پوستهٔ آفلاین
+         (src/public/offline.html). نوار هم فرم ندارد.
          لودر سیستمی از سمت Frontend/server.js تزریق و با اسکریپت پایین
          همین صفحه (overlay#pageLoadingOverlay) مخفی می‌شود. ===== -->
     <main id="portalRoot" class="portal-page" data-portal-state="loading"
@@ -72,6 +74,29 @@
         <div id="portalStatus" class="portal-status"></div>
 
         <div id="portalContent" class="portal-content">
+            <!-- ✅ موج ۱۳.۹ — نوار «نصب اپلیکیشن» (PWA)
+                 🔒 هیچ فرمی در کار نیست؛ دو دکمهٔ type="button" و مدیریت در
+                    portal.extra.js (data-portal-install / -dismiss).
+                 پیش‌فرض hidden است و فقط اگر مرورگر نصب‌پذیری را اعلام کند
+                 (beforeinstallprompt) یا در iOS راهنمای دستی لازم باشد باز
+                 می‌شود؛ اگر کاربر «بستن» را بزند دیگر نمایش داده نمی‌شود. -->
+            <div class="portal-install" id="portalInstall" hidden>
+                <div class="portal-install__text">
+                    <i class="fas fa-mobile-alt" aria-hidden="true"></i>
+                    <span>پورتال را روی صفحهٔ اصلی گوشی نصب کنید تا در یک لمس باز شود.</span>
+                </div>
+                <span class="portal-install__hint" id="portalInstallHint" hidden>
+                    در Safari: دکمهٔ اشتراک‌گذاری ← «افزودن به صفحهٔ اصلی»
+                </span>
+                <div class="portal-install__actions">
+                    <button type="button" class="portal-btn portal-btn--primary" id="portalInstallAction"
+                        data-portal-install>
+                        نصب اپلیکیشن
+                    </button>
+                    <button type="button" class="portal-btn" data-portal-install-dismiss>بستن</button>
+                </div>
+            </div>
+
             <!-- سرصفحهٔ پرونده -->
             <section class="portal-hero" id="portalHero" aria-live="polite"></section>
 

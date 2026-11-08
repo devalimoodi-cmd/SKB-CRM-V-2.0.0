@@ -985,3 +985,57 @@
     border-radius: 16px 16px 0 0;
   }
 }
+
+/* ============================================================
+   ✅ موج ۱۳.۹ — نوار «نصب اپلیکیشن» (PWA)
+   ------------------------------------------------------------
+   ⚠️ `[hidden]` را صریحاً display:none می‌کنیم؛ وگرنه display:flex
+      بر ویژگی hidden غلبه می‌کند و نوار همیشه دیده می‌شود.
+   ============================================================ */
+.portal-install {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 14px;
+  margin-bottom: 14px;
+  padding: 10px 14px;
+  font-size: 0.8rem;
+  color: var(--text-main);
+  background: var(--primary-soft, rgba(44, 122, 110, 0.08));
+  border: 1px solid var(--primary, #2c7a6e);
+  border-radius: 12px;
+}
+
+.portal-install[hidden] {
+  display: none;
+}
+
+.portal-install__text {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.portal-install__text i {
+  color: var(--primary, #2c7a6e);
+}
+
+.portal-install__hint {
+  font-size: 0.74rem;
+  color: var(--text-light);
+}
+
+.portal-install__actions {
+  display: inline-flex;
+  gap: 8px;
+}
+
+.portal-install__actions .portal-btn {
+  padding: 6px 12px;
+}
+
+.portal-install__actions .portal-btn[hidden] {
+  display: none;
+}
