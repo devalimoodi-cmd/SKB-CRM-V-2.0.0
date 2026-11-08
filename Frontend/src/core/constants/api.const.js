@@ -223,6 +223,19 @@ export const API_CONSTANTS = {
       VISIT_DETAIL: (id) => `/portal/visits/${id}`,
       VISIT_ATTACHMENT: (visitId, attachmentId) =>
         `/portal/visits/${visitId}/attachments/${attachmentId}`,
+      // ===== ✅ موج ۱۳.۸ — «پروفایل من» و «داشبورد تحلیلی» =====
+      //  🔒 این‌ها تنها مسیرهای نوشتنی پورتال در کل پروژه‌اند:
+      //     PROFILE (PATCH) + دو مرحلهٔ تغییر شمارهٔ موبایل با کد پیامکی.
+      //     تغییر موبایل مسیر جدا دارد چون شماره = هویت ورود.
+      PROFILE: "/portal/profile",
+      PROFILE_MOBILE_REQUEST: "/portal/profile/mobile/request",
+      PROFILE_MOBILE_CONFIRM: "/portal/profile/mobile/confirm",
+      //  ⚠️ شناسهٔ گله فقط از پاسخ همین سرور می‌آید (portal.api اعتبارسنجی
+      //     می‌کند) و سرور مالکیتش را با customer_id می‌سنجد.
+      DASHBOARD_OPTIONS: "/portal/dashboard/options",
+      DASHBOARD_SUMMARY: "/portal/dashboard/summary",
+      DASHBOARD_CHARTS: "/portal/dashboard/charts",
+      DASHBOARD_ANALYSIS: "/portal/dashboard/analysis",
     },
     // ===== ثبت‌نام عمومی مشتری + صف تأیید (فاز ۱۳.۶) =====
     //  ⚠️ CONFIG و CREATE عمومی‌اند (بدون ورود)؛ بقیه پنل مدیریت.

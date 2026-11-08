@@ -31,7 +31,13 @@ const router = express.Router();
 const { protect, authorize } = require("../middleware/auth");
 const { requirePermission } = require("../middleware/permissions");
 const { requireCustomerLink } = require("../middleware/customerScope");
+const { requireOwnedRow, requireOwnScope } = require("../middleware/portalOwnership");
+const { portalWriteLimiter, otpLimiter } = require("../middleware/rateLimit");
 const portalController = require("../controllers/portalController");
+const portalProfileOtpController = require("../controllers/portalProfileOtpController");
+const portalDashboardController = require("../controllers/portalDashboardController");
+const Flock = require("../models/Flock");
+const ChickPlacement = require("../models/ChickPlacement");
 
 // ✅ همهٔ مسیرهای این روتر پشت احراز هویت هستند
 router.use(protect);
@@ -54,6 +60,49 @@ const visitReportChain = [
   ...customerChain,
   requirePermission("customer.portal.visits"),
   requirePermission("customer.portal.visit.report"),
+];
+
+// ✅ ۱۳.۸: زنجیرهٔ «پروفایل من» — مشاهده و ویرایش کلید جدا دارند:
+//    • دیدن پروفایل: customer.portal.profile
+//    • نوشتن:        همان + customer.portal.profile.edit
+const profileChain = [
+  ...customerChain,
+  requirePermission("customer.portal.profile"),
+  requireOwnScope,
+];
+
+const profileEditChain = [
+  ...profileChain,
+  requirePermission("customer.portal.profile.edit"),
+];
+
+// ✅ ۱۳.۸: زنجیرهٔ «داشبورد تحلیلی» — هر زیربخش کلید خودش را دارد
+//    (تحلیل / مقایسه با گله‌های خودم / خروجی CSV / نمودارها)
+const dashboardChain = [
+  ...customerChain,
+  requirePermission("customer.portal.dashboard"),
+];
+
+// 🔒 داشبورد شناسهٔ «گله» را در کوئری می‌گیرد ⇒ پیش از کنترلر باید ثابت
+//    شود که آن گله در پروندهٔ همین مشتری است (وگرنه دادهٔ گلهٔ دیگری
+//    از مسیر dashboardController بیرون می‌رفت). ردیف غیرخودی → ۴۰۴.
+//    ⚠️ نام‌گذاری گیج‌کنندهٔ ماژول کارشناسان: flockGroupId = Flock.id
+//    (دورهٔ گله) ولی flockId = ChickPlacement.id (جوجه‌ریزی/سالن).
+const dashboardOwnership = [
+  requireOwnedRow({
+    model: Flock,
+    source: "query",
+    key: "flockGroupId",
+    store: "ownedFlock",
+    label: "گلهٔ داشبورد",
+  }),
+  requireOwnedRow({
+    model: ChickPlacement,
+    source: "query",
+    key: "flockId",
+    store: "ownedFlockById",
+    label: "جوجه‌ریزی نمودار",
+  }),
 ];
 
 // خلاصهٔ پروندهٔ خودم (شمارنده‌ها + ۳ ردیف آخر) — محتوای هر بخش در
@@ -107,6 +156,85 @@ router.get(
   "/visits/:id/attachments/:attachmentId",
   ...visitReportChain,
   portalController.downloadMyAttachment,
+);
+
+// ============================================================
+// ۱۳.۸ — «پروفایل من»
+// ------------------------------------------------------------
+// GET   /profile                 مشاهدهٔ پروندهٔ خودم (+ فیلدهای قابل ویرایش)
+// PATCH /profile                  ویرایش با فهرست سفید (بی‌درنگ فعال)
+// POST  /profile/mobile/request   درخواست کد پیامکی برای شمارهٔ جدید
+// POST  /profile/mobile/confirm   تأیید کد و تغییر شماره (اتمیک)
+//
+// 🔒 چرا شمارهٔ موبایل مسیر جدا دارد؟ شمارهٔ ورود = هویت حساب؛ با
+//    ویرایش ساده، هر نشست دزدیده‌شده می‌توانست حساب را بردارد.
+//    مسیر PATCH عمداً mobile_number را نادیده می‌گیرد
+//    (services/portalProfileRules → PROFILE_LOCKED).
+// ============================================================
+router.get("/profile", ...profileChain, portalController.getMyProfile);
+
+router.patch(
+  "/profile",
+  ...profileEditChain,
+  portalWriteLimiter,
+  portalController.updateMyProfile,
+);
+
+// درخواست کد: سقف نوشتن + سقف سخت‌گیرانهٔ کد (هر پیامک هزینه دارد)
+router.post(
+  "/profile/mobile/request",
+  ...profileEditChain,
+  portalWriteLimiter,
+  otpLimiter,
+  portalProfileOtpController.requestMobileChange,
+);
+
+// تأیید کد: فقط سقف نوشتن (هر حدس، یک verify است ⇒ otpLimiter هم می‌آید)
+router.post(
+  "/profile/mobile/confirm",
+  ...profileEditChain,
+  portalWriteLimiter,
+  otpLimiter,
+  portalProfileOtpController.confirmMobileChange,
+);
+
+// ============================================================
+// ۱۳.۸ — «داشبورد تحلیلی من»
+// ------------------------------------------------------------
+// به‌جای باز کردن /api/dashboard/* برای نقش مشتری (که با customerId
+// در کوئری، کل داده‌های شرکت را لو می‌داد) این چهار مسیر اضافه شد:
+//   GET /dashboard/options   گله‌ها/سالن‌های خودم + کدام نمودار مجاز است
+//   GET /dashboard/summary   شمارنده‌های خودم (بدون آمار سایر مشتریان)
+//   GET /dashboard/charts    دادهٔ نمودارها (customerId تحمیل می‌شود)
+//   GET /dashboard/analysis  تحلیل‌ها (فقط گله‌های خودم)
+// ============================================================
+router.get(
+  "/dashboard/options",
+  ...dashboardChain,
+  portalDashboardController.getMyDashboardOptions,
+);
+
+router.get(
+  "/dashboard/summary",
+  ...dashboardChain,
+  requirePermission("customer.portal.dashboard.analysis"),
+  portalDashboardController.getMyDashboardSummary,
+);
+
+// نمودارها: کلید پایهٔ تب + مالکیت ردیف. کدام نمودار رسم شود با
+// کلیدهای customer.portal.chart.* کنترل می‌شود (options.charts).
+router.get(
+  "/dashboard/charts",
+  ...dashboardChain,
+  ...dashboardOwnership,
+  portalDashboardController.getMyCharts,
+);
+
+router.get(
+  "/dashboard/analysis",
+  ...dashboardChain,
+  requirePermission("customer.portal.dashboard.analysis"),
+  portalDashboardController.getMyAnalysis,
 );
 
 module.exports = router;

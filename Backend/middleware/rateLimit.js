@@ -130,6 +130,17 @@ const otpLimiter = createRateLimiter({
     "تعداد درخواست‌های کد ورود بیش از حد مجاز است. لطفاً یک دقیقه بعد تلاش کنید.",
 });
 
+// ===== نوشتن‌های پورتال مشتری (موج ۱۳.۸) =====
+// چرا جدا؟ ویرایش پروفایل و «تغییر شمارهٔ موبایل» هر دو نوشتن‌اند و
+// دومی پیامک هزینه‌دار می‌فرستد؛ سقف کلی API (۱۲۰۰/دقیقه) برای این‌ها
+// بسنده نیست.
+const portalWriteLimiter = createRateLimiter({
+  windowMs: 60 * 1000,
+  max: Number(process.env.PORTAL_WRITE_RATE_MAX || 20),
+  message:
+    "تعداد درخواست‌های تغییر اطلاعات از پورتال بیش از حد مجاز است. لطفاً یک دقیقه بعد تلاش کنید.",
+});
+
 module.exports = {
   applySecurityHeaders,
   createRateLimiter,
@@ -137,4 +148,5 @@ module.exports = {
   loginLimiter,
   setupAdminLimiter,
   otpLimiter,
+  portalWriteLimiter,
 };

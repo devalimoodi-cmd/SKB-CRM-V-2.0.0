@@ -231,6 +231,8 @@ const EXPECTED_COLUMNS = {
     "ua_hash",
     "status",
     "used_at",
+    // ✅ موج ۱۳.۸ — دادهٔ همراه چالش (تغییر موبایل از پورتال)
+    "payload",
     "created_at",
     "updated_at",
   ],

@@ -66,6 +66,8 @@ const FILES = {
   portalApi: "Frontend/src/features/portal/portal.api.js",
   portalRenderer: "Frontend/src/features/portal/portal.renderer.js",
   portalService: "Frontend/src/features/portal/portal.service.js",
+  // ✅ موج ۱۳.۸ — تب‌های «پروفایل من» و «داشبورد تحلیلی» (mixin)
+  portalExtra: "Frontend/src/features/portal/portal.extra.js",
   portalCss: "Frontend/src/features/portal/portal.css",
   portalHtml: "Frontend/src/pages/portal.html",
   appService: "Frontend/src/core/services/app.service.js",
@@ -87,6 +89,10 @@ const FILES = {
   docs134: "docs/REVIEW-WAVE-13.4.md",
   docs135: "docs/REVIEW-WAVE-13.5.md",
   docs1351: "docs/REVIEW-WAVE-13.5.1.md",
+  // ✅ موج ۱۳.۸ — پروفایل من + داشبورد تحلیلی
+  docs138: "docs/REVIEW-WAVE-13.8.md",
+  pwaManifest: "Frontend/src/public/manifest.webmanifest",
+  pwaSw: "Frontend/src/public/sw.js",
 };
 
 check(
@@ -113,6 +119,7 @@ const SRC = {
   portalApi: read(FILES.portalApi),
   portalRenderer: read(FILES.portalRenderer),
   portalService: read(FILES.portalService),
+  portalExtra: read(FILES.portalExtra),
   portalCss: read(FILES.portalCss),
   portalHtml: read(FILES.portalHtml),
   appService: read(FILES.appService),
@@ -409,10 +416,13 @@ check(
 // ============================================================
 check(
   "کنترلر: هیچ شناسهٔ «مشتری» از req.query / req.body / req.params خوانده نمی‌شود",
+  // ✅ موج ۱۳.۸: req.body تنها در یک جا مجاز است — PATCH پروفایل خودم،
+  //    که ورودی‌اش با فهرست سفید (portalProfileRules) پاک می‌شود و هیچ
+  //    شناسهٔ مشتری/ردیف از آن خوانده نمی‌شود.
   !/req\.(query|body|params)(\.|\[\s*["'])(customer_id|customerId)\b/.test(
     SRC.controller,
   ) &&
-    !/req\.body/.test(SRC.controller) &&
+    (SRC.controller.match(/req\.body/g) || []).length === 1 &&
     // تنها استفادهٔ مجاز از req.query: کل شیء به صفحه‌بندی داده می‌شود
     (SRC.controller.match(/paging\(req\.query\)/g) || []).length === 4 &&
     !/req\.query\./.test(SRC.controller) &&
@@ -474,10 +484,23 @@ check(
 );
 
 check(
-  "کنترلر: فیلدهای حساس مشتری (کد ملی، کد پستی، آدرس، شماره پیام‌رسان) بیرون نمی‌رود",
-  !/national_code|postal_code|farm_address|messaging_number/.test(
-    SRC.controller,
-  ),
+  "کنترلر: فیلدهای حساس مشتری فقط در پروندهٔ «خودم» دیده می‌شوند",
+  // ✅ موج ۱۳.۸: صاحب پرونده این فیلدها را در تب «پروفایل من» می‌بیند،
+  //    ولی هیچ‌کدام در «نمایش حداقلی» خلاصه/فهرست‌ها نیستند:
+  //    customerView() همچنان بدون کد ملی/کد پستی/آدرس/شمارهٔ پیام‌رسان است.
+  (() => {
+    const summaryView =
+      (SRC.controller.match(/const customerView = \(row\) => \(\{[\s\S]*?\}\);/) ||
+        [])[0] || "";
+    return (
+      summaryView.length > 0 &&
+      !/national_code|postal_code|farm_address|messaging_number/.test(summaryView) &&
+      // و در فهرست سفید پروفایل (PROFILE_ATTRIBUTES) حاضرند
+      ["national_code", "postal_code", "farm_address", "messaging_number"].every(
+        (field) => SRC.controller.includes(`"${field}"`),
+      )
+    );
+  })(),
 );
 
 // ============================================================
@@ -506,9 +529,16 @@ check(
 );
 
 check(
-  "مسیر: هشت GET (خلاصه + چهار فهرست + سه جزئیات) و بدون هیچ POST/PUT/PATCH/DELETE",
-  (SRC.routes.match(/router\.get\(/g) || []).length === 8 &&
-    !/router\.(post|put|patch|delete)\(/.test(SRC.routes),
+  "مسیر: ۱۳ GET خواندنی + فقط سه نوشتنِ پروفایل (بدون PUT/DELETE)",
+  // ✅ موج ۱۳.۸: ۸ مسیر خواندنی قبلی + pروفایل + چهار مسیر داشبورد = ۱۳
+  (SRC.routes.match(/router\.get\(/g) || []).length === 13 &&
+    (SRC.routes.match(/router\.patch\(/g) || []).length === 1 &&
+    (SRC.routes.match(/router\.post\(/g) || []).length === 2 &&
+    !/router\.(put|delete)\(/.test(SRC.routes) &&
+    // نوشتن‌ها فقط روی مسیرهای پروفایل‌اند
+    /"\/profile",\s*\n\s*\.\.\.profileEditChain/.test(SRC.routes) &&
+    /"\/profile\/mobile\/request"/.test(SRC.routes) &&
+    /"\/profile\/mobile\/confirm"/.test(SRC.routes),
 );
 
 check(
@@ -612,9 +642,10 @@ check(
 check(
   "کاتالوگ: شمارش کلیدها/گروه‌ها با permissions-test هم‌خوان است",
   // ✅ فاز ۱۳.۶: سه کلید صف ثبت‌نام (۱۷۳ ⇒ ۱۷۶)
-  catalog.TOTAL_PERMISSIONS === 176 &&
+  // ✅ موج ۱۳.۸: ۱۲ کلید پروفایل/داشبورد (۱۷۶ ⇒ ۱۸۸)
+  catalog.TOTAL_PERMISSIONS === 188 &&
     catalog.PERMISSION_GROUPS.length === 17 &&
-    /TOTAL_PERMISSIONS === 176 && catalog\.PERMISSION_GROUPS\.length === 17/.test(
+    /TOTAL_PERMISSIONS === 188 && catalog\.PERMISSION_GROUPS\.length === 17/.test(
       SRC.permissionsTest,
     ),
   `keys=${catalog.TOTAL_PERMISSIONS} groups=${catalog.PERMISSION_GROUPS.length}`,
@@ -652,9 +683,19 @@ check(
 );
 
 check(
-  "فرانت: هیچ درخواست نوشتنی در لایهٔ پورتال وجود ندارد",
-  !/apiService\.(post|put|patch|delete)\(/.test(SRC.portalApi) &&
-    !/apiService\.(post|put|patch|delete)\(/.test(SRC.portalService),
+  "فرانت: نوشتن‌های پورتال فقط سه مسیر پروفایل‌اند (سرویس بدون نوشتن)",
+  // ✅ موج ۱۳.۸: پورتال صاحبِ پرونده شده است، ولی سطح نوشتن بسته است:
+  //    PATCH پروفایل + دو مرحلهٔ موبایل — و هیچ نوشتن دیگری.
+  (SRC.portalApi.match(/apiService\.(post|put|patch|delete)\(/g) || []).length ===
+    3 &&
+    /apiService\.patch\(\s*\n?\s*API_CONSTANTS\.ENDPOINTS\.PORTAL\.PROFILE,/.test(
+      SRC.portalApi,
+    ) &&
+    /PORTAL\.PROFILE_MOBILE_REQUEST/.test(SRC.portalApi) &&
+    /PORTAL\.PROFILE_MOBILE_CONFIRM/.test(SRC.portalApi) &&
+    !/apiService\.(post|put|patch|delete)\(/.test(SRC.portalService) &&
+    // 🔒 شمارهٔ موبایل هرگز در بدنهٔ PATCH نمی‌رود
+    !/mobile_number:\s*patch/.test(SRC.portalApi),
 );
 
 check(
@@ -780,10 +821,11 @@ check(
 
 check(
   "۱۳.۳ · کنترلر: هر چهار فهرست اسکوپِ اجباری دارند (بدون skope ⇒ ۴۰۳)",
+  // ✅ ۱۳.۸: ۷ مورد قبلی + getMyProfile + updateMyProfile = ۹
   (SRC.controller.match(/const customerId = scopeIdOf\(req\);/g) || []).length ===
-    7 &&
+    9 &&
     (SRC.controller.match(/if \(!customerId\) return denyUnlinked\(res\);/g) || [])
-      .length === 7,
+      .length === 9,
 );
 
 check(
@@ -1043,9 +1085,11 @@ check(
 );
 
 check(
-  "۱۳.۴ · فرانت: هیچ درخواست نوشتنی در لایهٔ پورتال نیست",
-  !/apiService\.(post|put|patch|delete)\(/.test(SRC.portalApi) &&
-    !/apiService\.(post|put|patch|delete)\(/.test(SRC.portalService),
+  "۱۳.۴ · فرانت: نوشتن در لایهٔ پورتال فقط از portal.api و محدود است",
+  (SRC.portalApi.match(/apiService\.(post|put|patch|delete)\(/g) || []).length ===
+    3 &&
+    !/apiService\.(post|put|patch|delete)\(/.test(SRC.portalService) &&
+    !/apiService\.(post|put|patch|delete)\(/.test(SRC.portalExtra),
 );
 
 check(
@@ -1133,7 +1177,10 @@ check(
     /userHasPermission\(req, "customer\.portal\.weeks"\)/.test(SRC.controller) &&
     /userHasPermission\(req, "customer\.portal\.visits"\)/.test(SRC.controller) &&
     /const sections = \{/.test(SRC.controller) &&
-    /sections,\s*\n\s*counters: \{/.test(SRC.controller) &&
+    // ✅ ۱۳.۸: بلوک features بین sections و counters اضافه شد
+    /sections,\s*\n\s*\/\/[^\n]*\n\s*features: \{[\s\S]*?\n\s*\},\s*\n\s*counters: \{/.test(
+      SRC.controller,
+    ) &&
     (SRC.controller.match(/orNull\(can/g) || []).length >= 5 &&
     /latest: \{[\s\S]{0,320}?canFlocks\s*\n?\s*\?[\s\S]{0,200}?: \[\]/.test(
       SRC.controller,
@@ -1255,6 +1302,260 @@ check(
     /info-pages\.css/.test(read(FILES.docs1351)) &&
     /msg-modal-overlay/.test(read(FILES.docs1351)),
 );
+
+// ============================================================
+// ۱۳) موج ۱۳.۸ — «پروفایل من» + «داشبورد تحلیلی»
+// ------------------------------------------------------------
+// خواستهٔ کارفرما: مشتری بتواند اطلاعات خودش را ویرایش کند و نمودارهای
+// گلهٔ خودش را ببیند — بدون اینکه دادهٔ مشتری دیگری دیدنی شود.
+// ============================================================
+const profileRules = require(
+  path.join(ROOT, "Backend", "services", "portalProfileRules.js"),
+);
+const ownershipRules = require(
+  path.join(ROOT, "Backend", "services", "portalOwnershipRules.js"),
+);
+
+check(
+  "۱۳.۸ · قواعد پروفایل: فهرست سفید ۱۵ فیلد دارد و موبایل/نوع مشتری در آن نیست",
+  Array.isArray(profileRules.PROFILE_EDITABLE) &&
+    profileRules.PROFILE_EDITABLE.length === 15 &&
+    !profileRules.PROFILE_EDITABLE.includes("mobile_number") &&
+    !profileRules.PROFILE_EDITABLE.includes("customer_type_id") &&
+    ["id", "customer_code", "mobile_number", "active", "status", "updated_by"].every(
+      (field) => profileRules.PROFILE_LOCKED.includes(field),
+    ),
+);
+
+check(
+  "۱۳.۸ · قواعد پروفایل: PATCH کلید ناشناخته را نادیده می‌گیرد و موبایل را قفل می‌داند",
+  (() => {
+    const verdict = profileRules.validateProfilePatch({
+      full_name: "مشتری تست",
+      mobile_number: "09120000000",
+      customer_type_id: 9,
+      active: false,
+    });
+    return (
+      verdict.ok === true &&
+      verdict.values.mobile_number === undefined &&
+      verdict.values.customer_type_id === undefined &&
+      verdict.values.active === undefined &&
+      verdict.ignored.includes("mobile_number") &&
+      verdict.mobileAttempted === true
+    );
+  })(),
+);
+
+check(
+  "۱۳.۸ · قواعد پروفایل: تغییر شمارهٔ موبایل فقط با قانون ۰۹xxxxxxxxx",
+  profileRules.PROFILE_MOBILE_PURPOSE === "profile_mobile" &&
+    profileRules.validateMobileChange({ current: "09121111111", next: "09122222222" })
+      .ok === true &&
+    profileRules.validateMobileChange({ current: "09121111111", next: "09121111111" })
+      .ok === false &&
+    profileRules.validateMobileChange({ current: "09121111111", next: "12345" }).ok ===
+      false,
+);
+
+check(
+  "۱۳.۸ · مالکیت ردیف: ردیف غیرخودی ⇒ ۴۰۴ و شناسهٔ بد ⇒ ۴۰۰",
+  ownershipRules.ownershipStatus("not_owner") === 404 &&
+    ownershipRules.ownershipStatus("bad_id") === 400 &&
+    ownershipRules.ownershipStatus("missing_scope") === 403 &&
+    ownershipRules.ownershipDecision({ row: { customer_id: 5 }, scopeId: 7 }).ok ===
+      false &&
+    ownershipRules.ownershipDecision({
+      row: { get: () => ({ customer_id: 7 }) },
+      scopeId: 7,
+    }).ok === true &&
+    ownershipRules.referenceDecision({ value: "", scopeId: 7 }).id === null,
+);
+
+check(
+  "۱۳.۸ · کنترلر: ویرایش پروفایل با فهرست سفید + reported تغییرات + بدون mobile",
+  /validateProfilePatch\(req\.body\)/.test(SRC.controller) &&
+    /changedFields\(before, patch\.values\)/.test(SRC.controller) &&
+    /patch\.values\[field\]/.test(SRC.controller) &&
+    /patchValues\.updated_by = req\.user\?\.id/.test(SRC.controller) &&
+    /mobile_hint/.test(SRC.controller) &&
+    // 🔒 نوع مشتری/وضعیت/کد پرونده هیچ‌جا از بدنه اعمال نمی‌شود
+    !/patchValues\.(customer_type_id|active|status|customer_code)/.test(
+      SRC.controller,
+    ),
+);
+
+check(
+  "۱۳.۸ · داشبورد: customerId از توکن تحمیل می‌شود (نه از کلاینت)",
+  (() => {
+    const src = read("Backend/controllers/portalDashboardController.js");
+    return (
+      /query\.customerId = String\(scopeIdOf\(req\)\)/.test(src) &&
+      /delete query\.customer_id/.test(src) &&
+      /delete query\.customerId/.test(src) &&
+      /dashboardController\.getChartsData\(req, res\)/.test(src) &&
+      /dashboardController\.getAnalysisData\(req, res\)/.test(src) &&
+      !/req\.query\.customerId\s*\)/.test(src)
+    );
+  })(),
+);
+
+check(
+  "۱۳.۸ · مسیرها: پروفایل/داشبورد پشت زنجیرهٔ مجوز + محدودکنندهٔ نوشتن + مالکیت گله",
+  /const profileChain = \[/.test(SRC.routes) &&
+    /requirePermission\("customer\.portal\.profile"\)/.test(SRC.routes) &&
+    /requirePermission\("customer\.portal\.profile\.edit"\)/.test(SRC.routes) &&
+    (SRC.routes.match(/(^|\r?\n)[ \t]+portalWriteLimiter,[ \t]*\r?\n/g) || [])
+      .length === 3 &&
+    (SRC.routes.match(/(^|\r?\n)[ \t]+otpLimiter,[ \t]*\r?\n/g) || []).length === 2 &&
+    /requireOwnedRow\(\{\s*\n\s*model: Flock/.test(SRC.routes) &&
+    /key: "flockGroupId"/.test(SRC.routes) &&
+    /key: "flockId"/.test(SRC.routes) &&
+    /requirePermission\("customer\.portal\.dashboard\.analysis"\)/.test(SRC.routes),
+);
+
+check(
+  "۱۳.۸ · api.const: هفت اندپوینت تازه ثبت شده‌اند",
+  [
+    'PROFILE: "/portal/profile"',
+    'PROFILE_MOBILE_REQUEST: "/portal/profile/mobile/request"',
+    'PROFILE_MOBILE_CONFIRM: "/portal/profile/mobile/confirm"',
+    'DASHBOARD_OPTIONS: "/portal/dashboard/options"',
+    'DASHBOARD_SUMMARY: "/portal/dashboard/summary"',
+    'DASHBOARD_CHARTS: "/portal/dashboard/charts"',
+    'DASHBOARD_ANALYSIS: "/portal/dashboard/analysis"',
+  ].every((needle) => SRC.apiConst.includes(needle)),
+);
+
+check(
+  "۱۳.۸ · فرانت: فهرست سفید آینه‌ای کلاینت هم‌اندازهٔ سرور است",
+  (() => {
+    const apiSrc = read(FILES.portalApi);
+    const list =
+      (apiSrc.match(/export const PROFILE_EDITABLE_FIELDS = \[([\s\S]*?)\];/) || [])[1] ||
+      "";
+    const fields = (list.match(/"[a-z_]+"/g) || []).map((x) => x.replace(/"/g, ""));
+    return (
+      fields.length === profileRules.PROFILE_EDITABLE.length &&
+      fields.every((field) => profileRules.PROFILE_EDITABLE.includes(field))
+    );
+  })(),
+);
+
+check(
+  "۱۳.۸ · صفحهٔ پورتال: دو تب تازه + پنل‌هایشان + بارگذاری mixin",
+  [
+    'data-portal-tab="profile"',
+    'data-portal-tab="dashboard"',
+    'data-portal-panel="profile"',
+    'data-portal-panel="dashboard"',
+    'id="portalProfileStatus"',
+    'id="portalProfileBody"',
+    'id="portalDashboardStatus"',
+    'id="portalDashboardSummary"',
+    'id="portalDashboardOptions"',
+    'id="portalDashboardCharts"',
+    'id="portalDashboardStandards"',
+    'id="portalDashboardCompare"',
+    '/features/portal/portal.extra.js',
+  ].every((needle) => SRC.portalHtml.includes(needle)) &&
+    // 🔒 صفحه هنوز هیچ فرم HTML/ارسال مستقیمی ندارد
+    !/<form|type="submit"|method="post"/i.test(SRC.portalHtml),
+);
+
+check(
+  "۱۳.۸ · رندرر: توابع پروفایل/داشبورد صادر می‌شوند و هیچ فرمی نمی‌سازند",
+  /export const renderProfileCard/.test(SRC.portalRenderer) &&
+    /export const renderProfileEditor/.test(SRC.portalRenderer) &&
+    /export const renderMobileChangePanel/.test(SRC.portalRenderer) &&
+    /export const renderDashboardOptions/.test(SRC.portalRenderer) &&
+    /export const renderDashboardSummary/.test(SRC.portalRenderer) &&
+    /export const renderDashboardCharts/.test(SRC.portalRenderer) &&
+    /export const renderDashboardTable/.test(SRC.portalRenderer) &&
+    /export const renderStandardsChart/.test(SRC.portalRenderer) &&
+    /export const buildDashboardCsv/.test(SRC.portalRenderer) &&
+    !/<form|type="submit"|contenteditable/.test(SRC.portalRenderer) &&
+    !/<script/.test(SRC.portalRenderer),
+);
+
+check(
+  "۱۳.۸ · سرویس: تب‌های تازه در چرخهٔ پنهان‌سازی/فعال‌سازی آمده‌اند",
+  /import \{ EXTRA_TABS, applyPortalExtra \} from "\.\/portal\.extra\.js"/.test(
+    SRC.portalService,
+  ) &&
+    /const ALL_TAB_KEYS = \[\.\.\.TAB_KEYS, \.\.\.Object\.keys\(EXTRA_TABS\)\]/.test(
+      SRC.portalService,
+    ) &&
+    /const tabConf = \(key\) => SECTION_CONF\[key\] \|\| EXTRA_TABS\[key\] \|\| null/.test(
+      SRC.portalService,
+    ) &&
+    /if \(EXTRA_TABS\[key\]\) \{/.test(SRC.portalService) &&
+    /this\.loadExtraTab\(key\)/.test(SRC.portalService) &&
+    /this\.bindExtra\(\)/.test(SRC.portalService) &&
+    /applyPortalExtra\(PortalService\)/.test(SRC.portalService),
+);
+
+check(
+  "۱۳.۸ · mixin: ویرایش پروفایل/موبایل/داشبورد با کلیدهای مجوز گیت شده‌اند",
+  /export const EXTRA_TABS = \{/.test(SRC.portalExtra) &&
+    /permission: "customer\.portal\.profile"/.test(SRC.portalExtra) &&
+    /permission: "customer\.portal\.dashboard"/.test(SRC.portalExtra) &&
+    /async loadProfileTab\(\)/.test(SRC.portalExtra) &&
+    /async saveProfile\(\)/.test(SRC.portalExtra) &&
+    /async submitMobileRequest\(isResend = false\)/.test(SRC.portalExtra) &&
+    /async submitMobileConfirm\(\)/.test(SRC.portalExtra) &&
+    /MOBILE_PATTERN = \/\^09\\d\{9\}\$\//.test(SRC.portalExtra) &&
+    /async loadDashboardCharts\(\)/.test(SRC.portalExtra) &&
+    /exportDashboardCsv\(\)/.test(SRC.portalExtra) &&
+    /can_edit_profile/.test(SRC.portalExtra) &&
+    /customer\.portal\.dashboard\.export/.test(SRC.portalExtra) &&
+    /customer\.portal\.dashboard\.compare/.test(SRC.portalExtra),
+);
+
+check(
+  "۱۳.۸ · استایل: کلاس‌های تازهٔ پروفایل/داشبورد تعریف شده‌اند",
+  [".portal-btn", ".portal-field__input", ".portal-form-grid", ".portal-table", ".portal-dash__toolbar"].every(
+    (needle) => SRC.portalCss.includes(needle),
+  ),
+);
+
+check(
+  "۱۳.۸ · مستندات: docs/REVIEW-WAVE-13.8.md موجود و کامل است",
+  exists(FILES.docs138) &&
+    /customer\.portal\.profile\.edit/.test(read(FILES.docs138)) &&
+    /\/api\/portal\/profile/.test(read(FILES.docs138)) &&
+    /\/api\/portal\/dashboard/.test(read(FILES.docs138)),
+);
+
+check(
+  "۱۳.۸ · PWA: manifest معتبر + service worker عبوری (بدون cache.put)",
+  (() => {
+    const manifest = JSON.parse(read(FILES.pwaManifest));
+    const sw = read(FILES.pwaSw);
+    return (
+      manifest.start_url === "/portal" &&
+      manifest.display === "standalone" &&
+      manifest.scope === "/" &&
+      Array.isArray(manifest.icons) &&
+      manifest.icons.length >= 1 &&
+      /self\.addEventListener\("fetch"/.test(sw) &&
+      !/caches\.put\(/.test(sw) &&
+      !/addAll\(/.test(sw) &&
+      !/respondWith\(/.test(sw) &&
+      !/\/api\//.test(sw)
+    );
+  })(),
+);
+
+check(
+  "۱۳.۸ · PWA: manifest/sw از ریشه سرو می‌شوند و صفحه連結 شده است",
+  /"\/manifest\.webmanifest"/.test(read(FILES.frontendServer)) &&
+    /"\/sw\.js"/.test(read(FILES.frontendServer)) &&
+    /Service-Worker-Allowed/.test(read(FILES.frontendServer)) &&
+    /<link rel="manifest" href="\/manifest\.webmanifest">/.test(SRC.portalHtml) &&
+    /navigator\.serviceWorker\.register\('\/sw\.js'/.test(SRC.portalHtml),
+);
+
 
 // ============================================================
 // خلاصه

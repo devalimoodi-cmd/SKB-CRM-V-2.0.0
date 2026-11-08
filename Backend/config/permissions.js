@@ -175,6 +175,53 @@ const PORTAL = [
     "مشاهدهٔ متن گزارش بازدید و پیوست‌های آن (پورتال مشتری)",
     D.customerOnly,
   ),
+  // ✅ فاز ۱۳.۸ — «پروفایل من» و «داشبورد تحلیلی» در پورتال
+  // ------------------------------------------------------------
+  //  چرا کلید «ویرایش» جدا از «مشاهده» است؟
+  //   مشاهدهٔ پرونده (customer.portal.profile) فقط خواندن است؛ ویرایش،
+  //   تنها مسیر *نوشتن* پورتال است. مدیر باید بتواند پروفایل را نشان
+  //   دهد ولی ویرایش را ببندد (یا برعکس)، بدون بستن کل پورتال.
+  //  ⚠️ customer_type_id هرگز با این کلید قابل تغییر نیست؛ تغییر شمارهٔ
+  //   موبایل هم مسیر جدا با کد پیامکی دارد (services/portalProfileRules.js).
+  item("customer.portal.profile", "تب «پروفایل من» در پورتال مشتری", D.customerOnly),
+  item(
+    "customer.portal.profile.edit",
+    "ویرایش پروفایل خودم (پورتال مشتری)",
+    D.customerOnly,
+  ),
+  // ✅ فاز ۱۳.۸ — داشبورد تحلیلی: تب + سه قابلیت مستقل
+  item("customer.portal.dashboard", "تب «داشبورد تحلیلی» در پورتال مشتری", D.customerOnly),
+  item(
+    "customer.portal.dashboard.analysis",
+    "تحلیل‌های داینامیک داشبورد پورتال",
+    D.customerOnly,
+  ),
+  item(
+    "customer.portal.dashboard.compare",
+    "مقایسهٔ گله‌های خودم در داشبورد پورتال",
+    D.customerOnly,
+  ),
+  item(
+    "customer.portal.dashboard.export",
+    "خروجی CSV از نمودارهای پورتال",
+    D.customerOnly,
+  ),
+  // نمودارهای قابل انتخاب — هر کدام مستقل بسته می‌شود
+  // (کلیدهای UI‌محور، هم‌ردهٔ halls.tab.*؛ رندر بدون کلید انجام نمی‌شود)
+  item("customer.portal.chart.weight", "نمودار «وزن هفتگی» (پورتال مشتری)", D.customerOnly),
+  item(
+    "customer.portal.chart.gain",
+    "نمودار «افزایش وزن هفتگی» (پورتال مشتری)",
+    D.customerOnly,
+  ),
+  item("customer.portal.chart.mortality", "نمودار «تلفات» (پورتال مشتری)", D.customerOnly),
+  item("customer.portal.chart.feed", "نمودار «مصرف دان» (پورتال مشتری)", D.customerOnly),
+  item("customer.portal.chart.fcr", "نمودار «ضریب تبدیل غذایی» (پورتال مشتری)", D.customerOnly),
+  item(
+    "customer.portal.chart.standards",
+    "نمایش «خط استاندارد نژاد» روی نمودارها (پورتال مشتری)",
+    D.customerOnly,
+  ),
 ];
 
 // ============================================================

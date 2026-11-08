@@ -109,6 +109,14 @@ const LoginChallenge = sequelize.define(
       allowNull: true,
       comment: "زمان مصرف موفق چالش (یک‌بارمصرف)",
     },
+    // ✅ موج ۱۳.۸ — دادهٔ همراه چالش (فقط برای purpose=profile_mobile)
+    //    🔒 هرگز کد خام این‌جا نوشته نمی‌شود؛ فقط «شمارهٔ جدید در انتظار تأیید».
+    payload: {
+      type: DataTypes.JSONB,
+      allowNull: true,
+      comment:
+        "دادهٔ همراه چالش (تغییر موبایل از پورتال: {mobile_number, requested_at})",
+    },
   },
   {
     tableName: "login_challenges",

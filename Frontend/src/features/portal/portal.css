@@ -721,6 +721,257 @@
   color: var(--text-light);
 }
 
+/* ============================================================
+   ✅ موج ۱۳.۸ — «پروفایل من»
+   ------------------------------------------------------------
+   ⚠️ فرم واقعی (form) وجود ندارد؛ این‌ها فقط ظاهرِ فرم روی div
+   هستند تا گارد «هیچ form/submit در پورتال» نشکند.
+   ============================================================ */
+.portal-profile {
+  padding: 6px 16px 16px;
+}
+
+.portal-profile__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.portal-profile__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.portal-profile__errors:empty {
+  display: none;
+}
+
+.portal-profile__errors {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 10px;
+  padding: 8px 12px;
+  font-size: 0.78rem;
+  color: var(--danger-deep, #b91c1c);
+  background: var(--danger-soft, #fef2f2);
+  border: 1px solid var(--danger-brd, #fca5a5);
+  border-radius: 10px;
+}
+
+.portal-profile__note,
+.portal-profile__locked {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 12px 0 0;
+  font-size: 0.75rem;
+  line-height: 1.9;
+  color: var(--text-light);
+}
+
+.portal-row--kv {
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.portal-row__key {
+  flex: 0 0 42%;
+  font-size: 0.78rem;
+  color: var(--text-light);
+}
+
+.portal-row__value {
+  flex: 1 1 auto;
+  font-size: 0.8rem;
+  color: var(--text-main);
+  word-break: break-word;
+}
+
+.portal-chip--muted {
+  font-size: 0.68rem;
+  color: var(--text-light);
+  border-color: var(--border, #e2e8f0);
+}
+
+.portal-chip--info {
+  color: var(--primary);
+  background: var(--primary-soft);
+  border-color: var(--primary);
+}
+
+/* دکمه‌های پورتال (ویرایش/ذخیره/انصراف/خروجی) */
+.portal-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  font-family: inherit;
+  font-size: 0.8rem;
+  color: var(--text-main);
+  background: #fff;
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.portal-btn:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.portal-btn--primary {
+  color: var(--text-inverse);
+  background: var(--primary);
+  border-color: var(--primary);
+}
+
+.portal-btn--primary:hover {
+  color: var(--text-inverse);
+  filter: brightness(0.95);
+}
+
+/* شبکهٔ فیلدهای فرم */
+.portal-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 14px;
+}
+
+.portal-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.portal-field--wide {
+  grid-column: 1 / -1;
+}
+
+.portal-field--inline {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.portal-field__label {
+  font-size: 0.74rem;
+  color: var(--text-light);
+}
+
+.portal-field__input {
+  width: 100%;
+  padding: 8px 10px;
+  font-family: inherit;
+  font-size: 0.8rem;
+  color: var(--text-main);
+  background: #fff;
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 9px;
+}
+
+.portal-field__input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-soft);
+}
+
+.portal-field__input--code {
+  max-width: 160px;
+  text-align: center;
+  letter-spacing: 4px;
+  font-weight: 700;
+}
+
+/* ============================================================
+   ✅ موج ۱۳.۸ — «داشبورد تحلیلی»
+   ============================================================ */
+.portal-dash__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px;
+  padding: 6px 16px 4px;
+}
+
+.portal-dash__extras,
+.portal-dash__empty {
+  margin: 8px 16px;
+  font-size: 0.76rem;
+  color: var(--text-light);
+}
+
+.portal-kpis--dash {
+  padding: 6px 16px 0;
+}
+
+.portal-chart__bar {
+  fill: var(--primary, #0ea5e9);
+  opacity: 0.85;
+}
+
+.portal-chart__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 8px;
+  font-size: 0.72rem;
+  color: var(--text-light);
+}
+
+.portal-chart__legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.portal-chart__legend-item i {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  display: inline-block;
+}
+
+/* جدول مقایسهٔ گله‌های خودم */
+.portal-dash__table-wrap {
+  padding: 4px 16px 16px;
+  overflow-x: auto;
+}
+
+.portal-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+}
+
+.portal-table th,
+.portal-table td {
+  padding: 8px 10px;
+  text-align: right;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--border, #e2e8f0);
+}
+
+.portal-table th {
+  font-weight: 600;
+  color: var(--text-light);
+  background: rgba(148, 163, 184, 0.08);
+}
+
+@media (max-width: 640px) {
+  .portal-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .portal-row__key {
+    flex-basis: 46%;
+  }
+}
+
 /* در نمایشگر کوچک، پنل جزئیات تمام‌عرض شود */
 @media (max-width: 480px) {
   .portal-detail {

@@ -45,6 +45,16 @@ const { normalizeCustomerId } = require("../services/customerScopeRules");
 const { userHasPermission } = require("../middleware/permissions");
 const { parsePagination } = require("../utils/pagination");
 const { successResponse, errorResponse } = require("../utils/response");
+// ✅ موج ۱۳.۸ — پروفایل «خودم» (فهرست سفید + قواعد خالص)
+const CustomerType = require("../models/CustomerType");
+const User = require("../models/User");
+const {
+  PROFILE_EDITABLE,
+  PROFILE_LOCKED,
+  validateProfilePatch,
+  changedFields,
+} = require("../services/portalProfileRules");
+const { maskMobile } = require("../services/registrationRules");
 
 // سقف ردیف‌های «آخرین‌ها» (پورتال سبک بماند)
 const LATEST_LIMIT = 3;
@@ -201,11 +211,29 @@ const getPortalSummary = async (req, res) => {
     //    لو نمی‌رود: شمارندهٔ آن null می‌شود (کارت مربوطه در UI حذف
     //    می‌شود) و «آخرین ردیف‌ها»ی آن خالی برمی‌گردد.
     //    کلیدها: customer.portal.{halls,flocks,weeks,visits}
-    const [canHalls, canFlocks, canWeeks, canVisits] = await Promise.all([
+    // ✅ ۱۳.۸: تب‌های «پروفایل من» و «داشبورد تحلیلی» هم کلید مستقل دارند.
+    const [
+      canHalls,
+      canFlocks,
+      canWeeks,
+      canVisits,
+      canProfile,
+      canProfileEdit,
+      canDashboard,
+      canDashboardAnalysis,
+      canDashboardCompare,
+      canDashboardExport,
+    ] = await Promise.all([
       userHasPermission(req, "customer.portal.halls"),
       userHasPermission(req, "customer.portal.flocks"),
       userHasPermission(req, "customer.portal.weeks"),
       userHasPermission(req, "customer.portal.visits"),
+      userHasPermission(req, "customer.portal.profile"),
+      userHasPermission(req, "customer.portal.profile.edit"),
+      userHasPermission(req, "customer.portal.dashboard"),
+      userHasPermission(req, "customer.portal.dashboard.analysis"),
+      userHasPermission(req, "customer.portal.dashboard.compare"),
+      userHasPermission(req, "customer.portal.dashboard.export"),
     ]);
 
     const sections = {
@@ -213,6 +241,8 @@ const getPortalSummary = async (req, res) => {
       flocks: canFlocks,
       weeks: canWeeks,
       visits: canVisits,
+      profile: canProfile,
+      dashboard: canDashboard,
     };
 
     // null = «این بخش بسته است» (با 0 اشتباه نشود)
@@ -229,6 +259,13 @@ const getPortalSummary = async (req, res) => {
         },
         // ✅ منبع حقیقت برای فرانت: کدام تب‌ها برای این حساب باز است
         sections,
+        // ✅ ۱۳.۸: قابلیت‌های درون‌تبی (ویرایش پروفایل/تحلیل/مقایسه)
+        features: {
+          can_edit_profile: Boolean(canProfile && canProfileEdit),
+          dashboard_analysis: Boolean(canDashboard && canDashboardAnalysis),
+          dashboard_compare: Boolean(canDashboard && canDashboardCompare),
+          dashboard_export: Boolean(canDashboard && canDashboardExport),
+        },
         counters: {
           halls: orNull(canHalls, hallsTotal),
           active_halls: orNull(canHalls, hallsActive),
@@ -866,6 +903,244 @@ const downloadMyAttachment = async (req, res) => {
   }
 };
 
+// ============================================
+// GET /api/portal/profile   (فاز ۱۳.۸)
+// ------------------------------------------------------------
+// 🔒 خروجی: فقط پروندهٔ خودم + فهرست فیلدهای قابل ویرایش.
+//    شمارهٔ موبایل ماسک‌شده می‌آید (تغییرش مسیر پیامکی جدا دارد) و
+//    هیچ ستون داخلی (created_by/updated_by/sales_department) بیرون نمی‌رود.
+// ============================================
+const PROFILE_ATTRIBUTES = [
+  "id",
+  "customer_code",
+  "customer_type_id",
+  "full_name",
+  "farm_name",
+  "collection_name",
+  "national_code",
+  "email",
+  "date_of_birth",
+  "experience_years",
+  "education_level",
+  "gender",
+  "province",
+  "county",
+  "postal_code",
+  "farm_address",
+  "messaging_number",
+  "skb_how_know",
+  "mobile_number",
+  "active",
+  "status",
+  "updated_by",
+  "updated_at",
+];
+
+// نگاشت امن: فقط کلیدهای سفید + وضعیت ویرایش
+const profileView = (row, { customerType = null, userId = null } = {}) => {
+  const plain = toPlain(row);
+  const fields = {};
+  PROFILE_EDITABLE.forEach((field) => {
+    const value = plain[field];
+    fields[field] =
+      value === null || value === undefined
+        ? ""
+        : value instanceof Date
+          ? value.toISOString().slice(0, 10)
+          : String(value);
+  });
+
+  return {
+    id: plain.id,
+    customer_code: plain.customer_code ?? null,
+    // 🔒 نوع مشتری فقط خواندنی است (مشتری نمی‌تواند عوضش کند)
+    customer_type: customerType
+      ? { id: customerType.id, name: customerType.name || "" }
+      : plain.customer_type_id
+        ? { id: plain.customer_type_id, name: "" }
+        : null,
+    fields,
+    mobile: {
+      masked: maskMobile(plain.mobile_number),
+      // 🌟 تغییر شماره فقط با کد پیامکی (نه با همین PATCH)
+      change_requires_otp: true,
+    },
+    active: Boolean(plain.active),
+    status: plain.status || "",
+    // 🌟 نشانهٔ «آخرین ویرایش توسط خودِ مشتری» (نه کارشناس)
+    edited_by_customer: Boolean(
+      userId && Number(plain.updated_by) === Number(userId),
+    ),
+    updated_at: plain.updated_at || null,
+  };
+};
+
+const getMyProfile = async (req, res) => {
+  try {
+    const customerId = scopeIdOf(req);
+    if (!customerId) return denyUnlinked(res);
+
+    const row = await CustomerPersonalInfo.findByPk(customerId, {
+      attributes: PROFILE_ATTRIBUTES,
+    });
+    if (!row) return errorResponse(res, "پروندهٔ مشتری یافت نشد", 404);
+
+    const plain = toPlain(row);
+    const customerType = plain.customer_type_id
+      ? await CustomerType.findByPk(plain.customer_type_id, {
+          attributes: ["id", "name"],
+        })
+      : null;
+
+    const canEdit = await userHasPermission(req, "customer.portal.profile.edit");
+
+    return successResponse(
+      res,
+      {
+        profile: profileView(row, {
+          customerType: customerType ? toPlain(customerType) : null,
+          userId: req.user?.id ?? null,
+        }),
+        can_edit: canEdit,
+        editable_fields: PROFILE_EDITABLE,
+        locked_fields: PROFILE_LOCKED,
+        meta: { scope: "self", generated_at: new Date().toISOString() },
+      },
+      "پروفایل شما",
+    );
+  } catch (error) {
+    console.error("❌ خطا در دریافت پروفایل پورتال:", error.message);
+    return errorResponse(res, "خطا در دریافت پروفایل", 500);
+  }
+};
+
+// ============================================
+// PUT /api/portal/profile   (فاز ۱۳.۸)
+// ------------------------------------------------------------
+// 🔒 تنها مسیر *نوشتن* پروفایل در پورتال:
+//   • فهرست سفید (PROFILE_EDITABLE) — نه یک فیلد بیشتر
+//   • customer_type_id / active / status / customer_code قابل تغییر نیستند
+//   • mobile_number در همین مسیر نادیده گرفته می‌شود (مسیر OTP جدا)
+//   • داده بی‌درنگ فعال است (بدون صف تأیید) — تصمیم کارفرما در ۱۳.۸
+// ============================================
+const updateMyProfile = async (req, res) => {
+  try {
+    const customerId = scopeIdOf(req);
+    if (!customerId) return denyUnlinked(res);
+
+    const patch = validateProfilePatch(req.body);
+    if (!patch.ok) {
+      return res.status(400).json({
+        success: false,
+        code: "PORTAL_PROFILE_INVALID",
+        message: "اطلاعات ارسالی معتبر نیست",
+        errors: patch.errors,
+        timestamp: new Date().toISOString(),
+      });
+    }
+
+    const row = await CustomerPersonalInfo.findByPk(customerId, {
+      attributes: PROFILE_ATTRIBUTES,
+    });
+    if (!row) return errorResponse(res, "پروندهٔ مشتری یافت نشد", 404);
+
+    const before = toPlain(row);
+    const changes = changedFields(before, patch.values);
+
+    if (changes.length === 0) {
+      return successResponse(
+        res,
+        {
+          changed: [],
+          profile: profileView(row, { userId: req.user?.id ?? null }),
+          // اگر کلاینت خواسته بود موبایل را همین‌جا عوض کند، راهنمایی می‌شود
+          mobile_hint: patch.mobileAttempted
+            ? "تغییر شمارهٔ موبایل فقط با کد پیامکی انجام می‌شود"
+            : null,
+        },
+        "تغییری برای ثبت وجود نداشت",
+      );
+    }
+
+    // ایمیل یکتاست (در پرونده‌ها و در حساب‌های کاربری) ⇒ پیش از نوشتن بسنج
+    if (changes.includes("email") && patch.values.email) {
+      const email = patch.values.email;
+      const [sameCustomer, sameUser] = await Promise.all([
+        CustomerPersonalInfo.count({
+          where: { email: { [Op.iLike]: email }, id: { [Op.ne]: customerId } },
+        }),
+        User.count({ where: { email: { [Op.iLike]: email } } }),
+      ]);
+      if (sameCustomer > 0 || sameUser > 0) {
+        return res.status(409).json({
+          success: false,
+          code: "PORTAL_PROFILE_EMAIL_TAKEN",
+          message: "این ایمیل قبلاً ثبت شده است",
+          errors: { email: "این ایمیل قبلاً ثبت شده است" },
+          timestamp: new Date().toISOString(),
+        });
+      }
+    }
+
+    // اعمال تغییرات (به‌همراه ثبت اینکه آخرین ویرایش از سمت خودِ مشتری بود)
+    const patchValues = {};
+    changes.forEach((field) => {
+      patchValues[field] = patch.values[field];
+    });
+    patchValues.updated_by = req.user?.id ?? null;
+
+    await row.update(patchValues);
+
+    const fresh = await CustomerPersonalInfo.findByPk(customerId, {
+      attributes: PROFILE_ATTRIBUTES,
+    });
+
+    console.info(
+      `📝 [portal:profile] پرونده ${customerId} توسط کاربر ${req.user?.id} ویرایش شد — فیلدها: ${changes.join(
+        ",",
+      )}`,
+    );
+
+    return successResponse(
+      res,
+      {
+        changed: changes,
+        profile: profileView(fresh || row, { userId: req.user?.id ?? null }),
+        edited_by_customer: true,
+        mobile_hint: patch.mobileAttempted
+          ? "تغییر شمارهٔ موبایل فقط با کد پیامکی انجام می‌شود"
+          : null,
+        meta: { scope: "self", generated_at: new Date().toISOString() },
+      },
+      "پروفایل شما به‌روزرسانی شد",
+    );
+  } catch (error) {
+    if (error?.name === "SequelizeUniqueConstraintError") {
+      return res.status(409).json({
+        success: false,
+        code: "PORTAL_PROFILE_DUPLICATE",
+        message: "مقداری از اطلاعات با پروندهٔ دیگری تکراری است",
+        timestamp: new Date().toISOString(),
+      });
+    }
+    if (error?.name === "SequelizeValidationError") {
+      const errors = {};
+      (error.errors || []).forEach((item) => {
+        errors[item.path] = item.message;
+      });
+      return res.status(400).json({
+        success: false,
+        code: "PORTAL_PROFILE_INVALID",
+        message: "اطلاعات ارسالی معتبر نیست",
+        errors,
+        timestamp: new Date().toISOString(),
+      });
+    }
+    console.error("❌ خطا در به‌روزرسانی پروفایل پورتال:", error.message);
+    return errorResponse(res, "خطا در ذخیرهٔ پروفایل", 500);
+  }
+};
+
 module.exports = {
   getPortalSummary,
   getMyHalls,
@@ -875,4 +1150,7 @@ module.exports = {
   getMyWeekDetail,
   getMyVisitDetail,
   downloadMyAttachment,
+  getMyProfile,
+  updateMyProfile,
 };
+

@@ -1,0 +1,40 @@
+{
+  "id": "/portal",
+  "name": "پورتال مشتری — ستاره کیان بیرجند",
+  "short_name": "پورتال SKB",
+  "description": "پورتال اختصاصی مشتریان: پروندهٔ من، پروفایل من و داشبورد تحلیلی گله‌ها",
+  "lang": "fa",
+  "dir": "rtl",
+  "start_url": "/portal",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#f8fafc",
+  "theme_color": "#2c7a6e",
+  "icons": [
+    {
+      "src": "/assets/images/skb-logo.png",
+      "sizes": "260x109",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/images/default-avatar.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "پروفایل من",
+      "short_name": "پروفایل",
+      "url": "/portal?tab=profile"
+    },
+    {
+      "name": "داشبورد تحلیلی",
+      "short_name": "داشبورد",
+      "url": "/portal?tab=dashboard"
+    }
+  ]
+}

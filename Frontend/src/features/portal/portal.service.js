@@ -29,6 +29,8 @@ import {
   renderWeeklyChart,
 } from "./portal.renderer.js";
 import { notificationService } from "../../core/services/notification.service.js";
+// ✅ موج ۱۳.۸ — تب‌های «پروفایل من» و «داشبورد تحلیلی» (mixin جدا)
+import { EXTRA_TABS, applyPortalExtra } from "./portal.extra.js";
 
 // پیام ۴۰۳ِ «بدون پروندهٔ متصل» از سرور همین عبارت را دارد
 const LINK_MISSING = /متصل نشده است/;
@@ -84,6 +86,14 @@ const SECTION_CONF = {
 
 const TAB_KEYS = Object.keys(SECTION_CONF);
 
+// ✅ ۱۳.۸: تب‌های تازه (پروفایل/داشبورد) هم «تب پورتال»‌اند و باید در
+//    همان چرخهٔ پنهان‌سازی/فعال‌سازی بیایند؛ ولی دادهٔ آن‌ها فهرست
+//    صفحه‌بندی‌شده نیست، پس پیکربندی‌شان جدا (portal.extra.js) است.
+const ALL_TAB_KEYS = [...TAB_KEYS, ...Object.keys(EXTRA_TABS)];
+
+// پیکربندی هر تب: یا فهرست (SECTION_CONF) یا تب خاص (EXTRA_TABS)
+const tabConf = (key) => SECTION_CONF[key] || EXTRA_TABS[key] || null;
+
 const LINK_MISSING_MESSAGE =
   "برای مشاهدهٔ اطلاعات پرونده، حساب شما باید به پروندهٔ مشتری متصل شود. لطفاً با مدیر سیستم تماس بگیرید.";
 
@@ -110,6 +120,8 @@ class PortalService {
         items: [],
       };
     });
+    // ✅ ۱۳.۸: وضعیت تب‌های پروفایل/داشبورد
+    this.initExtra();
   }
 
   el(id) {
@@ -138,6 +150,7 @@ class PortalService {
     this.bindTabs();
     this.bindDetail();
     this.bindPermissions();
+    this.bindExtra();
     await this.load();
   }
 
@@ -180,7 +193,7 @@ class PortalService {
   // منبع دوم (fallback): مجوزهای کلاینت (customer.portal.<tab>).
   // در نبود هر دو ⇒ باز (fail-open) تا خطای شبکه صفحه را خالی نکند.
   canSee(key) {
-    const conf = SECTION_CONF[key];
+    const conf = tabConf(key);
     if (!conf) return false;
 
     const sections = this.data && this.data.sections;
@@ -194,7 +207,7 @@ class PortalService {
   }
 
   visibleTabKeys() {
-    return TAB_KEYS.filter((key) => this.canSee(key));
+    return ALL_TAB_KEYS.filter((key) => this.canSee(key));
   }
 
   // تبِ بسته: دکمه و پنل پنهان می‌شود (نه فقط غیرفعال) + اگر همه بسته
@@ -220,18 +233,18 @@ class PortalService {
 
     const notice = this.el("portalTabsNotice");
     if (notice) {
-      const closed = TAB_KEYS.filter((key) => !visible.includes(key));
+      const closed = ALL_TAB_KEYS.filter((key) => !visible.includes(key));
       if (visible.length === 0) {
         notice.innerHTML = renderNotice(
           "بخش‌های پروندهٔ شما بسته است",
-          "همهٔ بخش‌های پرونده (سالن‌ها، گله‌ها، هفته‌ها و بازدیدها) توسط مدیر سیستم بسته شده است. برای فعال‌سازی با مدیر تماس بگیرید.",
+          "همهٔ بخش‌های پرونده (سالن‌ها، گله‌ها، هفته‌ها، بازدیدها، پروفایل و داشبورد) توسط مدیر سیستم بسته شده است. برای فعال‌سازی با مدیر تماس بگیرید.",
           "info",
         );
       } else if (closed.length > 0) {
         notice.innerHTML = renderNotice(
           "برخی بخش‌ها بسته شده است",
           `این بخش‌ها توسط مدیر سیستم بسته شده‌اند: ${closed
-            .map((key) => SECTION_CONF[key].title)
+            .map((key) => (tabConf(key) || {}).title || key)
             .join("، ")}`,
           "info",
         );
@@ -480,7 +493,7 @@ class PortalService {
 
   // ===== تب‌ها =====
   activateTab(key) {
-    if (!SECTION_CONF[key] || this.state === "unlinked") return;
+    if (!tabConf(key) || this.state === "unlinked") return;
     // ۱۳.۵: تبِ بسته حتی اگر با کلیک/کد صدا زده شود بارگذاری نمی‌شود
     if (!this.canSee(key)) return;
     this.activeTab = key;
@@ -494,6 +507,12 @@ class PortalService {
     this.all("[data-portal-panel]").forEach((panel) => {
       panel.hidden = panel.getAttribute("data-portal-panel") !== key;
     });
+
+    // ✅ ۱۳.۸: دو تب تازه فهرست صفحه‌بندی‌شده نیستند ⇒ بارگذاری جدا
+    if (EXTRA_TABS[key]) {
+      if (!this.extra[key].loaded) this.loadExtraTab(key);
+      return;
+    }
 
     if (!this.sections[key].loaded) this.loadSection(key);
   }
@@ -510,6 +529,7 @@ class PortalService {
     if (!enabled) {
       // پیام‌های «در حال دریافت» تبی که هرگز داده نمی‌گیرد پاک شود
       TAB_KEYS.forEach((key) => this.setSectionStatus(key, "ready"));
+      Object.keys(EXTRA_TABS).forEach((key) => this.setExtraStatus(key, "ready"));
     }
   }
 
@@ -636,6 +656,10 @@ class PortalService {
     if (content) content.style.display = "";
   }
 }
+
+// ✅ ۱۳.۸: متدهای تب‌های «پروفایل من» و «داشبورد تحلیلی» پیش از ساخت نمونه
+//    روی prototype سوار می‌شوند (Object.assign در portal.extra.js).
+applyPortalExtra(PortalService);
 
 export const portalService = new PortalService();
 

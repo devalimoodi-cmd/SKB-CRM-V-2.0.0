@@ -8,6 +8,15 @@
     <meta name="robots" content="noindex, nofollow">
     <title>پورتال مشتری | سامانه مدیریت مشتریان ستاره کیان بیرجند</title>
 
+    <!-- ===== ✅ موج ۱۳.۸ — PWA (نصب‌پذیری پورتال) =====
+         manifest و service worker در ریشهٔ سایت سرو می‌شوند (Frontend/server.js).
+         🔒 service worker هیچ چیزی کش نمی‌کند؛ فقط شرط «نصب‌پذیری» را
+         برآورده می‌کند تا دادهٔ پروندهٔ مشتری روی دستگاه نماند. -->
+    <link rel="manifest" href="/manifest.webmanifest">
+    <meta name="theme-color" content="#2c7a6e">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="پورتال SKB">
+
     <!-- ===== Vendor Styles ===== -->
     <link rel="stylesheet" href="./../../node_modules/@fortawesome/fontawesome-free/css/all.min.css">
 
@@ -50,8 +59,10 @@
     <header id="main-header"></header>
 
     <!-- ===== پورتال =====
-         ⚠️ این صفحه «فقط خواندنی» است: هیچ فرم، دکمهٔ ثبت/ویرایش/حذف
-         و هیچ درخواست نوشتنی (POST/PUT/DELETE) در آن وجود ندارد.
+         ⚠️ تا ۱۳.۷ این صفحه کاملاً «فقط خواندنی» بود. از موج ۱۳.۸ تنها
+         استثناها: ویرایش «پروفایل من» (PATCH با فهرست سفید) و تغییر
+         شمارهٔ موبایل با کد پیامکی. هیچ فرم HTML (form/submit) در صفحه
+         نیست و هیچ مسیر دیگری نوشتن ندارد.
          لودر سیستمی از سمت Frontend/server.js تزریق و با اسکریپت پایین
          همین صفحه (overlay#pageLoadingOverlay) مخفی می‌شود. ===== -->
     <main id="portalRoot" class="portal-page" data-portal-state="loading"
@@ -118,9 +129,41 @@
                     <button type="button" class="portal-tab" role="tab" data-portal-tab="visits" aria-selected="false">
                         <i class="fas fa-clipboard-list"></i> بازدیدها
                     </button>
+                    <!-- ✅ موج ۱۳.۸ — دو تب تازه (پروفایل من / داشبورد تحلیلی) -->
+                    <button type="button" class="portal-tab" role="tab" data-portal-tab="profile" aria-selected="false">
+                        <i class="fas fa-id-card"></i> پروفایل من
+                    </button>
+                    <button type="button" class="portal-tab" role="tab" data-portal-tab="dashboard" aria-selected="false">
+                        <i class="fas fa-chart-pie"></i> داشبورد تحلیلی
+                    </button>
                 </div>
 
                 <div class="portal-tabpanels" id="portalTabPanels">
+                    <!-- ✅ ۱۳.۸ — پروفایل من (ویرایش با فهرست سفید + موبایل با کد پیامکی) -->
+                    <div class="portal-card portal-tabpanel" data-portal-panel="profile" role="tabpanel" hidden>
+                        <div class="portal-card__head">
+                            <i class="fas fa-id-card"></i>
+                            <span>پروفایل من</span>
+                        </div>
+                        <div class="portal-tab__status" id="portalProfileStatus"></div>
+                        <div class="portal-profile__body" id="portalProfileBody"></div>
+                    </div>
+
+                    <!-- ✅ ۱۳.۸ — داشبورد تحلیلی (هر نمودار کلید مجوز خودش را دارد) -->
+                    <div class="portal-card portal-tabpanel" data-portal-panel="dashboard" role="tabpanel" hidden>
+                        <div class="portal-card__head">
+                            <i class="fas fa-chart-pie"></i>
+                            <span>داشبورد تحلیلی من</span>
+                        </div>
+                        <div class="portal-tab__status" id="portalDashboardStatus"></div>
+                        <div class="portal-dash" id="portalDashboardBody">
+                            <div class="portal-kpis portal-kpis--dash" id="portalDashboardSummary"></div>
+                            <div class="portal-dash__options" id="portalDashboardOptions"></div>
+                            <div class="portal-chart" id="portalDashboardCharts"></div>
+                            <div class="portal-chart" id="portalDashboardStandards"></div>
+                        </div>
+                        <div class="portal-dash__compare" id="portalDashboardCompare"></div>
+                    </div>
                     <div class="portal-card portal-tabpanel" data-portal-panel="halls" role="tabpanel">
                         <div class="portal-card__head">
                             <i class="fas fa-warehouse"></i>
@@ -239,6 +282,8 @@
 
     <!-- ===== Feature (پورتال) ===== -->
     <script type="module" src="/features/portal/portal.renderer.js"></script>
+    <!-- ✅ ۱۳.۸ — تب‌های «پروفایل من» و «داشبورد تحلیلی» (mixin روی سرویس) -->
+    <script type="module" src="/features/portal/portal.extra.js"></script>
     <script type="module" src="/features/portal/portal.service.js"></script>
 
     <!-- ===== App ===== -->
@@ -262,6 +307,18 @@
                 }
             }
         });
+
+        // ===== ✅ موج ۱۳.۸ — ثبت service worker (نصب‌پذیری PWA) =====
+        // 🔒 عمداً بی‌صدا و بی‌خطر: هر خطایی نادیده گرفته می‌شود (اگر
+        //    مرورگر پشتیبانی نکند یا سایت روی HTTP ساده باشد، پورتال
+        //    مثل قبل کار می‌کند). service worker هیچ چیزی کش نمی‌کند.
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function () {
+                navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(function (error) {
+                    console.info('ℹ️ service worker ثبت نشد (پورتال بدون PWA کار می‌کند)', error && error.message);
+                });
+            });
+        }
     </script>
 </body>
 

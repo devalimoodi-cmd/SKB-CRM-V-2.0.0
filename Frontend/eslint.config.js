@@ -134,4 +134,22 @@ module.exports = [
     },
     rules: COMMON_RULES,
   },
+  // ✅ موج ۱۳.۸ — service worker پورتال مشتری (src/public/sw.js)
+  //    محیط اجرای آن با صفحه‌ها فرق دارد: self / caches / clients به‌جای
+  //    window/document. بدون این بلوک، `self` متغیر تعریف‌نشده گزارش می‌شد.
+  //    ⚠️ این فایل با type="module" اجرا نمی‌شود (کلاسیک است).
+  {
+    files: ["src/public/sw.js"],
+    languageOptions: {
+      ecmaVersion: 2023,
+      sourceType: "script",
+      globals: {
+        ...BROWSER_GLOBALS,
+        self: "readonly",
+        caches: "readonly",
+        clients: "readonly",
+      },
+    },
+    rules: COMMON_RULES,
+  },
 ];

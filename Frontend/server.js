@@ -150,6 +150,40 @@ app.use(
 // 8. Public (فایل‌های عمومی)
 app.use("/public", assetCacheHeaders, express.static(path.join(srcPath, "public")));
 
+// ============================================
+// 8.1. ✅ موج ۱۳.۸ — PWA (نصب‌پذیری پورتال مشتری)
+// ------------------------------------------------------------
+// چرا در ریشهٔ سایت و نه زیر /public؟
+//   scope یک service worker به پوشهٔ خودش محدود است؛ اگر از
+//   /public/sw.js سرو شود فقط /public/* را کنترل می‌کند و شرط
+//   «نصب‌پذیری» پورتال را برآورده نمی‌کند. همان فایل با هدر
+//   Service-Worker-Allowed: / سرو می‌شود.
+// ⚠️ manifest با نوع درست سرو می‌شود؛ وگرنه بعضی مرورگرها آن را
+//    نادیده می‌گیرند.
+// 🔒 sw.js هیچ چیزی کش نمی‌کند (نگاه کنید به src/public/sw.js).
+// ============================================
+const PWA_FILES = {
+  "/manifest.webmanifest": {
+    file: "manifest.webmanifest",
+    type: "application/manifest+json; charset=utf-8",
+  },
+  "/sw.js": {
+    file: "sw.js",
+    type: "text/javascript; charset=utf-8",
+    workerAllowed: true,
+  },
+};
+
+Object.keys(PWA_FILES).forEach((route) => {
+  const conf = PWA_FILES[route];
+  app.get(route, (req, res) => {
+    res.setHeader("Content-Type", conf.type);
+    res.setHeader("Cache-Control", "no-cache");
+    if (conf.workerAllowed) res.setHeader("Service-Worker-Allowed", "/");
+    res.sendFile(path.join(srcPath, "public", conf.file));
+  });
+});
+
 // 9. ✅ Node Modules (کتابخانه‌های npm)
 app.use(
   "/node_modules",

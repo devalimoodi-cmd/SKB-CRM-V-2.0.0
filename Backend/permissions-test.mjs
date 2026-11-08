@@ -33,7 +33,9 @@ check(
   // ✅ فاز ۱۳.۲: گروه «پورتال مشتری» + کلید customer.portal.view
   // ✅ فاز ۱۳.۴: کلید customer.portal.visit.report (متن گزارش + پیوست‌ها)
   // ✅ فاز ۱۳.۵: چهار کلید تب پورتال (halls/flocks/weeks/visits)
-  catalog.TOTAL_PERMISSIONS === 176 && catalog.PERMISSION_GROUPS.length === 17,
+  // ✅ موج ۱۳.۸: ۱۲ کلید تازه (profile و ویرایشش، dashboard و زیربخش‌ها،
+  //    ۶ نمودار) ⇒ ۱۷۶ + ۱۲ = ۱۸۸
+  catalog.TOTAL_PERMISSIONS === 188 && catalog.PERMISSION_GROUPS.length === 17,
   `keys=${catalog.TOTAL_PERMISSIONS} groups=${catalog.PERMISSION_GROUPS.length}`,
 );
 
