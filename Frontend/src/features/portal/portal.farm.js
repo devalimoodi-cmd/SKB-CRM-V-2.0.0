@@ -20,7 +20,12 @@
 //   ۵) هیچ <form> ساخته نمی‌شود؛ ارسال با دکمهٔ type="button".
 //   ۶) ✅ ۱۳.۱۵: چهار نوع حذفی «تأیید دوم» دارند (بازگشت‌ناپذیر).
 // ============================================================
-import { portalApi, FARM_REQUEST_TYPES, FARM_LIMITS } from "./portal.api.js";
+import {
+  portalApi,
+  FARM_REQUEST_TYPES,
+  FARM_STATUS_KEYS,
+  FARM_LIMITS,
+} from "./portal.api.js";
 import {
   FARM_DEFAULT_TYPE,
   FARM_MAX_ID_LIST_ITEMS,
@@ -54,6 +59,17 @@ export const FARM_TABS = {
 };
 
 const payloadDataOf = (payload) => (payload && payload.data ? payload.data : {});
+
+// ============================================================
+// ✅ ۱۳.۱۶ — فیلتر/صفحه‌بندی «درخواست‌های من»
+// ------------------------------------------------------------
+//  🔒 وضعیت‌های مجاز مشتق از `FARM_STATUS_KEYS` سرور-آینه است؛ هر مقدار
+//     دیگری به «همه» تبدیل می‌شود ⇒ ورودی آزاد به کوئری نمی‌رسد.
+//  🔒 سقف limit همان سقف سرور (parsePagination maxLimit=50) است و
+//     این‌جا ۲۰ گرفته می‌شود تا صفحهٔ اول سبک بماند.
+// ============================================================
+export const FARM_LIST_STATUS_KEYS = ["", ...FARM_STATUS_KEYS];
+export const FARM_LIST_PAGE_LIMIT = 20;
 
 // ============================================================
 // تقسیم‌بندی نوع‌ها بر اساس رفتار فرم
@@ -303,6 +319,15 @@ export const portalFarmMixin = {
       confirmOpen: false,
       itemsTouched: false,
       cache: new Map(),
+      // ✅ ۱۳.۱۶ — فیلتر/صفحه‌بندی فهرست «درخواست‌های من»
+      list: {
+        status: "",
+        page: 1,
+        limit: FARM_LIST_PAGE_LIMIT,
+        total: 0,
+        pages: 1,
+        counts: {},
+      },
     };
     this.farmBound = false;
   },
@@ -369,6 +394,13 @@ export const portalFarmMixin = {
 
       if (target.closest("[data-farm-retry]")) return this.loadFarmTab();
 
+      // ✅ ۱۳.۱۶ — فیلتر وضعیت و صفحهٔ بعدِ «درخواست‌های من»
+      const statusChip = target.closest("[data-farm-status]");
+      if (statusChip) {
+        return this.setFarmStatus(statusChip.getAttribute("data-farm-status"));
+      }
+      if (target.closest("[data-farm-more]")) return this.loadMoreFarm();
+
       return undefined;
     });
 
@@ -415,21 +447,81 @@ export const portalFarmMixin = {
   },
 
   // خواندن گزینه‌ها + فهرست (دو درخواست موازی)
-  async loadFarm() {
+  // ------------------------------------------------------------
+  //  ✅ ۱۳.۱۶: `append` برای «نمایش بیشتر» است — فقط فهرست گرفته
+  //  می‌شود (گزینه‌ها/دیکشنری‌ها همان قبلی می‌مانند تا دوباره ۲۰
+  //  کوئری دیکشنری اجرا نشود).
+  // ============================================================
+  async loadFarm({ append = false } = {}) {
+    const list = this.farm.list || {};
+    const status = FARM_LIST_STATUS_KEYS.includes(String(list.status || ""))
+      ? String(list.status || "")
+      : "";
+
     const [optionsPayload, listPayload] = await Promise.all([
-      portalApi.getFarmOptions(),
-      portalApi.getFarmRequests({ page: 1, limit: 50 }),
+      append ? Promise.resolve(null) : portalApi.getFarmOptions(),
+      portalApi.getFarmRequests({
+        status,
+        page: Math.max(1, Number(list.page) || 1),
+        limit: FARM_LIST_PAGE_LIMIT,
+      }),
     ]);
 
-    const optionsData = payloadDataOf(optionsPayload);
-    const listData = payloadDataOf(listPayload);
+    if (optionsPayload) {
+      const optionsData = payloadDataOf(optionsPayload);
+      this.farm.options = optionsData.options || {};
+    }
 
-    this.farm.options = optionsData.options || {};
-    this.farm.meta = listData.meta || optionsData.meta || null;
-    this.farm.items = Array.isArray(listData.items) ? listData.items : [];
+    const listData = payloadDataOf(listPayload);
+    const meta = listData.meta || null;
+    const pagination = listData.pagination || {};
+    const pages = Math.max(1, Number(pagination.pages) || 1);
+    const requestedPage = Math.max(1, Number(list.page) || 1);
+
+    // ✅ ۱۳.۱۶: اگر صفحهٔ درخواستی بعد از حذف/لغو خالی شده باشد
+    // (page > pages)، یک‌بار به آخرین صفحهٔ موجود برمی‌گردیم.
+    if (requestedPage > pages) {
+      this.farm.list.page = pages;
+      return this.loadFarm({ append });
+    }
+
+    this.farm.meta = meta || this.farm.meta;
+    this.farm.items = append
+      ? [...this.farm.items, ...(Array.isArray(listData.items) ? listData.items : [])]
+      : Array.isArray(listData.items)
+        ? listData.items
+        : [];
+
+    this.farm.list = {
+      status,
+      page: Math.max(1, Number(pagination.page) || 1),
+      limit: FARM_LIST_PAGE_LIMIT,
+      total: Math.max(0, Number(pagination.total) || this.farm.items.length),
+      pages: Math.max(1, Number(pagination.pages) || 1),
+      counts: (meta && meta.counts) || {},
+    };
+
     this.farm.error = "";
-    this.farm.cache = new Map();
+    if (!append) this.farm.cache = new Map();
     this.renderFarm();
+  },
+
+  // ✅ ۱۳.۱۶ — تغییر فیلتر وضعیت (فقط مقدار مجاز؛ صفحه از ۱)
+  setFarmStatus(rawStatus) {
+    const status = String(rawStatus ?? "").trim();
+    const next = FARM_LIST_STATUS_KEYS.includes(status) ? status : "";
+    if (this.farm.list.status === next) return;
+    this.farm.list.status = next;
+    this.farm.list.page = 1;
+    return this.loadFarm();
+  },
+
+  // ✅ ۱۳.۱۶ — صفحهٔ بعد (اگر مانده باشد)
+  loadMoreFarm() {
+    const list = this.farm.list;
+    if (list.page >= list.pages) return;
+    list.page += 1;
+    return this.loadFarm({ append: true });
   },
 
   // ===== رندر =====
@@ -451,6 +543,8 @@ export const portalFarmMixin = {
       loading: this.farm.loadingDetails,
       prefillNote: this.farm.prefillNote,
       confirmOpen: this.farm.confirmOpen,
+      // ✅ ۱۳.۱۶ — فیلتر وضعیت + صفحه‌بندی فهرست
+      list: this.farm.list,
     });
   },
 
@@ -947,6 +1041,10 @@ export const portalFarmMixin = {
 
       this.farm.confirmOpen = false;
       this.resetFarmForm();
+      // ✅ ۱۳.۱۶: درخواست تازه در وضعیت «در انتظار» ثبت می‌شود؛
+      // اگر مشتری فیلتر دیگری داشت، آن را برمی‌داریم تا نتیجه را ببیند.
+      this.farm.list.status = "";
+      this.farm.list.page = 1;
       await this.loadFarm();
       this.setExtraStatus("farm", "ready");
     } catch (error) {

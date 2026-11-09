@@ -146,6 +146,9 @@ const FILES = {
   docs1313: "docs/REVIEW-WAVE-13.13.md",
   docs1314: "docs/REVIEW-WAVE-13.14.md",
   docs1315: "docs/REVIEW-WAVE-13.15.md",
+  // ✅ موج ۱۳.۱۶ — نمایش نامدار payload + فیلتر/صفحه‌بندی درخواست‌ها
+  portalPayload: "Frontend/src/features/portal/portal.payload.js",
+  docs1316: "docs/REVIEW-WAVE-13.16.md",
   backendRequestTest: "Backend/portal-request-test.mjs",
 };
 
@@ -206,6 +209,8 @@ const SRC = {
   // ✅ موج ۱۳.۱۵
   portalFarmRules: read(FILES.portalFarmRules),
   portalFarmWeeks: read(FILES.portalFarmWeeks),
+  // ✅ موج ۱۳.۱۶
+  portalPayload: read(FILES.portalPayload),
   farmController: read(FILES.farmController),
   farmRules: read(FILES.farmRules),
   farmService: read(FILES.farmService),
@@ -2594,10 +2599,13 @@ check(
 
 check(
   "۱۳.۱۳ · گزینه‌های فرم دیکشنری‌های چهار حوزه و پرچم «ثبت‌شده» را دارد",
-  /floor_types:/.test(SRC.farmService) &&
-    /heating_systems:/.test(SRC.farmService) &&
-    /waterer_types:/.test(SRC.farmService) &&
-    /feeder_types:/.test(SRC.farmService) &&
+  // ✅ ۱۳.۱۶: فهرست دیکشنری‌ها از یک منبع (`DICTIONARY_MODELS`) می‌آید؛
+  // بررسی روی همان فهرست است، نه ۱۶ کوئری دستی در `optionsFor`.
+  /\["floor_types", FloorType\]/.test(SRC.farmService) &&
+    /\["heating_systems", HeatingSystemType\]/.test(SRC.farmService) &&
+    /\["waterer_types", WatererType\]/.test(SRC.farmService) &&
+    /\["feeder_types", FeederType\]/.test(SRC.farmService) &&
+    /loadDictionaries\(\)/.test(SRC.farmService) &&
     /has_physical:/.test(SRC.farmService) &&
     /has_water_feed:/.test(SRC.farmService),
 );
@@ -2705,11 +2713,12 @@ check(
 check(
   "۱۳.۱۴ · گزینه‌های فرم: دوره‌های خودم + پنج دیکشنری هفتگی",
   /placements: placements\.map/.test(SRC.farmService) &&
-    /diseases: dictionaryOf\(diseases\)/.test(SRC.farmService) &&
-    /vaccines: dictionaryOf\(vaccines\)/.test(SRC.farmService) &&
-    /medicines: dictionaryOf\(medicines\)/.test(SRC.farmService) &&
-    /feed_types: dictionaryOf\(feedTypes\)/.test(SRC.farmService) &&
-    /suggestion_types: dictionaryOf\(suggestionTypes\)/.test(SRC.farmService),
+    // ✅ ۱۳.۱۶: پنج دیکشنری هفتگی در همان فهرست مشترک‌اند
+    /\["diseases", Disease\]/.test(SRC.farmService) &&
+    /\["vaccines", Vaccine\]/.test(SRC.farmService) &&
+    /\["medicines", Medicine\]/.test(SRC.farmService) &&
+    /\["feed_types", FeedType\]/.test(SRC.farmService) &&
+    /\["suggestion_types", SuggestionType\]/.test(SRC.farmService),
 );
 
 check(
@@ -2938,6 +2947,224 @@ check(
 // خلاصه
 // ============================================================
 
+
+// ============================================================
+// ۱۸) موج ۱۳.۱۶ — «نمایش نامدار» payload + پیگیری نتیجهٔ درخواست
+// ------------------------------------------------------------
+//  ریسک‌هایی که این بخش از بازگشتشان جلوگیری می‌کند:
+//   ۱) اگر برچسب/نوع/دیکشنری کلیدهای payload دو نسخه شود، یکی از دو
+//      نمایش (کارت مشتری / صف کارشناس) بی‌نام می‌ماند و دوباره
+//      «برید: 3» و «۵ مورد» به کاربر نشان داده می‌شود.
+//   ۲) اگر کلید تازه‌ای به spec اضافه شود و متادیتا نداشته باشد،
+//      کلید خام به مشتری/کارشناس نمایش داده می‌شود (نشت نام فنی).
+//   ۳) اگر فیلتر وضعیت به کوئری آزاد وصل شود ⇒ ورودی کلاینت به
+//      where سرور می‌رسد.
+//   ۴) اگر «جزئیات کامل» بدون escape ساخته شود ⇒ XSS با متن آزاد
+//      مشتری (نام واحد/سالن/توضیح).
+//
+//  ⭐ بخش «اجرای واقعی» این بخش تابع‌های خالص را صدا می‌زند (بدون مرورگر).
+// ============================================================
+const payloadRules = await import("./src/features/portal/portal.payload.js");
+const farmRulesSpec = await import("./src/features/portal/portal.farm.rules.js");
+
+const specKeyUnion = [
+  ...new Set(Object.values(farmRulesSpec.FARM_PAYLOAD_KEYS).flat()),
+].sort();
+const metaKeyUnion = Object.keys(payloadRules.PAYLOAD_FIELD_META).sort();
+
+check(
+  "۱۳.۱۶ · فایل منبع نمایش payload موجود است و برچسب دستی دوم ندارد",
+  /export const PAYLOAD_FIELD_META = PAYLOAD_KEY_UNION\.reduce/.test(
+    SRC.portalPayload,
+  ) &&
+    /export const payloadRowsOf =/.test(SRC.portalPayload) &&
+    /export const payloadIdRowsOf =/.test(SRC.portalPayload) &&
+    /export const equipmentRowsOf =/.test(SRC.portalPayload) &&
+    /export const PAYLOAD_LABEL = /.test(SRC.portalPayload) &&
+    // 🔒 برچسب‌ها از spec می‌آیند، نه یک نقشهٔ ۷۲ کلیدی دستی
+    /FARM_FIELD_LABEL\[key\] \|\| key/.test(SRC.portalPayload) &&
+    /from "\.\/portal\.farm\.rules\.js"/.test(SRC.portalPayload) &&
+    /FARM_FIELD_TYPE/.test(SRC.portalPayload) &&
+    /FARM_FIELD_DICT/.test(SRC.portalPayload),
+);
+
+check(
+  "۱۳.۱۶ · متادیتا دقیقاً کلیدهای سفید ۱۸ نوع را می‌پوشاند (۷۲ کلید)",
+  // 🔒 جاافتادگی = نمایش کلید خام به کاربر ⇒ شکست گارد
+  metaKeyUnion.join(",") === specKeyUnion.join(",") &&
+    metaKeyUnion.length === 72 &&
+    specKeyUnion.length === 72 &&
+    metaKeyUnion.every(
+      (key) =>
+        payloadRules.PAYLOAD_FIELD_META[key].label &&
+        payloadRules.PAYLOAD_FIELD_META[key].kind,
+    ) &&
+    // هر شناسهٔ دیکشنری، دیکشنری خودش را دارد
+    payloadRules.PAYLOAD_FIELD_META.breed_id.dict === "breeds" &&
+    payloadRules.PAYLOAD_FIELD_META.disease_ids.dict === "diseases" &&
+    payloadRules.PAYLOAD_FIELD_META.items.kind === "items" &&
+    payloadRules.PAYLOAD_FIELD_META.hall_id.kind === "context",
+);
+
+check(
+  "۱۳.۱۶ · اجرای واقعی: شناسهٔ دیکشنری به نام، تاریخ به شمسی، بولی به بله/خیر",
+  JSON.stringify(
+    payloadRules.payloadRowsOf(
+      {
+        breed_id: 3,
+        placement_date: "2025-03-21",
+        auto_feed_system: true,
+        hall_count: 4,
+        note: "توضیح آزاد",
+        unknown_key: 9,
+        disease_ids: [1, 2],
+      },
+      {
+        breeds: [{ id: 3, name: "راس ۳۰۸" }],
+        diseases: [
+          { id: 1, name: "نیوکاسل" },
+          { id: 2, name: "برونشیت" },
+        ],
+      },
+    ),
+  ) ===
+    JSON.stringify([
+      { key: "breed_id", label: "نژاد", kind: "id", text: "راس ۳۰۸" },
+      {
+        key: "placement_date",
+        label: "تاریخ جوجه‌ریزی",
+        kind: "date",
+        text: "۱۴۰۴/۰۱/۰۱",
+      },
+      {
+        key: "auto_feed_system",
+        label: "سیستم دان‌رسانی خودکار",
+        kind: "boolean",
+        text: "بله",
+      },
+      { key: "hall_count", label: "تعداد سالن", kind: "number", text: "۴" },
+    ]),
+);
+
+check(
+  "۱۳.۱۶ · اجرای واقعی: پنج آرایهٔ شناسه به نام تبدیل می‌شوند (نه «۵ مورد»)",
+  JSON.stringify(
+    payloadRules.payloadIdRowsOf(
+      { disease_ids: [1, 2, 7], suggestion_ids: [] },
+      { diseases: [{ id: 1, name: "نیوکاسل" }] },
+    ),
+  ) ===
+    JSON.stringify([
+      {
+        key: "disease_ids",
+        label: "بیماری‌ها",
+        dict: "diseases",
+        items: [
+          { id: 1, name: "نیوکاسل" },
+          { id: 2, name: "#۲" },
+          { id: 7, name: "#۷" },
+        ],
+      },
+    ]) &&
+    // آرایهٔ خالی گروه نمی‌سازد (نه ردیف خالی در UI)
+    payloadRules.payloadIdRowsOf({ suggestion_ids: [] }).length === 0,
+);
+
+check(
+  "۱۳.۱۶ · اجرای واقعی: ردیف تجهیزات و «زمینهٔ درخواست» درست خوانده می‌شوند",
+  JSON.stringify(
+    payloadRules.equipmentRowsOf({
+      items: [
+        { category: "فن", quantity: 4, spec: "۳۰ اینچ" },
+        { spec: "بدون دسته" },
+      ],
+    }),
+  ) ===
+    JSON.stringify([
+      {
+        index: 1,
+        category: "فن",
+        type_id: 0,
+        spec: "۳۰ اینچ",
+        size: "",
+        capacity: "",
+        quantity: 4,
+      },
+    ]) &&
+    JSON.stringify(
+      payloadRules.payloadContextRowsOf(
+        { hall_id: 5 },
+        { halls: { 5: "سالن ۲" } },
+      ),
+    ) ===
+      JSON.stringify([{ key: "hall_id", label: "سالن", text: "سالن ۲" }]) &&
+    // بدون زمینه ⇒ شناسه با علامت # (نه نام جعلی)
+    payloadRules.payloadContextRowsOf({ hall_id: 5 })[0].text === "#۵",
+);
+
+check(
+  "۱۳.۱۶ · کارت «درخواست‌های من»: خلاصهٔ نامدار + جزئیات بازشو + زمان اعمال",
+  /payloadRowsOf\(item\.payload, dictionaries\)/.test(SRC.portalFarmRenderer) &&
+    /payloadIdRowsOf\(item\.payload, dictionaries\)/.test(SRC.portalFarmRenderer) &&
+    /equipmentRowsOf\(item\.payload\)/.test(SRC.portalFarmRenderer) &&
+    /portal-farm__details/.test(SRC.portalFarmRenderer) &&
+    /جزئیات کامل درخواست/.test(SRC.portalFarmRenderer) &&
+    /item\.applied_at/.test(SRC.portalFarmRenderer) &&
+    /portal-farm__items/.test(SRC.portalFarmRenderer) &&
+    // 🔒 «جزئیات» هم از esc می‌گذرد (متن آزاد مشتری)
+    /esc\(row\.category\)/.test(SRC.portalFarmRenderer) &&
+    /esc\(idRow\.name\)/.test(SRC.portalFarmRenderer),
+);
+
+check(
+  "۱۳.۱۶ · فیلتر وضعیت: فقط کلیدهای مجاز به کوئری می‌روند",
+  /export const FARM_LIST_STATUS_KEYS = \[/.test(SRC.portalFarm) &&
+    /FARM_LIST_STATUS_KEYS\.includes\(String\(list\.status \|\| ""\)\)/.test(
+      SRC.portalFarm,
+    ) &&
+    /setFarmStatus\(rawStatus\)/.test(SRC.portalFarm) &&
+    /data-farm-status/.test(SRC.portalFarmRenderer) &&
+    /statusFilterHtml\(listStatus, listCounts\)/.test(SRC.portalFarmRenderer) &&
+    // شمارنده‌ها از پاسخ سرور (meta.counts) می‌آیند، نه شمارش دستی کلاینت
+    /counts: \(meta && meta\.counts\) \|\| \{\}/.test(SRC.portalFarm),
+);
+
+check(
+  "۱۳.۱۶ · صفحه‌بندی: page/limit از سرور و «نمایش بیشتر» فقط فهرست را اضافه می‌کند",
+  /export const FARM_LIST_PAGE_LIMIT = 20;/.test(SRC.portalFarm) &&
+    /async loadFarm\(\{ append = false \} = \{\}\)/.test(SRC.portalFarm) &&
+    /append \? Promise\.resolve\(null\) : portalApi\.getFarmOptions\(\)/.test(
+      SRC.portalFarm,
+    ) &&
+    /loadMoreFarm\(\)/.test(SRC.portalFarm) &&
+    /data-farm-more/.test(SRC.portalFarmRenderer) &&
+    /listPagerHtml\(\{ page: listPage, pages: listPages, total: listTotal \}\)/.test(
+      SRC.portalFarmRenderer,
+    ),
+);
+
+check(
+  "۱۳.۱۶ · CSS: کلاس‌های فیلتر/جزئیات/تجهیزات در پورتال تعریف شده‌اند",
+  /\.portal-farm__filters \{/.test(SRC.portalCss) &&
+    /\.portal-farm__chip\.is-active \{/.test(SRC.portalCss) &&
+    /\.portal-farm__details \{/.test(SRC.portalCss) &&
+    /\.portal-farm__kv \{/.test(SRC.portalCss) &&
+    /\.portal-farm__tag \{/.test(SRC.portalCss) &&
+    /\.portal-farm__items \{/.test(SRC.portalCss) &&
+    /\.portal-farm__pager \{/.test(SRC.portalCss),
+);
+
+check(
+  "۱۳.۱۶ · مستندات و README موج ۱۳.۱۶ موجود است",
+  /۱۳\.۱۶/.test(read(FILES.docs1316)) &&
+    /portal\.payload\.js/.test(read(FILES.docs1316)) &&
+    /۱۳\.۱۶/.test(read("Frontend/README.md")) &&
+    /۱۳\.۱۶/.test(read("Backend/README.md")),
+);
+
+// ============================================================
+// خلاصه
+// ============================================================
 
 const failed = results.filter((ok) => !ok).length;
 console.log(

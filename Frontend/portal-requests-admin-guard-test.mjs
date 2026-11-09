@@ -165,12 +165,19 @@ check(
 
 check(
   "رندرر: ویرایش payload پیش از تأیید همان کلیدهای شناخته‌شده را دارد",
-  /export const PAYLOAD_LABELS = \{/.test(SRC.renderer) &&
-    /export const renderPayloadEditor = \(payload = \{\}\) =>/.test(SRC.renderer) &&
+  // ✅ ۱۳.۱۶: برچسب‌ها از منبع مشترک (`portal.payload.js`) مشتق می‌شوند
+  // و ویرایشگر دیکشنری می‌گیرد تا «فعلی: راس ۳۰۸» را نشان دهد.
+  /export const PAYLOAD_LABELS = Object\.keys\(PAYLOAD_FIELD_META\)\.reduce\(/.test(
+    SRC.renderer,
+  ) &&
+    /export const renderPayloadEditor = \(payload = \{\}, dictionaries = \{\}\) =>/.test(
+      SRC.renderer,
+    ) &&
     /data-prq-key="\$\{esc\(key\)\}"/.test(SRC.renderer) &&
     /data-prq-type="\$\{inputType === "number" \? "number" : "text"\}"/.test(
       SRC.renderer,
-    ),
+    ) &&
+    /prq-hint/.test(SRC.renderer),
 );
 
 check(
@@ -373,6 +380,79 @@ check(
       SRC.renderer,
     ) &&
     /\.prq-warn \{/.test(SRC.css),
+);
+
+// ============================================================
+// ✅ موج ۱۳.۱۶ — «زمینهٔ درخواست» + نمایش نامدار payload
+// ------------------------------------------------------------
+//  ریسک‌ها:
+//   ۱) اگر `/dictionaries` بعد از `/:id` ثبت شود، هرگز اجرا نمی‌شود و
+//      صف بی‌نام می‌ماند (خطای خاموش، نه خطای صریح).
+//   ۲) اگر مسیر دیکشنری‌ها کلید مجوز مدیریتی بگیرد، بازبین صف قفل می‌شود.
+//   ۳) اگر «زمینهٔ درخواست» بدون اسکوپ/با PII ساخته شود، نشت داده.
+//   ۴) اگر چکیدهٔ کامل بدون esc رندر شود ⇒ XSS با نام واحد/سالن مشتری.
+// ============================================================
+check(
+  "۱۳.۱۶ · مسیر دیکشنری‌ها قبل از /:id و پشت portal.requests.view",
+  SRC.backendRoutes.indexOf('router.get("/dictionaries"') > 0 &&
+    SRC.backendRoutes.indexOf('router.get("/dictionaries"') <
+      SRC.backendRoutes.indexOf('router.get("/:id"') &&
+    /router\.get\("\/dictionaries", \.\.\.viewChain, controller\.getDictionaries\);/.test(
+      SRC.backendRoutes,
+    ) &&
+    !/dictionary\./.test(SRC.backendRoutes),
+);
+
+check(
+  "۱۳.۱۶ · سرویس: دیکشنری‌ها یک فهرست مشترک و بدون مدل دادهٔ مشتری",
+  /const DICTIONARY_MODELS = \[/.test(SRC.backendService) &&
+    /const staffDictionariesFor = async \(\) => loadDictionaries\(\);/.test(
+      SRC.backendService,
+    ) &&
+    /const contextForRequest = async \(row\) =>/.test(SRC.backendService) &&
+    /const customerId = Number\(row && row\.customer_id\);/.test(
+      SRC.backendService,
+    ) &&
+    !/dictionary\./i.test(SRC.backendService),
+);
+
+check(
+  "۱۳.۱۶ · مدیر: دیکشنری‌ها یک‌بار کش و زمینهٔ درخواست در state",
+  /dictionaries: \{\},/.test(SRC.manager) &&
+    /context: \{\},/.test(SRC.manager) &&
+    /async loadDictionaries\(\)/.test(SRC.manager) &&
+    /portalRequestsApi\.dictionaries\(\)/.test(SRC.manager) &&
+    /dictionaries: this\.state\.dictionaries,/.test(SRC.manager) &&
+    /context: this\.state\.context,/.test(SRC.manager) &&
+    // فراخوانی مودال با دیکشنری و زمینه (پیش از این یک‌آرگومانی بود)
+    /renderReviewModalBody\(request, \{/.test(SRC.manager) &&
+    /async dictionaries\(\)/.test(SRC.api) &&
+    /PORTAL_REQUESTS\.DICTIONARIES/.test(SRC.api),
+);
+
+check(
+  "۱۳.۱۶ · رندرر: چکیدهٔ کامل/زمینه با esc و بدون <form>",
+  /export const renderRequestSummary = \(/.test(SRC.renderer) &&
+    /payloadContextRowsOf\(payload, context\)/.test(SRC.renderer) &&
+    /payloadIdRowsOf\(payload, dictionaries\)/.test(SRC.renderer) &&
+    /equipmentRowsOf\(payload\)/.test(SRC.renderer) &&
+    /prq-review-summary/.test(SRC.renderer) &&
+    // امضای مودال: request + { dictionaries, context }
+    /renderReviewModalBody = \(\s*\n?\s*request = \{\},\s*\n?\s*\{ dictionaries = \{\}, context = \{\} \} = \{\},?\s*\n?\)/.test(
+      SRC.renderer,
+    ) &&
+    /esc\(group\.label\)/.test(SRC.renderer) &&
+    !/<form/i.test(stripComments(SRC.renderer)),
+);
+
+check(
+  "۱۳.۱۶ · CSS: کلاس‌های چکیده/جدول تجهیزات/نام فعلی تعریف شده‌اند",
+  /\.prq-review-summary \{/.test(SRC.css) &&
+    /\.prq-kv \{/.test(SRC.css) &&
+    /\.prq-chip \{/.test(SRC.css) &&
+    /\.prq-items \{/.test(SRC.css) &&
+    /\.prq-hint \{/.test(SRC.css) &&
+    /\.prq-section-title \{/.test(SRC.css),
 );
 
 // ============================================================

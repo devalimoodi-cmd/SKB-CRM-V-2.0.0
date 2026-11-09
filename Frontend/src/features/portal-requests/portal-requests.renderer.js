@@ -9,6 +9,18 @@
 //  ۳) شمارندهٔ «در انتظار» جدا از فهرست برگردانده می‌شود (badge منو).
 // ============================================================
 import { jalaliDate } from "../portal/portal.renderer.js";
+// ✅ ۱۳.۱۶: نمایش «نامدار» payload — همان منبعی که کارت‌های پورتال
+// استفاده می‌کنند (برچسب/نوع/دیکشنری از spec فرم مشتق می‌شود).
+import {
+  PAYLOAD_DICT_OF,
+  PAYLOAD_FIELD_META,
+  PAYLOAD_LABEL,
+  dictionaryNameOf,
+  equipmentRowsOf,
+  payloadContextRowsOf,
+  payloadIdRowsOf,
+  payloadRowsOf,
+} from "../portal/portal.payload.js";
 
 const esc = (value) =>
   String(value === null || value === undefined ? "" : value)
@@ -73,83 +85,19 @@ const STATUS_TONE = {
   cancelled: "muted",
 };
 
-// برچسب فارسی هر کلید payload (برای نمایش و ویرایش پیش از تأیید)
-export const PAYLOAD_LABELS = {
-  unit_name: "نام واحد",
-  address: "آدرس",
-  hall_count: "تعداد سالن",
-  capacity: "ظرفیت (قطعه)",
-  longitude: "طول جغرافیایی",
-  latitude: "عرض جغرافیایی",
-  manager_name: "نام مدیر",
-  manager_phone: "تلفن مدیر",
-  note: "توضیح مشتری",
-  unit_id: "شناسهٔ واحد",
-  hall_name: "نام سالن",
-  hall_number: "شمارهٔ سالن",
-  nominal_capacity: "ظرفیت اسمی",
-  altitude_above_sea: "ارتفاع از دریا",
-  hall_type_id: "نوع سالن",
-  construction_year: "سال ساخت",
-  operator_name: "نام اپراتور",
-  hall_id: "شناسهٔ سالن",
-  placement_date: "تاریخ جوجه‌ریزی",
-  chick_source_id: "مبدأ جوجه",
-  breed_id: "نژاد",
-  chick_age_on_arrival: "سن در ورود",
-  avg_initial_weight: "میانگین وزن اولیه",
-  total_chicks_count: "تعداد جوجه",
-  placement_density: "تراکم",
-  flock_id: "شناسهٔ گله",
-  start_new_flock: "شروع گلهٔ جدید",
-  // ✅ ۱۳.۱۳ — ویرایش/حذف
-  confirm_name: "نام واحد برای تأیید حذف",
-  // ✅ ۱۳.۱۳ — اطلاعات تکمیلی سالن
-  length: "طول سالن (متر)",
-  width: "عرض سالن (متر)",
-  height: "ارتفاع سالن (متر)",
-  area: "مساحت سالن (مترمربع)",
-  floor_type_id: "نوع کف سالن",
-  notes: "توضیحات تکمیلی",
-  fan_count: "تعداد فن",
-  fan_size: "سایز فن",
-  fan_capacity: "ظرفیت فن",
-  heater_count: "تعداد هیتر",
-  heating_system_id: "سیستم گرمایش",
-  cooling_system_id: "سیستم سرمایش",
-  ventilation_system_id: "سیستم تهویه",
-  water_inlet_system_id: "سیستم ورود آب",
-  lighting_system_id: "سیستم روشنایی",
-  waterer_type_id: "نوع آب‌خوری",
-  feeder_type_id: "نوع دان‌خوری",
-  water_lines_count: "تعداد خط آب",
-  feed_lines_count: "تعداد خط دان",
-  auto_feed_system: "دان‌خوری خودکار",
-  last_wash_date: "تاریخ آخرین شست‌وشو",
-  last_disinfect_date: "تاریخ آخرین ضدعفونی",
-  disinfectant_type: "نوع مادهٔ ضدعفونی",
-  description: "توضیحات بهداشت",
-  items: "ردیف‌های تجهیزات",
-  // ✅ ۱۳.۱۴ — دوره و اطلاعات هفتگی
-  placement_id: "شناسهٔ دوره",
-  chick_placement_id: "شناسهٔ دوره",
-  weekly_id: "شناسهٔ هفته",
-  week_number: "شمارهٔ هفته",
-  week_start_date: "تاریخ شروع هفته",
-  week_end_date: "تاریخ پایان هفته",
-  flock_age_days: "سن گله (روز)",
-  daily_feed_intake: "مصرف دان روزانه (کیلوگرم)",
-  weekly_feed_intake: "مصرف دان هفتگی (کیلوگرم)",
-  weekly_weight: "وزن هفتگی (کیلوگرم)",
-  weekly_mortality: "تلفات هفته",
-  blackout_hours: "ساعات خاموشی",
-  additional_notes: "توضیحات هفته",
-  disease_ids: "بیماری‌های هفته",
-  vaccine_ids: "واکسن‌های هفته",
-  medicine_ids: "داروهای هفته",
-  feed_type_ids: "نوع دان مصرفی",
-  suggestion_ids: "پیشنهادها",
-};
+// برچسب فارسی هر کلید payload — ✅ ۱۳.۱۶ از منبع مشترک می‌آید
+// ------------------------------------------------------------
+//  پیش از این، این نقشه ۷۲ کلید را دستی تکرار می‌کرد و برچسبی متفاوت از
+//  پورتال داشت («شناسهٔ واحد» در برابر «واحد»). حالا از
+//  `portal.payload.js` مشتق می‌شود که خودش برچسب را از spec فرم
+//  (`FARM_FIELD_LABEL`) می‌گیرد ⇒ یک منبع برای برچسب/نوع/دیکشنری.
+export const PAYLOAD_LABELS = Object.keys(PAYLOAD_FIELD_META).reduce(
+  (acc, key) => {
+    acc[key] = PAYLOAD_LABEL(key);
+    return acc;
+  },
+  {},
+);
 
 // کلیدهایی که کارشناس می‌تواند پیش از تأیید ویرایش کند (همهٔ payload)
 // ✅ ۱۳.۱۳: کلیدهای آرایه‌ای بیرون می‌مانند (ورودی متنی برای آرایه
@@ -164,21 +112,37 @@ const badge = (status) => {
   return `<span class="prq-badge prq-badge--${esc(tone)}">${esc(label)}</span>`;
 };
 
-// ✅ ۱۳.۱۳/۱۳.۱۴: مقدار آرایه‌ای (تجهیزات/شناسه‌های هفته) به‌جای [object Object]
-const formatPayloadValue = (value) =>
-  Array.isArray(value) ? `${value.length} مورد` : value;
+// ✅ ۱۳.۱۶: خلاصهٔ ستون «مقادیر» — نام دیکشنری و نام آیتم‌ها
+// ------------------------------------------------------------
+//  پیش از این: `breed_id: 3` و «۵ مورد». حالا: «نژاد: راس ۳۰۸» و
+//  «بیماری‌ها: نیوکاسل، برونشیت».
+const QUEUE_SUMMARY_LIMIT = 5;
+const QUEUE_ID_GROUP_LIMIT = 2;
+const QUEUE_ID_ITEM_LIMIT = 3;
 
-const payloadSummary = (payload = {}) =>
-  Object.entries(payload)
-    .filter(([key, value]) => key !== "note" && value !== null && value !== "")
-    .slice(0, 5)
+const summaryListHtml = (rows = []) =>
+  rows
     .map(
-      ([key, value]) =>
-        `<li><span>${esc(PAYLOAD_LABELS[key] || key)}</span><strong>${esc(
-          formatPayloadValue(value),
-        )}</strong></li>`,
+      (row) =>
+        `<li><span>${esc(row.label)}</span><strong>${esc(row.text)}</strong></li>`,
     )
     .join("");
+
+const payloadSummary = (payload = {}, dictionaries = {}) => {
+  const rows = payloadRowsOf(payload, dictionaries).slice(0, QUEUE_SUMMARY_LIMIT);
+
+  const idRows = payloadIdRowsOf(payload, dictionaries)
+    .slice(0, QUEUE_ID_GROUP_LIMIT)
+    .map((group) => {
+      const names = group.items.map((item) => item.name);
+      const shown = names.slice(0, QUEUE_ID_ITEM_LIMIT).join("، ");
+      const more = names.length > QUEUE_ID_ITEM_LIMIT ? " …" : "";
+      return { label: group.label, text: `${shown}${more}` };
+    });
+
+  const all = [...rows, ...idRows];
+  return all.length ? `<ul class="prq-summary">${summaryListHtml(all)}</ul>` : "";
+};
 
 const rowActions = (item, canReview) => {
   if (item.status !== "pending") {
@@ -198,7 +162,12 @@ const rowActions = (item, canReview) => {
     </button>`;
 };
 
-export const renderQueue = ({ items = [], pagination = {}, canReview = false } = {}) => {
+export const renderQueue = ({
+  items = [],
+  pagination = {},
+  canReview = false,
+  dictionaries = {},
+} = {}) => {
   if (!items.length) {
     return `
       <div class="prq-empty">
@@ -216,7 +185,7 @@ export const renderQueue = ({ items = [], pagination = {}, canReview = false } =
           <strong>${esc(REQUEST_TYPE_LABELS[item.type] || item.type)}</strong>
           <div class="prq-sub">پرونده: ${esc(item.customer_id)}</div>
         </td>
-        <td><ul class="prq-summary">${payloadSummary(item.payload)}</ul></td>
+        <td><ul class="prq-summary">${payloadSummary(item.payload, dictionaries)}</ul></td>
         <td>${esc(jalaliDate(item.created_at))}</td>
         <td>${badge(item.status)}</td>
         <td class="prq-actions">${rowActions(item, canReview)}</td>
@@ -260,7 +229,9 @@ export const renderQueue = ({ items = [], pagination = {}, canReview = false } =
 // فیلدهای ویرایش payload پیش از تأیید (کارشناس می‌تواند اصلاح کند)
 // ✅ ۱۳.۱۳: کلیدهای آرایه‌ای (مثل items) ورودی متنی نمی‌گیرند؛ فقط
 // تعدادشان نمایش داده می‌شود (ویرایش آن‌ها فقط از فرم پورتال است).
-export const renderPayloadEditor = (payload = {}) => {
+// ✅ ۱۳.۱۶: برچسب از منبع مشترک + زیر هر شناسهٔ دیکشنری، نام فعلی
+// («فعلی: راس ۳۰۸») تا کارشناس بداند عدد ۳ چه معنایی دارد.
+export const renderPayloadEditor = (payload = {}, dictionaries = {}) => {
   const source = payload && typeof payload === "object" ? payload : {};
   const listNotes = LIST_PAYLOAD_KEYS.filter(
     (key) => Array.isArray(source[key]) && source[key].length > 0,
@@ -277,6 +248,8 @@ export const renderPayloadEditor = (payload = {}) => {
     .filter(([key]) => !LIST_PAYLOAD_KEYS.includes(key))
     .map(([key, value]) => {
       const isBoolean = typeof value === "boolean";
+      const dictKey = PAYLOAD_DICT_OF(key);
+      const dictName = dictKey ? dictionaryNameOf(dictionaries, dictKey, value) : "";
       const inputType =
         typeof value === "number" || key.endsWith("_id") ? "number" : "text";
       return `
@@ -291,6 +264,7 @@ export const renderPayloadEditor = (payload = {}) => {
                    value="${esc(value)}" data-prq-key="${esc(key)}"
                    data-prq-type="${inputType === "number" ? "number" : "text"}" />`
           }
+          ${dictName ? `<span class="prq-hint">فعلی: ${esc(dictName)}</span>` : ""}
         </label>`;
     })
     .join("");
@@ -298,7 +272,103 @@ export const renderPayloadEditor = (payload = {}) => {
   return `${listNotes}${fields}`;
 };
 
-export const renderReviewModalBody = (request = {}) => `
+// ============================================
+// ✅ ۱۳.۱۶ — «زمینهٔ درخواست» + «چکیدهٔ کامل» پیش از تأیید
+// ------------------------------------------------------------
+//  چرا لازم بود؟ کارشناس بدون این بلوک، ده نوع هفتگی/جزئیات سالن را
+//  با دیدنِ `hall_id: 12` و «۵ مورد» تأیید می‌کرد.
+//
+//  🔒 همهٔ مقادیر از سرور می‌آیند و پیش از درج از `esc` می‌گذرند
+//     (نام واحد/سالن متن آزاد مشتری است ⇒ ریسک XSS).
+//  🔒 خروجی هیچ تگ `<form>` ندارد (الگوی «بدون فرم» پروژه).
+// ============================================
+export const renderRequestSummary = (
+  request = {},
+  { dictionaries = {}, context = {} } = {},
+) => {
+  const payload = request.payload || {};
+  const contextRows = payloadContextRowsOf(payload, context);
+  const rows = payloadRowsOf(payload, dictionaries);
+  const idRows = payloadIdRowsOf(payload, dictionaries);
+  const items = equipmentRowsOf(payload);
+
+  const kv = (list) =>
+    list.length
+      ? `<ul class="prq-kv">${list
+          .map(
+            (row) =>
+              `<li><span>${esc(row.label)}</span><strong>${esc(row.text)}</strong></li>`,
+          )
+          .join("")}</ul>`
+      : "";
+
+  const idsHtml = idRows.length
+    ? `<div class="prq-id-groups">
+         ${idRows
+           .map(
+             (group) => `<div class="prq-id-group">
+               <span class="prq-id-label">${esc(group.label)}</span>
+               <span class="prq-chips">
+                 ${group.items
+                   .map((item) => `<span class="prq-chip">${esc(item.name)}</span>`)
+                   .join("")}
+               </span>
+             </div>`,
+           )
+           .join("")}
+       </div>`
+    : "";
+
+  const itemsHtml = items.length
+    ? `<table class="prq-items">
+         <caption>ردیف‌های تجهیزات این درخواست</caption>
+         <thead>
+           <tr><th>#</th><th>دسته</th><th>مشخصات</th><th>اندازه</th><th>ظرفیت</th><th>تعداد</th></tr>
+         </thead>
+         <tbody>
+           ${items
+             .map(
+               (row) => `<tr>
+                 <td>${esc(row.index)}</td>
+                 <td>${esc(row.category)}</td>
+                 <td>${esc(row.spec || "—")}</td>
+                 <td>${esc(row.size || "—")}</td>
+                 <td>${esc(row.capacity || "—")}</td>
+                 <td>${esc(row.quantity || "—")}</td>
+               </tr>`,
+             )
+             .join("")}
+         </tbody>
+       </table>`
+    : "";
+
+  if (!contextRows.length && !rows.length && !idRows.length && !items.length) {
+    return "";
+  }
+
+  return `
+    <section class="prq-review-summary">
+      ${
+        contextRows.length
+          ? `<h4 class="prq-section-title">زمینهٔ درخواست</h4>
+             ${kv(contextRows)}`
+          : ""
+      }
+      ${
+        rows.length
+          ? `<h4 class="prq-section-title">مقادیر درخواست</h4>
+             ${kv(rows)}`
+          : ""
+      }
+      ${idsHtml}
+      ${itemsHtml}
+    </section>`;
+};
+
+export const renderReviewModalBody = (
+  request = {},
+  { dictionaries = {}, context = {} } = {},
+) => `
   <div class="prq-review-head">
     ${badge(request.status)}
     <strong>${esc(REQUEST_TYPE_LABELS[request.type] || request.type)}</strong>
@@ -320,8 +390,10 @@ export const renderReviewModalBody = (request = {}) => `
       : ""
   }
   ${request.note ? `<p class="prq-note">📝 ${esc(request.note)}</p>` : ""}
+  ${renderRequestSummary(request, { dictionaries, context })}
+  <h4 class="prq-section-title">اصلاح مقادیر پیش از تأیید (اختیاری)</h4>
   <div class="prq-fields" id="prqPayloadFields">
-    ${renderPayloadEditor(request.payload)}
+    ${renderPayloadEditor(request.payload, dictionaries)}
   </div>
   <label class="prq-field prq-field--wide" for="prqRejectReason">
     <span>دلیل رد (در صورت رد کردن — اجباری)</span>

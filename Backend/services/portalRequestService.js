@@ -57,6 +57,64 @@ const HallSystem = require("../models/HallSystem");
 const HallSystemItem = require("../models/HallSystemItem");
 const HallWaterFeed = require("../models/HallWaterFeed");
 const HallHygiene = require("../models/HallHygiene");
+// ============================================
+// ✅ ۱۳.۱۶ — دیکشنری‌های «فقط-خواندنی» از **یک** فهرست
+// ------------------------------------------------------------
+//  چرا یک فهرست ثابت؟
+//   ۱) فهرست ۱۶ دیکشنری در `optionsFor` (پورتال) و در مسیر تازهٔ
+//      «دیکشنری‌های صف» (کارشناس) باید یکی باشد؛ اگر دو نسخه شود،
+//      یک نام تازه/غیرفعال در یکی دیده و در دیگری دیده نمی‌شود.
+//   ۲) نمایش «نامدار» payload (نام نژاد به‌جای `breed_id: 3`) بدون
+//      این فهرست ناممکن است.
+//
+//  🔒 فقط مدل‌های دیکشنری — هیچ مدل «دادهٔ مشتری» (Unit/Hall/
+//  ChickPlacement/WeeklyManagement/CustomerPersonalInfo) این‌جا نیست،
+//  پس مسیر صف نمی‌تواند دادهٔ عملیاتی مشتری را از این راه ببیند.
+// ============================================
+const DICTIONARY_MODELS = [
+  ["chick_sources", ChickSource],
+  ["breeds", ChickenBreed],
+  ["hall_types", HallType],
+  ["floor_types", FloorType],
+  ["heating_systems", HeatingSystemType],
+  ["cooling_systems", CoolingSystemType],
+  ["ventilation_types", VentilationType],
+  ["water_inlet_types", WaterInletType],
+  ["lighting_systems", LightingSystemType],
+  ["waterer_types", WatererType],
+  ["feeder_types", FeederType],
+  ["diseases", Disease],
+  ["vaccines", Vaccine],
+  ["medicines", Medicine],
+  ["feed_types", FeedType],
+  ["suggestion_types", SuggestionType],
+];
+
+// فقط ردیف‌های فعال و فقط {id,name} — همان شکلی که کلاینت می‌خواند
+const dictionaryOf = (rows) =>
+  rows.map((row) => ({ id: Number(row.id), name: row.name }));
+
+// ۱۶ کوئری موازی دیکشنری (بدون هیچ کوئری ردیف مشتری)
+const loadDictionaries = async () => {
+  const lists = await Promise.all(
+    DICTIONARY_MODELS.map(([, model]) =>
+      model.findAll({
+        where: { active: true },
+        attributes: ["id", "name"],
+        order: [["name", "ASC"]],
+      }),
+    ),
+  );
+
+  return DICTIONARY_MODELS.reduce((acc, [key], index) => {
+    acc[key] = dictionaryOf(lists[index]);
+    return acc;
+  }, {});
+};
+
+// دیکشنری‌های صف کارشناس (همان منبع پورتال)
+const staffDictionariesFor = async () => loadDictionaries();
+
 const { validateUnitData } = require("../validations/unitValidation");
 // ✅ ۱۳.۱۳: نوشتن واقعی از هستهٔ مشترک فارم (همان کدی که کارشناس اجرا
 // می‌کند). این سرویس فقط «مالکیت + تراکنش + خلاصهٔ فارسی» را اضافه می‌کند.
@@ -1220,28 +1278,10 @@ const APPLIERS = {
 //  فقط id+name فعال‌ها را برمی‌گردانند.
 // ============================================
 const optionsFor = async (customerId) => {
-  const [
-    units,
-    halls,
-    flocks,
-    chickSources,
-    breeds,
-    hallTypes,
-    floorTypes,
-    heatingSystems,
-    coolingSystems,
-    ventilationTypes,
-    waterInletTypes,
-    lightingSystems,
-    watererTypes,
-    feederTypes,
-    placements,
-    diseases,
-    vaccines,
-    medicines,
-    feedTypes,
-    suggestionTypes,
-  ] = await Promise.all([
+  // ✅ ۱۳.۱۶: دیکشنری‌ها از فهرست مشترک `DICTIONARY_MODELS` می‌آیند
+  // (همان منبعی که صف کارشناس استفاده می‌کند) ⇒ ۱۶ کوئری دستی این‌جا
+  // تکرار نمی‌شود و دیکشنری هفدهم خودبه‌خود در هر دو مسیر می‌آید.
+  const [units, halls, flocks, placements, dictionaries] = await Promise.all([
     Unit.findAll({
       where: { customer_personal_information_id: customerId },
       // ✅ ۱۳.۱۳: فیلدهای لازم برای پیش‌پرکردن فرم «ویرایش واحد»
@@ -1281,63 +1321,6 @@ const optionsFor = async (customerId) => {
         attributes: ["id", "unit_id", "flock_number", "placement_date"],
         order: [["placement_date", "DESC"]],
       }),
-      ChickSource.findAll({
-        where: { active: true },
-        attributes: ["id", "name"],
-        order: [["name", "ASC"]],
-      }),
-      ChickenBreed.findAll({
-        where: { active: true },
-        attributes: ["id", "name"],
-        order: [["name", "ASC"]],
-      }),
-      HallType.findAll({
-        where: { active: true },
-        attributes: ["id", "name"],
-        order: [["name", "ASC"]],
-      }),
-      // ✅ ۱۳.۱۳: هشت دیکشنری چهار حوزهٔ جزئیات سالن (همان‌هایی که
-      // ماژول کارشناس از /api/dictionary می‌گیرد)
-      FloorType.findAll({
-        where: { active: true },
-        attributes: ["id", "name"],
-        order: [["name", "ASC"]],
-      }),
-      HeatingSystemType.findAll({
-        where: { active: true },
-        attributes: ["id", "name"],
-        order: [["name", "ASC"]],
-      }),
-      CoolingSystemType.findAll({
-        where: { active: true },
-        attributes: ["id", "name"],
-        order: [["name", "ASC"]],
-      }),
-      VentilationType.findAll({
-        where: { active: true },
-        attributes: ["id", "name"],
-        order: [["name", "ASC"]],
-      }),
-      WaterInletType.findAll({
-        where: { active: true },
-        attributes: ["id", "name"],
-        order: [["name", "ASC"]],
-      }),
-      LightingSystemType.findAll({
-        where: { active: true },
-        attributes: ["id", "name"],
-        order: [["name", "ASC"]],
-      }),
-      WatererType.findAll({
-        where: { active: true },
-        attributes: ["id", "name"],
-        order: [["name", "ASC"]],
-      }),
-      FeederType.findAll({
-        where: { active: true },
-        attributes: ["id", "name"],
-        order: [["name", "ASC"]],
-      }),
       // ✅ ۱۳.۱۴: دوره‌های خودم (برای ثبت هفته/ویرایش دوره)
       ChickPlacement.findAll({
         where: { customer_id: customerId },
@@ -1355,32 +1338,9 @@ const optionsFor = async (customerId) => {
           ["placement_date", "DESC"],
         ],
       }),
-      // ✅ ۱۳.۱۴: پنج دیکشنری آیتم‌های هفتگی (همان‌هایی که کارشناس دارد)
-      Disease.findAll({
-        where: { active: true },
-        attributes: ["id", "name"],
-        order: [["name", "ASC"]],
-      }),
-      Vaccine.findAll({
-        where: { active: true },
-        attributes: ["id", "name"],
-        order: [["name", "ASC"]],
-      }),
-      Medicine.findAll({
-        where: { active: true },
-        attributes: ["id", "name"],
-        order: [["name", "ASC"]],
-      }),
-      FeedType.findAll({
-        where: { active: true },
-        attributes: ["id", "name"],
-        order: [["name", "ASC"]],
-      }),
-      SuggestionType.findAll({
-        where: { active: true },
-        attributes: ["id", "name"],
-        order: [["name", "ASC"]],
-      }),
+      // ✅ ۱۳.۱۶: ۱۶ دیکشنری از فهرست مشترک `DICTIONARY_MODELS`
+      // (یک منبع با مسیر صف کارشناس — بدون کوئری تکراری این‌جا)
+      loadDictionaries(),
     ]);
 
   // ✅ ۱۳.۱۳: پرچم «کدام بخش جزئیات قبلاً ثبت شده» (چهار کوئری گروهی،
@@ -1416,9 +1376,6 @@ const optionsFor = async (customerId) => {
   const systemSet = hallIdSet(systemRows);
   const waterFeedSet = hallIdSet(waterFeedRows);
   const hygieneSet = hallIdSet(hygieneRows);
-
-  const dictionaryOf = (rows) =>
-    rows.map((row) => ({ id: Number(row.id), name: row.name }));
 
   const numberOrNull = (value) =>
     value === null || value === undefined || value === ""
@@ -1460,25 +1417,8 @@ const optionsFor = async (customerId) => {
       flock_number: row.flock_number,
       placement_date: row.placement_date || null,
     })),
-    dictionaries: {
-      chick_sources: dictionaryOf(chickSources),
-      breeds: dictionaryOf(breeds),
-      hall_types: dictionaryOf(hallTypes),
-      floor_types: dictionaryOf(floorTypes),
-      heating_systems: dictionaryOf(heatingSystems),
-      cooling_systems: dictionaryOf(coolingSystems),
-      ventilation_types: dictionaryOf(ventilationTypes),
-      water_inlet_types: dictionaryOf(waterInletTypes),
-      lighting_systems: dictionaryOf(lightingSystems),
-      waterer_types: dictionaryOf(watererTypes),
-      feeder_types: dictionaryOf(feederTypes),
-      // ✅ ۱۳.۱۴
-      diseases: dictionaryOf(diseases),
-      vaccines: dictionaryOf(vaccines),
-      medicines: dictionaryOf(medicines),
-      feed_types: dictionaryOf(feedTypes),
-      suggestion_types: dictionaryOf(suggestionTypes),
-    },
+    // ✅ ۱۳.۱۶: دیکشنری‌ها همان خروجی فهرست مشترک (بدون بازسازی این‌جا)
+    dictionaries,
     // ✅ ۱۳.۱۴: دوره‌های خودم (پیش‌پرکردن فرم هفته/ویرایش دوره)
     placements: placements.map((row) => ({
       id: Number(row.id),
@@ -1656,6 +1596,103 @@ const weeklyDetailsFor = async ({ customerId, weeklyId }) => {
   };
 };
 
+// ============================================
+// ۱۳) «زمینهٔ درخواست» برای کارشناس — ✅ ۱۳.۱۶
+// ------------------------------------------------------------
+//  مسئله: مودال بازبینی `hall_id: 12` نشان می‌داد و کارشناس نمی‌دانست
+//  کدام سالن/دوره/هفته تغییر می‌کند (تأیید روی ردیف اشتباه).
+//  اکنون نام کوتاه همان ردیف‌ها هم می‌آید.
+//
+//  🔒 قواعد:
+//   ۱) فقط ردیف‌هایی که شناسه‌شان در payload **همین درخواست** است.
+//   ۲) اسکوپ با `customer_id` همان درخواست است، نه ورودی کلاینت
+//      (شناسهٔ مشتری هرگز پارامتر این تابع نیست).
+//   ۳) فقط برچسب کوتاه: نام واحد/سالن، تاریخ دوره، شمارهٔ گله/هفته —
+//      بدون تلفن، کد ملی، آدرس یا هر دادهٔ شخصی.
+//   ۴) فقط خواندن؛ هیچ نوشتنی در این مسیر نیست.
+// ============================================
+const idsOfPayload = (payload, keys) => [
+  ...new Set(
+    keys
+      .map((key) => Number(payload && payload[key]))
+      .filter((id) => Number.isInteger(id) && id > 0),
+  ),
+];
+
+const contextForRequest = async (row) => {
+  const context = {
+    units: {},
+    halls: {},
+    placements: {},
+    weeklies: {},
+    flocks: {},
+  };
+
+  const customerId = Number(row && row.customer_id);
+  if (!Number.isInteger(customerId) || customerId <= 0) return context;
+
+  const payload = (row && row.payload) || {};
+  const unitIds = idsOfPayload(payload, ["unit_id"]);
+  const hallIds = idsOfPayload(payload, ["hall_id"]);
+  const placementIds = idsOfPayload(payload, ["placement_id", "chick_placement_id"]);
+  const weeklyIds = idsOfPayload(payload, ["weekly_id"]);
+  const flockIds = idsOfPayload(payload, ["flock_id"]);
+
+  const [units, halls, placements, weeklies, flocks] = await Promise.all([
+    unitIds.length
+      ? Unit.findAll({
+          where: {
+            id: { [Op.in]: unitIds },
+            customer_personal_information_id: customerId,
+          },
+          attributes: ["id", "unit_name"],
+        })
+      : [],
+    hallIds.length
+      ? Hall.findAll({
+          where: { id: { [Op.in]: hallIds }, customer_id: customerId },
+          attributes: ["id", "hall_name", "hall_number"],
+        })
+      : [],
+    placementIds.length
+      ? ChickPlacement.findAll({
+          where: { id: { [Op.in]: placementIds }, customer_id: customerId },
+          attributes: ["id", "placement_date", "flock_number"],
+        })
+      : [],
+    weeklyIds.length
+      ? WeeklyManagement.findAll({
+          where: { id: { [Op.in]: weeklyIds }, customer_id: customerId },
+          attributes: ["id", "week_number"],
+        })
+      : [],
+    flockIds.length
+      ? Flock.findAll({
+          where: { id: { [Op.in]: flockIds }, customer_id: customerId },
+          attributes: ["id", "flock_number"],
+        })
+      : [],
+  ]);
+
+  units.forEach((item) => {
+    context.units[Number(item.id)] = item.unit_name || `واحد ${item.id}`;
+  });
+  halls.forEach((item) => {
+    context.halls[Number(item.id)] = item.hall_name || `سالن ${item.id}`;
+  });
+  placements.forEach((item) => {
+    context.placements[Number(item.id)] = placementLabel(item);
+  });
+  weeklies.forEach((item) => {
+    context.weeklies[Number(item.id)] = `هفتهٔ ${item.week_number}`;
+  });
+  flocks.forEach((item) => {
+    context.flocks[Number(item.id)] = `گلهٔ ${item.flock_number}`;
+  });
+
+  return context;
+};
+
 module.exports = {
   approveRequest,
   cancelMyRequest,
@@ -1672,4 +1709,7 @@ module.exports = {
   pendingCountOf,
   pendingQueueCount,
   rejectRequest,
+  // ✅ ۱۳.۱۶: نمایش نامدار payload در صف کارشناس
+  contextForRequest,
+  staffDictionariesFor,
 };

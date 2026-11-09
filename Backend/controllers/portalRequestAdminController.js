@@ -115,14 +115,46 @@ const getPendingCount = async (req, res) => {
 };
 
 // ============================================
+// GET /api/portal-requests/dictionaries       — ✅ ۱۳.۱۶
+// ------------------------------------------------------------
+//  چرا این مسیر تازه لازم شد؟
+//   مودال بازبینی باید `breed_id: 3` را «راس ۳۰۸» و پنج آرایهٔ
+//   شناسهٔ هفتگی را با نام نشان دهد؛ بدون نام، کارشناس «۵ مورد»
+//   را تأیید می‌کند.
+//
+//  🔒 چرا از /api/dictionary استفاده نشد؟
+//   آن ۱۶ مسیر کلید مجوز `dictionary.*.view` (مدیریتی) می‌خواهند؛
+//   بازبین صف نباید به کلیدهای مدیریت دیکشنری مجهز شود. این مسیر
+//   فقط `{id,name}` ردیف‌های **فعال** را پشت همان
+//   `portal.requests.view` می‌دهد و هیچ مدل دادهٔ مشتری را لمس نمی‌کند.
+// ============================================
+const getDictionaries = async (req, res) => {
+  try {
+    const dictionaries = await service.staffDictionariesFor();
+    return successResponse(
+      res,
+      { dictionaries },
+      "دیکشنری‌های موردنیاز بازبینی درخواست‌ها",
+    );
+  } catch (error) {
+    return failure(res, error, "خطا در دریافت دیکشنری‌ها");
+  }
+};
+
+// ============================================
 // GET /api/portal-requests/:id
+// ------------------------------------------------------------
+//  ✅ ۱۳.۱۶: به‌همراه `context` — نام کوتاه واحد/سالن/دوره/هفته‌ای
+//  که این درخواست تغییر می‌دهد (کارشناس بداند روی چه ردیفی تأیید
+//  می‌زند). زمینه با `customer_id` همان درخواست اسکوپ می‌شود.
 // ============================================
 const getRequest = async (req, res) => {
   try {
     const row = await service.getRequest(req.params.id);
+    const context = await service.contextForRequest(row);
     return successResponse(
       res,
-      { request: adminRequestView(row) },
+      { request: adminRequestView(row), context },
       "جزئیات درخواست",
     );
   } catch (error) {
@@ -183,6 +215,8 @@ module.exports = {
   listRequests,
   getPendingCount,
   getRequest,
+  // ✅ ۱۳.۱۶: دیکشنری‌های فقط-خواندنی صف (نام‌دار کردن payload)
+  getDictionaries,
   approveRequest,
   rejectRequest,
 };

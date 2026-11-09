@@ -750,3 +750,22 @@ npm run lint                  # ۰ خطا
 
 📄 گزارش کامل: `docs/REVIEW-WAVE-13.15.md`.
 
+## «نمایش نامدار» درخواست‌ها در صف کارشناس (موج ۱۳.۱۶)
+
+کارشناس پیش از تأیید `breed_id: 3` و «۵ ردیف» می‌دید؛ یعنی ده نوع هفتگی و
+چهار نوع جزئیات سالن **بدون دانستن محتوا** تأیید می‌شد. این موج مقدارها را
+خوانا می‌کند و برایش هیچ نوع درخواست تازه‌ای اضافه نمی‌کند.
+
+| موضوع | مقدار |
+|---|---|
+| دیکشنری‌ها | `DICTIONARY_MODELS` — **یک** فهرست ۱۶تایی (`loadDictionaries`) که هم `optionsFor` پورتال و هم صف از آن می‌خوانند |
+| اندپوینت تازه | `GET /api/portal-requests/dictionaries` — `{ dictionaries: { breeds:[{id,name}], … } }`، فقط ردیف‌های `active` |
+| مجوز | `portal.requests.view` (نه `dictionary.*.view` که مدیریتی است) — بازبین صف مجوز مدیریت دیکشنری نمی‌خواهد |
+| ترتیب مسیر | قبل از `/:id` ثبت شده؛ وگرنه `/:id` مقدار «dictionaries» را شناسهٔ درخواست می‌گیرد |
+| زمینهٔ درخواست | `GET /api/portal-requests/:id` ⇒ `{ request, context }`؛ `context = { units, halls, placements, weeklies, flocks }` با برچسب کوتاه |
+| اسکوپ زمینه | با `customer_id` **همان درخواست**؛ شناسهٔ مشتری هرگز پارامتر نمی‌شود و هیچ PII (تلفن/کد ملی/آدرس) برنمی‌گردد |
+| بدون مدل مشتری | `Unit/Hall/ChickPlacement/WeeklyManagement/CustomerPersonalInfo` در `DICTIONARY_MODELS` نیستند (گارد regex منفی) |
+| آزمون | `Backend/portal-request-test.mjs` — ۶ بررسی تازه (۸۰ در کل) |
+
+📄 گزارش کامل: `docs/REVIEW-WAVE-13.16.md`.
+

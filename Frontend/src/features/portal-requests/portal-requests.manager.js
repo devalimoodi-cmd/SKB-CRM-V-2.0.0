@@ -67,6 +67,9 @@ export const portalRequestsManager = {
     activeId: null,
     loading: false,
     bound: false,
+    // ✅ ۱۳.۱۶ — دیکشنری‌ها (یک‌بار در هر نشست) و زمینهٔ درخواست باز
+    dictionaries: {},
+    context: {},
   },
 
   init(containerSelector = "#portal-requests") {
@@ -77,7 +80,29 @@ export const portalRequestsManager = {
     if (!root) return;
 
     this.bind();
+    // ✅ ۱۳.۱۶: دیکشنری‌ها موازی با صف گرفته می‌شوند (منتظر نمی‌مانیم؛
+    // اگر دیر برسند، `openReview` یک‌بار دیگر تلاش می‌کند).
+    this.loadDictionaries();
     return this.load();
+  },
+
+  // ===== ✅ ۱۳.۱۶ — دیکشنری‌های نام‌دار (بهترین‌تلاش) =====
+  //  چرا بهترین‌تلاش؟ اگر این مسیر خطا بدهد، صف باید کار کند؛ فقط
+  //  شناسه‌ها به‌جای نام نمایش داده می‌شوند (تنزل تدریجی، نه خطا).
+  async loadDictionaries() {
+    if (this.state.dictionariesLoaded) return this.state.dictionaries;
+    try {
+      const data = payloadDataOf(await portalRequestsApi.dictionaries());
+      const dictionaries =
+        data.dictionaries && typeof data.dictionaries === "object"
+          ? data.dictionaries
+          : {};
+      this.state.dictionaries = dictionaries;
+      this.state.dictionariesLoaded = Object.keys(dictionaries).length > 0;
+      return dictionaries;
+    } catch {
+      return this.state.dictionaries;
+    }
   },
 
   // ===== اتصال رویدادها (یک‌بار) =====
@@ -178,6 +203,8 @@ export const portalRequestsManager = {
           items: this.state.items,
           pagination: this.state.pagination,
           canReview: canReviewRequests(),
+          // ✅ ۱۳.۱۶: خلاصهٔ ستون «مقادیر» با نام دیکشنری
+          dictionaries: this.state.dictionaries,
         });
       }
 
@@ -244,7 +271,18 @@ export const portalRequestsManager = {
     try {
       const data = payloadDataOf(await portalRequestsApi.detail(id));
       const request = data.request || {};
-      body.innerHTML = renderReviewModalBody(request);
+
+      // ✅ ۱۳.۱۶: اگر دیکشنری‌ها هنوز نرسیده‌اند، همین‌جا یک‌بار
+      // تلاش می‌کنیم (بدون بلاک کردن: شکست آن مودال را نمی‌بندد).
+      if (!this.state.dictionariesLoaded) await this.loadDictionaries();
+
+      this.state.context =
+        data.context && typeof data.context === "object" ? data.context : {};
+
+      body.innerHTML = renderReviewModalBody(request, {
+        dictionaries: this.state.dictionaries,
+        context: this.state.context,
+      });
     } catch (error) {
       body.innerHTML = `
         <div class="prq-empty prq-empty--error">

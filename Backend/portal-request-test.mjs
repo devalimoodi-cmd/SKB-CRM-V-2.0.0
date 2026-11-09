@@ -661,9 +661,10 @@ check(
 
 check(
   "۱۳.۱۳ · گزینه‌های فرم شامل دیکشنری‌های چهار حوزهٔ جزئیات و پرچم «ثبت‌شده» است",
-  /floor_types:/.test(serviceSource) &&
-    /waterer_types:/.test(serviceSource) &&
-    /feeder_types:/.test(serviceSource) &&
+  // ✅ ۱۳.۱۶: دیکشنری‌ها از فهرست مشترک `DICTIONARY_MODELS` می‌آیند
+  /\["floor_types", FloorType\]/.test(serviceSource) &&
+    /\["waterer_types", WatererType\]/.test(serviceSource) &&
+    /\["feeder_types", FeederType\]/.test(serviceSource) &&
     /has_physical:/.test(serviceSource) &&
     /has_hygiene:/.test(serviceSource),
 );
@@ -864,11 +865,12 @@ check(
 check(
   "۱۳.۱۴ · گزینه‌های فرم: دوره‌های خودم + پنج دیکشنری هفتگی",
   /placements: placements\.map/.test(serviceSource) &&
-    /diseases: dictionaryOf\(diseases\)/.test(serviceSource) &&
-    /vaccines: dictionaryOf\(vaccines\)/.test(serviceSource) &&
-    /medicines: dictionaryOf\(medicines\)/.test(serviceSource) &&
-    /feed_types: dictionaryOf\(feedTypes\)/.test(serviceSource) &&
-    /suggestion_types: dictionaryOf\(suggestionTypes\)/.test(serviceSource),
+    // ✅ ۱۳.۱۶: پنج دیکشنری هفتگی در فهرست مشترک `DICTIONARY_MODELS`
+    /\["diseases", Disease\]/.test(serviceSource) &&
+    /\["vaccines", Vaccine\]/.test(serviceSource) &&
+    /\["medicines", Medicine\]/.test(serviceSource) &&
+    /\["feed_types", FeedType\]/.test(serviceSource) &&
+    /\["suggestion_types", SuggestionType\]/.test(serviceSource),
 );
 
 check(
@@ -930,6 +932,107 @@ check(
   /id: Number\(record\.id\)/.test(serviceSource) &&
     /chick_placement_id:/.test(serviceSource) &&
     /return \{\s*weekly: \{/.test(serviceSource),
+);
+
+// ============================================================
+// ۱۴) موج ۱۳.۱۶ — «نمایش نامدار» payload در صف کارشناس
+// ------------------------------------------------------------
+//  ریسک: کارشناس پیش از تأیید فقط `breed_id: 3` و «۵ مورد» می‌دید؛
+//  یعنی ده نوع هفتگی/جزئیات سالن بدون دانستن محتوا تأیید می‌شد.
+//
+//  سه چیز باید ثابت شود:
+//   ۱) دیکشنری‌ها از **یک** فهرست می‌آیند و هیچ مدل دادهٔ مشتری در آن
+//      نیست (صف نباید از این راه به دادهٔ عملیاتی مشتری برسد).
+//   ۲) «زمینهٔ درخواست» با `customer_id` همان درخواست اسکوپ می‌شود،
+//      نه با ورودی کلاینت، و فقط `{id,label}` می‌دهد.
+//   ۳) مسیر `/dictionaries` پیش از `/:id` ثبت شده و همان کلید مجوز
+//      `portal.requests.view` را دارد.
+// ============================================================
+const adminControllerSource = fs.readFileSync(
+  path.join(here, "controllers/portalRequestAdminController.js"),
+  "utf8",
+);
+const requestRoutesSource = fs.readFileSync(
+  path.join(here, "routes/portalRequestRoutes.js"),
+  "utf8",
+);
+
+const dictionaryBlock = (serviceSource.match(
+  /const DICTIONARY_MODELS = \[([\s\S]*?)\n\];/,
+) || [])[1] || "";
+
+check(
+  "۱۳.۱۶ · دیکشنری‌ها یک فهرست مشترک دارند (۱۶ کلید، بدون مدل دادهٔ مشتری)",
+  dictionaryBlock.length > 0 &&
+    (dictionaryBlock.match(/\["[a-z_]+", /g) || []).length === 16 &&
+    /\["breeds", ChickenBreed\]/.test(dictionaryBlock) &&
+    /\["suggestion_types", SuggestionType\]/.test(dictionaryBlock) &&
+    // 🔒 هیچ مدل دادهٔ عملیاتی/شخصی در فهرست دیکشنری نیست
+    !/Unit|Hall\b|ChickPlacement|WeeklyManagement|CustomerPersonalInfo|PortalRequest/.test(
+      dictionaryBlock,
+    ),
+);
+
+check(
+  "۱۳.۱۶ · همان فهرست هم در پورتال و هم در صف استفاده می‌شود",
+  /const staffDictionariesFor = async \(\) => loadDictionaries\(\);/.test(
+    serviceSource,
+  ) &&
+    /loadDictionaries\(\),/.test(serviceSource) &&
+    /dictionaries,/.test(serviceSource) &&
+    !/diseases: dictionaryOf\(diseases\)/.test(serviceSource) &&
+    /staffDictionariesFor,/.test(serviceSource) &&
+    /contextForRequest,/.test(serviceSource),
+);
+
+check(
+  "۱۳.۱۶ · زمینهٔ درخواست با customer_id همان درخواست اسکوپ می‌شود",
+  /const customerId = Number\(row && row\.customer_id\);/.test(serviceSource) &&
+    /customer_personal_information_id: customerId/.test(serviceSource) &&
+    /where: \{ id: \{ \[Op\.in\]: hallIds \}, customer_id: customerId \}/.test(
+      serviceSource,
+    ) &&
+    /where: \{ id: \{ \[Op\.in\]: weeklyIds \}, customer_id: customerId \}/.test(
+      serviceSource,
+    ) &&
+    // 🔒 هیچ ورودی درخواست (body/query/params) در تابع خوانده نمی‌شود
+    !/req\.(body|query|params)/.test(
+      serviceSource.slice(
+        serviceSource.indexOf("const contextForRequest"),
+        serviceSource.indexOf("module.exports"),
+      ),
+    ),
+);
+
+check(
+  "۱۳.۱۶ · زمینهٔ درخواست هیچ PII (تلفن/کد ملی/آدرس) برنمی‌گرداند",
+  !/manager_phone|national_code|mobile|address|postal_code/.test(
+    serviceSource.slice(
+      serviceSource.indexOf("const contextForRequest"),
+      serviceSource.indexOf("module.exports"),
+    ),
+  ),
+);
+
+check(
+  "۱۳.۱۶ · مسیر دیکشنری‌ها پیش از /:id و پشت portal.requests.view",
+  requestRoutesSource.indexOf('router.get("/dictionaries"') > 0 &&
+    requestRoutesSource.indexOf('router.get("/dictionaries"') <
+      requestRoutesSource.indexOf('router.get("/:id"') &&
+    /router\.get\("\/dictionaries", \.\.\.viewChain, controller\.getDictionaries\);/.test(
+      requestRoutesSource,
+    ) &&
+    /getDictionaries,/.test(adminControllerSource) &&
+    /service\.staffDictionariesFor\(\)/.test(adminControllerSource),
+);
+
+check(
+  "۱۳.۱۶ · جزئیات درخواست، زمینه را هم برمی‌گرداند (پاسخ {request, context})",
+  /const context = await service\.contextForRequest\(row\);/.test(
+    adminControllerSource,
+  ) &&
+    /\{ request: adminRequestView\(row\), context \}/.test(adminControllerSource) &&
+    /getDictionaries/.test(adminControllerSource),
 );
 
 // ============================================================

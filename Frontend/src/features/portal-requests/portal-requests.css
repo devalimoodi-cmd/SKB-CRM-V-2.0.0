@@ -320,3 +320,112 @@
   align-items: center;
   gap: 6px;
 }
+
+/* ============================================================
+   ✅ موج ۱۳.۱۶ — «زمینهٔ درخواست» + «چکیدهٔ کامل» در مودال بازبینی
+   ------------------------------------------------------------
+   چرا: کارشناس `hall_id: 12` و «۵ مورد» را تأیید می‌کرد؛ حالا نام
+   سالن/دوره/هفته، نام بیماری/واکسن/دارو و جدول تجهیزات را می‌بیند.
+   ============================================================ */
+.prq-review-summary {
+  display: grid;
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid var(--border-light, #e2e8f0);
+  border-radius: 10px;
+  background: var(--bg-surface-2, #f8fafc);
+}
+
+.prq-section-title {
+  margin: 4px 0 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-slate, #475569);
+}
+
+.prq-kv {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 2px 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+}
+
+.prq-kv li {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 3px 0;
+  border-bottom: 1px dashed var(--border-light, #eef2f7);
+}
+
+.prq-kv span {
+  color: var(--text-muted, #64748b);
+}
+
+.prq-id-groups {
+  display: grid;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.prq-id-group {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  flex-wrap: wrap;
+  font-size: 12px;
+}
+
+.prq-id-label {
+  color: var(--text-muted, #64748b);
+}
+
+.prq-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.prq-chip {
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border-light, #e2e8f0);
+  font-size: 11px;
+  color: var(--text-slate, #475569);
+}
+
+.prq-items {
+  width: 100%;
+  margin-top: 4px;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+
+.prq-items caption {
+  caption-side: top;
+  padding-bottom: 4px;
+  text-align: right;
+  color: var(--text-muted, #64748b);
+}
+
+.prq-items th,
+.prq-items td {
+  padding: 4px 6px;
+  border: 1px solid var(--border-light, #e2e8f0);
+  text-align: right;
+}
+
+.prq-items th {
+  background: var(--bg-surface, #fff);
+  font-weight: 600;
+}
+
+/* نام فعلی زیر ورودی شناسهٔ دیکشنری («فعلی: راس ۳۰۸») */
+.prq-hint {
+  font-size: 11px;
+  color: var(--text-muted, #64748b);
+}

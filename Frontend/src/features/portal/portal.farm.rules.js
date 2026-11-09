@@ -482,6 +482,26 @@ export const FARM_FIELD_LABEL = FARM_TYPE_KEYS.reduce((acc, type) => {
   return acc;
 }, {});
 
+// ✅ ۱۳.۱۶: نوع و دیکشنری هر کلید payload — مشتق از spec (نه فهرست دوم)
+// ------------------------------------------------------------
+//  چرا لازم شد؟ نمایش «نامدار» payload (نام نژاد به‌جای `breed_id: 3`
+//  و نام بیماری‌ها به‌جای «۵ مورد») در پورتال و صف کارشناس به این
+//  دو نقشه نیاز دارد. اگر دستی نوشته می‌شد، سومین نسخهٔ قواعد
+//  ساخته می‌شد؛ این‌جا از همان spec مشتق می‌شود.
+export const FARM_FIELD_TYPE = FARM_TYPE_KEYS.reduce((acc, type) => {
+  farmSpecOf(type).forEach((field) => {
+    if (!acc[field.key]) acc[field.key] = field.type || "text";
+  });
+  return acc;
+}, {});
+
+export const FARM_FIELD_DICT = FARM_TYPE_KEYS.reduce((acc, type) => {
+  farmSpecOf(type).forEach((field) => {
+    if (field.dict && !acc[field.key]) acc[field.key] = field.dict;
+  });
+  return acc;
+}, {});
+
 // برچسب/آیکون نوع (برای کارت درخواست‌های من)
 export const farmTypeMeta = (type) =>
   FARM_REQUEST_TYPES.find((item) => item.key === String(type || "").trim()) || null;

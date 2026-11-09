@@ -1711,3 +1711,143 @@
   }
 }
 
+/* ============================================================
+   ✅ موج ۱۳.۱۶ — فیلتر وضعیت، صفحه‌بندی و «جزئیات کامل» درخواست
+   ------------------------------------------------------------
+   چرا: فهرست «درخواست‌های من» بی‌فیلتر و تک‌صفحه‌ای بود و کارت‌ها
+   مقادیر را با شناسه/«۴ مورد» نشان می‌دادند.
+   ============================================================ */
+.portal-farm__filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.portal-farm__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border: 1px solid var(--border-light, #e2e8f0);
+  border-radius: 999px;
+  background: var(--bg-surface, #fff);
+  color: var(--text-slate, #475569);
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.portal-farm__chip.is-active {
+  border-color: var(--primary, #2563eb);
+  background: var(--primary-bg, #eff6ff);
+  color: var(--primary, #2563eb);
+  font-weight: 600;
+}
+
+.portal-farm__chip-count {
+  min-width: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--bg-surface-2, #f1f5f9);
+  font-size: 0.68rem;
+  text-align: center;
+}
+
+.portal-farm__pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 0.75rem;
+  color: var(--text-muted, #94a3b8);
+}
+
+.portal-farm__details {
+  font-size: 0.76rem;
+  color: var(--text, #1f2937);
+}
+
+.portal-farm__details summary {
+  cursor: pointer;
+  padding: 2px 0;
+  color: var(--primary, #2563eb);
+  font-weight: 600;
+}
+
+.portal-farm__kv {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 4px 12px;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.portal-farm__kv li {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 3px 0;
+  border-bottom: 1px dashed var(--border-light, #eef2f7);
+}
+
+.portal-farm__kv span {
+  color: var(--text-muted, #64748b);
+}
+
+.portal-farm__ids {
+  display: grid;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.portal-farm__ids-group {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.portal-farm__ids-label {
+  color: var(--text-muted, #64748b);
+}
+
+.portal-farm__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.portal-farm__tag {
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: var(--bg-surface-2, #f1f5f9);
+  color: var(--text-slate, #475569);
+  font-size: 0.7rem;
+}
+
+.portal-farm__items {
+  width: 100%;
+  margin-top: 8px;
+  border-collapse: collapse;
+  font-size: 0.72rem;
+}
+
+.portal-farm__items caption {
+  caption-side: top;
+  padding-bottom: 4px;
+  text-align: right;
+  color: var(--text-muted, #64748b);
+}
+
+.portal-farm__items th,
+.portal-farm__items td {
+  padding: 4px 6px;
+  border: 1px solid var(--border-light, #e2e8f0);
+  text-align: right;
+}
+
+.portal-farm__items th {
+  background: var(--bg-surface-2, #f8fafc);
+  font-weight: 600;
+}
+

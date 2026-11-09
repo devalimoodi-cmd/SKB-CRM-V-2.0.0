@@ -262,6 +262,9 @@ export const API_CONSTANTS = {
     PORTAL_REQUESTS: {
       LIST: "/portal-requests",
       PENDING_COUNT: "/portal-requests/pending-count",
+      // ✅ ۱۳.۱۶ — دیکشنری فقط-خواندنی برای نام‌دار کردن payload در صف
+      //  🔒 پشت portal.requests.view؛ هیچ دادهٔ مشتری برنمی‌گرداند.
+      DICTIONARIES: "/portal-requests/dictionaries",
       DETAIL: (id) => `/portal-requests/${id}`,
       APPROVE: (id) => `/portal-requests/${id}/approve`,
       REJECT: (id) => `/portal-requests/${id}/reject`,

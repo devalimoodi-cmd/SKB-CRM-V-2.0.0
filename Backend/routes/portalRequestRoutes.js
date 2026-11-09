@@ -7,6 +7,7 @@
 //  این‌جا با کلید مجوز کارکنان محافظت می‌شود:
 //     GET  /                → portal.requests.view
 //     GET  /pending-count   → portal.requests.view
+//     GET  /dictionaries    → portal.requests.view   (✅ ۱۳.۱۶)
 //     GET  /:id             → portal.requests.view
 //     POST /:id/approve     → portal.requests.review
 //     POST /:id/reject      → portal.requests.review
@@ -34,6 +35,11 @@ const viewChain = [requirePermission("portal.requests.view")];
 const reviewChain = [requirePermission("portal.requests.review")];
 
 router.get("/pending-count", ...viewChain, controller.getPendingCount);
+
+// ✅ ۱۳.۱۶: دیکشنری‌های بازبینی — **قبل از** `/:id` ثبت می‌شود؛
+// وگرنه Express مقدار «dictionaries» را به‌عنوان شناسهٔ درخواست
+// می‌گیرد و مسیر هرگز اجرا نمی‌شود.
+router.get("/dictionaries", ...viewChain, controller.getDictionaries);
 
 router.get("/", ...viewChain, controller.listRequests);
 

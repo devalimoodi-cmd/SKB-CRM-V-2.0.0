@@ -19,7 +19,6 @@
 // ============================================================
 import { faNumber, jalaliDate } from "./portal.renderer.js";
 import {
-  FARM_FIELD_LABEL,
   FARM_FORM_GROUPS,
   FARM_FORM_SPEC,
   FARM_MAX_LIST_ITEMS,
@@ -28,6 +27,13 @@ import {
   farmSpecOf,
   farmTypeMeta,
 } from "./portal.farm.rules.js";
+// ✅ ۱۳.۱۶: نمایش نامدار payload (نام دیکشنری به‌جای شناسه،
+// نام بیماری‌ها به‌جای «۵ مورد») از یک منبع مشترک با صف کارشناس.
+import {
+  equipmentRowsOf,
+  payloadIdRowsOf,
+  payloadRowsOf,
+} from "./portal.payload.js";
 import { weekOptionText } from "./portal.farm.weeks.js";
 
 // بازصادرات برای portal.farm.js و گاردها (یک منبع، دو نام)
@@ -482,31 +488,84 @@ export const fieldInput = (field, ctx = {}) => {
 
 // ============================================================
 // خلاصهٔ خوانای payload برای فهرست درخواست‌های من
+// ------------------------------------------------------------
+//  ✅ ۱۳.۱۶: پیش از این، مقدار آرایه‌ای «۴ مورد» و شناسهٔ دیکشنری
+//  عدد خام بود (`breed_id: 3`). حالا نام واقعی نمایش داده می‌شود؛
+//  تبدیل مقدار⇒متن در `portal.payload.js` است (یک منبع با صف کارشناس).
 // ============================================================
-const summaryValueOf = (value) => {
-  if (Array.isArray(value)) {
-    return value.length ? `${faNumber(value.length)} مورد` : "";
-  }
-  if (value === true) return "بله";
-  if (value === false) return "خیر";
-  if (value && typeof value === "object") return "";
-  return String(value ?? "").trim();
+const SUMMARY_ROW_LIMIT = 6;
+
+const summaryListHtml = (rows = []) =>
+  rows
+    .map(
+      (row) =>
+        `<li><span>${esc(row.label)}</span><strong>${esc(row.text)}</strong></li>`,
+    )
+    .join("");
+
+const payloadSummary = (item = {}, dictionaries = {}, limit = SUMMARY_ROW_LIMIT) => {
+  const rows = payloadRowsOf(item.payload, dictionaries).slice(0, limit);
+  if (!rows.length) return "";
+  return `<ul class="portal-farm__summary">${summaryListHtml(rows)}</ul>`;
 };
 
-const payloadSummary = (payload = {}) => {
-  const rows = Object.entries(payload && typeof payload === "object" ? payload : {})
-    .filter(([key]) => key !== "note" && key !== "confirm_name")
-    .map(([key, value]) => {
-      const text = summaryValueOf(value);
-      if (!text) return "";
-      return `<li><span>${esc(FARM_FIELD_LABEL[key] || key)}</span><strong>${esc(
-        text,
-      )}</strong></li>`;
-    })
-    .filter(Boolean)
-    .slice(0, 8)
-    .join("");
-  return rows ? `<ul class="portal-farm__summary">${rows}</ul>` : "";
+// جزئیات کامل (بازشو): همهٔ ردیف‌ها + پنج فهرست شناسه + تجهیزات
+//  چرا <details>؟ فهرست درخواست‌ها می‌تواند بلند باشد؛ خلاصه کوتاه
+//  می‌ماند و جزئیات فقط با درخواست مشتری باز می‌شود (بدون JS اضافه).
+const payloadDetails = (item = {}, dictionaries = {}) => {
+  const rows = payloadRowsOf(item.payload, dictionaries);
+  const idRows = payloadIdRowsOf(item.payload, dictionaries);
+  const items = equipmentRowsOf(item.payload);
+  const total = rows.length + idRows.length + (items.length ? 1 : 0);
+  if (!total) return "";
+
+  const itemsTable = items.length
+    ? `<table class="portal-farm__items">
+         <caption>ردیف‌های تجهیزات</caption>
+         <thead>
+           <tr><th>#</th><th>دسته</th><th>مشخصات</th><th>اندازه</th><th>ظرفیت</th><th>تعداد</th></tr>
+         </thead>
+         <tbody>
+           ${items
+             .map(
+               (row) => `<tr>
+                 <td>${esc(faNumber(row.index))}</td>
+                 <td>${esc(row.category)}</td>
+                 <td>${esc(row.spec || "—")}</td>
+                 <td>${esc(row.size || "—")}</td>
+                 <td>${esc(row.capacity || "—")}</td>
+                 <td>${esc(row.quantity ? faNumber(row.quantity) : "—")}</td>
+               </tr>`,
+             )
+             .join("")}
+         </tbody>
+       </table>`
+    : "";
+
+  const idsHtml = idRows.length
+    ? `<div class="portal-farm__ids">
+         ${idRows
+           .map(
+             (group) => `<div class="portal-farm__ids-group">
+               <span class="portal-farm__ids-label">${esc(group.label)}</span>
+               <span class="portal-farm__tags">
+                 ${group.items
+                   .map((idRow) => `<span class="portal-farm__tag">${esc(idRow.name)}</span>`)
+                   .join("")}
+               </span>
+             </div>`,
+           )
+           .join("")}
+       </div>`
+    : "";
+
+  return `
+    <details class="portal-farm__details">
+      <summary>جزئیات کامل درخواست (${esc(faNumber(total))} مورد)</summary>
+      <ul class="portal-farm__kv">${summaryListHtml(rows)}</ul>
+      ${idsHtml}
+      ${itemsTable}
+    </details>`;
 };
 
 const statusBadge = (status) => {
@@ -517,7 +576,10 @@ const statusBadge = (status) => {
   )}</span>`;
 };
 
-const requestCard = (item = {}, { canCancel = false, pendingCancelId = "" } = {}) => {
+const requestCard = (
+  item = {},
+  { canCancel = false, pendingCancelId = "", dictionaries = {} } = {},
+) => {
   const isCancelling = String(pendingCancelId) === String(item.id);
   const meta = farmTypeMeta(item.type) || {};
   const note = item.note
@@ -528,6 +590,11 @@ const requestCard = (item = {}, { canCancel = false, pendingCancelId = "" } = {}
     : "";
   const result = item.result_summary
     ? `<p class="portal-farm__result">✅ ${esc(item.result_summary)}</p>`
+    : "";
+  // ✅ ۱۳.۱۶: زمان اعمال (پس از تأیید) — مشتری می‌فهمد درخواستش
+  // واقعاً اجرا شده است، نه فقط «تأییدشده».
+  const applied = item.applied_at
+    ? ` · اعمال: ${esc(jalaliDate(item.applied_at))}`
     : "";
 
   const actions =
@@ -557,11 +624,12 @@ const requestCard = (item = {}, { canCancel = false, pendingCancelId = "" } = {}
             item.reviewed_at
               ? ` · بررسی: ${esc(jalaliDate(item.reviewed_at))}`
               : ""
-          }</small>
+          }${applied}</small>
         </div>
         ${statusBadge(item.status)}
       </header>
-      ${payloadSummary(item.payload)}
+      ${payloadSummary(item, dictionaries)}
+      ${payloadDetails(item, dictionaries)}
       ${note}
       ${result}
       ${reject}
@@ -618,6 +686,67 @@ const groupedTabsHtml = (typeMap, activeType) =>
       </div>`;
   }).join("");
 
+// ============================================================
+// ✅ ۱۳.۱۶ — فیلتر وضعیت + صفحه‌بندی «درخواست‌های من»
+// ------------------------------------------------------------
+//  پیش از این همیشه ۵۰ ردیف اول گرفته می‌شد و هیچ راهی برای دیدن
+//  «درخواست ردشدهٔ هفتهٔ پیش» یا «در انتظار»ها نبود؛ سرور از ۱۳.۱۱
+//  فیلتر `status` و `pagination` + شمارنده‌ها را می‌داد ولی UI
+//  استفاده نمی‌کرد.
+// ============================================================
+const STATUS_CHIP_LABEL = {
+  pending: "در انتظار",
+  approved: "تأییدشده",
+  rejected: "ردشده",
+  cancelled: "لغوشده",
+};
+
+const statusFilterHtml = (listStatus, counts = {}) => {
+  const chips = [
+    { key: "", label: "همه", count: counts.total },
+    ...Object.keys(STATUS_CHIP_LABEL).map((key) => ({
+      key,
+      label: STATUS_CHIP_LABEL[key],
+      count: counts[key],
+    })),
+  ];
+
+  return `
+    <div class="portal-farm__filters" role="group" aria-label="فیلتر وضعیت درخواست‌ها">
+      ${chips
+        .map(
+          (chip) => `<button type="button"
+            class="portal-farm__chip${
+              String(listStatus) === chip.key ? " is-active" : ""
+            }"
+            data-farm-status="${esc(chip.key)}"
+            aria-pressed="${String(listStatus) === chip.key ? "true" : "false"}">
+            <span>${esc(chip.label)}</span>
+            ${
+              Number(chip.count) > 0
+                ? `<span class="portal-farm__chip-count">${esc(faNumber(chip.count))}</span>`
+                : ""
+            }
+          </button>`,
+        )
+        .join("")}
+    </div>`;
+};
+
+const listPagerHtml = ({ page = 1, pages = 1, total = 0 } = {}) => `
+  <div class="portal-farm__pager">
+    <span>${esc(faNumber(total))} درخواست · صفحهٔ ${esc(faNumber(page))} از ${esc(
+      faNumber(pages),
+    )}</span>
+    ${
+      Number(page) < Number(pages)
+        ? `<button type="button" class="btn btn-sm btn-outline" data-farm-more>
+             نمایش بیشتر
+           </button>`
+        : ""
+    }
+  </div>`;
+
 export const renderFarmPanel = ({
   options = {},
   meta = {},
@@ -632,7 +761,15 @@ export const renderFarmPanel = ({
   loading = false,
   prefillNote = "",
   confirmOpen = false,
+  list = {},
 } = {}) => {
+  // ✅ ۱۳.۱۶: دیکشنری‌ها از همان پاسخ گزینه‌ها (بدون درخواست تازه)
+  const dictionaries = (options && options.dictionaries) || {};
+  const listStatus = String(list.status || "");
+  const listCounts = list.counts || meta.counts || {};
+  const listTotal = Number(list.total) || items.length;
+  const listPage = Number(list.page) || 1;
+  const listPages = Number(list.pages) || 1;
   const counts = meta.counts || {};
   const limits = meta.limits || {};
   const maxPending = Number(limits.max_pending) || 10;
@@ -694,11 +831,17 @@ export const renderFarmPanel = ({
         : actions
     : "";
 
-  const list = items.length
+  const listHtml = items.length
     ? items
-        .map((item) => requestCard(item, { canCancel, pendingCancelId }))
+        .map((item) =>
+          requestCard(item, { canCancel, pendingCancelId, dictionaries }),
+        )
         .join("")
-    : `<p class="portal-farm__empty">هنوز درخواستی ثبت نکرده‌اید.</p>`;
+    : `<p class="portal-farm__empty">${
+        listStatus
+          ? "درخواستی با این وضعیت ثبت نشده است."
+          : "هنوز درخواستی ثبت نکرده‌اید."
+      }</p>`;
 
   return `
     <section class="portal-farm">
@@ -729,8 +872,11 @@ export const renderFarmPanel = ({
 
       <div class="portal-farm__head">
         <h3>درخواست‌های من</h3>
+        <span class="portal-farm__counter">${esc(faNumber(listTotal))} درخواست</span>
       </div>
-      <div class="portal-farm__list">${list}</div>
+      ${statusFilterHtml(listStatus, listCounts)}
+      <div class="portal-farm__list">${listHtml}</div>
+      ${items.length ? listPagerHtml({ page: listPage, pages: listPages, total: listTotal }) : ""}
     </section>`;
 };
 

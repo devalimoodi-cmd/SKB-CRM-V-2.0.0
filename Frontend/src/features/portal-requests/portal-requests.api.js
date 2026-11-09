@@ -40,6 +40,13 @@ export const portalRequestsApi = {
     );
   },
 
+  // ✅ ۱۳.۱۶ — دیکشنری فقط-خواندنی ({id,name} ردیف‌های فعال).
+  //  🔒 هیچ ورودی نمی‌گیرد؛ پاسخ برای همهٔ درخواست‌ها یکسان است و
+  //     مدیر صف یک‌بار در هر نشست آن را نگه می‌دارد.
+  async dictionaries() {
+    return apiService.get(API_CONSTANTS.ENDPOINTS.PORTAL_REQUESTS.DICTIONARIES);
+  },
+
   async detail(id) {
     return apiService.get(
       API_CONSTANTS.ENDPOINTS.PORTAL_REQUESTS.DETAIL(rowId(id)),
