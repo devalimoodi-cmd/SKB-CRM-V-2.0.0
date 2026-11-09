@@ -16,6 +16,13 @@
 // ============================================================
 import { apiService } from "../../core/services/api.service.js";
 import { API_CONSTANTS } from "../../core/constants/api.const.js";
+// ✅ موج ۱۳.۱۵: قواعد فرم/payload در یک فایل مشترک (آینهٔ سرور)
+import {
+  FARM_MAX_NOTE_LENGTH,
+  FARM_MAX_PENDING,
+  farmPayload,
+  farmTypeKey,
+} from "./portal.farm.rules.js";
 
 // ساخت پارامتر صفحه‌بندی — فقط عدد مثبت؛ هیچ شناسه‌ای اینجا نیست
 const pageParams = ({ page = 1, limit = 20 } = {}) => {
@@ -152,11 +159,18 @@ export const documentFileError = (file) => {
 //     بدنهٔ تمیز). امنیت با همان فهرست سفیدِ سرور تأمین می‌شود.
 //  🔒 عمداً غایب: customer_id · status · id · reviewed_by · role
 // ============================================================
-export const FARM_REQUEST_TYPES = [
-  { key: "unit_create", label: "ثبت واحد مرغداری", icon: "fa-building" },
-  { key: "hall_create", label: "ثبت سالن", icon: "fa-warehouse" },
-  { key: "placement_create", label: "ثبت جوجه‌ریزی", icon: "fa-egg" },
-];
+// ✅ موج ۱۳.۱۵: ۱۸ نوع، کلیدهای سفید payload و `farmPayload` از یک
+// منبع مشترک می‌آیند (`portal.farm.rules.js`) ⇒ دیگر فهرست دستی دوم
+// وجود ندارد؛ فرم، payload و برچسب‌ها همیشه هم‌راستا می‌مانند.
+export {
+  FARM_REQUEST_TYPES,
+  FARM_TYPE_KEYS,
+  FARM_DESTRUCTIVE_TYPES,
+  FARM_PAYLOAD_KEYS,
+  farmTypeKey,
+  farmPayload,
+  farmIsDestructive,
+} from "./portal.farm.rules.js";
 
 export const FARM_STATUS_KEYS = [
   "pending",
@@ -166,122 +180,16 @@ export const FARM_STATUS_KEYS = [
 ];
 
 export const FARM_LIMITS = {
-  maxPending: 10,
-  maxNoteLength: 300,
+  // سقف در انتظار هم‌عدد سرور (MAX_PENDING_REQUESTS)
+  maxPending: FARM_MAX_PENDING,
+  maxNoteLength: FARM_MAX_NOTE_LENGTH,
 };
 
-// کلیدهای سفید هر نوع — هم‌ترتیب با فهرست سرور
-const FARM_PAYLOAD_KEYS = {
-  unit_create: [
-    "unit_name",
-    "address",
-    "hall_count",
-    "capacity",
-    "longitude",
-    "latitude",
-    "manager_name",
-    "manager_phone",
-    "note",
-  ],
-  hall_create: [
-    "unit_id",
-    "hall_name",
-    "hall_number",
-    "nominal_capacity",
-    "altitude_above_sea",
-    "hall_type_id",
-    "construction_year",
-    "operator_name",
-    "note",
-  ],
-  placement_create: [
-    "unit_id",
-    "hall_id",
-    "placement_date",
-    "chick_source_id",
-    "breed_id",
-    "chick_age_on_arrival",
-    "avg_initial_weight",
-    "total_chicks_count",
-    "placement_density",
-    "flock_id",
-    "start_new_flock",
-    "note",
-  ],
-};
+// ✅ موج ۱۳.۱۵: فهرست کلیدهای payload از `FARM_FORM_SPEC` مشتق می‌شود
+// (`FARM_PAYLOAD_KEYS` در portal.farm.rules.js) — نسخهٔ دستی حذف شد.
 
-// فقط نوع شناخته‌شده؛ هر چیز دیگر ⇒ خطای روشن پیش از ارسال
-export const farmTypeKey = (raw) => {
-  const key = String(raw === null || raw === undefined ? "" : raw).trim();
-  if (!FARM_REQUEST_TYPES.some((item) => item.key === key)) {
-    throw new Error("نوع درخواست نامعتبر است");
-  }
-  return key;
-};
-
-// بدنهٔ payload: فقط کلیدهای سفید + نرمال‌سازی سبک
-//  • عدد: رشتهٔ فارسی/خالی ⇒ عدد یا حذف
-//  • boolean: برای start_new_flock
-export const farmPayload = (type, input = {}) => {
-  const key = farmTypeKey(type);
-  const source = input && typeof input === "object" ? input : {};
-  const payload = {};
-
-  FARM_PAYLOAD_KEYS[key].forEach((field) => {
-    if (!Object.prototype.hasOwnProperty.call(source, field)) return;
-    const raw = source[field];
-
-    if (field === "start_new_flock") {
-      payload[field] =
-        raw === true || raw === "true" || raw === "on" || raw === 1;
-      return;
-    }
-
-    if (field === "note") {
-      const note = String(raw ?? "").trim().slice(0, FARM_LIMITS.maxNoteLength);
-      if (note) payload[field] = note;
-      return;
-    }
-
-    const text = String(raw ?? "").trim();
-    if (!text) return;
-
-    // فیلدهای عددی: اگر عدد معتبر بود، عدد می‌فرستیم
-    if (
-      [
-        "hall_count",
-        "capacity",
-        "longitude",
-        "latitude",
-        "unit_id",
-        "nominal_capacity",
-        "altitude_above_sea",
-        "hall_type_id",
-        "construction_year",
-        "hall_id",
-        "chick_source_id",
-        "breed_id",
-        "chick_age_on_arrival",
-        "avg_initial_weight",
-        "total_chicks_count",
-        "placement_density",
-        "flock_id",
-      ].includes(field)
-    ) {
-      const parsed = Number(
-        text
-          .replace(/[\u06F0-\u06F9]/g, (ch) => String(ch.charCodeAt(0) - 0x06f0))
-          .replace(/[\u0660-\u0669]/g, (ch) => String(ch.charCodeAt(0) - 0x0660)),
-      );
-      if (Number.isFinite(parsed)) payload[field] = parsed;
-      return;
-    }
-
-    payload[field] = text.slice(0, 100);
-  });
-
-  return payload;
-};
+// ✅ موج ۱۳.۱۵: `farmPayload` از portal.farm.rules.js صادر می‌شود
+// (تایپ‌آگاه: عدد/بولین/آرایهٔ شناسه/ردیف تجهیزات — همه از spec).
 
 export const portalApi = {
   // خلاصهٔ پروندهٔ خودِ کاربر واردشده
@@ -513,6 +421,31 @@ export const portalApi = {
     return apiService.post(
       API_CONSTANTS.ENDPOINTS.PORTAL.FARM_REQUEST_CANCEL(rowId(id)),
       {},
+    );
+  },
+
+  // ============================================================
+  // ✅ موج ۱۳.۱۳/۱۳.۱۴/۱۳.۱۵ — «جزئیات ردیف خودم» برای پیش‌پرکردن فرم
+  // ------------------------------------------------------------
+  //  🔒 شناسه فقط از پاسخ فهرست/گزینه‌ها می‌آید و با rowId اعتبارسنجی
+  //     می‌شود؛ سرور هم مالکیت را در همان کوئری می‌سنجد (۴۰۴).
+  // ============================================================
+  async getFarmHallDetails(id) {
+    return apiService.get(
+      API_CONSTANTS.ENDPOINTS.PORTAL.FARM_HALL_DETAILS(rowId(id)),
+    );
+  },
+
+  async getFarmPlacementDetails(id) {
+    return apiService.get(
+      API_CONSTANTS.ENDPOINTS.PORTAL.FARM_PLACEMENT_DETAILS(rowId(id)),
+    );
+  },
+
+  // ✅ ۱۳.۱۵: یک هفتهٔ ثبت‌شده (پنج آرایهٔ شناسه + اعداد) برای ویرایش
+  async getFarmWeeklyDetails(id) {
+    return apiService.get(
+      API_CONSTANTS.ENDPOINTS.PORTAL.FARM_WEEKLY_DETAILS(rowId(id)),
     );
   },
 };

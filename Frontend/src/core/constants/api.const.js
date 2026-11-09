@@ -250,6 +250,11 @@ export const API_CONSTANTS = {
       FARM_OPTIONS: "/portal/farm/options",
       FARM_REQUESTS: "/portal/farm/requests",
       FARM_REQUEST_CANCEL: (id) => `/portal/farm/requests/${id}/cancel`,
+      // ✅ ۱۳.۱۳/۱۳.۱۴/۱۳.۱۵ — «جزئیات ردیف خودم» (پیش‌پرکردن فرم).
+      //  🔒 فقط خواندن؛ شناسهٔ ردیف خودم و مالکیت در سرور سنجیده می‌شود.
+      FARM_HALL_DETAILS: (id) => `/portal/farm/halls/${id}`,
+      FARM_PLACEMENT_DETAILS: (id) => `/portal/farm/placements/${id}`,
+      FARM_WEEKLY_DETAILS: (id) => `/portal/farm/weeklies/${id}`,
     },
     // ===== ✅ موج ۱۳.۱۱ — صف «درخواست‌های پورتال» (فقط کارکنان) =====
     //  ⚠️ این مسیرها `authorize("customer")` ندارند؛ با کلید مجوز

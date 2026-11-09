@@ -46,6 +46,8 @@ const ChickPlacement = require("../models/ChickPlacement");
 const PortalDocument = require("../models/PortalDocument");
 const PortalRequest = require("../models/PortalRequest");
 const Hall = require("../models/Hall");
+// ✅ ۱۳.۱۵: مالکیت «هفتهٔ خودم» در مسیر سنجیده می‌شود
+const WeeklyManagement = require("../models/WeeklyManagement");
 
 // ✅ همهٔ مسیرهای این روتر پشت احراز هویت هستند
 router.use(protect);
@@ -356,6 +358,15 @@ router.get(
   ...farmChain,
   requireOwnedRow({ model: ChickPlacement, label: "دوره" }),
   portalFarmController.getMyPlacement,
+);
+
+// ✅ ۱۳.۱۵: جزئیات یک هفتهٔ خودم (پیش‌پرکردن فرم ویرایش هفته).
+// فقط خواندن ⇒ بدون سقف نوشتن؛ مالکیت ردیف با requireOwnedRow.
+router.get(
+  "/farm/weeklies/:id",
+  ...farmChain,
+  requireOwnedRow({ model: WeeklyManagement, label: "هفته" }),
+  portalFarmController.getMyWeekly,
 );
 
 router.get(

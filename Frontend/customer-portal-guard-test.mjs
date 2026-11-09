@@ -114,6 +114,9 @@ const FILES = {
   // ✅ موج ۱۳.۱۱ — «درخواست‌های فارم» (الگوی ب: درخواست + تأیید کارشناس)
   portalFarm: "Frontend/src/features/portal/portal.farm.js",
   portalFarmRenderer: "Frontend/src/features/portal/portal.farm.renderer.js",
+  // ✅ موج ۱۳.۱۵ — قواعد فرم/payload و حساب هفته (فایل‌های تازه)
+  portalFarmRules: "Frontend/src/features/portal/portal.farm.rules.js",
+  portalFarmWeeks: "Frontend/src/features/portal/portal.farm.weeks.js",
   farmController: "Backend/controllers/portalFarmController.js",
   farmRules: "Backend/services/portalRequestRules.js",
   farmService: "Backend/services/portalRequestService.js",
@@ -142,6 +145,7 @@ const FILES = {
   docs1311: "docs/REVIEW-WAVE-13.11.md",
   docs1313: "docs/REVIEW-WAVE-13.13.md",
   docs1314: "docs/REVIEW-WAVE-13.14.md",
+  docs1315: "docs/REVIEW-WAVE-13.15.md",
   backendRequestTest: "Backend/portal-request-test.mjs",
 };
 
@@ -199,6 +203,9 @@ const SRC = {
   // ✅ موج ۱۳.۱۱ — «درخواست‌های فارم» (الگوی ب)
   portalFarm: read(FILES.portalFarm),
   portalFarmRenderer: read(FILES.portalFarmRenderer),
+  // ✅ موج ۱۳.۱۵
+  portalFarmRules: read(FILES.portalFarmRules),
+  portalFarmWeeks: read(FILES.portalFarmWeeks),
   farmController: read(FILES.farmController),
   farmRules: read(FILES.farmRules),
   farmService: read(FILES.farmService),
@@ -612,13 +619,14 @@ check(
 );
 
 check(
-  "مسیر: ۱۹ GET خواندنی + نوشتن‌های محدود (پروفایل ۳ + مدارک ۲ + فارم ۲ · بدون PUT)",
+  "مسیر: ۲۰ GET خواندنی + نوشتن‌های محدود (پروفایل ۳ + مدارک ۲ + فارم ۲ · بدون PUT)",
   // ✅ موج ۱۳.۸: ۸ مسیر خواندنی قبلی + پروفایل + چهار مسیر داشبورد = ۱۳
   // ✅ موج ۱۳.۱۰: دو GET مدارک (فهرست + فایل) ⇒ ۱۵
   // ✅ موج ۱۳.۱۱: دو GET درخواست‌های فارم (options + requests) ⇒ ۱۷
   // ✅ موج ۱۳.۱۳: یک GET جزئیات سالن (/farm/halls/:id) ⇒ ۱۸
   // ✅ موج ۱۳.۱۴: یک GET جزئیات دوره (/farm/placements/:id) ⇒ ۱۹
-  (SRC.routes.match(/router\.get\(/g) || []).length === 19 &&
+  // ✅ موج ۱۳.۱۵: یک GET جزئیات هفته (/farm/weeklies/:id) ⇒ ۲۰
+  (SRC.routes.match(/router\.get\(/g) || []).length === 20 &&
     (SRC.routes.match(/router\.patch\(/g) || []).length === 1 &&
     // ۲ پروفایل/موبایل + ۱ آپلود مدرک + ۲ درخواست فارم (ثبت/لغو)
     (SRC.routes.match(/router\.post\(/g) || []).length === 5 &&
@@ -2460,7 +2468,9 @@ check(
 check(
   "۱۳.۱۱ · رندرر پورتال: escape خروجی + اعتبارسنجی فرم سمت کلاینت",
   /const esc = \(value\) =>/.test(SRC.portalFarmRenderer) &&
-    /export const FARM_FORM_SPEC = \{/.test(SRC.portalFarmRenderer) &&
+    // ✅ ۱۳.۱۵: مشخصات فرم‌ها به فایل قواعد منتقل شد (یک منبع با payload)
+    /export const FARM_FORM_SPEC = \{/.test(SRC.portalFarmRules) &&
+    /from "\.\/portal\.farm\.rules\.js"/.test(SRC.portalFarmRenderer) &&
     /export const renderFarmPanel = \(\{/.test(SRC.portalFarmRenderer) &&
     /farmFormError\(\)\s*\{/.test(SRC.portalFarm) &&
     /&amp;/.test(SRC.portalFarmRenderer),
@@ -2625,7 +2635,8 @@ check(
     /meta\.types\.filter\(\(item\) => item && FARM_FORM_SPEC\[item\.key\]\)/.test(
       SRC.portalFarmRenderer,
     ) &&
-    /if \(!FARM_FORM_SPEC\[key\]\) return;/.test(SRC.portalFarm),
+    // ✅ ۱۳.۱۵: تعویض نوع با `farmSpecOf` سنجیده می‌شود (spec از فایل قواعد)
+    /if \(!farmSpecOf\(key\)\.length\) return;/.test(SRC.portalFarm),
 );
 
 // ============================================================
@@ -2714,6 +2725,211 @@ check(
   "۱۳.۱۴ · مستندات موج ۱۳.۱۴ موجود است",
   /۱۳\.۱۴/.test(read(FILES.docs1314)) &&
     /weekly_create/.test(read(FILES.docs1314)),
+);
+
+// ============================================================
+// ✅ موج ۱۳.۱۵ — رابط کاربری ۱۸ نوع درخواست (فرم‌ها + پیش‌پرکردن)
+// ------------------------------------------------------------
+//  ریسک‌هایی که این بخش از بازگشتشان جلوگیری می‌کند:
+//   ۱) فرم ۱۸ نوع با فهرست کلیدهای دستیِ دوم ساخته شود و با سرور
+//      ناهم‌راستا شود (اینجا کلیدها با فهرست سفید سرور مقایسه می‌شود).
+//   ۲) فیلد «انتخاب» (مثل دوره در ویرایش هفته) ناخواسته به payload
+//      برود و رکورد را به دورهٔ دیگری بچسباند.
+//   ۳) حذف بدون تأیید دوم ارسال شود یا با confirm بومی.
+//   ۴) فرم ویرایش مقادیر فعلی را پیش‌پر نکند (بازنویسی کورکورانه).
+//   ۵) شمارهٔ هفته/تاریخ‌ها دستی وارد شود و با قاعدهٔ ترتیب هفته‌ها
+//      سرور (week_order) ناسازگار بیفتد.
+// ============================================================
+
+// ماژول‌های خالص ۱۳.۱۵ واقعاً اجرا می‌شوند (بدون DOM/دیتابیس)
+const farmRules = await import(
+  new URL("../Frontend/src/features/portal/portal.farm.rules.js", import.meta.url)
+    .href
+);
+const farmWeeks = await import(
+  new URL("../Frontend/src/features/portal/portal.farm.weeks.js", import.meta.url)
+    .href
+);
+const serverFarmRules = require("../Backend/services/portalRequestRules");
+
+const sortedText = (list = []) => [...list].sort().join(",");
+
+check(
+  "۱۳.۱۵ · هر ۱۸ نوع فرم دارد و گروه‌ها همهٔ نوع‌ها را می‌پوشانند",
+  farmRules.FARM_TYPE_KEYS.length === 18 &&
+    Object.keys(farmRules.FARM_FORM_SPEC).length === 18 &&
+    sortedText(farmRules.FARM_FORM_GROUPS.flatMap((group) => group.types)) ===
+      sortedText(farmRules.FARM_TYPE_KEYS) &&
+    farmRules.FARM_FORM_GROUPS.length === 5,
+);
+
+check(
+  "۱۳.۱۵ · نوع‌های کلاینت و سرور یکی‌اند (۱۸ نوع)",
+  sortedText(serverFarmRules.REQUEST_TYPE_KEYS) ===
+    sortedText(farmRules.FARM_TYPE_KEYS) &&
+    sortedText(serverFarmRules.DESTRUCTIVE_TYPES) ===
+      sortedText(farmRules.FARM_DESTRUCTIVE_TYPES) &&
+    farmRules.FARM_DESTRUCTIVE_TYPES.length === 4,
+);
+
+check(
+  "۱۳.۱۵ · کلیدهای payload کلاینت زیرمجموعهٔ فهرست سفید سرور است",
+  serverFarmRules.REQUEST_TYPE_KEYS.every((type) => {
+    const clientKeys = farmRules.FARM_PAYLOAD_KEYS[type] || [];
+    const serverKeys = serverFarmRules.ALLOWED_PAYLOAD_KEYS[type] || [];
+    return clientKeys.length > 0 && clientKeys.every((key) => serverKeys.includes(key));
+  }) &&
+    // تنها «تنگ‌کردن» عمدی: chick_placement_id در ویرایش هفته فقط انتخاب UI است
+    serverFarmRules.REQUEST_TYPE_KEYS
+      .map((type) => {
+        const client = farmRules.FARM_PAYLOAD_KEYS[type] || [];
+        const missing = (serverFarmRules.ALLOWED_PAYLOAD_KEYS[type] || []).filter(
+          (key) => !client.includes(key),
+        );
+        return missing.length ? `${type}:${missing.join("/")}` : "";
+      })
+      .filter(Boolean)
+      .join(",") === "weekly_update:chick_placement_id" &&
+    !farmRules.FARM_PAYLOAD_KEYS.weekly_update.includes("chick_placement_id") &&
+    farmRules.FARM_PAYLOAD_KEYS.weekly_delete.join(",") === "weekly_id,note",
+);
+
+check(
+  "۱۳.۱۵ · farmPayload: عدد/آرایهٔ شناسه/ردیف تجهیزات تایپ‌آگاه است",
+  (() => {
+    const weekly = farmRules.farmPayload("weekly_create", {
+      chick_placement_id: "۷",
+      week_number: "۳",
+      week_start_date: "2026-01-01",
+      week_end_date: "2026-01-07",
+      flock_age_days: "21",
+      weekly_mortality: "۴",
+      weekly_weight: "۳۵۰",
+      blackout_hours: "6",
+      disease_ids: ["1", "1", "x", 2],
+      customer_id: 999,
+      status: "approved",
+    });
+    const system = farmRules.farmPayload("hall_system_save", {
+      hall_id: "5",
+      fan_count: "۲",
+      items: [
+        { category: "fan", quantity: "2", spec: "صنعتی" },
+        { category: "", quantity: "3" },
+      ],
+    });
+    return (
+      weekly.week_number === 3 &&
+      weekly.weekly_mortality === 4 &&
+      weekly.weekly_weight === 350 &&
+      weekly.blackout_hours === 6 &&
+      JSON.stringify(weekly.disease_ids) === "[1,2]" &&
+      !("customer_id" in weekly) &&
+      !("status" in weekly) &&
+      system.fan_count === 2 &&
+      system.items.length === 1 &&
+      system.items[0].quantity === 2 &&
+      !("unit_id" in system)
+    );
+  })(),
+);
+
+check(
+  "۱۳.۱۵ · پیش‌پرکردن: سه اندپوینت جزئیات + cache + بازیابی هفته",
+  /FARM_WEEKLY_DETAILS: \(id\) => `\/portal\/farm\/weeklies\/\$\{id\}`/.test(
+    SRC.apiConst,
+  ) &&
+    /async getFarmHallDetails\(id\)/.test(SRC.portalApi) &&
+    /async getFarmPlacementDetails\(id\)/.test(SRC.portalApi) &&
+    /async getFarmWeeklyDetails\(id\)/.test(SRC.portalApi) &&
+    /"\/farm\/weeklies\/:id"/.test(SRC.farmRoutes) &&
+    /requireOwnedRow\(\{ model: WeeklyManagement, label: "هفته" \}\)/.test(
+      SRC.farmRoutes,
+    ) &&
+    /const weeklyDetailsFor = async \(\{ customerId, weeklyId \}\)/.test(
+      SRC.farmService,
+    ) &&
+    /weeklyWrite\.formatWeeklyRecord\(row\)/.test(SRC.farmService) &&
+    /where: \{ id: weeklyId, customer_id: customerId \}/.test(SRC.farmService),
+);
+
+check(
+  "۱۳.۱۵ · فرم ویرایش: مقادیر فعلی پیش‌پر می‌شوند (بدون بازنویسی کورکورانه)",
+  /farmValuesFromHallDetails/.test(SRC.portalFarm) &&
+    /farmValuesFromWeekly/.test(SRC.portalFarm) &&
+    /farmValuesFromPlacement/.test(SRC.portalFarm) &&
+    /cache: new Map\(\)/.test(SRC.portalFarm) &&
+    /async fetchFarmDetails\(cacheKey, loader\)/.test(SRC.portalFarm) &&
+    /async loadFarmWeeklyDetails\(weeklyId\)/.test(SRC.portalFarm) &&
+    /if \(this\.farm\.cache\.has\(cacheKey\)\)/.test(SRC.portalFarm),
+);
+
+check(
+  "۱۳.۱۵ · حذف: هشدار روشن + نام واحد برای تأیید + رد ناهمخوانی",
+  /portal-farm__danger/.test(SRC.portalFarmRenderer) &&
+    /data-farm-abort/.test(SRC.portalFarmRenderer) &&
+    /farmIsDestructive\(this\.farm\.activeType\) && !this\.farm\.confirmOpen/.test(
+      SRC.portalFarm,
+    ) &&
+    /confirm_name/.test(SRC.portalFarmRules) &&
+    /typed !== current/.test(SRC.portalFarm) &&
+    /confirm_name_mismatch/.test(SRC.farmService),
+);
+
+check(
+  "۱۳.۱۵ · هفته: شماره/تاریخ/سن خودکار و بازهٔ نامعتبر رد می‌شود",
+  (() => {
+    const plan = farmWeeks.weekPlanFor({
+      placement: { placement_date: "2026-03-01", chick_age_on_arrival: 1 },
+      weeks: [
+        { week_number: 1, week_end_date: "2026-03-07" },
+        { week_number: 2, week_end_date: "2026-03-14" },
+      ],
+    });
+    return (
+      plan.week_number === 3 &&
+      plan.week_start_date === "2026-03-15" &&
+      plan.week_end_date === "2026-03-21" &&
+      plan.flock_age_days === 15 &&
+      farmWeeks.isoDateOf("2026-01-01T00:00:00.000Z") === "2026-01-01" &&
+      farmWeeks.weeklyDateError({ week_start_date: "2026-01-01", week_end_date: "2026-01-07" }) === "" &&
+      farmWeeks.weeklyDateError({ week_start_date: "2026-01-10", week_end_date: "2026-01-05" }).length > 0 &&
+      /weekPlanFor\(\{ placement, weeks: this\.farm\.weeks \}\)/.test(SRC.portalFarm) &&
+      /weeklyDateError\(input\)/.test(SRC.portalFarm)
+    );
+  })(),
+);
+
+check(
+  "۱۳.۱۵ · ردیف تجهیزات: افزودن/حذف بدون <form> و ارسال فقط با تغییر",
+  /export const farmItemRowHtml = \(row = \{\}, index = 0\) =>/.test(
+    SRC.portalFarmRenderer,
+  ) &&
+    /data-farm-item-add/.test(SRC.portalFarmRenderer) &&
+    /data-farm-item-remove/.test(SRC.portalFarmRenderer) &&
+    /data-farm-item-field="type_id"/.test(SRC.portalFarmRenderer) &&
+    /addFarmItemRow\(button\)/.test(SRC.portalFarm) &&
+    /removeFarmItemRow\(button\)/.test(SRC.portalFarm) &&
+    /if \(!this\.farm\.itemsTouched\) delete input\.items;/.test(SRC.portalFarm),
+);
+
+check(
+  "۱۳.۱۵ · UI: تب‌های گروه‌بندی‌شده + پنج گروه چک‌باکس شناسه",
+  /portal-farm__group-title/.test(SRC.portalFarmRenderer) &&
+    /groupedTabsHtml\(typeMap, activeType\)/.test(SRC.portalFarmRenderer) &&
+    /data-farm-multi="\$\{esc\(field\.key\)\}"/.test(SRC.portalFarmRenderer) &&
+    /readFarmMulti\(key\)/.test(SRC.portalFarm) &&
+    /portal-farm__group-title \{/.test(SRC.portalCss) &&
+    /portal-farm__multi-item/.test(SRC.portalCss) &&
+    /portal-farm__item-row/.test(SRC.portalCss),
+);
+
+check(
+  "۱۳.۱۵ · مستندات و README موج ۱۳.۱۵ موجود است",
+  /۱۳\.۱۵/.test(read(FILES.docs1315)) &&
+    /weekly_update/.test(read(FILES.docs1315)) &&
+    /۱۳\.۱۵/.test(read("Frontend/README.md")) &&
+    /۱۳\.۱۵/.test(read("Backend/README.md")),
 );
 
 // ============================================================

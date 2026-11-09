@@ -882,6 +882,57 @@ check(
 );
 
 // ============================================================
+// ۱۳) موج ۱۳.۱۵ — جزئیات یک هفته (پیش‌پرکردن فرم ویرایش در پورتال)
+// ------------------------------------------------------------
+//  ریسک: بدون این مسیر، فرم «ویرایش هفته» مجبور بود اعداد دان/خاموشی/
+//  توضیحات و پنج آرایهٔ شناسه را دستی دوباره بگیرد — و `validateWeeklyData`
+//  هم شمارهٔ هفته/تاریخ‌ها/تلفات/وزن را اجباری می‌داند ⇒ یا داده گم می‌شد
+//  یا مشتری همه‌چیز را از نو تایپ می‌کرد.
+// ============================================================
+const farmControllerSource = fs.readFileSync(
+  path.join(here, "controllers/portalFarmController.js"),
+  "utf8",
+);
+
+check(
+  "۱۳.۱۵ · سرویس: جزئیات هفته از همان خواندن هستهٔ weeklyWrite می‌آید",
+  /const weeklyDetailsFor = async \(\{ customerId, weeklyId \}\)/.test(
+    serviceSource,
+  ) &&
+    /requireOwnedWeekly|weeklyWrite\.formatWeeklyRecord\(row\)/.test(serviceSource) &&
+    /weeklyWrite\.formatWeeklyRecord\(row\)/.test(serviceSource) &&
+    /WEEKLY_ITEM_GROUPS\.map/.test(serviceSource) &&
+    !/WeeklyManagement\.findByPk/.test(serviceSource),
+);
+
+check(
+  "۱۳.۱۵ · مالکیت هفته در همان کوئری سنجیده می‌شود (۴۰۴ برای غیرخودی)",
+  /where: \{ id: weeklyId, customer_id: customerId \}/.test(serviceSource) &&
+    /if \(!row\) throw serviceError\("weekly_not_found", 404\)/.test(
+      serviceSource,
+    ) &&
+    /weeklyDetailsFor,/.test(serviceSource),
+);
+
+check(
+  "۱۳.۱۵ · مسیر /farm/weeklies/:id فقط خواندنی و با requireOwnedRow",
+  /"\/farm\/weeklies\/:id"/.test(farmRoutesSource) &&
+    /requireOwnedRow\(\{ model: WeeklyManagement, label: "هفته" \}\)/.test(
+      farmRoutesSource,
+    ) &&
+    /getMyWeekly/.test(farmControllerSource) &&
+    /weeklyDetailsFor\(\{/.test(farmControllerSource) &&
+    /REQUEST_MESSAGES\.weekly_not_found/.test(farmControllerSource),
+);
+
+check(
+  "۱۳.۱۵ · خروجی شکل یافته دارد (id عددی + chick_placement_id عددی)",
+  /id: Number\(record\.id\)/.test(serviceSource) &&
+    /chick_placement_id:/.test(serviceSource) &&
+    /return \{\s*weekly: \{/.test(serviceSource),
+);
+
+// ============================================================
 // خلاصه
 // ============================================================
 const passed = results.filter(Boolean).length;

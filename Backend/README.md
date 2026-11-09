@@ -731,3 +731,22 @@ npm run lint                  # ۰ خطا
 
 📄 گزارش کامل: `docs/REVIEW-WAVE-13.14.md`.
 
+## جزئیات یک هفته از نگاه مشتری — پیش‌نیاز رابط کاربری ۱۳.۱۵ (موج ۱۳.۱۵)
+
+فرم «ویرایش اطلاعات هفتگی» در پورتال به اعداد دان/خاموشی/توضیحات و
+**پنج آرایهٔ شناسه** نیاز دارد، ولی `placementDetailsFor` عمداً فقط
+ستون‌های سبک هفته را برای فهرست انتخاب برمی‌گرداند. یک اندپوینت تازه
+این شکاف را می‌بندد:
+
+| موضوع | مقدار |
+|---|---|
+| اندپوینت | `GET /api/portal/farm/weeklies/:id` |
+| خروجی | `{ weekly: { id, week_number, تاریخ‌ها, تلفات, وزن, دان روزانه/هفتگی, خاموشی, توضیحات, disease_ids[], vaccine_ids[], medicine_ids[], feed_type_ids[], suggestion_ids[] } }` |
+| خواندن | `weeklyWrite.loadWeeklyRecord` + `weeklyWrite.formatWeeklyRecord` (بدون نسخهٔ دوم) |
+| مالکیت | `requireOwnedRow({ model: WeeklyManagement, label: "هفته" })` + `where: { id, customer_id }` ⇒ ۴۰۴ برای هفتهٔ غیرخودی |
+| سقف نوشتن | ندارد (فقط خواندن) |
+| شمارش GET پورتال | ۱۹ ⇒ **۲۰** |
+| آزمون | `Backend/portal-request-test.mjs` — ۴ بررسی تازه (۷۴ در کل) |
+
+📄 گزارش کامل: `docs/REVIEW-WAVE-13.15.md`.
+

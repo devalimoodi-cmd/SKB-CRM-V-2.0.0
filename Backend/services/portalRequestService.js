@@ -1616,6 +1616,46 @@ const placementDetailsFor = async ({ customerId, placementId }) => {
   };
 };
 
+// ============================================
+// ۱۲) جزئیات یک هفتهٔ خودم (پیش‌پرکردن فرم ویرایش)  — ✅ ۱۳.۱۵
+// ------------------------------------------------------------
+//  چرا لازم شد؟
+//   `placementDetailsFor` عمداً فقط ستون‌های سبک هفته را برمی‌گرداند
+//   (فهرست هفته‌ها برای انتخاب). فرم «ویرایش هفته» به اعداد دان/خاموشی/
+//   توضیحات و **پنج آرایهٔ شناسه** نیاز دارد؛ بدون این مسیر، مشتری باید
+//   همهٔ مقادیر را دستی دوباره وارد کند (و `validateWeeklyData` هم
+//   شمارهٔ هفته/تاریخ‌ها/تلفات/وزن را اجباری می‌داند).
+//
+//  🔒 مالکیت در همان کوئری (`customer_id`) سنجیده می‌شود ⇒ هفتهٔ
+//  غیرخودی ۴۰۴ می‌گیرد و `customer_id` هرگز پارامتر نمی‌شود.
+//  ✅ خواندن و شکل‌دهی از `services/farm/weeklyWrite` می‌آید
+//  (`loadWeeklyRecord`/`formatWeeklyRecord`) — نسخهٔ دوم ساخته نشد.
+// ============================================
+const weeklyDetailsFor = async ({ customerId, weeklyId }) => {
+  const row = await WeeklyManagement.findOne({
+    where: { id: weeklyId, customer_id: customerId },
+    include: weeklyWrite.WEEKLY_ITEM_GROUPS.map((group) => ({
+      model: group.model,
+      as: group.alias,
+      attributes: [group.foreignKey],
+    })),
+  });
+  if (!row) throw serviceError("weekly_not_found", 404);
+
+  const record = weeklyWrite.formatWeeklyRecord(row);
+
+  return {
+    weekly: {
+      ...record,
+      id: Number(record.id),
+      chick_placement_id:
+        record.chick_placement_id == null
+          ? null
+          : Number(record.chick_placement_id),
+    },
+  };
+};
+
 module.exports = {
   approveRequest,
   cancelMyRequest,
@@ -1624,6 +1664,8 @@ module.exports = {
   getRequest,
   hallDetailsFor,
   placementDetailsFor,
+  // ✅ ۱۳.۱۵: جزئیات یک هفته (پیش‌پرکردن فرم ویرایش)
+  weeklyDetailsFor,
   listMyRequests,
   listQueue,
   optionsFor,

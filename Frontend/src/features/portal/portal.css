@@ -1566,9 +1566,144 @@
   color: var(--text-muted, #94a3b8);
 }
 
+/* ============================================================
+   ✅ موج ۱۳.۱۵ — ۱۸ نوع درخواست: گروه تب‌ها، فیلدهای تازه، هشدار حذف
+   ============================================================ */
+.portal-farm__groups {
+  display: grid;
+  gap: 10px;
+}
+
+.portal-farm__group {
+  display: grid;
+  gap: 6px;
+}
+
+.portal-farm__group-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-muted, #64748b);
+}
+
+.portal-farm__type-warn {
+  color: var(--danger, #dc2626);
+  font-size: 0.7rem;
+}
+
+.portal-farm__title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text, #1f2937);
+}
+
+.portal-farm__field--wide {
+  grid-column: 1 / -1;
+}
+
+.portal-farm__help {
+  font-size: 0.7rem;
+  line-height: 1.6;
+  color: var(--text-muted, #94a3b8);
+}
+
+.portal-farm__danger {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 8px 10px;
+  font-size: 0.78rem;
+  color: var(--danger-deep, #b91c1c);
+  background: rgba(220, 38, 38, 0.08);
+  border: 1px solid rgba(220, 38, 38, 0.25);
+  border-radius: 10px;
+}
+
+.portal-farm__loading {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--text-muted, #64748b);
+}
+
+.portal-farm__confirm--danger {
+  color: var(--danger-deep, #b91c1c);
+}
+
+.portal-farm__card--danger {
+  border-inline-start: 3px solid var(--danger, #dc2626);
+}
+
+.portal-farm__multi,
+.portal-farm__radio {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  max-height: 180px;
+  overflow: auto;
+  padding: 8px;
+  background: var(--bg-surface-2, #f8fafc);
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 10px;
+}
+
+.portal-farm__multi-item,
+.portal-farm__radio-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  color: var(--text, #334155);
+}
+
+.portal-farm__items {
+  display: grid;
+  gap: 6px;
+}
+
+.portal-farm__item-row {
+  display: grid;
+  grid-template-columns: 1.2fr 1.4fr 0.7fr 0.9fr 0.9fr auto;
+  gap: 6px;
+  align-items: center;
+}
+
+.portal-farm__item-row select,
+.portal-farm__item-row input {
+  width: 100%;
+  padding: 6px 8px;
+  font-size: 0.78rem;
+  font-family: inherit;
+  color: var(--text, #1f2937);
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 8px;
+}
+
+.portal-farm__items-foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 @media (max-width: 640px) {
   .portal-farm__form {
     grid-template-columns: 1fr;
+  }
+
+  .portal-farm__item-row {
+    grid-template-columns: 1fr 1fr;
   }
 
   .portal-farm__card-head {

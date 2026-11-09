@@ -255,10 +255,36 @@ const getMyPlacement = async (req, res) => {
   }
 };
 
+// ============================================
+// GET /api/portal/farm/weeklies/:id   — ✅ ۱۳.۱۵
+// ------------------------------------------------------------
+//  جزئیات یک هفتهٔ خودم (پیش‌پرکردن فرم «ویرایش اطلاعات هفتگی»).
+//  🔒 ردیف از `requireOwnedRow` آمده (۴۰۴ برای هفتهٔ غیرخودی).
+// ============================================
+const getMyWeekly = async (req, res) => {
+  try {
+    const customerId = scopeIdOf(req);
+    if (!customerId) return errorResponse(res, REQUEST_MESSAGES.unlinked, 403);
+
+    const row = req.ownedRow;
+    if (!row) return errorResponse(res, REQUEST_MESSAGES.weekly_not_found, 404);
+
+    const data = await service.weeklyDetailsFor({
+      customerId,
+      weeklyId: row.id,
+    });
+
+    return successResponse(res, data, "جزئیات هفته");
+  } catch (error) {
+    return failure(res, error, "خطا در دریافت جزئیات هفته");
+  }
+};
+
 module.exports = {
   getFarmOptions,
   getMyHall,
   getMyPlacement,
+  getMyWeekly,
   listMyRequests,
   createMyRequest,
   cancelMyRequest,
