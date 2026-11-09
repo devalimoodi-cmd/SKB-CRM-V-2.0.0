@@ -788,6 +788,27 @@ npm run test:cache    :: نگهبانهای UI (وجود بخش، سه‌حال�
 
 📄 گزارش کامل: `docs/REVIEW-WAVE-13.10.md` (سمت سرور: بخش «مدارک مشتری در پورتال» در `Backend/README.md`).
 
+## «درخواست‌های من» — درخواست مشتری + تأیید کارشناس (موج ۱۳.۱۱)
+
+مشتری از پورتال **درخواست** ثبت واحد/سالن/جوجه‌ریزی می‌فرستد؛ تا تأیید کارشناس
+هیچ داده‌ای در سیستم ساخته نمی‌شود (الگوی ب). تأیید/رد در پنل مدیریت انجام می‌شود.
+
+| موضوع | مقدار |
+|---|---|
+| تب | `data-portal-tab="farm"` + پنل `data-portal-panel="farm"` در `portal.html` (بدون تگ فرم) |
+| منطق | `features/portal/portal.farm.js` (mixin جدا: `FARM_TABS` + `applyPortalFarm`) — آخر از همه سوار می‌شود و `loadExtraTab` بقیه را به لایه‌های قبلی واگذار می‌کند |
+| رندر | `features/portal/portal.farm.renderer.js` — `FARM_FORM_SPEC` (سه نوع)، فرم‌ساز بدون تگ فرم، کارت وضعیت، escape کامل |
+| اندپوینت مشتری | `GET /api/portal/farm/options` · `GET /api/portal/farm/requests` · `POST /api/portal/farm/requests` · `POST /api/portal/farm/requests/:id/cancel` |
+| مجوز | `customer.portal.farm` (تب) + `.farm.request` (ارسال) + `.farm.cancel` (لغو) — بستن هر کلید همان دکمه را حذف و از ارسال جلوگیری می‌کند |
+| آینهٔ کلاینتی | `FARM_REQUEST_TYPES` · `FARM_LIMITS` · `farmPayload(type, input)` در `portal.api.js` — فقط کلیدهای سفیدِ همان نوع، هیچ `customer_id`/`status` فرستاده نمی‌شود |
+| وضعیت‌ها | `pending` · `approved` · `rejected` · `cancelled` — مشتری دلیل رد و خلاصهٔ نتیجهٔ تأیید را می‌بیند |
+| پنل ادمین | `features/portal-requests/` (`api` · `manager` · `renderer` · `css`) + منو/بخش/مودال در `admin-panel.html` و `case "portal-requests"` در `admin-panel.service.js` |
+| مجوز صف | `portal.requests.view` (دیدن صف) · `portal.requests.review` (تأیید/رد) · `admin.menu.portalRequests` (نمایش منو) |
+| گارد | بخش **۱۷** در `npm run test:customer-portal` + گارد جدا `npm run test:portal-requests` (۲۸ بررسی) |
+
+📄 گزارش کامل: `docs/REVIEW-WAVE-13.11.md`.
+
+
 ## رفع ۵۰۰ داشبورد پورتال + انتخاب خودکار آخرین گله (موج ۱۳.۱۰.۱)
 
 نمودارها و تحلیل‌های پورتال روی خطای ۵۰۰ می‌افتادند. ریشه در **Express 5** بود

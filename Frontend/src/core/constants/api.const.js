@@ -243,6 +243,23 @@ export const API_CONSTANTS = {
       DOCUMENTS: "/portal/documents",
       DOCUMENT_FILE: (id) => `/portal/documents/${id}/file`,
       DOCUMENT_DELETE: (id) => `/portal/documents/${id}`,
+      // ===== ✅ موج ۱۳.۱۱ — «درخواست‌های فارم» (الگوی ب) =====
+      //  🔒 مشتری این‌جا فقط «درخواست» می‌فرستد؛ هیچ مسیری برای
+      //     نوشتن مستقیم در units/halls/chick_placements وجود ندارد.
+      //     تأیید/رد در PORTAL_REQUESTS (پنل کارکنان) است.
+      FARM_OPTIONS: "/portal/farm/options",
+      FARM_REQUESTS: "/portal/farm/requests",
+      FARM_REQUEST_CANCEL: (id) => `/portal/farm/requests/${id}/cancel`,
+    },
+    // ===== ✅ موج ۱۳.۱۱ — صف «درخواست‌های پورتال» (فقط کارکنان) =====
+    //  ⚠️ این مسیرها `authorize("customer")` ندارند؛ با کلید مجوز
+    //     portal.requests.view / .review محافظت می‌شوند.
+    PORTAL_REQUESTS: {
+      LIST: "/portal-requests",
+      PENDING_COUNT: "/portal-requests/pending-count",
+      DETAIL: (id) => `/portal-requests/${id}`,
+      APPROVE: (id) => `/portal-requests/${id}/approve`,
+      REJECT: (id) => `/portal-requests/${id}/reject`,
     },
     // ===== ثبت‌نام عمومی مشتری + صف تأیید (فاز ۱۳.۶) =====
     //  ⚠️ CONFIG و CREATE عمومی‌اند (بدون ورود)؛ بقیه پنل مدیریت.

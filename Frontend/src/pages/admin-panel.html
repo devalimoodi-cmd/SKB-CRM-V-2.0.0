@@ -29,6 +29,8 @@
 <link rel="stylesheet" href="/features/activity-log/activity-log.history.css">
 <!-- ✅ موج ۱۲.۴.۲ — تقویم شمسی فیلترهای تاریخ (همان کتابخانهٔ dashboard/customer-list) -->
 <link rel="stylesheet" href="./../../node_modules/persian-datepicker/dist/css/persian-datepicker.min.css">
+<!-- ✅ موج ۱۳.۱۱ — استایل صف «درخواست‌های پورتال» (خودبسنده، پیشوند prq-) -->
+<link rel="stylesheet" href="/features/portal-requests/portal-requests.css">
 
     <link rel="icon" type="image/png" href="/assets/images/favicon.ico">
 </head>
@@ -287,6 +289,25 @@
                                         style="display:none;background:var(--danger-strong, #ef4444);color:var(--c-fff, #fff);border-radius:999px;padding:0 7px;font-size:11px;margin-inline-start:6px;">0</span>
                                 </span>
                                 <span class="menu-description">تأیید یا رد ثبت‌نام مشتریان از صفحهٔ عمومی</span>
+                            </div>
+                            <i class="fas fa-chevron-left menu-arrow"></i>
+                        </div>
+
+                        <!-- ✅ «درخواست‌های پورتال» (موج ۱۳.۱۱) -->
+                        <!--    الگوی ب: مشتری درخواست می‌دهد، کارشناس تأیید می‌کند -->
+                        <!--    کلید محتوایی: portal.requests.view -->
+                        <div class="sidebar-menu-item" data-menu="portal-requests"
+                            data-permission="admin.menu.portalRequests">
+                            <div class="menu-icon-wrapper">
+                                <i class="fas fa-clipboard-check menu-icon"></i>
+                            </div>
+                            <div class="menu-content">
+                                <span class="menu-title">
+                                    درخواست‌های پورتال
+                                    <span id="portalRequestsMenuBadge" class="quantity"
+                                        style="display:none;background:var(--danger-strong, #ef4444);color:var(--c-fff, #fff);border-radius:999px;padding:0 7px;font-size:11px;margin-inline-start:6px;">0</span>
+                                </span>
+                                <span class="menu-description">درخواست واحد/سالن/جوجه‌ریزی مشتریان — تأیید یا رد</span>
                             </div>
                             <i class="fas fa-chevron-left menu-arrow"></i>
                         </div>
@@ -680,6 +701,78 @@
                                 <div class="regq-empty">
                                     <i class="fas fa-inbox" style="font-size:26px;"></i>
                                     <p style="margin:8px 0 0;font-size:13px;">در حال بارگذاری درخواست‌ها…</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ✅ «درخواست‌های پورتال» — موج ۱۳.۱۱
+                         🔒 صف تأیید درخواست‌های مشتری؛ فقط با کلید
+                         admin.menu.portalRequests در سایدبار دیده می‌شود و
+                         خودِ مسیرها با portal.requests.view/review محافظت‌اند.
+                         تأیید = ثبت واقعی رکورد در سرور (تراکنشی). -->
+                    <div id="portal-requests" class="content-section">
+                        <div class="prq-card">
+                            <div class="prq-header">
+                                <div>
+                                    <h3 class="prq-title">
+                                        <i class="fas fa-clipboard-check"></i>
+                                        درخواست‌های پورتال مشتریان
+                                    </h3>
+                                    <p class="prq-sub">
+                                        مشتری از پورتال «درخواست» ثبت واحد/سالن/جوجه‌ریزی می‌فرستد؛
+                                        تا تأیید شما هیچ داده‌ای در سیستم ساخته نمی‌شود.
+                                        می‌توانید مقادیر را پیش از تأیید اصلاح کنید.
+                                    </p>
+                                </div>
+                                <div class="prq-filters">
+                                    <select id="prqStatusFilter" class="prq-select" aria-label="فیلتر وضعیت">
+                                        <option value="pending" selected>در انتظار تأیید</option>
+                                        <option value="approved">تأییدشده</option>
+                                        <option value="rejected">ردشده</option>
+                                        <option value="cancelled">لغوشده</option>
+                                        <option value="all">همه</option>
+                                    </select>
+                                    <select id="prqTypeFilter" class="prq-select" aria-label="فیلتر نوع">
+                                        <option value="" selected>همهٔ انواع</option>
+                                        <option value="unit_create">ثبت واحد</option>
+                                        <option value="hall_create">ثبت سالن</option>
+                                        <option value="placement_create">ثبت جوجه‌ریزی</option>
+                                    </select>
+                                    <input id="prqSearchInput" class="prq-input" type="search"
+                                        placeholder="جست‌وجو: نام/کد مشتری یا شمارهٔ پرونده" aria-label="جست‌وجو">
+                                    <button type="button" class="prq-btn" id="prqRefreshBtn">
+                                        <i class="fas fa-rotate-right"></i> به‌روزرسانی
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div id="portalRequestsQueue" class="prq-body">
+                                <div class="prq-empty">
+                                    <i class="fas fa-inbox" style="font-size:26px;"></i>
+                                    <p>در حال بارگذاری درخواست‌ها…</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- مودال بازبینی (بدون <form>؛ دکمه‌های type="button") -->
+                        <div class="prq-modal" id="portalRequestsModal" aria-hidden="true" role="dialog"
+                            aria-modal="true" aria-label="بازبینی درخواست">
+                            <div class="prq-modal__box">
+                                <div class="prq-modal__head">
+                                    <strong>بازبینی درخواست</strong>
+                                    <button type="button" class="prq-btn" data-prq-modal-close
+                                        aria-label="بستن">✕</button>
+                                </div>
+                                <div class="prq-modal__body" id="portalRequestsModalBody"></div>
+                                <div class="prq-modal__foot">
+                                    <button type="button" class="prq-btn prq-btn--danger" data-prq-modal-reject>
+                                        <i class="fas fa-xmark"></i> رد درخواست
+                                    </button>
+                                    <button type="button" class="prq-btn prq-btn--ok" data-prq-modal-approve>
+                                        <i class="fas fa-check"></i> تأیید و ثبت در سیستم
+                                    </button>
+                                    <button type="button" class="prq-btn" data-prq-modal-close>بستن</button>
                                 </div>
                             </div>
                         </div>

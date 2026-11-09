@@ -33,12 +33,15 @@ import { notificationService } from "../../core/services/notification.service.js
 import { EXTRA_TABS, applyPortalExtra } from "./portal.extra.js";
 // ✅ موج ۱۳.۱۰ — تب «مدارک من» (آپلود/دانلود/حذف نرم — mixin جدا)
 import { DOCUMENT_TABS, applyPortalDocuments } from "./portal.documents.js";
+// ✅ موج ۱۳.۱۱ — تب «درخواست‌های فارم» (درخواست مشتری + تأیید کارشناس)
+import { FARM_TABS, applyPortalFarm } from "./portal.farm.js";
 
 // 🔗 ۱۳.۱۰: تب «مدارک من» در همان رجیستری «تب‌های خاص» ثبت می‌شود تا
 //    چرخهٔ پنهان‌سازی/فعال‌سازی، `canSee` و `ALL_TAB_KEYS` بدون تغییر
 //    دوم کار کنند (tabConf/canSee از EXTRA_TABS می‌خوانند).
+//    ✅ ۱۳.۱۱: تب «درخواست‌های فارم» هم به همین رجیستری اضافه می‌شود.
 //    ⚠️ این خط باید **قبل** از ساخت ALL_TAB_KEYS اجرا شود.
-Object.assign(EXTRA_TABS, DOCUMENT_TABS);
+Object.assign(EXTRA_TABS, DOCUMENT_TABS, FARM_TABS);
 
 // پیام ۴۰۳ِ «بدون پروندهٔ متصل» از سرور همین عبارت را دارد
 const LINK_MISSING = /متصل نشده است/;
@@ -132,6 +135,8 @@ class PortalService {
     this.initExtra();
     // ✅ ۱۳.۱۰: وضعیت تب «مدارک من» (بعد از initExtra تا on this.extra بنشیند)
     this.initDocumentsTab();
+    // ✅ ۱۳.۱۱: وضعیت تب «درخواست‌های فارم» (همان الگو)
+    this.initFarmTab();
   }
 
   el(id) {
@@ -163,6 +168,8 @@ class PortalService {
     this.bindExtra();
     // ✅ ۱۳.۱۰: رویدادهای تب «مدارک من» (آپلود/دانلود/حذف)
     this.bindDocuments();
+    // ✅ ۱۳.۱۱: رویدادهای تب «درخواست‌های فارم» (ثبت/لغو)
+    this.bindFarm();
     await this.load();
   }
 
@@ -676,6 +683,11 @@ applyPortalExtra(PortalService);
 // ✅ ۱۳.۱۰: متدهای تب «مدارک من» بعد از portal.extra سوار می‌شوند تا
 //    loadExtraTab این فایل بتواند نسخهٔ portal.extra.js را واگذار کند.
 applyPortalDocuments(PortalService);
+
+// ✅ ۱۳.۱۱: متدهای تب «درخواست‌های فارم» آخر از همه سوار می‌شوند تا
+//    loadExtraTab آن بتواند نسخهٔ لایه‌های قبلی (مدارک/پروفایل/داشبورد)
+//    را واگذاری کند.
+applyPortalFarm(PortalService);
 
 export const portalService = new PortalService();
 

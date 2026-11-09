@@ -66,6 +66,9 @@ const sessionRoutes = require("./routes/sessionRoutes");
 const activityRoutes = require("./routes/activityRoutes");
 // ✅ «پورتال مشتری» (فاز ۱۳.۲): تنها مسیر تازه — خلاصهٔ پروندهٔ خودِ مشتری
 const portalRoutes = require("./routes/portalRoutes");
+// ✅ موج ۱۳.۱۱: صف تأیید «درخواست‌های پورتال» — فقط کارکنان
+//    (کلید مجوز portal.requests.view / .review)
+const portalRequestRoutes = require("./routes/portalRequestRoutes");
 const activityLog = require("./middleware/activityLog");
 const activityService = require("./services/activityService");
 // ✅ ورود دومرحله‌ای (فاز ۱۳.۱) — پاک‌سازی چالش‌های ورود
@@ -506,6 +509,13 @@ app.use("/api/flock-completions", flockCompletionRoutes);
 // • اسکوپ: auth.js ستون customer_id را می‌خواند و customerScope.js
 //   آن را به req.customerScopeId تبدیل می‌کند
 app.use("/api/portal", portalRoutes);
+// =========
+
+// =============================== روت «صف درخواست‌های پورتال» (موج ۱۳.۱۱) =============
+// • فقط کارکنان: protect + requirePermission(portal.requests.view/review)
+// • مشتری از راه پورتال «درخواست» می‌فرستد؛ تأیید/رد این‌جاست
+// • هر تأیید = تراکنش (قفل ردیف + ساخت ردیف واقعی + ثبت نتیجه)
+app.use("/api/portal-requests", portalRequestRoutes);
 // =========
 
 // ============================================

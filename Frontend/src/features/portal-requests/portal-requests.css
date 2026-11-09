@@ -1,0 +1,307 @@
+/* ============================================================
+   features/portal-requests/portal-requests.css
+   صف «درخواست‌های پورتال» در پنل مدیریت — موج ۱۳.۱۱
+   ------------------------------------------------------------
+   همهٔ کلاس‌ها پیشوند prq_ دارند تا با activity-log/regq تداخل نکنند.
+   ============================================================ */
+
+.prq-card {
+  display: grid;
+  gap: 14px;
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--c-e8edf3, #e8edf3);
+  border-radius: 14px;
+  padding: 18px;
+}
+
+.prq-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.prq-title {
+  margin: 0 0 4px;
+  font-size: 15px;
+  color: var(--text, #1f2937);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.prq-sub {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.9;
+  color: var(--text-light, #64748b);
+  max-width: 640px;
+}
+
+.prq-filters {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.prq-select,
+.prq-input {
+  font-family: inherit;
+  font-size: 12px;
+  padding: 7px 10px;
+  border: 1px solid var(--c-e8edf3, #e2e8f0);
+  border-radius: 10px;
+  background: var(--bg-surface, #fff);
+  color: var(--text, #1f2937);
+}
+
+.prq-input {
+  min-width: 210px;
+}
+
+.prq-btn {
+  font-family: inherit;
+  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border: 1px solid var(--c-e8edf3, #e2e8f0);
+  border-radius: 10px;
+  background: var(--bg-surface, #fff);
+  color: var(--text, #334155);
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.prq-btn:hover:not(:disabled) {
+  border-color: var(--primary, #2563eb);
+  color: var(--primary, #2563eb);
+}
+
+.prq-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.prq-btn--ok {
+  border-color: var(--success, #10b981);
+  color: var(--success-deep, #047857);
+  background: rgba(var(--success-rgb), 0.12);
+}
+
+.prq-btn--danger {
+  border-color: var(--danger-strong, #ef4444);
+  color: var(--danger-deep, #b91c1c);
+  background: rgba(var(--danger-rgb), 0.12);
+}
+
+.prq-body {
+  min-height: 120px;
+}
+
+.prq-table-wrap {
+  overflow-x: auto;
+}
+
+.prq-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.prq-table th,
+.prq-table td {
+  padding: 9px 10px;
+  text-align: right;
+  border-bottom: 1px solid var(--border-light, #eef2f7);
+  vertical-align: top;
+}
+
+.prq-table th {
+  font-weight: 600;
+  color: var(--text-light, #64748b);
+  background: var(--bg-surface-2, #f8fafc);
+}
+
+.prq-summary {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 2px;
+  font-size: 11px;
+  color: var(--text-light, #64748b);
+}
+
+.prq-summary strong {
+  color: var(--text, #334155);
+  margin-inline-start: 4px;
+}
+
+.prq-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.prq-sub {
+  font-size: 11px;
+  color: var(--text-light, #94a3b8);
+}
+
+.prq-badge {
+  font-size: 11px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.prq-badge--warning {
+  color: var(--warning-deep-3, #92400e);
+  background: var(--warning-bg, #fef3c7);
+}
+
+.prq-badge--success {
+  color: var(--success-deeper, #065f46);
+  background: var(--success-mist, #d1fae5);
+}
+
+.prq-badge--danger {
+  color: var(--danger-deep, #991b1b);
+  background: var(--danger-bg, #fee2e2);
+}
+
+.prq-badge--muted {
+  color: var(--text-slate, #475569);
+  background: var(--bg-surface-2, #f1f5f9);
+}
+
+.prq-muted {
+  font-size: 11px;
+  color: var(--text-light, #94a3b8);
+}
+
+.prq-empty {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 26px 12px;
+  color: var(--text-light, #94a3b8);
+  font-size: 12px;
+}
+
+.prq-empty--error {
+  color: var(--danger-deep, #b91c1c);
+}
+
+.prq-pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 11px;
+  color: var(--text-light, #64748b);
+  padding-top: 10px;
+  flex-wrap: wrap;
+}
+
+/* ===== مودال بازبینی ===== */
+.prq-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  background: rgba(15, 23, 42, 0.45);
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.prq-modal.is-open {
+  display: flex;
+}
+
+.prq-modal__box {
+  width: min(680px, 100%);
+  max-height: 90vh;
+  overflow: auto;
+  background: var(--bg-surface, #fff);
+  border-radius: 16px;
+  display: grid;
+  gap: 0;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.25);
+}
+
+.prq-modal__head,
+.prq-modal__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-light, #eef2f7);
+}
+
+.prq-modal__foot {
+  border-bottom: none;
+  border-top: 1px solid var(--border-light, #eef2f7);
+  justify-content: flex-start;
+  flex-wrap: wrap;
+}
+
+.prq-modal__body {
+  padding: 14px 16px;
+  display: grid;
+  gap: 12px;
+}
+
+.prq-review-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 13px;
+}
+
+.prq-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+}
+
+.prq-field {
+  display: grid;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-light, #475569);
+}
+
+.prq-field--wide {
+  grid-column: 1 / -1;
+}
+
+.prq-field input,
+.prq-field textarea {
+  font-family: inherit;
+  font-size: 12px;
+  padding: 7px 9px;
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: 9px;
+  width: 100%;
+}
+
+.prq-field textarea {
+  resize: vertical;
+}
+
+.prq-note {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-slate-strong, #334155);
+  background: var(--bg-surface-2, #f8fafc);
+  border-radius: 10px;
+  padding: 8px 10px;
+}

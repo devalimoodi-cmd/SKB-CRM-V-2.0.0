@@ -144,6 +144,145 @@ export const documentFileError = (file) => {
   return "";
 };
 
+// ============================================================
+// ✅ موج ۱۳.۱۱ — آینهٔ کلاینتیِ قواعد «درخواست‌های فارم»
+// ------------------------------------------------------------
+//  منبع حقیقت سرور: Backend/services/portalRequestRules.js
+//  ⚠️ این آینه فقط برای «تجربهٔ بهتر» است (خطای فوری پیش از ارسال و
+//     بدنهٔ تمیز). امنیت با همان فهرست سفیدِ سرور تأمین می‌شود.
+//  🔒 عمداً غایب: customer_id · status · id · reviewed_by · role
+// ============================================================
+export const FARM_REQUEST_TYPES = [
+  { key: "unit_create", label: "ثبت واحد مرغداری", icon: "fa-building" },
+  { key: "hall_create", label: "ثبت سالن", icon: "fa-warehouse" },
+  { key: "placement_create", label: "ثبت جوجه‌ریزی", icon: "fa-egg" },
+];
+
+export const FARM_STATUS_KEYS = [
+  "pending",
+  "approved",
+  "rejected",
+  "cancelled",
+];
+
+export const FARM_LIMITS = {
+  maxPending: 10,
+  maxNoteLength: 300,
+};
+
+// کلیدهای سفید هر نوع — هم‌ترتیب با فهرست سرور
+const FARM_PAYLOAD_KEYS = {
+  unit_create: [
+    "unit_name",
+    "address",
+    "hall_count",
+    "capacity",
+    "longitude",
+    "latitude",
+    "manager_name",
+    "manager_phone",
+    "note",
+  ],
+  hall_create: [
+    "unit_id",
+    "hall_name",
+    "hall_number",
+    "nominal_capacity",
+    "altitude_above_sea",
+    "hall_type_id",
+    "construction_year",
+    "operator_name",
+    "note",
+  ],
+  placement_create: [
+    "unit_id",
+    "hall_id",
+    "placement_date",
+    "chick_source_id",
+    "breed_id",
+    "chick_age_on_arrival",
+    "avg_initial_weight",
+    "total_chicks_count",
+    "placement_density",
+    "flock_id",
+    "start_new_flock",
+    "note",
+  ],
+};
+
+// فقط نوع شناخته‌شده؛ هر چیز دیگر ⇒ خطای روشن پیش از ارسال
+export const farmTypeKey = (raw) => {
+  const key = String(raw === null || raw === undefined ? "" : raw).trim();
+  if (!FARM_REQUEST_TYPES.some((item) => item.key === key)) {
+    throw new Error("نوع درخواست نامعتبر است");
+  }
+  return key;
+};
+
+// بدنهٔ payload: فقط کلیدهای سفید + نرمال‌سازی سبک
+//  • عدد: رشتهٔ فارسی/خالی ⇒ عدد یا حذف
+//  • boolean: برای start_new_flock
+export const farmPayload = (type, input = {}) => {
+  const key = farmTypeKey(type);
+  const source = input && typeof input === "object" ? input : {};
+  const payload = {};
+
+  FARM_PAYLOAD_KEYS[key].forEach((field) => {
+    if (!Object.prototype.hasOwnProperty.call(source, field)) return;
+    const raw = source[field];
+
+    if (field === "start_new_flock") {
+      payload[field] =
+        raw === true || raw === "true" || raw === "on" || raw === 1;
+      return;
+    }
+
+    if (field === "note") {
+      const note = String(raw ?? "").trim().slice(0, FARM_LIMITS.maxNoteLength);
+      if (note) payload[field] = note;
+      return;
+    }
+
+    const text = String(raw ?? "").trim();
+    if (!text) return;
+
+    // فیلدهای عددی: اگر عدد معتبر بود، عدد می‌فرستیم
+    if (
+      [
+        "hall_count",
+        "capacity",
+        "longitude",
+        "latitude",
+        "unit_id",
+        "nominal_capacity",
+        "altitude_above_sea",
+        "hall_type_id",
+        "construction_year",
+        "hall_id",
+        "chick_source_id",
+        "breed_id",
+        "chick_age_on_arrival",
+        "avg_initial_weight",
+        "total_chicks_count",
+        "placement_density",
+        "flock_id",
+      ].includes(field)
+    ) {
+      const parsed = Number(
+        text
+          .replace(/[\u06F0-\u06F9]/g, (ch) => String(ch.charCodeAt(0) - 0x06f0))
+          .replace(/[\u0660-\u0669]/g, (ch) => String(ch.charCodeAt(0) - 0x0660)),
+      );
+      if (Number.isFinite(parsed)) payload[field] = parsed;
+      return;
+    }
+
+    payload[field] = text.slice(0, 100);
+  });
+
+  return payload;
+};
+
 export const portalApi = {
   // خلاصهٔ پروندهٔ خودِ کاربر واردشده
   async getSummary() {
@@ -333,6 +472,47 @@ export const portalApi = {
     return apiService.download(
       API_CONSTANTS.ENDPOINTS.PORTAL.DOCUMENT_FILE(rowId(id)),
       fileName,
+    );
+  },
+
+  // ============================================================
+  // ✅ موج ۱۳.۱۱ — «درخواست‌های فارم» (الگوی ب)
+  // ------------------------------------------------------------
+  //  🔒 قواعد:
+  //   ۱) هیچ شناسهٔ مشتری فرستاده نمی‌شود (سرور از توکن می‌سازد).
+  //   ۲) `farmPayload` آینهٔ کلاینتیِ فهرست سفید سرور است: هر کلید
+  //      ناشناخته در **کلاینت** هم دور ریخته می‌شود تا بدنهٔ درخواست
+  //      دقیقاً همان چیزی باشد که فرم تولید کرده.
+  //   ۳) شناسهٔ درخواست برای لغو فقط از پاسخ سرور می‌آید و با rowId
+  //      اعتبارسنجی می‌شود.
+  //   ۴) این‌ها «درخواست»‌اند، نه نوشتن: تا تأیید کارشناس هیچ ردیفی
+  //      در واحد/سالن/جوجه‌ریزی ساخته نمی‌شود.
+  // ============================================================
+  async getFarmOptions() {
+    return apiService.get(API_CONSTANTS.ENDPOINTS.PORTAL.FARM_OPTIONS);
+  },
+
+  async getFarmRequests(params = {}) {
+    const query = pageParams(params);
+    const status = String(params.status ?? "").trim();
+    if (FARM_STATUS_KEYS.includes(status)) query.status = status;
+    return apiService.get(
+      API_CONSTANTS.ENDPOINTS.PORTAL.FARM_REQUESTS,
+      query,
+    );
+  },
+
+  async createFarmRequest(type, input = {}) {
+    return apiService.post(API_CONSTANTS.ENDPOINTS.PORTAL.FARM_REQUESTS, {
+      request_type: farmTypeKey(type),
+      payload: farmPayload(type, input),
+    });
+  },
+
+  async cancelFarmRequest(id) {
+    return apiService.post(
+      API_CONSTANTS.ENDPOINTS.PORTAL.FARM_REQUEST_CANCEL(rowId(id)),
+      {},
     );
   },
 };

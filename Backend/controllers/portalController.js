@@ -223,6 +223,9 @@ const getPortalSummary = async (req, res) => {
       canDashboardAnalysis,
       canDashboardCompare,
       canDashboardExport,
+      canFarm,
+      canFarmRequest,
+      canFarmCancel,
     ] = await Promise.all([
       userHasPermission(req, "customer.portal.halls"),
       userHasPermission(req, "customer.portal.flocks"),
@@ -234,6 +237,10 @@ const getPortalSummary = async (req, res) => {
       userHasPermission(req, "customer.portal.dashboard.analysis"),
       userHasPermission(req, "customer.portal.dashboard.compare"),
       userHasPermission(req, "customer.portal.dashboard.export"),
+      // ✅ موج ۱۳.۱۱ — «درخواست‌های فارم» (الگوی ب)
+      userHasPermission(req, "customer.portal.farm"),
+      userHasPermission(req, "customer.portal.farm.request"),
+      userHasPermission(req, "customer.portal.farm.cancel"),
     ]);
 
     const sections = {
@@ -243,6 +250,8 @@ const getPortalSummary = async (req, res) => {
       visits: canVisits,
       profile: canProfile,
       dashboard: canDashboard,
+      // ✅ تب «درخواست‌های فارم» — تا تأیید کارشناس چیزی ساخته نمی‌شود
+      farm: canFarm,
     };
 
     // null = «این بخش بسته است» (با 0 اشتباه نشود)
@@ -265,6 +274,9 @@ const getPortalSummary = async (req, res) => {
           dashboard_analysis: Boolean(canDashboard && canDashboardAnalysis),
           dashboard_compare: Boolean(canDashboard && canDashboardCompare),
           dashboard_export: Boolean(canDashboard && canDashboardExport),
+          // ✅ ۱۳.۱۱: فقط گیت دکمه‌ها — اعمال واقعی پس از تأیید کارشناس
+          farm_request: Boolean(canFarm && canFarmRequest),
+          farm_cancel: Boolean(canFarm && canFarmCancel),
         },
         counters: {
           halls: orNull(canHalls, hallsTotal),

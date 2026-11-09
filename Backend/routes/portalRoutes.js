@@ -38,10 +38,13 @@ const portalProfileOtpController = require("../controllers/portalProfileOtpContr
 const portalDashboardController = require("../controllers/portalDashboardController");
 // ✅ موج ۱۳.۱۰ — «مدارک من» (آپلود/حذف نرم/دانلود)
 const portalDocumentsController = require("../controllers/portalDocumentsController");
+// ✅ موج ۱۳.۱۱ — «درخواست‌های فارم» (الگوی ب: درخواست مشتری + تأیید کارشناس)
+const portalFarmController = require("../controllers/portalFarmController");
 const { uploadPortalDocumentSingle } = require("../middleware/upload");
 const Flock = require("../models/Flock");
 const ChickPlacement = require("../models/ChickPlacement");
 const PortalDocument = require("../models/PortalDocument");
+const PortalRequest = require("../models/PortalRequest");
 
 // ✅ همهٔ مسیرهای این روتر پشت احراز هویت هستند
 router.use(protect);
@@ -304,6 +307,54 @@ router.delete(
   "/documents/:id",
   ...documentsDeleteChain,
   portalDocumentsController.deleteMyDocument,
+);
+
+// ============================================================
+// ✅ ۱۳.۱۱ — «درخواست‌های فارم» (الگوی ب)
+// ------------------------------------------------------------
+//  مشتری واحد/سالن/جوجه‌ریزی را **درخواست** می‌کند؛ تا تأیید کارشناس
+//  هیچ ردیفی در جداول اصلی ساخته نمی‌شود. مسیرهای تأیید/رد در روتر
+//  جداگانهٔ /api/portal-requests (فقط کارکنان) است.
+//
+// 🔒 قواعد این بخش:
+//   • customer_id فقط از توکن (req.customerScopeId)
+//   • payload فقط با فهرست سفید ذخیره می‌شود (services/portalRequestRules)
+//   • سقف نوشتن پورتال (portalWriteLimiter) روی هر دو نوشتن فعال است
+//   • لغو فقط روی ردیف خودم: requireOwnedRow ⇒ ردیف غیرخودی ۴۰۴
+// ============================================================
+const farmChain = tabChain("customer.portal.farm");
+
+const farmRequestChain = [
+  ...farmChain,
+  requirePermission("customer.portal.farm.request"),
+  portalWriteLimiter,
+];
+
+const farmCancelChain = [
+  ...farmChain,
+  requirePermission("customer.portal.farm.cancel"),
+  portalWriteLimiter,
+  requireOwnedRow({ model: PortalRequest, label: "درخواست" }),
+];
+
+router.get("/farm/options", ...farmChain, portalFarmController.getFarmOptions);
+
+router.get(
+  "/farm/requests",
+  ...farmChain,
+  portalFarmController.listMyRequests,
+);
+
+router.post(
+  "/farm/requests",
+  ...farmRequestChain,
+  portalFarmController.createMyRequest,
+);
+
+router.post(
+  "/farm/requests/:id/cancel",
+  ...farmCancelChain,
+  portalFarmController.cancelMyRequest,
 );
 
 module.exports = router;

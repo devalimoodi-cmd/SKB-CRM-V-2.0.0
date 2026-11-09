@@ -80,6 +80,8 @@ const EXPECTED_TABLES = [
   "registration_requests",
   // ✅ «مدارک من» — آپلود مشتری از پورتال (موج ۱۳.۱۰)
   "portal_documents",
+  // ✅ «درخواست‌های فارم» — صف درخواست مشتری + تأیید کارشناس (موج ۱۳.۱۱)
+  "portal_requests",
   "SequelizeMeta",
 ];
 
@@ -290,6 +292,27 @@ const EXPECTED_COLUMNS = {
     "updated_at",
     "deleted_at",
   ],
+  // ✅ «درخواست‌های فارم» (موج ۱۳.۱۱)
+  //    ⚠️ ستون customer_id فقط از توکن پر می‌شود؛ payload فیلدهای
+  //    سفیدِ همان نوع را نگه می‌دارد و ستون‌های result_*/reviewed_*
+  //    سابقهٔ تصمیم کارشناس‌اند (حذف نداریم — فقط status='cancelled').
+  portal_requests: [
+    "customer_id",
+    "request_type",
+    "status",
+    "payload",
+    "submitted_by",
+    "submitted_ip",
+    "submitted_user_agent",
+    "reviewed_by",
+    "reviewed_at",
+    "reject_reason",
+    "applied_at",
+    "result_entity_id",
+    "result_summary",
+    "created_at",
+    "updated_at",
+  ],
 };
 
 const EXPECTED_INDEXES = [
@@ -344,6 +367,10 @@ const EXPECTED_INDEXES = [
   "portal_documents_customer_created",
   "portal_documents_customer_kind",
   "portal_documents_deleted_at",
+  // ✅ «درخواست‌های فارم» (موج ۱۳.۱۱)
+  "portal_requests_customer_status_created",
+  "portal_requests_status_created",
+  "portal_requests_type_status",
 ];
 
 const COUNT_TABLES = [
@@ -364,6 +391,8 @@ const COUNT_TABLES = [
   "login_challenges",
   // ✅ «درخواست‌های ثبت‌نام» (فاز ۱۳.۶)
   "registration_requests",
+  // ✅ «درخواست‌های فارم» (موج ۱۳.۱۱) — صف مشتری ⇒ تأیید کارشناس
+  "portal_requests",
 ];
 
 // ============================================

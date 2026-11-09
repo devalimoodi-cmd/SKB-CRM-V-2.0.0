@@ -37,7 +37,11 @@ check(
   //    ۶ نمودار) ⇒ ۱۷۶ + ۱۲ = ۱۸۸
   // ✅ موج ۱۳.۱۰: ۳ کلید تازه («مدارک من»: تب/آپلود/حذف نرم)
   //    ⇒ ۱۸۸ + ۳ = ۱۹۱
-  catalog.TOTAL_PERMISSIONS === 191 && catalog.PERMISSION_GROUPS.length === 17,
+  // ✅ موج ۱۳.۱۱: ۶ کلید تازه («درخواست‌های فارم»: تب/ثبت/لغو برای
+  //    مشتری + view/review برای کارشناس + منوی پنل ادمین) و یک گروه
+  //    تازه («پنل مدیریت — درخواست‌های پورتال»)
+  //    ⇒ ۱۹۱ + ۶ = ۱۹۷ کلید و ۱۷ + ۱ = ۱۸ گروه
+  catalog.TOTAL_PERMISSIONS === 197 && catalog.PERMISSION_GROUPS.length === 18,
   `keys=${catalog.TOTAL_PERMISSIONS} groups=${catalog.PERMISSION_GROUPS.length}`,
 );
 
@@ -57,6 +61,48 @@ check(
       entry.lockedTo.length === 0
     );
   }),
+);
+
+check(
+  "کاتالوگ: کلیدهای «درخواست‌های فارم» (۱۳.۱۱) فقط برای مشتری روشن‌اند",
+  ["customer.portal.farm", "customer.portal.farm.request", "customer.portal.farm.cancel"].every(
+    (key) => {
+      const entry = catalog.PERMISSIONS[key];
+      return (
+        Boolean(entry) &&
+        entry.group === "portal" &&
+        entry.defaults.customer === true &&
+        entry.defaults.super_admin === false &&
+        entry.defaults.admin === false &&
+        entry.defaults.sub_admin === false &&
+        entry.defaults.expert === false &&
+        entry.lockedTo.length === 0
+      );
+    },
+  ),
+);
+
+check(
+  "کاتالوگ: صف درخواست‌های پورتال — view برای کارکنان و review فقط برای مدیران",
+  Boolean(catalog.PERMISSIONS["portal.requests.view"]) &&
+    Boolean(catalog.PERMISSIONS["portal.requests.review"]) &&
+    catalog.PERMISSIONS["portal.requests.view"].group === "portalRequests" &&
+    catalog.PERMISSIONS["portal.requests.review"].group === "portalRequests" &&
+    catalog.defaultFor("expert", "portal.requests.view") === true &&
+    catalog.defaultFor("expert", "portal.requests.review") === false &&
+    catalog.defaultFor("sub_admin", "portal.requests.review") === true &&
+    catalog.defaultFor("customer", "portal.requests.view") === false &&
+    catalog.defaultFor("customer", "portal.requests.review") === false,
+  `expert.view=${catalog.defaultFor("expert", "portal.requests.view")} expert.review=${catalog.defaultFor("expert", "portal.requests.review")}`,
+);
+
+check(
+  "کاتالوگ: منوی «درخواست‌های پورتال» فقط برای مدیران و در گروه منوها است",
+  Boolean(catalog.PERMISSIONS["admin.menu.portalRequests"]) &&
+    catalog.PERMISSIONS["admin.menu.portalRequests"].group === "adminMenus" &&
+    catalog.defaultFor("admin", "admin.menu.portalRequests") === true &&
+    catalog.defaultFor("expert", "admin.menu.portalRequests") === false &&
+    catalog.defaultFor("customer", "admin.menu.portalRequests") === false,
 );
 
 check(

@@ -813,7 +813,7 @@
   font-family: inherit;
   font-size: 0.8rem;
   color: var(--text-main);
-  background: #fff;
+  background: var(--bg-surface, #fff);
   border: 1px solid var(--border, #e2e8f0);
   border-radius: 10px;
   cursor: pointer;
@@ -869,7 +869,7 @@
   font-family: inherit;
   font-size: 0.8rem;
   color: var(--text-main);
-  background: #fff;
+  background: var(--bg-surface, #fff);
   border: 1px solid var(--border, #e2e8f0);
   border-radius: 9px;
 }
@@ -1098,7 +1098,7 @@
 .portal-docs__quota-bar {
   height: 6px;
   overflow: hidden;
-  background: #fff;
+  background: var(--bg-surface, #fff);
   border-radius: 999px;
 }
 
@@ -1115,7 +1115,7 @@
   display: grid;
   gap: 10px;
   padding: 14px;
-  background: #fff;
+  background: var(--bg-surface, #fff);
   border: 1px dashed var(--border, #e2e8f0);
   border-radius: 14px;
 }
@@ -1140,7 +1140,7 @@
   font-family: inherit;
   font-size: 0.8rem;
   color: var(--text-main);
-  background: #fff;
+  background: var(--bg-surface, #fff);
   border: 1px solid var(--border, #e2e8f0);
   border-radius: 10px;
 }
@@ -1233,7 +1233,7 @@
   justify-content: space-between;
   gap: 12px;
   padding: 12px 14px;
-  background: #fff;
+  background: var(--bg-surface, #fff);
   border: 1px solid var(--border, #e2e8f0);
   border-radius: 14px;
 }
@@ -1316,6 +1316,263 @@
   .portal-docs__item-actions .portal-btn {
     flex: 1;
     justify-content: center;
+  }
+}
+
+/* ============================================================
+   ✅ موج ۱۳.۱۱ — تب «درخواست‌های من» (درخواست مشتری + تأیید کارشناس)
+   ------------------------------------------------------------
+   کلاس‌ها با پیشوند .portal-farm تا با تب‌های دیگر تداخل نکنند.
+   ============================================================ */
+.portal-farm {
+  display: grid;
+  gap: 14px;
+}
+
+.portal-farm__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.portal-farm__head h3 {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--text, #1f2937);
+}
+
+.portal-farm__counter {
+  font-size: 0.78rem;
+  color: var(--text-muted, #64748b);
+  background: var(--bg-surface-2, #f1f5f9);
+  border-radius: 999px;
+  padding: 4px 10px;
+}
+
+.portal-farm__types {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.portal-farm__type {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  font-size: 0.8rem;
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 12px;
+  background: var(--bg-surface, #fff);
+  color: var(--text, #334155);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.portal-farm__type.is-active {
+  border-color: var(--primary, #2563eb);
+  color: var(--primary, #2563eb);
+  background: rgba(var(--info-rgb), 0.1);
+  font-weight: 600;
+}
+
+.portal-farm__form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 10px;
+  padding: 14px;
+  background: var(--bg-surface, #fff);
+  border: 1px dashed var(--border, #e2e8f0);
+  border-radius: 14px;
+}
+
+.portal-farm__field {
+  display: grid;
+  gap: 4px;
+  font-size: 0.78rem;
+  color: var(--text-muted, #475569);
+}
+
+.portal-farm__field input,
+.portal-farm__field select,
+.portal-farm__field textarea {
+  width: 100%;
+  padding: 8px 10px;
+  font-size: 0.82rem;
+  font-family: inherit;
+  color: var(--text, #1f2937);
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 10px;
+}
+
+.portal-farm__field textarea {
+  grid-column: 1 / -1;
+  resize: vertical;
+}
+
+.portal-farm__check {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  color: var(--text-muted, #475569);
+}
+
+.portal-farm__req {
+  color: var(--danger, #dc2626);
+  margin-inline-start: 2px;
+}
+
+.portal-farm__actions {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.portal-farm__hint {
+  font-size: 0.72rem;
+  color: var(--text-muted, #94a3b8);
+}
+
+.portal-farm__warn {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 8px 10px;
+  font-size: 0.78rem;
+  color: var(--warning-deep-3, #92400e);
+  background: var(--warning-bg, #fef3c7);
+  border-radius: 10px;
+}
+
+.portal-farm__error {
+  min-height: 1rem;
+  font-size: 0.78rem;
+  color: var(--danger-deep, #b91c1c);
+}
+
+.portal-farm__list {
+  display: grid;
+  gap: 10px;
+}
+
+.portal-farm__card {
+  padding: 12px 14px;
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 14px;
+  display: grid;
+  gap: 8px;
+}
+
+.portal-farm__card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.portal-farm__card-head h4 {
+  margin: 0 0 2px;
+  font-size: 0.85rem;
+  color: var(--text, #1f2937);
+}
+
+.portal-farm__card-head small {
+  font-size: 0.72rem;
+  color: var(--text-muted, #94a3b8);
+}
+
+.portal-farm__badge {
+  font-size: 0.72rem;
+  padding: 3px 9px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.portal-farm__badge--warning {
+  color: var(--warning-deep-3, #92400e);
+  background: var(--warning-bg, #fef3c7);
+}
+
+.portal-farm__badge--success {
+  color: var(--success-deeper, #065f46);
+  background: var(--success-mist, #d1fae5);
+}
+
+.portal-farm__badge--danger {
+  color: var(--danger-deep, #991b1b);
+  background: var(--danger-bg, #fee2e2);
+}
+
+.portal-farm__badge--muted {
+  color: var(--text-slate, #475569);
+  background: var(--bg-surface-2, #f1f5f9);
+}
+
+.portal-farm__summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 4px 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.76rem;
+}
+
+.portal-farm__summary li {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 3px 0;
+  border-bottom: 1px dashed var(--border-light, #eef2f7);
+}
+
+.portal-farm__summary span {
+  color: var(--text-muted, #64748b);
+}
+
+.portal-farm__note,
+.portal-farm__result,
+.portal-farm__reject {
+  margin: 0;
+  font-size: 0.78rem;
+}
+
+.portal-farm__result {
+  color: var(--success-deeper, #065f46);
+}
+
+.portal-farm__reject {
+  color: var(--danger-deep, #b91c1c);
+}
+
+.portal-farm__confirm {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 0.78rem;
+  color: var(--warning-deep-3, #92400e);
+}
+
+.portal-farm__empty {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--text-muted, #94a3b8);
+}
+
+@media (max-width: 640px) {
+  .portal-farm__form {
+    grid-template-columns: 1fr;
+  }
+
+  .portal-farm__card-head {
+    flex-direction: column;
   }
 }
 

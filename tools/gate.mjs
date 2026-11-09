@@ -58,6 +58,7 @@ const STEPS = [
   'test:login-otp',
   'test:user-customer',
   'test:customer-portal',
+  'test:portal-requests',
   'test:registration',
   'audit:size', 'audit:dead-exports', 'audit:surface', 'audit:big-methods',
 ];

@@ -165,6 +165,10 @@
                     <button type="button" class="portal-tab" role="tab" data-portal-tab="documents" aria-selected="false">
                         <i class="fas fa-folder-open"></i> مدارک من
                     </button>
+                    <!-- ✅ موج ۱۳.۱۱ — تب «درخواست‌های من» (الگوی ب: درخواست + تأیید کارشناس) -->
+                    <button type="button" class="portal-tab" role="tab" data-portal-tab="farm" aria-selected="false">
+                        <i class="fas fa-paper-plane"></i> درخواست‌های من
+                    </button>
                 </div>
 
                 <div class="portal-tabpanels" id="portalTabPanels">
@@ -215,6 +219,27 @@
                             <i class="fas fa-shield-halved" aria-hidden="true"></i>
                             فایل‌ها در پوشهٔ خصوصی سرور نگه‌داری می‌شوند (نه در مسیر عمومی) و فقط با ورود شما قابل دریافت‌اند؛
                             هر مدرک را می‌توانید با یک کلیک «از فهرست» حذف کنید؛ نسخهٔ بایگانی برای بازبینی کارشناس باقی می‌ماند.
+                        </p>
+                    </div>
+
+                    <!-- ✅ موج ۱۳.۱۱ — «درخواست‌های من» (الگوی ب)
+                         🔒 بدون تگ فرم: همهٔ ورودی‌ها با شناسه و ارسال با
+                         دکمهٔ type="button" (هم‌الگو با تب مدارک/پروفایل).
+                         ساختار ثابت است تا سرویس فقط محتوای دو ناحیه را
+                         عوض کند (گارد تست همین شناسه‌ها را می‌سنجد).
+                         ⚠️ تا تأیید کارشناس هیچ ردیفی در واحد/سالن/
+                         جوجه‌ریزی ساخته نمی‌شود. -->
+                    <div class="portal-card portal-tabpanel" data-portal-panel="farm" role="tabpanel" hidden>
+                        <div class="portal-card__head">
+                            <i class="fas fa-paper-plane"></i>
+                            <span>درخواست‌های من (واحد، سالن، جوجه‌ریزی)</span>
+                        </div>
+                        <div class="portal-tab__status" id="portalFarmStatus"></div>
+                        <div class="portal-farm" id="portalFarmBody"></div>
+                        <p class="portal-docs__note">
+                            <i class="fas fa-user-check" aria-hidden="true"></i>
+                            هر درخواست پس از ثبت، برای «تأیید کارشناس» می‌رود؛ تا آن لحظه هیچ داده‌ای در سیستم
+                            ثبت نمی‌شود و می‌توانید درخواستِ در انتظار را لغو کنید. دلیل رد (اگر باشد) همین‌جا نمایش داده می‌شود.
                         </p>
                     </div>
                     <div class="portal-card portal-tabpanel" data-portal-panel="halls" role="tabpanel">

@@ -803,6 +803,8 @@ class AdminPanelService {
       "activity-log": "admin.menu.activity",
       // فاز ۱۳.۶ — «درخواست‌های ثبت‌نام» (کلید محتوایی: users.registrations.view)
       "registration-requests": "admin.menu.registrations",
+      // ✅ موج ۱۳.۱۱ — «درخواست‌های پورتال» (کلید محتوایی: portal.requests.view)
+      "portal-requests": "admin.menu.portalRequests",
     };
   }
 
@@ -859,6 +861,12 @@ class AdminPanelService {
         await this.loadRegistrationRequests();
         // ✅ موج ۱۳.۷.۳ — مقدار سوییچ «تأیید خودکار» هم از سرور تازه می‌شود
         await this.loadRegistrationReviewSettings();
+        break;
+      case "portal-requests":
+        // ✅ موج ۱۳.۱۱ — صف «درخواست‌های پورتال» (الگوی ب)
+        //    ماژول جدا و بارگذاری دینامیک؛ هیچ pollingای ندارد.
+        this.stopSuggestionsPolling();
+        await this.initPortalRequestsManager();
         break;
       default:
         console.log("📌 بخش:", menuId);
@@ -947,6 +955,30 @@ class AdminPanelService {
       notificationService.error("خطا در راه‌اندازی بخش فعالیت کاربران");
     }
   }
+  // ===== «درخواست‌های پورتال» (صف تأیید) — موج ۱۳.۱۱ =====
+  //   ماژول مستقل با بارگذاری دینامیک؛ هم‌الگو با activity-log.
+  //   🔒 تصمیم‌گیری (تأیید/رد) در ماژول با مجوز portal.requests.review
+  //      نمایش داده می‌شود و سرور هم مستقل همان را می‌سنجد.
+  async initPortalRequestsManager() {
+    try {
+      if (!window.portalRequestsManager) {
+        await import("../portal-requests/portal-requests.manager.js");
+      }
+
+      if (window.portalRequestsManager) {
+        await window.portalRequestsManager.init("#portal-requests");
+        // نشان صف در سایدبار (بهترین‌تلاش؛ خطا مانع باز شدن بخش نمی‌شود)
+        await window.portalRequestsManager.refreshBadge();
+      } else {
+        console.warn("⚠️ portalRequestsManager در دسترس نیست");
+        notificationService.error("ماژول درخواست‌های پورتال یافت نشد");
+      }
+    } catch (error) {
+      console.error("❌ Error initializing portal-requests manager:", error);
+      notificationService.error("خطا در راه‌اندازی صف درخواست‌های پورتال");
+    }
+  }
+
   // ===== موج ۱۲.۴.۱ — پل «پروندهٔ مشتری → تاریخچهٔ همان رکورد» =====
   //   ⚠️ کلید sessionStorage یک‌بارمصرف است: همان‌جا خوانده و پاک
   //      می‌شود تا رفرش بعدی ناخواسته همان فیلتر را تحمیل نکند.

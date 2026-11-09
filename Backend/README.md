@@ -575,4 +575,68 @@ Backend/private/portal_documents/customer_<customerId>/doc_<ts>_<rand>.<ext>
 (`customer_created` · `customer_kind` · `deleted_at`)، idempotent، با `down`.
 پس از استقرار: `npm run db:migrate && npm run db:verify`.
 
+---
+
+## درخواست‌های فارم: درخواست مشتری + تأیید کارشناس (موج ۱۳.۱۱)
+
+مشتری از پورتال **درخواست** ثبت واحد/سالن/جوجه‌ریزی می‌فرستد. تا تأیید کارشناس
+هیچ ردیفی در `units`/`halls`/`chick_placements` ساخته نمی‌شود (الگوی ب).
+
+### 🔒 چهار مرز امنیتی
+
+1. **`customer_id` فقط از توکن** (`req.customerScopeId`) — هیچ فیلدی از بدنه/کوئری خوانده نمی‌شود.
+2. **فهرست سفید payload** در `services/portalRequestRules.js` (یک منبع): `customer_id`/`status`/`reviewed_by`/`role` هرگز ذخیره نمی‌شوند.
+3. **تأیید = تراکنش**: `sequelize.transaction()` + `lock: LOCK.UPDATE` + شرط `status='pending'` ⇒ تأیید دوباره ۴۰۹ (`already_reviewed`) و شکست هر مرحله ⇒ `rollback` کامل.
+4. **مرز نقش‌ها**: مسیرهای مشتری `authorize("customer")` دارند؛ مسیرهای صف (`/api/portal-requests`) ندارند و با `portal.requests.view`/`.review` محافظت می‌شوند.
+
+### API مشتری (`/api/portal/farm/*`)
+
+| متد | مسیر | کلید مجوز | نکته |
+|---|---|---|---|
+| `GET` | `/api/portal/farm/options` | `customer.portal.farm` | واحد/سالن/گلهٔ خودم + دیکشنری فعال + سقف‌ها |
+| `GET` | `/api/portal/farm/requests` | `customer.portal.farm` | فهرست درخواست‌های خودم + شمارنده‌ها |
+| `POST` | `/api/portal/farm/requests` | `.farm` + `.farm.request` + `portalWriteLimiter` | `{ request_type, payload }` — پاک‌سازی + اعتبارسنجی + سقف |
+| `POST` | `/api/portal/farm/requests/:id/cancel` | `.farm` + `.farm.cancel` + `requireOwnedRow` | فقط `pending` |
+
+### API صف کارکنان (`/api/portal-requests`)
+
+| متد | مسیر | کلید مجوز |
+|---|---|---|
+| `GET` | `/api/portal-requests` | `portal.requests.view` (فیلتر status/type/search + صفحه‌بندی) |
+| `GET` | `/api/portal-requests/pending-count` | `portal.requests.view` |
+| `GET` | `/api/portal-requests/:id` | `portal.requests.view` |
+| `POST` | `/api/portal-requests/:id/approve` | `portal.requests.review` (`payload` اختیاری = اصلاح پیش از تأیید) |
+| `POST` | `/api/portal-requests/:id/reject` | `portal.requests.review` (دلیل ۳..۳۰۰ اجباری) |
+
+### قواعد اعمال
+
+| نوع | قاعده |
+|---|---|
+| `unit_create` | یکتایی `(customer_id, unit_name)` ⇒ ۴۰۹ · `address`/`manager_*` از پروندهٔ مشتری تکمیل · `validateUnitData` روی دادهٔ نهایی |
+| `hall_create` | واحد باید مال خودم · شماره/ترتیب خودکار مثل `hallController` · `units.hall_count` همگام |
+| `placement_create` | سالن مال خودم و متعلق به همان واحد · سالن بدون جوجه‌ریزی فعال (`hall_busy`) · گله از `services/flockResolver` (مشترک با ماژول کارشناسان) |
+
+### سقف‌ها (منبع واحد: `services/portalRequestRules.js`)
+
+| مورد | مقدار |
+|---|---|
+| در انتظار | ۱۰ درخواست باز برای هر پرونده (`too_many_pending`, ۴۲۹) |
+| payload | ۴ کیلوبایت (`payload_too_large`) |
+| دلیل رد | ۳ تا ۳۰۰ کاراکتر |
+| تکرار | همان نوع + همان کلید طبیعی، تا تعیین تکلیف ⇒ ۴۰۹ `duplicate_pending` |
+
+### مایگریشن و تست
+
+`20261110000000-create-portal-requests.js` — جدول `portal_requests` + سه ایندکس
+(`customer_status_created` · `status_created` · `type_status`)، idempotent، با `down`.
+
+```bash
+npm run db:migrate && npm run db:verify
+npm run test:portal-requests     # ۳۷ بررسی خالص (بدون دیتابیس)
+npm run test:permissions         # ۱۹۷ کلید / ۱۸ گروه
+```
+
+📄 گزارش کامل: `docs/REVIEW-WAVE-13.11.md`.
+
+
 

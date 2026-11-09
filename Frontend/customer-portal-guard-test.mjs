@@ -111,6 +111,30 @@ const FILES = {
   portalDashboardController: "Backend/controllers/portalDashboardController.js",
   dashboardScope: "Backend/services/portalDashboardScope.js",
   docs13101: "docs/REVIEW-WAVE-13.10.1.md",
+  // ✅ موج ۱۳.۱۱ — «درخواست‌های فارم» (الگوی ب: درخواست + تأیید کارشناس)
+  portalFarm: "Frontend/src/features/portal/portal.farm.js",
+  portalFarmRenderer: "Frontend/src/features/portal/portal.farm.renderer.js",
+  farmController: "Backend/controllers/portalFarmController.js",
+  farmRules: "Backend/services/portalRequestRules.js",
+  farmService: "Backend/services/portalRequestService.js",
+  flockResolver: "Backend/services/flockResolver.js",
+  requestModel: "Backend/models/PortalRequest.js",
+  requestMigration:
+    "Backend/migrations/20261110000000-create-portal-requests.js",
+  requestRoutes: "Backend/routes/portalRequestRoutes.js",
+  requestAdminController: "Backend/controllers/portalRequestAdminController.js",
+  adminRequestsApi:
+    "Frontend/src/features/portal-requests/portal-requests.api.js",
+  adminRequestsManager:
+    "Frontend/src/features/portal-requests/portal-requests.manager.js",
+  adminRequestsRenderer:
+    "Frontend/src/features/portal-requests/portal-requests.renderer.js",
+  adminRequestsCss:
+    "Frontend/src/features/portal-requests/portal-requests.css",
+  adminPanelHtml: "Frontend/src/pages/admin-panel.html",
+  adminPanelService: "Frontend/src/features/admin-panel/admin-panel.service.js",
+  docs1311: "docs/REVIEW-WAVE-13.11.md",
+  backendRequestTest: "Backend/portal-request-test.mjs",
 };
 
 check(
@@ -164,6 +188,22 @@ const SRC = {
   // ✅ موج ۱۳.۱۰.۱
   portalDashboardController: read(FILES.portalDashboardController),
   dashboardScope: read(FILES.dashboardScope),
+  // ✅ موج ۱۳.۱۱ — «درخواست‌های فارم» (الگوی ب)
+  portalFarm: read(FILES.portalFarm),
+  portalFarmRenderer: read(FILES.portalFarmRenderer),
+  farmController: read(FILES.farmController),
+  farmRules: read(FILES.farmRules),
+  farmService: read(FILES.farmService),
+  flockResolver: read(FILES.flockResolver),
+  requestModel: read(FILES.requestModel),
+  requestMigration: read(FILES.requestMigration),
+  requestRoutes: read(FILES.requestRoutes),
+  requestAdminController: read(FILES.requestAdminController),
+  adminRequestsApi: read(FILES.adminRequestsApi),
+  adminRequestsManager: read(FILES.adminRequestsManager),
+  adminRequestsRenderer: read(FILES.adminRequestsRenderer),
+  adminPanelHtml: read(FILES.adminPanelHtml),
+  adminPanelService: read(FILES.adminPanelService),
 };
 
 // ============================================================
@@ -559,13 +599,14 @@ check(
 );
 
 check(
-  "مسیر: ۱۵ GET خواندنی + نوشتن‌های محدود (پروفایل ۳ + مدارک ۲ · بدون PUT)",
+  "مسیر: ۱۷ GET خواندنی + نوشتن‌های محدود (پروفایل ۳ + مدارک ۲ + فارم ۲ · بدون PUT)",
   // ✅ موج ۱۳.۸: ۸ مسیر خواندنی قبلی + پروفایل + چهار مسیر داشبورد = ۱۳
   // ✅ موج ۱۳.۱۰: دو GET مدارک (فهرست + فایل) ⇒ ۱۵
-  (SRC.routes.match(/router\.get\(/g) || []).length === 15 &&
+  // ✅ موج ۱۳.۱۱: دو GET درخواست‌های فارم (options + requests) ⇒ ۱۷
+  (SRC.routes.match(/router\.get\(/g) || []).length === 17 &&
     (SRC.routes.match(/router\.patch\(/g) || []).length === 1 &&
-    // ۲ پروفایل/موبایل + ۱ آپلود مدرک
-    (SRC.routes.match(/router\.post\(/g) || []).length === 3 &&
+    // ۲ پروفایل/موبایل + ۱ آپلود مدرک + ۲ درخواست فارم (ثبت/لغو)
+    (SRC.routes.match(/router\.post\(/g) || []).length === 5 &&
     // ❌ هیچ PUT ای در کل پورتال نیست
     !/router\.put\(/.test(SRC.routes) &&
     // 🔒 تنها DELETE مجاز: حذف نرم مدرک خودم — نه هیچ منبع دیگری
@@ -628,7 +669,9 @@ const routeFiles = fs
 const otherRoutes = routeFiles.filter((name) => name !== "portalRoutes.js");
 const openedFiles = otherRoutes.filter((name) =>
   /authorize\([^)]*"customer"/.test(
-    fs.readFileSync(path.join(routesDir, name), "utf8"),
+    // ⚠️ توضیحات حذف می‌شوند: فایل‌هایی مثل portalRequestRoutes.js در
+    //    کامنت می‌گویند «authorize(customer) ندارد» و نباید مثبت کاذب بدهند.
+    stripComments(fs.readFileSync(path.join(routesDir, name), "utf8")),
   ),
 );
 
@@ -680,9 +723,10 @@ check(
   // ✅ فاز ۱۳.۶: سه کلید صف ثبت‌نام (۱۷۳ ⇒ ۱۷۶)
   // ✅ موج ۱۳.۸: ۱۲ کلید پروفایل/داشبورد (۱۷۶ ⇒ ۱۸۸)
   // ✅ موج ۱۳.۱۰: ۳ کلید «مدارک من» (۱۸۸ ⇒ ۱۹۱)
-  catalog.TOTAL_PERMISSIONS === 191 &&
-    catalog.PERMISSION_GROUPS.length === 17 &&
-    /TOTAL_PERMISSIONS === 191 && catalog\.PERMISSION_GROUPS\.length === 17/.test(
+  // ✅ موج ۱۳.۱۱: ۶ کلید «درخواست‌های فارم» + یک گروه تازه (۱۹۱ ⇒ ۱۹۷ / ۱۸)
+  catalog.TOTAL_PERMISSIONS === 197 &&
+    catalog.PERMISSION_GROUPS.length === 18 &&
+    /TOTAL_PERMISSIONS === 197 && catalog\.PERMISSION_GROUPS\.length === 18/.test(
       SRC.permissionsTest,
     ),
   `keys=${catalog.TOTAL_PERMISSIONS} groups=${catalog.PERMISSION_GROUPS.length}`,
@@ -723,8 +767,9 @@ check(
   "فرانت: نوشتن‌های پورتال محدود و همه از portal.api (سرویس بدون نوشتن)",
   // ✅ موج ۱۳.۸: PATCH پروفایل + دو مرحلهٔ موبایل
   // ✅ موج ۱۳.۱۰: DELETE مدرک (حذف نرم) ⇒ چهار فراخوانی نوشتن
+  // ✅ موج ۱۳.۱۱: POST ثبت درخواست + POST لغو ⇒ شش فراخوانی نوشتن
   (SRC.portalApi.match(/apiService\.(post|put|patch|delete)\(/g) || []).length ===
-    4 &&
+    6 &&
     /apiService\.patch\(\s*\n?\s*API_CONSTANTS\.ENDPOINTS\.PORTAL\.PROFILE,/.test(
       SRC.portalApi,
     ) &&
@@ -1129,8 +1174,9 @@ check(
 check(
   "۱۳.۴ · فرانت: نوشتن در لایهٔ پورتال فقط از portal.api و محدود است",
   // ✅ موج ۱۳.۱۰: DELETE مدرک ⇒ ۴ (پروفایل ۳ + مدارک ۱)
+  // ✅ موج ۱۳.۱۱: ثبت/لغو درخواست فارم ⇒ ۶
   (SRC.portalApi.match(/apiService\.(post|put|patch|delete)\(/g) || []).length ===
-    4 &&
+    6 &&
     !/apiService\.(post|put|patch|delete)\(/.test(SRC.portalService) &&
     !/apiService\.(post|put|patch|delete)\(/.test(SRC.portalExtra),
 );
@@ -1462,8 +1508,9 @@ check(
     /requirePermission\("customer\.portal\.profile"\)/.test(SRC.routes) &&
     /requirePermission\("customer\.portal\.profile\.edit"\)/.test(SRC.routes) &&
     // ✅ موج ۱۳.۱۰: سه نوشتنِ ۱۳.۸ + آپلود و حذف مدرک ⇒ ۵
+    // ✅ موج ۱۳.۱۱: ثبت درخواست فارم + لغو درخواست ⇒ ۷
     (SRC.routes.match(/(^|\r?\n)[ \t]+portalWriteLimiter,[ \t]*\r?\n/g) || [])
-      .length === 5 &&
+      .length === 7 &&
     (SRC.routes.match(/(^|\r?\n)[ \t]+otpLimiter,[ \t]*\r?\n/g) || []).length === 2 &&
     /requireOwnedRow\(\{\s*\n\s*model: Flock/.test(SRC.routes) &&
     /key: "flockGroupId"/.test(SRC.routes) &&
@@ -1934,12 +1981,13 @@ check(
     /import \{ DOCUMENT_TABS, applyPortalDocuments \} from "\.\/portal\.documents\.js"/.test(
       SRC.portalService,
     ) &&
-    /Object\.assign\(EXTRA_TABS, DOCUMENT_TABS\);/.test(SRC.portalService) &&
+    // ✅ موج ۱۳.۱۱: رجیستری تب‌های خاص با لایهٔ فارم هم گسترش می‌یابد
+    /Object\.assign\(EXTRA_TABS, DOCUMENT_TABS[,)]/.test(SRC.portalService) &&
     /this\.initDocumentsTab\(\);/.test(SRC.portalService) &&
     /this\.bindDocuments\(\);/.test(SRC.portalService) &&
     /applyPortalDocuments\(PortalService\);/.test(SRC.portalService) &&
     // ترتیب اجباری: ثبت تب قبل از ALL_TAB_KEYS و mixin بعد از extra
-    SRC.portalService.indexOf("Object.assign(EXTRA_TABS, DOCUMENT_TABS)") <
+    SRC.portalService.indexOf("Object.assign(EXTRA_TABS, DOCUMENT_TABS") <
       SRC.portalService.indexOf("const ALL_TAB_KEYS") &&
     SRC.portalService.indexOf("applyPortalDocuments(PortalService)") >
       SRC.portalService.indexOf("applyPortalExtra(PortalService)") &&
@@ -2187,8 +2235,243 @@ check(
 );
 
 // ============================================================
+// ۱۷) موج ۱۳.۱۱ — «درخواست‌های فارم» (الگوی ب: درخواست + تأیید)
+// ------------------------------------------------------------
+//  ریشهٔ خطری که این بخش از بازگشتش جلوگیری می‌کند:
+//   ۱) اگر مشتری بتواند مستقیم واحد/سالن/جوجه‌ریزی بنویسد، «تأیید
+//      کارشناس» بی‌معنا می‌شود (الگوی ب نقض می‌شود).
+//   ۲) اگر `customer_id` از بدنه خوانده شود ⇒ IDOR.
+//   ۳) اگر payload خام ذخیره شود ⇒ مشتری می‌تواند `status` یا
+//      `reviewed_by` را ست کند (تأیید خودکار).
+//   ۴) اگر تأیید تراکنشی/قفل‌شده نباشد، دو مدیر هم‌زمان یک رکورد را
+//      دو بار می‌سازند.
+//   ۵) اگر مسیر تأیید `authorize("customer")` بگیرد، مرز نقش‌ها
+//      می‌شکند.
+// ============================================================
+check(
+  "۱۳.۱۱ · فایل‌های موج موجودند (بک‌اند + پورتال + پنل ادمین + مستندات)",
+  [
+    FILES.portalFarm,
+    FILES.portalFarmRenderer,
+    FILES.farmController,
+    FILES.farmRules,
+    FILES.farmService,
+    FILES.flockResolver,
+    FILES.requestModel,
+    FILES.requestMigration,
+    FILES.requestRoutes,
+    FILES.requestAdminController,
+    FILES.adminRequestsApi,
+    FILES.adminRequestsManager,
+    FILES.adminRequestsRenderer,
+    FILES.adminRequestsCss,
+    FILES.docs1311,
+    FILES.backendRequestTest,
+  ].every(exists),
+);
+
+check(
+  "۱۳.۱۱ · مشتری فقط «درخواست» می‌فرستد: مسیر نوشتن مستقیم وجود ندارد",
+  /router\.post\(\s*\n\s*"\/farm\/requests",/.test(SRC.routes) &&
+    /router\.post\(\s*\n\s*"\/farm\/requests\/:id\/cancel",/.test(SRC.routes) &&
+    !/router\.(put|patch|delete)\(\s*\n\s*"\/farm/.test(SRC.routes) &&
+    // کنترلر مشتری هیچ نوشتن مستقیمی روی Unit/Hall/ChickPlacement ندارد
+    !/(Unit|Hall|ChickPlacement)\.(create|update|destroy|upsert)\(/.test(
+      stripComments(SRC.farmController),
+    ),
+);
+
+check(
+  "۱۳.۱۱ · customer_id فقط از توکن: نه در کنترلر مشتری و نه در payload سفید",
+  /req\.customerScopeId/.test(SRC.farmController) &&
+    !/req\.(body|query|params)[^\n]{0,40}customer(?:_id|_personal_information_id)/i.test(
+      stripComments(SRC.farmController),
+    ) &&
+    /customer_id: customerId, \/\/ 🔒 فقط از توکن/.test(SRC.farmService),
+);
+
+check(
+  "۱۳.۱۱ · فهرست سفید payload در سرویس قواعد، منبع واحد است",
+  /const ALLOWED_PAYLOAD_KEYS = \{/.test(SRC.farmRules) &&
+    /unit_create: \[/.test(SRC.farmRules) &&
+    /hall_create: \[/.test(SRC.farmRules) &&
+    /placement_create: \[/.test(SRC.farmRules) &&
+    /const sanitizePayload = \(type, body\) => \{/.test(SRC.farmRules) &&
+    /const validatePayload = \(type, payload\) => \{/.test(SRC.farmRules) &&
+    /require\("\.\/portalRequestRules"\)/.test(SRC.farmService) &&
+    !/const ALLOWED_PAYLOAD_KEYS/.test(SRC.farmService),
+);
+
+check(
+  "۱۳.۱۱ · سقف‌ها: ۱۰ درخواست در انتظار · ۴KB payload · دلیل رد اجباری",
+  /const MAX_PENDING_REQUESTS = 10;/.test(SRC.farmRules) &&
+    /const MAX_PAYLOAD_BYTES = 4096;/.test(SRC.farmRules) &&
+    /const MIN_REASON_LENGTH = 3;/.test(SRC.farmRules) &&
+    /too_many_pending/.test(SRC.farmService) &&
+    /validateReason\(reason\)/.test(SRC.farmService),
+);
+
+check(
+  "۱۳.۱۱ · تأیید = تراکنش + قفل ردیف + شرط pending (ضد تأیید دوباره)",
+  /sequelize\.transaction\(\)/.test(SRC.farmService) &&
+    /lock: transaction\.LOCK\.UPDATE/.test(SRC.farmService) &&
+    /already_reviewed", 409/.test(SRC.farmService) &&
+    /await safeRollback\(transaction\)/.test(SRC.farmService) &&
+    /approvalPatch\(/.test(SRC.farmService) &&
+    /rejectionPatch\(/.test(SRC.farmService) &&
+    /cancelPatch\(/.test(SRC.farmService),
+);
+check(
+  "۱۳.۱۱ · مسیر تأیید/رد فقط کارکنان: مجوز صریح و بدون authorize(customer)",
+  /requirePermission\("portal\.requests\.view"\)/.test(SRC.requestRoutes) &&
+    /requirePermission\("portal\.requests\.review"\)/.test(SRC.requestRoutes) &&
+    !/authorize\(/.test(stripComments(SRC.requestRoutes)) &&
+    /router\.post\("\/:id\/approve", \.\.\.reviewChain/.test(SRC.requestRoutes) &&
+    /router\.post\("\/:id\/reject", \.\.\.reviewChain/.test(SRC.requestRoutes) &&
+    /app\.use\("\/api\/portal-requests",\s*portalRequestRoutes\);/.test(
+      SRC.server,
+    ),
+);
+
+check(
+  "۱۳.۱۱ · گله از یک منبع مشترک حل می‌شود (flockResolver)",
+  /module\.exports = \{\s*\n\s*getNextFlockNumber,/.test(SRC.flockResolver) &&
+    /require\("\.\.\/services\/flockResolver"\)/.test(
+      read("Backend/controllers/chickPlacementController.js"),
+    ) &&
+    /require\("\.\/flockResolver"\)/.test(SRC.farmService) &&
+    !/const resolveFlock = async/.test(
+      read("Backend/controllers/chickPlacementController.js"),
+    ),
+);
+
+check(
+  "۱۳.۱۱ · لغو درخواست: مالکیت ردیف + فقط pending + سقف نوشتن",
+  /const farmCancelChain = \[/.test(SRC.routes) &&
+    /requireOwnedRow\(\{ model: PortalRequest, label: "درخواست" \}\)/.test(
+      SRC.routes,
+    ) &&
+    /portalWriteLimiter,/.test(SRC.routes) &&
+    /cancel_only_pending", 409/.test(SRC.farmService),
+);
+
+check(
+  "۱۳.۱۱ · مهاجرت/مدل/verify-db: جدول portal_requests با سه ایندکس",
+  /portal_requests/.test(SRC.requestMigration) &&
+    /showAllTables/.test(SRC.requestMigration) &&
+    /payload/.test(SRC.requestMigration) &&
+    /JSONB/.test(SRC.requestMigration) &&
+    /request_type/.test(SRC.requestModel) &&
+    /"portal_requests",/.test(SRC.verifyDb) &&
+    /portal_requests_status_created/.test(SRC.verifyDb) &&
+    /portal_requests_customer_status_created/.test(SRC.verifyDb),
+);
+
+check(
+  "۱۳.۱۱ · پورتال: تب از رجیستری EXTRA_TABS + mixin + ترتیب بارگذاری",
+  /export const FARM_TABS = \{/.test(SRC.portalFarm) &&
+    /permission: "customer\.portal\.farm"/.test(SRC.portalFarm) &&
+    /export const applyPortalFarm = \(ServiceClass\) => \{/.test(
+      SRC.portalFarm,
+    ) &&
+    /applyPortalFarm\(PortalService\);/.test(SRC.portalService) &&
+    /this\.initFarmTab\(\);/.test(SRC.portalService) &&
+    /this\.bindFarm\(\);/.test(SRC.portalService) &&
+    SRC.portalService.indexOf("Object.assign(EXTRA_TABS, DOCUMENT_TABS, FARM_TABS)") <
+      SRC.portalService.indexOf("const ALL_TAB_KEYS") &&
+    SRC.portalService.indexOf("applyPortalFarm(PortalService)") >
+      SRC.portalService.indexOf("applyPortalDocuments(PortalService)"),
+);
+
+check(
+  "۱۳.۱۱ · پورتال: گیت دکمه‌ها از features سرور + بدون alert/confirm بومی",
+  /if \(!this\.canRequestFarm\(\)\) return;/.test(SRC.portalFarm) &&
+    /if \(!this\.canCancelFarmRequest\(\)\) return;/.test(SRC.portalFarm) &&
+    /features\.farm_request/.test(SRC.portalFarm) &&
+    /features\.farm_cancel/.test(SRC.portalFarm) &&
+    !/\balert\(/.test(stripComments(SRC.portalFarm)) &&
+    !/\bconfirm\(/.test(stripComments(SRC.portalFarm)),
+);
+
+check(
+  "۱۳.۱۱ · پورتال: سرور هم features.farm_* و sections.farm را برمی‌گرداند",
+  /customer\.portal\.farm\.request/.test(SRC.controller) &&
+    /customer\.portal\.farm\.cancel/.test(SRC.controller) &&
+    /farm: canFarm,/.test(SRC.controller) &&
+    /farm_request: Boolean\(canFarm && canFarmRequest\)/.test(SRC.controller) &&
+    /farm_cancel: Boolean\(canFarm && canFarmCancel\)/.test(SRC.controller),
+);
+
+check(
+  "۱۳.۱۱ · صفحهٔ پورتال: تب/پنل جدید بدون تگ فرم",
+  /data-portal-tab="farm"/.test(SRC.portalHtml) &&
+    /data-portal-panel="farm"/.test(SRC.portalHtml) &&
+    /id="portalFarmBody"/.test(SRC.portalHtml) &&
+    /id="portalFarmStatus"/.test(SRC.portalHtml) &&
+    !/<form|type="submit"|method="post"/i.test(SRC.portalHtml) &&
+    !/<form|type="submit"/i.test(SRC.portalFarmRenderer),
+);
+
+check(
+  "۱۳.۱۱ · رندرر پورتال: escape خروجی + اعتبارسنجی فرم سمت کلاینت",
+  /const esc = \(value\) =>/.test(SRC.portalFarmRenderer) &&
+    /export const FARM_FORM_SPEC = \{/.test(SRC.portalFarmRenderer) &&
+    /export const renderFarmPanel = \(\{/.test(SRC.portalFarmRenderer) &&
+    /farmFormError\(\)\s*\{/.test(SRC.portalFarm) &&
+    /&amp;/.test(SRC.portalFarmRenderer),
+);
+
+check(
+  "۱۳.۱۱ · api.const: اندپوینت‌های مشتری و صف کارکنان ثبت شده‌اند",
+  /FARM_OPTIONS: "\/portal\/farm\/options"/.test(SRC.apiConst) &&
+    /FARM_REQUESTS: "\/portal\/farm\/requests"/.test(SRC.apiConst) &&
+    /FARM_REQUEST_CANCEL: \(id\)/.test(SRC.apiConst) &&
+    /PORTAL_REQUESTS: \{/.test(SRC.apiConst) &&
+    /PENDING_COUNT: "\/portal-requests\/pending-count"/.test(SRC.apiConst) &&
+    /APPROVE: \(id\)/.test(SRC.apiConst) &&
+    /REJECT: \(id\)/.test(SRC.apiConst),
+);
+check(
+  "۱۳.۱۱ · پنل ادمین: منو/بخش/مودال + سیم‌کشی دینامیک سرویس",
+  /data-menu="portal-requests"/.test(SRC.adminPanelHtml) &&
+    /data-permission="admin\.menu\.portalRequests"/.test(SRC.adminPanelHtml) &&
+    /id="portal-requests" class="content-section"/.test(SRC.adminPanelHtml) &&
+    /id="portalRequestsQueue"/.test(SRC.adminPanelHtml) &&
+    /id="portalRequestsMenuBadge"/.test(SRC.adminPanelHtml) &&
+    /id="portalRequestsModal"/.test(SRC.adminPanelHtml) &&
+    /"portal-requests": "admin\.menu\.portalRequests",/.test(
+      SRC.adminPanelService,
+    ) &&
+    /case "portal-requests":/.test(SRC.adminPanelService) &&
+    /await import\("\.\.\/portal-requests\/portal-requests\.manager\.js"\)/.test(
+      SRC.adminPanelService,
+    ),
+);
+
+check(
+  "۱۳.۱۱ · ماژول ادمین: مسیرهای API + گیت مجوز تأیید + escape خروجی",
+  /portalRequestsApi\.approve\(/.test(SRC.adminRequestsManager) &&
+    /portalRequestsApi\.reject\(/.test(SRC.adminRequestsManager) &&
+    /portalRequestsApi\.pendingCount\(/.test(SRC.adminRequestsManager) &&
+    /portal\.requests\.review/.test(SRC.adminRequestsManager) &&
+    /const esc = \(value\) =>/.test(SRC.adminRequestsRenderer) &&
+    /data-prq-modal-approve/.test(SRC.adminPanelHtml) &&
+    /data-prq-modal-reject/.test(SRC.adminPanelHtml),
+);
+
+check(
+  "۱۳.۱۱ · تست بک‌اند ثبت شده + مستندات موج موجود است",
+  /test:portal-requests/.test(read("Backend/package.json")) &&
+    /portal-request-test/.test(read(FILES.backendRequestTest)) &&
+    /۱۳\.۱۱/.test(read(FILES.docs1311)) &&
+    /الگوی ب/.test(read(FILES.docs1311)),
+);
+
+// ============================================================
 // خلاصه
 // ============================================================
+
+
 const failed = results.filter((ok) => !ok).length;
 console.log(
   `\n${failed === 0 ? "✅" : "❌"} ${results.length - failed}/${results.length} بررسی موفق`,
