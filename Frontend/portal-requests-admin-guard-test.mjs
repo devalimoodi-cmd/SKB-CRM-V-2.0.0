@@ -348,6 +348,32 @@ check(
     /portal\.requests\.review/.test(SRC.docs),
 );
 
+// ✅ موج ۱۳.۱۳ — انواع تازه باید در صف «خوانا» باشند
+check(
+  "۱۳.۱۳ · انواع تازه برچسب فارسی دارند (ویرایش/حذف/جزئیات سالن)",
+  /unit_update: "ویرایش واحد مرغداری"/.test(SRC.renderer) &&
+    /unit_delete: "حذف واحد مرغداری"/.test(SRC.renderer) &&
+    /hall_update: "ویرایش سالن"/.test(SRC.renderer) &&
+    /hall_delete: "حذف سالن"/.test(SRC.renderer) &&
+    /hall_physical_save: "ثبت اطلاعات فیزیکی سالن"/.test(SRC.renderer) &&
+    /hall_system_save: "ثبت سیستم‌های سالن"/.test(SRC.renderer) &&
+    /hall_water_feed_save: "ثبت آب‌خوری و دان‌خوری"/.test(SRC.renderer) &&
+    /hall_hygiene_save: "ثبت بهداشت سالن"/.test(SRC.renderer),
+);
+
+check(
+  "۱۳.۱۳ · انواع حذف هشدار می‌گیرند و آرایه‌ها ورودی متنی نمی‌شوند",
+  /export const DESTRUCTIVE_TYPE_KEYS = \["unit_delete", "hall_delete"\]/.test(
+    SRC.renderer,
+  ) &&
+    /prq-warn/.test(SRC.renderer) &&
+    /export const LIST_PAYLOAD_KEYS = \["items"\]/.test(SRC.renderer) &&
+    /EDITABLE_PAYLOAD_KEYS = Object\.keys\(PAYLOAD_LABELS\)\.filter/.test(
+      SRC.renderer,
+    ) &&
+    /\.prq-warn \{/.test(SRC.css),
+);
+
 // ============================================================
 // خلاصه
 // ============================================================

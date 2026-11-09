@@ -117,6 +117,12 @@ const FILES = {
   farmController: "Backend/controllers/portalFarmController.js",
   farmRules: "Backend/services/portalRequestRules.js",
   farmService: "Backend/services/portalRequestService.js",
+  // ✅ موج ۱۳.۱۳ — هستهٔ نوشتن + مسیرها + اعتبارسنجی جزئیات سالن
+  farmRoutes: "Backend/routes/portalRoutes.js",
+  farmUnitWrite: "Backend/services/farm/unitWrite.js",
+  farmHallWrite: "Backend/services/farm/hallWrite.js",
+  farmHallDetailsWrite: "Backend/services/farm/hallDetailsWrite.js",
+  hallDetailValidation: "Backend/validations/hallDetailValidation.js",
   flockResolver: "Backend/services/flockResolver.js",
   requestModel: "Backend/models/PortalRequest.js",
   requestMigration:
@@ -134,6 +140,7 @@ const FILES = {
   adminPanelHtml: "Frontend/src/pages/admin-panel.html",
   adminPanelService: "Frontend/src/features/admin-panel/admin-panel.service.js",
   docs1311: "docs/REVIEW-WAVE-13.11.md",
+  docs1313: "docs/REVIEW-WAVE-13.13.md",
   backendRequestTest: "Backend/portal-request-test.mjs",
 };
 
@@ -194,6 +201,11 @@ const SRC = {
   farmController: read(FILES.farmController),
   farmRules: read(FILES.farmRules),
   farmService: read(FILES.farmService),
+  farmRoutes: read(FILES.farmRoutes),
+  farmUnitWrite: read(FILES.farmUnitWrite),
+  farmHallWrite: read(FILES.farmHallWrite),
+  farmHallDetailsWrite: read(FILES.farmHallDetailsWrite),
+  hallDetailValidation: read(FILES.hallDetailValidation),
   flockResolver: read(FILES.flockResolver),
   requestModel: read(FILES.requestModel),
   requestMigration: read(FILES.requestMigration),
@@ -599,11 +611,12 @@ check(
 );
 
 check(
-  "مسیر: ۱۷ GET خواندنی + نوشتن‌های محدود (پروفایل ۳ + مدارک ۲ + فارم ۲ · بدون PUT)",
+  "مسیر: ۱۸ GET خواندنی + نوشتن‌های محدود (پروفایل ۳ + مدارک ۲ + فارم ۲ · بدون PUT)",
   // ✅ موج ۱۳.۸: ۸ مسیر خواندنی قبلی + پروفایل + چهار مسیر داشبورد = ۱۳
   // ✅ موج ۱۳.۱۰: دو GET مدارک (فهرست + فایل) ⇒ ۱۵
   // ✅ موج ۱۳.۱۱: دو GET درخواست‌های فارم (options + requests) ⇒ ۱۷
-  (SRC.routes.match(/router\.get\(/g) || []).length === 17 &&
+  // ✅ موج ۱۳.۱۳: یک GET جزئیات سالن (/farm/halls/:id) ⇒ ۱۸
+  (SRC.routes.match(/router\.get\(/g) || []).length === 18 &&
     (SRC.routes.match(/router\.patch\(/g) || []).length === 1 &&
     // ۲ پروفایل/موبایل + ۱ آپلود مدرک + ۲ درخواست فارم (ثبت/لغو)
     (SRC.routes.match(/router\.post\(/g) || []).length === 5 &&
@@ -2303,9 +2316,9 @@ check(
 );
 
 check(
-  "۱۳.۱۱ · سقف‌ها: ۱۰ درخواست در انتظار · ۴KB payload · دلیل رد اجباری",
+  "۱۳.۱۱ · سقف‌ها: ۱۰ درخواست در انتظار · ۸KB payload · دلیل رد اجباری",
   /const MAX_PENDING_REQUESTS = 10;/.test(SRC.farmRules) &&
-    /const MAX_PAYLOAD_BYTES = 4096;/.test(SRC.farmRules) &&
+    /const MAX_PAYLOAD_BYTES = 8192;/.test(SRC.farmRules) &&
     /const MIN_REASON_LENGTH = 3;/.test(SRC.farmRules) &&
     /too_many_pending/.test(SRC.farmService) &&
     /validateReason\(reason\)/.test(SRC.farmService),
@@ -2339,7 +2352,10 @@ check(
     /require\("\.\.\/flockResolver"\)/.test(
       read("Backend/services/farm/placementWrite.js"),
     ) &&
-    /require\("\.\/flockResolver"\)/.test(SRC.farmService) &&
+    // ✅ ۱۳.۱۳: پورتال دیگر خودش flockResolver را صدا نمی‌زند؛ از
+    // placementWrite می‌گذرد (همان منبع) و نباید نسخهٔ محلی بسازد.
+    /require\("\.\/farm\/placementWrite"\)/.test(SRC.farmService) &&
+    !/const resolveFlock = async/.test(SRC.farmService) &&
     !/const resolveFlock = async/.test(
       read("Backend/services/farm/placementWrite.js"),
     ),
@@ -2492,6 +2508,122 @@ check(
     /portal-request-test/.test(read(FILES.backendRequestTest)) &&
     /۱۳\.۱۱/.test(read(FILES.docs1311)) &&
     /الگوی ب/.test(read(FILES.docs1311)),
+);
+
+// ============================================================
+// ✅ موج ۱۳.۱۳ — هشت نوع تازه روی همان الگوی درخواست/تأیید
+// ============================================================
+
+check(
+  "۱۳.۱۳ · هشت نوع تازه در قواعد ثبت شده‌اند",
+  [
+    "unit_update",
+    "unit_delete",
+    "hall_update",
+    "hall_delete",
+    "hall_physical_save",
+    "hall_system_save",
+    "hall_water_feed_save",
+    "hall_hygiene_save",
+  ].every((type) => SRC.farmRules.includes(`key: "${type}"`)),
+);
+
+check(
+  "۱۳.۱۳ · فهرست سفید جزئیات سالن از اعتبارسنج کارشناس مشتق می‌شود",
+  /HALL_DETAIL_FIELDS/.test(SRC.farmRules) &&
+    /hallDetailPayloadKeys\("hall_physical_save"\)/.test(SRC.farmRules) &&
+    /hallDetailPayloadKeys\("hall_system_save", \["items"\]\)/.test(
+      SRC.farmRules,
+    ) &&
+    !/"unit_id",\n\s+"length"/.test(SRC.farmRules),
+);
+
+check(
+  "۱۳.۱۳ · payload آرایه‌ای (تجهیزات) پاک‌سازی و سقف‌دار است",
+  /const LIST_FIELDS = \{/.test(SRC.farmRules) &&
+    /hall_system_save: \["items"\]/.test(SRC.farmRules) &&
+    /const sanitizeListItems = \(value\) => \{/.test(SRC.farmRules) &&
+    /LIST_ITEM_ALLOWED_KEYS/.test(SRC.farmRules),
+);
+
+check(
+  "۱۳.۱۳ · سرویس پورتال نوشتن را به هستهٔ مشترک فارم می‌سپارد",
+  /require\("\.\/farm\/unitWrite"\)/.test(SRC.farmService) &&
+    /require\("\.\/farm\/hallWrite"\)/.test(SRC.farmService) &&
+    /require\("\.\/farm\/hallDetailsWrite"\)/.test(SRC.farmService) &&
+    !/const nextHallNumber = async/.test(SRC.farmService) &&
+    !/const syncUnitHallCount = async/.test(SRC.farmService),
+);
+
+check(
+  "۱۳.۱۳ · مالکیت ردیف هدف داخل همان تراکنش سنجیده می‌شود",
+  /const requireOwnedUnit = async/.test(SRC.farmService) &&
+    /const requireOwnedHall = async/.test(SRC.farmService) &&
+    /lock: transaction\.LOCK\.UPDATE/.test(SRC.farmService) &&
+    /customer_personal_information_id: customerId/.test(SRC.farmService) &&
+    /where: \{ id: hallId, customer_id: customerId \}/.test(SRC.farmService),
+);
+
+check(
+  "۱۳.۱۳ · حذف واحد بازتایپ نام می‌خواهد و حذف سالن از هشدار رد نمی‌شود",
+  /confirm_name/.test(SRC.farmRules) &&
+    /confirm_name_mismatch/.test(SRC.farmService) &&
+    /DESTRUCTIVE_TYPES/.test(SRC.farmRules) &&
+    /unitWrite\.deleteUnit\(/.test(SRC.farmService) &&
+    /hallWrite\.deleteHall\(/.test(SRC.farmService),
+);
+
+check(
+  "۱۳.۱۳ · مسیر «جزئیات سالن خودم» با مالکیت ردیف و بدون سقف نوشتن",
+  /"\/farm\/halls\/:id"/.test(SRC.farmRoutes) &&
+    /requireOwnedRow\(\{ model: Hall, label: "سالن" \}\)/.test(SRC.farmRoutes) &&
+    /hallDetailsFor/.test(SRC.farmService),
+);
+
+check(
+  "۱۳.۱۳ · گزینه‌های فرم دیکشنری‌های چهار حوزه و پرچم «ثبت‌شده» را دارد",
+  /floor_types:/.test(SRC.farmService) &&
+    /heating_systems:/.test(SRC.farmService) &&
+    /waterer_types:/.test(SRC.farmService) &&
+    /feeder_types:/.test(SRC.farmService) &&
+    /has_physical:/.test(SRC.farmService) &&
+    /has_water_feed:/.test(SRC.farmService),
+);
+
+check(
+  "۱۳.۱۳ · هستهٔ نوشتن تراکنش بیرونی را می‌پذیرد (تأیید اتمیک)",
+  /existingTransaction/.test(SRC.farmUnitWrite) &&
+    /existingTransaction/.test(SRC.farmHallWrite) &&
+    /existingTransaction/.test(SRC.farmHallDetailsWrite) &&
+    /requireHall\(hall_id, existingTransaction\)/.test(
+      SRC.farmHallDetailsWrite,
+    ),
+);
+
+check(
+  "۱۳.۱۳ · پنل کارشناس انواع تازه را برچسب‌دار و با هشدار حذف نشان می‌دهد",
+  /unit_delete: "حذف واحد مرغداری"/.test(SRC.adminRequestsRenderer) &&
+    /hall_hygiene_save: "ثبت بهداشت سالن"/.test(SRC.adminRequestsRenderer) &&
+    /DESTRUCTIVE_TYPE_KEYS/.test(SRC.adminRequestsRenderer) &&
+    /LIST_PAYLOAD_KEYS/.test(SRC.adminRequestsRenderer) &&
+    /prq-warn/.test(read(FILES.adminRequestsCss)),
+);
+
+check(
+  "۱۳.۱۳ · مستندات موج ۱۳.۱۳ موجود است",
+  /۱۳\.۱۳/.test(read(FILES.docs1313)) &&
+    /hall_physical_save/.test(read(FILES.docs1313)),
+);
+
+check(
+  "۱۳.۱۳ · تب‌های پورتال فقط برای انواع دارای فرم ساخته می‌شوند (بدون تب بی‌فرم)",
+  /const serverTypes = Array\.isArray\(meta\.types\)/.test(
+    SRC.portalFarmRenderer,
+  ) &&
+    /meta\.types\.filter\(\(item\) => item && FARM_FORM_SPEC\[item\.key\]\)/.test(
+      SRC.portalFarmRenderer,
+    ) &&
+    /if \(!FARM_FORM_SPEC\[key\]\) return;/.test(SRC.portalFarm),
 );
 
 // ============================================================

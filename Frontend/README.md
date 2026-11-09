@@ -804,7 +804,7 @@ npm run test:cache    :: نگهبانهای UI (وجود بخش، سه‌حال�
 | وضعیت‌ها | `pending` · `approved` · `rejected` · `cancelled` — مشتری دلیل رد و خلاصهٔ نتیجهٔ تأیید را می‌بیند |
 | پنل ادمین | `features/portal-requests/` (`api` · `manager` · `renderer` · `css`) + منو/بخش/مودال در `admin-panel.html` و `case "portal-requests"` در `admin-panel.service.js` |
 | مجوز صف | `portal.requests.view` (دیدن صف) · `portal.requests.review` (تأیید/رد) · `admin.menu.portalRequests` (نمایش منو) |
-| گارد | بخش **۱۷** در `npm run test:customer-portal` + گارد جدا `npm run test:portal-requests` (۲۸ بررسی) |
+| گارد | بخش **۱۷** در `npm run test:customer-portal` + گارد جدا `npm run test:portal-requests` (۳۰ بررسی) |
 
 📄 گزارش کامل: `docs/REVIEW-WAVE-13.11.md`.
 
@@ -820,6 +820,21 @@ npm run test:cache    :: نگهبانهای UI (وجود بخش، سه‌حال�
 | زنجیرهٔ «یک منبع» | `chickPlacementController → services/farm/placementWrite → services/flockResolver` (گارد و تست بک‌اند به همین زنجیره به‌روزرسانی شدند) |
 
 📄 گزارش کامل: `docs/REVIEW-WAVE-13.12.md`.
+
+## ۸ نوع تازهٔ درخواست در پورتال + خوانایی صف کارشناس (موج ۱۳.۱۳)
+
+این موج **بک‌اندی** است (نوشتن از `services/farm/*`)، ولی دو اثر مستقیم سمت
+فرانت دارد:
+
+| موضوع | مقدار |
+|---|---|
+| گارد پورتال | بخش تازهٔ **۱۳.۱۳** (۱۱ بررسی): هشت نوع، فهرست سفید مشتق‌شده از اعتبارسنج کارشناس، آرایهٔ `items`، «یک منبع نوشتن»، مالکیت داخل تراکنش، مسیر `/farm/halls/:id`، دیکشنری‌های چهار حوزه، برچسب‌های پنل کارشناس، تب‌های پورتال بدون فرم (تعداد کل: ۱۹۰) |
+| گارد صف | `npm run test:portal-requests` → ۳۰ بررسی (برچسب ۸ نوع تازه + هشدار انواع حذف + آرایه‌ها) |
+| مسیرها | `GET /api/portal/farm/halls/:id` (تعداد GETهای پورتال: ۱۷ ⇒ ۱۸) |
+| پنل کارشناس | `portal-requests.renderer.js`: `REQUEST_TYPE_LABELS` (۸ نوع)، `PAYLOAD_LABELS` (کلیدهای تازه)، `DESTRUCTIVE_TYPE_KEYS` (هشدار `.prq-warn`)، `LIST_PAYLOAD_KEYS` (آرایه‌ها ورودی متنی نمی‌گیرند) |
+| سقف payload | ۴KB ⇒ ۸KB (هم‌راستا با سقف ۶۰ ردیف تجهیزات) |
+
+📄 گزارش کامل: `docs/REVIEW-WAVE-13.13.md`.
 
 
 

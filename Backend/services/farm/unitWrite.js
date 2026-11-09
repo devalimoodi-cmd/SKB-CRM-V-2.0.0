@@ -85,7 +85,10 @@ const orderHallsForNaming = (halls = []) =>
 // ------------------------------------------------------------
 //  خروجی: { unit, customer } — کنترلر پیام/شکل پاسخ را می‌سازد.
 // ============================================
-const createUnit = async (body = {}) => {
+//  ✅ ۱۳.۱۳: پارامتر دوم `{ transaction }` است؛ اگر لایهٔ بالاتر تراکنش
+//  بدهد (تأیید درخواست پورتال)، مرز تراکنش مال اوست و این‌جا commit
+//  نمی‌شود. پیش‌فرض `null` ⇒ رفتار قبلی کنترلرها بدون تغییر.
+const createUnit = async (body = {}, { transaction: existingTransaction = null } = {}) => {
   const validation = validateUnitData(body);
   if (!validation.isValid) {
     failValidation(validation, "اطلاعات واحد معتبر نیست");
@@ -152,7 +155,7 @@ const createUnit = async (body = {}) => {
     }
 
     return { unit, customer };
-  });
+  }, existingTransaction);
 };
 
 // ============================================
@@ -162,7 +165,11 @@ const createUnit = async (body = {}) => {
 //  ⚠️ این تابع (مثل قبل) اعتبارسنجی کامل واحد را اجرا نمی‌کند؛ فقط
 //     وجود وضعیت ارسالی را بررسی می‌کند — رفتار قبلی حفظ می‌شود.
 // ============================================
-const updateUnit = async (unitId, body = {}) => {
+const updateUnit = async (
+  unitId,
+  body = {},
+  { transaction: existingTransaction = null } = {},
+) => {
   try {
     return await runInTransaction(async (transaction) => {
       const unit = await Unit.findByPk(unitId, { transaction });
@@ -216,7 +223,7 @@ const updateUnit = async (unitId, body = {}) => {
       }
 
       return { unit, renamedHalls, unitNameChanged };
-    });
+    }, existingTransaction);
   } catch (error) {
     throwIfUnique(
       error,
@@ -234,9 +241,15 @@ const updateUnit = async (unitId, body = {}) => {
 //  نشان‌های مرتبط حذف می‌شوند. ترتیب حذف مهم است (وابستگی‌ها اول).
 //  خروجی: { unitId }
 // ============================================
-const deleteUnit = async (unitId) =>
+const deleteUnit = async (
+  unitId,
+  { transaction: existingTransaction = null } = {},
+) =>
   runInTransaction(async (transaction) => {
-    const unit = await Unit.findByPk(unitId);
+    // ⚠️ ۱۳.۱۳: findByPk حتماً با تراکنش جاری (قبلاً بدون تراکنش بود ⇒
+    // وقتی این تابع داخل تراکنش تأیید پورتال اجرا می‌شد، ردیف بیرون از
+    // تراکنش خوانده می‌شد و قفل ردیف بی‌اثر بود).
+    const unit = await Unit.findByPk(unitId, { transaction });
     if (!unit) fail("واحد یافت نشد", 404);
 
     // 1️⃣ سالن‌های واحد (شامل حذف‌شده‌ها)
@@ -402,7 +415,7 @@ const deleteUnit = async (unitId) =>
     await unit.destroy({ force: true, transaction });
 
     return { unitId: unit.id };
-  });
+  }, existingTransaction);
 
 // ============================================
 // صادرات

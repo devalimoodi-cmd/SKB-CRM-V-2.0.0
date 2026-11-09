@@ -32,10 +32,23 @@ const flockResolver = require("./services/flockResolver.js");
 // ============================================================
 // ۱) انواع و وضعیت‌ها
 // ============================================================
+// ✅ موج ۱۳.۱۳: هشت نوع تازه (ویرایش/حذف واحد و سالن + چهار حوزهٔ جزئیات)
+const CREATE_TYPES = ["unit_create", "hall_create", "placement_create"];
+const WAVE_1313_TYPES = [
+  "unit_update",
+  "unit_delete",
+  "hall_update",
+  "hall_delete",
+  "hall_physical_save",
+  "hall_system_save",
+  "hall_water_feed_save",
+  "hall_hygiene_save",
+];
+
 check(
-  "انواع درخواست طبق طراحی است (۳ نوع ایجاد)",
+  "انواع درخواست طبق طراحی است (۳ نوع ایجاد + ۸ نوع ۱۳.۱۳)",
   rules.REQUEST_TYPE_KEYS.join(",") ===
-    "unit_create,hall_create,placement_create",
+    CREATE_TYPES.concat(WAVE_1313_TYPES).join(","),
   rules.REQUEST_TYPE_KEYS.join(","),
 );
 
@@ -138,10 +151,11 @@ check(
 );
 
 check(
-  "حجم payload محاسبه و سقف ۴KB اعمال می‌شود",
-  rules.MAX_PAYLOAD_BYTES === 4096 &&
-    rules.payloadSizeBytes({ note: "x".repeat(5000) }) > rules.MAX_PAYLOAD_BYTES,
-  `size=${rules.payloadSizeBytes({ note: "x".repeat(5000) })}`,
+  "حجم payload محاسبه و سقف ۸KB اعمال می‌شود",
+  rules.MAX_PAYLOAD_BYTES === 8192 &&
+    rules.payloadSizeBytes({ note: "x".repeat(9000) }) >
+      rules.MAX_PAYLOAD_BYTES,
+  `size=${rules.payloadSizeBytes({ note: "x".repeat(9000) })}`,
 );
 // ============================================================
 // ۳) اعتبارسنجی هر سه نوع
@@ -376,11 +390,14 @@ const placementWriter = fs.readFileSync(
   "utf8",
 );
 
+// ✅ موج ۱۳.۱۳: نوشتن جوجه‌ریزی پورتال هم از مسیر مشترک می‌گذرد؛
+//    زنجیرهٔ کامل: portalRequestService ← placementWrite ← flockResolver
 check(
   "نوشتن جوجه‌ریزی از یک منبع مشترک استفاده می‌کند (placementWrite ← flockResolver)",
   /require\("\.\.\/flockResolver"\)/.test(placementWriter) &&
     /require\("\.\.\/services\/farm\/placementWrite"\)/.test(writerController) &&
-    /require\("\.\/flockResolver"\)/.test(serviceSource),
+    /require\("\.\/farm\/placementWrite"\)/.test(serviceSource) &&
+    /placementWrite\.createPlacement\(/.test(serviceSource),
 );
 
 check(
@@ -394,10 +411,10 @@ check(
 // ۷) سقف‌ها و پیام‌ها
 // ============================================================
 check(
-  "سقف ۱۰ درخواست در انتظار و ۴KB payload اعلام شده است",
+  "سقف ۱۰ درخواست در انتظار و ۸KB payload اعلام شده است",
   rules.MAX_PENDING_REQUESTS === 10 &&
     rules.LIMITS.max_pending === 10 &&
-    rules.LIMITS.max_payload_bytes === 4096,
+    rules.LIMITS.max_payload_bytes === 8192,
 );
 
 check(
@@ -423,7 +440,224 @@ check(
 );
 
 // ============================================================
-// ۸) سیم‌کشی فایل‌های موج ۱۳.۱۱ موجودند
+// ۹) موج ۱۳.۱۳ — هشت نوع تازه (ویرایش/حذف + جزئیات سالن)
+// ============================================================
+const hallDetailValidation = require("./validations/hallDetailValidation.js");
+const farmRoutesSource = fs.readFileSync(
+  path.join(here, "routes/portalRoutes.js"),
+  "utf8",
+);
+const unitWriter = fs.readFileSync(
+  path.join(here, "services/farm/unitWrite.js"),
+  "utf8",
+);
+const hallWriter = fs.readFileSync(
+  path.join(here, "services/farm/hallWrite.js"),
+  "utf8",
+);
+const hallDetailWriter = fs.readFileSync(
+  path.join(here, "services/farm/hallDetailsWrite.js"),
+  "utf8",
+);
+
+check(
+  "۱۳.۱۳ · هر نوع درخواست اعتبارسنج payload دارد (بدون نوع بدون قاعده)",
+  rules.REQUEST_TYPE_KEYS.every((type) => rules.hasPayloadValidator(type)),
+);
+
+check(
+  "۱۳.۱۳ · هیچ فهرست سفیدی کلید حساس ندارد (customer_id/status/reviewed_by/is_active)",
+  rules.REQUEST_TYPE_KEYS.every((type) => {
+    const keys = rules.ALLOWED_PAYLOAD_KEYS[type] || [];
+    return (
+      !keys.includes("customer_id") &&
+      !keys.includes("status") &&
+      !keys.includes("reviewed_by") &&
+      !keys.includes("is_active") &&
+      !keys.includes("unit_status_id") &&
+      !keys.includes("customer_personal_information_id")
+    );
+  }),
+);
+
+check(
+  "۱۳.۱۳ · حذف واحد بدون بازتایپ نام واحد رد می‌شود",
+  rules.validatePayload("unit_delete", { unit_id: 7 }).isValid === false &&
+    rules.validatePayload("unit_delete", {
+      unit_id: 7,
+      confirm_name: "واحد الف",
+    }).isValid === true,
+);
+
+check(
+  "۱۳.۱۳ · ویرایش واحد بدون هیچ تغییری رد می‌شود",
+  rules.validatePayload("unit_update", { unit_id: 7 }).isValid === false &&
+    rules.validatePayload("unit_update", { unit_id: 7, capacity: 5000 })
+      .isValid === true,
+);
+
+const hallUpdatePayload = rules.sanitizePayload("hall_update", {
+  hall_id: "۳",
+  hall_number: "۱۲",
+});
+
+check(
+  "۱۳.۱۳ · ویرایش سالن بدون unit_id معتبر است و ارقام فارسی نرمال می‌شوند",
+  hallUpdatePayload.hall_id === 3 &&
+    hallUpdatePayload.hall_number === "12" &&
+    rules.validatePayload("hall_update", hallUpdatePayload).isValid === true &&
+    !rules.ALLOWED_PAYLOAD_KEYS.hall_update.includes("unit_id"),
+  JSON.stringify(hallUpdatePayload),
+);
+
+// ============================================================
+const physicalPayload = rules.sanitizePayload("hall_physical_save", {
+  hall_id: "۵",
+  length: "12.5",
+  width: 6,
+  floor_type_id: 2,
+  unit_id: 99,
+  customer_id: 1,
+});
+
+check(
+  "۱۳.۱۳ · جزئیات فیزیکی: عددی‌ها تبدیل و unit_id/customer_id حذف می‌شوند",
+  physicalPayload.hall_id === 5 &&
+    physicalPayload.length === 12.5 &&
+    !("unit_id" in physicalPayload) &&
+    !("customer_id" in physicalPayload) &&
+    rules.validatePayload("hall_physical_save", physicalPayload).isValid === true,
+  JSON.stringify(physicalPayload),
+);
+
+check(
+  "۱۳.۱۳ · جزئیات فیزیکی: طول منفی رد می‌شود",
+  rules.validatePayload("hall_physical_save", { hall_id: 5, length: -2 })
+    .isValid === false,
+);
+
+const systemPayload = rules.sanitizePayload("hall_system_save", {
+  hall_id: 5,
+  fan_count: "4",
+  items: [
+    { category: "fan", quantity: "2", type_id: "3", evil: "x" },
+    { category: "", quantity: 1 },
+    "not-an-object",
+  ],
+});
+
+check(
+  "۱۳.۱۳ · سیستم‌ها: ردیف‌های تجهیزات پاک‌سازی می‌شوند (بدون کلید اضافه/ردیف بی‌دسته)",
+  Array.isArray(systemPayload.items) &&
+    systemPayload.items.length === 1 &&
+    systemPayload.items[0].quantity === 2 &&
+    systemPayload.items[0].type_id === 3 &&
+    !("evil" in systemPayload.items[0]) &&
+    rules.validatePayload("hall_system_save", systemPayload).isValid === true,
+  JSON.stringify(systemPayload),
+);
+
+check(
+  "۱۳.۱۳ · سیستم‌ها: دستهٔ ناشناختهٔ تجهیزات رد می‌شود",
+  rules.validatePayload("hall_system_save", {
+    hall_id: 5,
+    items: [{ category: "spaceship", quantity: 1 }],
+  }).isValid === false,
+);
+
+check(
+  "۱۳.۱۳ · آب/دان: auto_feed_system بولین می‌شود",
+  rules.sanitizePayload("hall_water_feed_save", {
+    hall_id: 5,
+    auto_feed_system: "on",
+    water_lines_count: "3",
+  }).auto_feed_system === true,
+);
+
+check(
+  "۱۳.۱۳ · بهداشت: فقط تاریخ ISO پذیرفته می‌شود",
+  rules.validatePayload("hall_hygiene_save", {
+    hall_id: 5,
+    last_wash_date: "2026-01-05",
+  }).isValid === true &&
+    rules.validatePayload("hall_hygiene_save", {
+      hall_id: 5,
+      last_wash_date: "05/01/2026",
+    }).isValid === false,
+);
+
+check(
+  "۱۳.۱۳ · انواع حذف و ستون هدف در قواعد تعریف شده‌اند",
+  rules.DESTRUCTIVE_TYPES.join(",") === "unit_delete,hall_delete" &&
+    rules.isDestructiveType("unit_delete") === true &&
+    rules.isDestructiveType("hall_update") === false &&
+    rules.targetFieldOf("hall_physical_save") === "hall_id" &&
+    rules.targetFieldOf("unit_delete") === "unit_id",
+);
+
+check(
+  "۱۳.۱۳ · فهرست سفید جزئیات سالن از همان ماژول کارشناس می‌آید",
+  Object.keys(hallDetailValidation.HALL_DETAIL_VALIDATORS).every(
+    (type) =>
+      rules.ALLOWED_PAYLOAD_KEYS[type].includes("hall_id") &&
+      !rules.ALLOWED_PAYLOAD_KEYS[type].includes("unit_id"),
+  ),
+);
+
+// ============================================================
+// ۱۰) موج ۱۳.۱۳ — یک منبع نوشتن (بدون نسخهٔ دوم در سرویس پورتال)
+// ============================================================
+check(
+  "۱۳.۱۳ · سرویس پورتال منطق محلی سالن/واحد ندارد (نسخهٔ دوم حذف شده)",
+  !/const nextHallNumber = async/.test(serviceSource) &&
+    !/const nextHallOrder = async/.test(serviceSource) &&
+    !/const syncUnitHallCount = async/.test(serviceSource) &&
+    !/Hall\.create\(/.test(serviceSource),
+);
+
+check(
+  "۱۳.۱۳ · سرویس پورتال از هستهٔ مشترک فارم استفاده می‌کند",
+  /require\("\.\/farm\/unitWrite"\)/.test(serviceSource) &&
+    /require\("\.\/farm\/hallWrite"\)/.test(serviceSource) &&
+    /require\("\.\/farm\/hallDetailsWrite"\)/.test(serviceSource) &&
+    /hallWrite\.createHall\(/.test(serviceSource) &&
+    /hallWrite\.updateHall\(/.test(serviceSource) &&
+    /hallDetailsWrite\.savePhysicalInfo/.test(serviceSource) &&
+    /unitWrite\.deleteUnit\(/.test(serviceSource),
+);
+
+check(
+  "۱۳.۱۳ · هر نوع تازه یک applier دارد (نقشهٔ اعمال کامل است)",
+  WAVE_1313_TYPES.every((type) => serviceSource.includes(`${type}:`)),
+);
+
+check(
+  "۱۳.۱۳ · هستهٔ فارم تراکنش بیرونی را می‌پذیرد (یک تراکنش برای تأیید)",
+  [unitWriter, hallWriter, hallDetailWriter].every(
+    (src) => src.split("existingTransaction").length > 4,
+  ),
+);
+
+check(
+  "۱۳.۱۳ · مسیر «جزئیات سالن خودم» با مالکیت ردیف ثبت شده است",
+  /"\/farm\/halls\/:id"/.test(farmRoutesSource) &&
+    /requireOwnedRow\(\{ model: Hall, label: "سالن" \}\)/.test(
+      farmRoutesSource,
+    ) &&
+    /hallDetailsFor/.test(serviceSource),
+);
+
+check(
+  "۱۳.۱۳ · گزینه‌های فرم شامل دیکشنری‌های چهار حوزهٔ جزئیات و پرچم «ثبت‌شده» است",
+  /floor_types:/.test(serviceSource) &&
+    /waterer_types:/.test(serviceSource) &&
+    /feeder_types:/.test(serviceSource) &&
+    /has_physical:/.test(serviceSource) &&
+    /has_hygiene:/.test(serviceSource),
+);
+
+// ============================================================
+// ۱۱) سیم‌کشی فایل‌های موج ۱۳.۱۱ موجودند
 // ============================================================
 const REQUIRED_FILES = [
   "models/PortalRequest.js",

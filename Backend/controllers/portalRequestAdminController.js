@@ -36,7 +36,13 @@ const {
 const reviewerIdOf = (req) => (req.user && req.user.id ? req.user.id : null);
 
 const filtersMeta = () => ({
-  types: REQUEST_TYPES.map((item) => ({ key: item.key, label: item.label })),
+  types: REQUEST_TYPES.map((item) => ({
+    key: item.key,
+    label: item.label,
+    // ✅ ۱۳.۱۳: کارشناس پیش از تأیید باید بداند این نوع «حذف/آبشاری» است
+    destructive: Boolean(item.destructive),
+    target: item.target || null,
+  })),
   statuses: REQUEST_STATUSES.map((item) => ({
     key: item.key,
     label: item.label,

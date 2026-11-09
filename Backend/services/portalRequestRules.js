@@ -30,6 +30,12 @@ const { validateUnitData } = require("../validations/unitValidation");
 const {
   validateChickPlacement,
 } = require("../validations/chickPlacementValidation");
+// ✅ ۱۳.۱۳: اعتبارسنجی/فهرست سفید «اطلاعات تکمیلی سالن» از یک منبع
+// (همان ماژولی که مسیر کارشناس اجرا می‌کند ⇒ نسخهٔ دوم ساخته نمی‌شود).
+const {
+  HALL_DETAIL_VALIDATORS,
+  HALL_DETAIL_FIELDS,
+} = require("../validations/hallDetailValidation");
 
 // ============================================
 // ۱) انواع درخواست و برچسب‌ها
@@ -53,6 +59,77 @@ const REQUEST_TYPES = [
     description: "ثبت دورهٔ تازه در یکی از سالن‌های شما",
     icon: "fa-egg",
   },
+  // --------------------------------------------
+  // ✅ ۱۳.۱۳ — ویرایش/حذف واحد و سالن
+  // --------------------------------------------
+  {
+    key: "unit_update",
+    label: "ویرایش واحد مرغداری",
+    description: "اصلاح نام، آدرس، ظرفیت یا اطلاعات تماس واحد",
+    icon: "fa-pen-to-square",
+    destructive: false,
+    target: "unit_id",
+  },
+  {
+    key: "unit_delete",
+    label: "حذف واحد مرغداری",
+    description:
+      "حذف واحد همراه همهٔ سالن‌ها، دوره‌ها، هفته‌ها و بازدیدهای آن (بازگشت‌ناپذیر)",
+    icon: "fa-trash-can",
+    destructive: true,
+    target: "unit_id",
+  },
+  {
+    key: "hall_update",
+    label: "ویرایش سالن",
+    description: "اصلاح نام، شماره، ظرفیت یا مشخصات ساختمانی سالن",
+    icon: "fa-pen-to-square",
+    destructive: false,
+    target: "hall_id",
+  },
+  {
+    key: "hall_delete",
+    label: "حذف سالن",
+    description: "حذف سالن از واحد (سوابق بازدید و هفته‌ها دست‌نخورده می‌ماند)",
+    icon: "fa-trash-can",
+    destructive: true,
+    target: "hall_id",
+  },
+  // --------------------------------------------
+  // ✅ ۱۳.۱۳ — اطلاعات تکمیلی سالن (چهار حوزه)
+  // --------------------------------------------
+  {
+    key: "hall_physical_save",
+    label: "ثبت اطلاعات فیزیکی سالن",
+    description: "ابعاد، مساحت و نوع کف سالن",
+    icon: "fa-ruler-combined",
+    destructive: false,
+    target: "hall_id",
+  },
+  {
+    key: "hall_system_save",
+    label: "ثبت سیستم‌های سالن",
+    description: "گرمایش، سرمایش، تهویه، فن، روشنایی و ردیف‌های تجهیزات",
+    icon: "fa-fan",
+    destructive: false,
+    target: "hall_id",
+  },
+  {
+    key: "hall_water_feed_save",
+    label: "ثبت آب‌خوری و دان‌خوری",
+    description: "نوع آب‌خوری/دان‌خوری و تعداد خطوط آب و دان",
+    icon: "fa-droplet",
+    destructive: false,
+    target: "hall_id",
+  },
+  {
+    key: "hall_hygiene_save",
+    label: "ثبت بهداشت سالن",
+    description: "تاریخ شست‌وشو، ضدعفونی و نوع مادهٔ ضدعفونی",
+    icon: "fa-pump-medical",
+    destructive: false,
+    target: "hall_id",
+  },
 ];
 
 const REQUEST_TYPE_KEYS = REQUEST_TYPES.map((item) => item.key);
@@ -65,6 +142,19 @@ const typeLabel = (key) => {
 };
 
 const isRequestType = (key) => Boolean(typeOf(key));
+
+// ✅ ۱۳.۱۳: انواع «حذف» برای هشدار مودال بازبینی و مستندات
+const DESTRUCTIVE_TYPES = REQUEST_TYPES.filter((item) => item.destructive).map(
+  (item) => item.key,
+);
+
+const isDestructiveType = (key) => DESTRUCTIVE_TYPES.includes(key);
+
+// ستون شناسهٔ ردیف هدفِ هر نوع (برای بررسی مالکیت در لایهٔ اعمال)
+const targetFieldOf = (key) => {
+  const found = typeOf(key);
+  return found ? found.target || null : null;
+};
 
 // ============================================
 // ۲) وضعیت‌ها
@@ -113,10 +203,17 @@ const normalizeTypeFilter = (value) => {
 //  MAX_PENDING_REQUESTS: صف کارشناس نباید با ثبت انبوه پر شود؛
 //  ۱۰ درخواست باز برای هر پرونده سقف منطقی است (بقیه اول تعیین
 //  تکلیف شوند). MAX_PAYLOAD_BYTES: payload در یک ستون JSONB
-//  می‌نشیند؛ ۴KB برای همهٔ فیلدهای مجاز بیش از کافی است.
+//  می‌نشیند.
+//  ⚠️ ۱۳.۱۳: سقف از ۴KB به ۸KB رفت؛ چون `hall_system_save` می‌تواند
+//  تا ۶۰ ردیف تجهیزات داشته باشد (همان سقف اعتبارسنج کارشناس) و
+//  ۴KB برای یک درخواست کامل کافی نبود. بقیهٔ انواع از همین سقف
+//  مشترک استفاده می‌کنند و همچنان کران‌دار است.
 // ============================================
 const MAX_PENDING_REQUESTS = 10;
-const MAX_PAYLOAD_BYTES = 4096;
+const MAX_PAYLOAD_BYTES = 8192;
+// سقف ردیف‌های تجهیزات (همان سقف اعتبارسنج کارشناس) — این‌جا تعریف
+// می‌شود تا هم پیام فارسی و هم sanitize از یک عدد بخوانند.
+const MAX_LIST_ITEMS = 60;
 const MIN_REASON_LENGTH = 3;
 const MAX_REASON_LENGTH = 300;
 const MAX_NOTE_LENGTH = 300;
@@ -161,6 +258,14 @@ const REQUEST_MESSAGES = {
   manager_info_missing:
     "نام و شمارهٔ مدیر واحد نه در درخواست بود و نه در پروندهٔ شما؛ لطفاً آن را در درخواست بنویسید",
   note_too_long: `توضیح درخواست حداکثر ${MAX_NOTE_LENGTH} کاراکتر است`,
+  // ✅ ۱۳.۱۳ — ویرایش/حذف/جزئیات
+  nothing_to_change: "هیچ تغییری برای ثبت ارسال نشده است",
+  confirm_name_required:
+    "برای حذف واحد باید نام واحد را عیناً در فیلد تأیید بنویسید",
+  confirm_name_mismatch:
+    "نام واردشده برای تأیید حذف با نام فعلی واحد مطابقت ندارد",
+  hall_detail_hall_missing: "سالن انتخاب‌شده در پروندهٔ شما نیست",
+  too_many_items: `حداکثر ${MAX_LIST_ITEMS} ردیف تجهیزات برای هر سالن مجاز است`,
 };
 // ============================================
 // ۵) فهرست سفید payload به‌ازای هر نوع
@@ -169,6 +274,17 @@ const REQUEST_MESSAGES = {
 //  `reviewed_by` یا `unit_status_id` را ندارد؛ پس حتی اگر کلاینت
 //  آن‌ها را بفرستد، در sanitizePayload حذف می‌شوند.
 // ============================================
+// ✅ ۱۳.۱۳: فهرست سفید چهار حوزهٔ جزئیات سالن از همان ماژول کارشناس
+// می‌آید (`HALL_DETAIL_FIELDS`). فقط دو تغییر عمدی:
+//   • `unit_id` حذف می‌شود ⇒ مشتری نمی‌تواند جزئیات را به واحد دیگری بچسباند
+//     (لایهٔ اعمال آن را از خود ردیف سالن تکمیل می‌کند).
+//   • `note` (توضیح درخواست) و در سیستم‌ها `items` اضافه می‌شوند.
+const hallDetailPayloadKeys = (type, extra = []) => [
+  ...(HALL_DETAIL_FIELDS[type] || []).filter((key) => key !== "unit_id"),
+  ...extra,
+  "note",
+];
+
 const ALLOWED_PAYLOAD_KEYS = {
   unit_create: [
     "unit_name",
@@ -206,6 +322,37 @@ const ALLOWED_PAYLOAD_KEYS = {
     "start_new_flock",
     "note",
   ],
+  // ✅ ۱۳.۱۳ — ویرایش/حذف
+  unit_update: [
+    "unit_id",
+    "unit_name",
+    "address",
+    "hall_count",
+    "capacity",
+    "longitude",
+    "latitude",
+    "manager_name",
+    "manager_phone",
+    "note",
+  ],
+  unit_delete: ["unit_id", "confirm_name", "note"],
+  hall_update: [
+    "hall_id",
+    "hall_name",
+    "hall_number",
+    "nominal_capacity",
+    "altitude_above_sea",
+    "hall_type_id",
+    "construction_year",
+    "operator_name",
+    "note",
+  ],
+  hall_delete: ["hall_id", "note"],
+  // ✅ ۱۳.۱۳ — اطلاعات تکمیلی سالن (بدون `unit_id`: از خود سالن مشتق می‌شود)
+  hall_physical_save: hallDetailPayloadKeys("hall_physical_save"),
+  hall_system_save: hallDetailPayloadKeys("hall_system_save", ["items"]),
+  hall_water_feed_save: hallDetailPayloadKeys("hall_water_feed_save"),
+  hall_hygiene_save: hallDetailPayloadKeys("hall_hygiene_save"),
 };
 
 // فیلدهای عددی (تبدیل + «خالی ⇒ حذف»)
@@ -229,6 +376,43 @@ const NUMERIC_FIELDS = {
     "placement_density",
     "flock_id",
   ],
+  // ✅ ۱۳.۱۳
+  unit_update: ["unit_id", "hall_count", "capacity", "longitude", "latitude"],
+  unit_delete: ["unit_id"],
+  hall_update: [
+    "hall_id",
+    "nominal_capacity",
+    "altitude_above_sea",
+    "hall_type_id",
+    "construction_year",
+  ],
+  hall_delete: ["hall_id"],
+  hall_physical_save: [
+    "hall_id",
+    "length",
+    "width",
+    "height",
+    "area",
+    "floor_type_id",
+  ],
+  hall_system_save: [
+    "hall_id",
+    "fan_count",
+    "heater_count",
+    "heating_system_id",
+    "cooling_system_id",
+    "ventilation_system_id",
+    "water_inlet_system_id",
+    "lighting_system_id",
+  ],
+  hall_water_feed_save: [
+    "hall_id",
+    "waterer_type_id",
+    "feeder_type_id",
+    "water_lines_count",
+    "feed_lines_count",
+  ],
+  hall_hygiene_save: ["hall_id"],
 };
 
 // فیلدهای منطقی
@@ -236,6 +420,14 @@ const BOOLEAN_FIELDS = {
   unit_create: [],
   hall_create: [],
   placement_create: ["start_new_flock"],
+  unit_update: [],
+  unit_delete: [],
+  hall_update: [],
+  hall_delete: [],
+  hall_physical_save: [],
+  hall_system_save: [],
+  hall_water_feed_save: ["auto_feed_system"],
+  hall_hygiene_save: [],
 };
 
 // فیلدهای تاریخ (رشتهٔ ISO — همان چیزی که سکوئلایز می‌پذیرد)
@@ -243,6 +435,14 @@ const DATE_FIELDS = {
   unit_create: [],
   hall_create: [],
   placement_create: ["placement_date"],
+  unit_update: [],
+  unit_delete: [],
+  hall_update: [],
+  hall_delete: [],
+  hall_physical_save: [],
+  hall_system_save: [],
+  hall_water_feed_save: [],
+  hall_hygiene_save: ["last_wash_date", "last_disinfect_date"],
 };
 
 // حداکثر طول رشته‌ها (کلیدهایی که اینجا نیستند: ۱۰۰)
@@ -256,6 +456,52 @@ const TEXT_LIMITS = {
   operator_name: 100,
   placement_date: 30,
   note: MAX_NOTE_LENGTH,
+  // ✅ ۱۳.۱۳
+  confirm_name: 100,
+  length: 20,
+  width: 20,
+  height: 20,
+  area: 20,
+  fan_size: 50,
+  fan_capacity: 50,
+  notes: 300,
+  disinfectant_type: 100,
+  description: 500,
+};
+
+// ============================================
+// ۵.۱) فیلدهای آرایه‌ای (ردیف‌های تجهیزات سالن)
+// ------------------------------------------------------------
+//  ✅ ۱۳.۱۳: تنها جایی که payload آرایه دارد `hall_system_save.items`
+//  است. هر ردیف فقط کلیدهای سفیدِ خودش را دارد و ردیف بدون «دسته»
+//  (همان قاعدهٔ hallDetailsWrite.normalizeItems) حذف می‌شود.
+//  ⚠️ عمداً ردیف‌های با «دستهٔ ناشناخته» حذف نمی‌شوند؛ اعتبارسنج
+//  همان ماژول کارشناس آن‌ها را با پیام روشن رد می‌کند.
+// ============================================
+const LIST_FIELDS = {
+  hall_system_save: ["items"],
+};
+
+const LIST_ITEM_ALLOWED_KEYS = [
+  "category",
+  "type_id",
+  "quantity",
+  "spec",
+  "size",
+  "capacity",
+];
+
+const LIST_ITEM_NUMERIC_KEYS = ["type_id", "quantity"];
+
+// ⚠️ سقف ردیف‌ها همان `MAX_LIST_ITEMS` بالاست (۶۰)؛ یکی بیشتر
+// می‌خوانیم تا اگر کاربر بیشتر فرستاد، اعتبارسنج پیام «حداکثر ۶۰ ردیف»
+// بدهد (نه اینکه اضافه‌ها بی‌صدا بریده شوند).
+
+const MAX_ITEM_TEXT = {
+  category: 20,
+  spec: 100,
+  size: 50,
+  capacity: 50,
 };
 
 // ارقام فارسی/عربی ⇒ لاتین (کاربر موبایل معمولاً ارقام فارسی می‌فرستد)
@@ -290,6 +536,36 @@ const toNumber = (value) => {
 //  ورودی: بدنهٔ خام کلاینت — خروجی: فقط کلیدهای سفیدِ همان نوع.
 //  ⚠️ این تابع تنها دروازهٔ ورود داده به ستون payload است.
 // ============================================
+// ✅ ۱۳.۱۳: فیلدهای متنی‌ای که «رقم» هستند و باید ارقام فارسی/عربی
+// آن‌ها لاتین شود (کاربر موبایل معمولاً با صفحه‌کلید فارسی تایپ می‌کند).
+// ⚠️ این فقط برای همین دو کلید است؛ متن‌های آزاد (آدرس/توضیح) دست‌نخورده
+// می‌مانند — همان قاعدهٔ قبلی.
+const DIGIT_TEXT_FIELDS = ["hall_number", "manager_phone"];
+
+// پاک‌سازی یک ردیف تجهیزات (کلیدهای سفید + عددی‌ها + برش متن)
+const sanitizeListItems = (value) => {
+  if (!Array.isArray(value)) return [];
+  return value
+    .slice(0, MAX_LIST_ITEMS + 1)
+    .map((item) => {
+      const source = item && typeof item === "object" ? item : {};
+      const row = {};
+      for (const key of LIST_ITEM_ALLOWED_KEYS) {
+        if (!Object.prototype.hasOwnProperty.call(source, key)) continue;
+        if (LIST_ITEM_NUMERIC_KEYS.includes(key)) {
+          const parsed = toNumber(source[key]);
+          if (parsed !== null) row[key] = parsed;
+          continue;
+        }
+        const text = normalizeText(source[key], MAX_ITEM_TEXT[key] || 50);
+        if (text !== null) row[key] = text;
+      }
+      // ردیف بدون دسته بی‌معناست (همان قاعدهٔ normalizeItems کارشناس)
+      return row.category ? row : null;
+    })
+    .filter(Boolean);
+};
+
 const sanitizePayload = (type, body) => {
   const allowed = ALLOWED_PAYLOAD_KEYS[type];
   if (!allowed) return {};
@@ -298,11 +574,19 @@ const sanitizePayload = (type, body) => {
   const numerics = NUMERIC_FIELDS[type] || [];
   const booleans = BOOLEAN_FIELDS[type] || [];
   const dates = DATE_FIELDS[type] || [];
+  const lists = LIST_FIELDS[type] || [];
 
   const payload = {};
   for (const key of allowed) {
     if (!Object.prototype.hasOwnProperty.call(source, key)) continue;
     const value = source[key];
+
+    if (lists.includes(key)) {
+      // `sanitizeListItems` حداکثر ۶۱ ردیف برمی‌گرداند (یک بیشتر از
+      // سقف) تا اعتبارسنج اگر بیشتر فرستاده شده، پیام روشن بدهد.
+      payload[key] = sanitizeListItems(value);
+      continue;
+    }
 
     if (numerics.includes(key)) {
       const parsed = toNumber(value);
@@ -326,7 +610,10 @@ const sanitizePayload = (type, body) => {
       continue;
     }
 
-    const text = normalizeText(value, TEXT_LIMITS[key] || 100);
+    const text = normalizeText(
+      DIGIT_TEXT_FIELDS.includes(key) ? normalizeDigits(value) : value,
+      TEXT_LIMITS[key] || 100,
+    );
     if (text !== null) payload[key] = text;
   }
 
@@ -380,14 +667,22 @@ const validateUnitPayload = (payload) => {
   return { isValid: errors.length === 0, errors };
 };
 
-const validateHallPayload = (payload) => {
+// ------------------------------------------------------------
+//  ✅ ۱۳.۱۳: این تابع به `validateHallFields` شکسته شد تا «ثبت سالن»
+//  و «ویرایش سالن» یک قاعده داشته باشند؛ ثبت = unit و نام اجباری،
+//  ویرایش = هیچ‌کدام اجباری نیست (فقط اگر فرستاده شدند بررسی می‌شوند).
+// ------------------------------------------------------------
+const validateHallFields = (
+  payload,
+  { requireUnit = true, requireName = true } = {},
+) => {
   const errors = [];
 
-  if (!isPositiveInt(payload.unit_id)) {
+  if (requireUnit && !isPositiveInt(payload.unit_id)) {
     errors.push("شناسهٔ واحد الزامی است");
   }
   if (!payload.hall_name) {
-    errors.push("نام سالن الزامی است");
+    if (requireName) errors.push("نام سالن الزامی است");
   } else if (payload.hall_name.length < 2) {
     errors.push("نام سالن باید حداقل ۲ کاراکتر باشد");
   }
@@ -424,6 +719,8 @@ const validateHallPayload = (payload) => {
   return { isValid: errors.length === 0, errors };
 };
 
+const validateHallPayload = (payload) => validateHallFields(payload);
+
 const validatePlacementPayload = (payload) => {
   const errors = validateChickPlacement({
     ...payload,
@@ -445,11 +742,116 @@ const validatePlacementPayload = (payload) => {
   return { isValid: errors.length === 0, errors };
 };
 
+// --------------------------------------------
+// ۷.۴) ویرایش/حذف واحد  (✅ ۱۳.۱۳)
+// ------------------------------------------------------------
+//  برای «ویرایش» همان `validateUnitData` کارشناس اجرا می‌شود، ولی
+//  فیلدهای اجباریِ نیامده با مقدار خنثی پر می‌شوند؛ پس فقط فیلدهایی
+//  که مشتری واقعاً فرستاده بررسی می‌شوند (قاعدهٔ «ثبت» دست‌نخورده).
+// --------------------------------------------
+const UNIT_UPDATE_PLACEHOLDERS = {
+  unit_name: "واحد",
+  address: "بدون آدرس",
+  hall_count: 1,
+  capacity: 0,
+  manager_name: "مدیر",
+  manager_phone: "00000000000",
+};
+
+// کلیدهایی که «تغییر» حساب نمی‌شوند (شناسهٔ ردیف و توضیح درخواست)
+const NON_CHANGE_KEYS = ["unit_id", "hall_id", "placement_id", "note", "confirm_name"];
+
+const changeKeysOf = (payload) =>
+  Object.keys(payload || {}).filter((key) => !NON_CHANGE_KEYS.includes(key));
+
+const validateUnitUpdatePayload = (payload) => {
+  const errors = [];
+
+  if (!isPositiveInt(payload.unit_id)) {
+    errors.push("شناسهٔ واحد الزامی است");
+  }
+  if (changeKeysOf(payload).length === 0) {
+    errors.push(REQUEST_MESSAGES.nothing_to_change);
+  }
+
+  const filled = { ...payload };
+  for (const [key, fallback] of Object.entries(UNIT_UPDATE_PLACEHOLDERS)) {
+    if (filled[key] === undefined || filled[key] === null || filled[key] === "") {
+      filled[key] = fallback;
+    }
+  }
+
+  errors.push(...validateUnitPayload(filled).errors);
+  return { isValid: errors.length === 0, errors };
+};
+
+const validateUnitDeletePayload = (payload) => {
+  const errors = [];
+
+  if (!isPositiveInt(payload.unit_id)) {
+    errors.push("شناسهٔ واحد الزامی است");
+  }
+  if (!payload.confirm_name) {
+    errors.push(REQUEST_MESSAGES.confirm_name_required);
+  } else if (payload.confirm_name.trim().length < 2) {
+    errors.push("نام واحد برای تأیید حذف معتبر نیست");
+  }
+
+  return { isValid: errors.length === 0, errors };
+};
+
+// --------------------------------------------
+// ۷.۵) ویرایش/حذف سالن  (✅ ۱۳.۱۳)
+// ------------------------------------------------------------
+//  ⚠️ `unit_id` در فهرست سفید نیست ⇒ انتقال سالن بین واحدها از پورتال
+//  ممکن نیست (عملیات کارشناس می‌ماند). شماره/نام/ظرفیت قابل ویرایش‌اند.
+// --------------------------------------------
+const validateHallUpdatePayload = (payload) => {
+  const errors = [];
+
+  if (!isPositiveInt(payload.hall_id)) {
+    errors.push("شناسهٔ سالن الزامی است");
+  }
+  if (changeKeysOf(payload).length === 0) {
+    errors.push(REQUEST_MESSAGES.nothing_to_change);
+  }
+
+  errors.push(
+    ...validateHallFields(payload, { requireUnit: false, requireName: false })
+      .errors,
+  );
+
+  return { isValid: errors.length === 0, errors };
+};
+
+const validateHallDeletePayload = (payload) => {
+  const errors = [];
+  if (!isPositiveInt(payload.hall_id)) {
+    errors.push("شناسهٔ سالن الزامی است");
+  }
+  return { isValid: errors.length === 0, errors };
+};
+
 const PAYLOAD_VALIDATORS = {
   unit_create: validateUnitPayload,
   hall_create: validateHallPayload,
   placement_create: validatePlacementPayload,
+  unit_update: validateUnitUpdatePayload,
+  unit_delete: validateUnitDeletePayload,
+  hall_update: validateHallUpdatePayload,
+  hall_delete: validateHallDeletePayload,
 };
+
+// ✅ ۱۳.۱۳: چهار حوزهٔ جزئیات سالن دقیقاً همان اعتبارسنج کارشناس را
+// اجرا می‌کنند (یک منبع) — نه نسخهٔ دوم.
+for (const type of Object.keys(HALL_DETAIL_VALIDATORS)) {
+  PAYLOAD_VALIDATORS[type] = (payload) =>
+    HALL_DETAIL_VALIDATORS[type](payload);
+}
+
+// آیا این نوع اعتبارسنج payload دارد؟ (تست «هر نوع یک اعتبارسنج»)
+const hasPayloadValidator = (type) =>
+  typeof PAYLOAD_VALIDATORS[type] === "function";
 
 const validatePayload = (type, payload) => {
   const validator = PAYLOAD_VALIDATORS[type];
@@ -570,6 +972,10 @@ module.exports = {
   NUMERIC_FIELDS,
   BOOLEAN_FIELDS,
   DATE_FIELDS,
+  LIST_FIELDS,
+  LIST_ITEM_ALLOWED_KEYS,
+  MAX_LIST_ITEMS,
+  DESTRUCTIVE_TYPES,
   PENDING_STATUS,
   LIMITS,
   MAX_PENDING_REQUESTS,
@@ -579,8 +985,11 @@ module.exports = {
   MAX_NOTE_LENGTH,
   isRequestType,
   isStatus,
+  isDestructiveType,
   typeOf,
   typeLabel,
+  targetFieldOf,
+  hasPayloadValidator,
   statusOf,
   statusLabel,
   normalizeStatusFilter,

@@ -85,7 +85,9 @@ const nextHallOrder = async ({ customerId, unitId, transaction = null }) => {
 // ------------------------------------------------------------
 //  خروجی: { hall, unit, customer }
 // ============================================
-const createHall = async (body = {}) => {
+//  ✅ ۱۳.۱۳: `{ transaction }` اختیاری — اگر لایهٔ بالاتر (تأیید درخواست
+//  پورتال) تراکنش بدهد، مرز تراکنش مال اوست و این‌جا commit نمی‌شود.
+const createHall = async (body = {}, { transaction: existingTransaction = null } = {}) => {
   const {
     customer_id,
     unit_id,
@@ -144,7 +146,7 @@ const createHall = async (body = {}) => {
     await syncUnitHallCount(unit_id, transaction);
 
     return { hall, unit, customer };
-  });
+  }, existingTransaction);
 };
 
 // ============================================
@@ -154,7 +156,11 @@ const createHall = async (body = {}) => {
 //  اگر سالن به واحد دیگری منتقل شود، تعداد سالن هر دو واحد بازمحاسبه
 //  می‌شود (همان منطق قبلی).
 // ============================================
-const updateHall = async (hallId, body = {}) =>
+const updateHall = async (
+  hallId,
+  body = {},
+  { transaction: existingTransaction = null } = {},
+) =>
   runInTransaction(async (transaction) => {
     const hall = await Hall.findByPk(hallId, { transaction });
     if (!hall) fail("سالن یافت نشد", 404);
@@ -181,14 +187,17 @@ const updateHall = async (hallId, body = {}) =>
     }
 
     return { hall, prevUnitId };
-  });
+  }, existingTransaction);
 
 // ============================================
 // حذف منطقی سالن (+ همگام‌سازی تعداد واحد)
 // ------------------------------------------------------------
 //  خروجی: { hall, unitId }
 // ============================================
-const deleteHall = async (hallId) =>
+const deleteHall = async (
+  hallId,
+  { transaction: existingTransaction = null } = {},
+) =>
   runInTransaction(async (transaction) => {
     const hall = await Hall.findByPk(hallId, { transaction });
     if (!hall) fail("سالن یافت نشد", 404);
@@ -198,7 +207,7 @@ const deleteHall = async (hallId) =>
     await syncUnitHallCount(unitId, transaction);
 
     return { hall, unitId };
-  });
+  }, existingTransaction);
 
 // ============================================
 // صادرات

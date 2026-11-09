@@ -471,6 +471,87 @@ check(
 );
 
 // ============================================================
+// ۱۰) آمادگی تراکنشِ بیرونی — موج ۱۳.۱۳
+// ------------------------------------------------------------
+//  تأیید درخواست پورتال یک تراکنش واحد دارد و باید بتواند همین
+//  توابع را داخل آن صدا بزند. اگر تابعی مرز تراکنش خودش را باز کند،
+//  «تأیید اتمیک» شکسته می‌شود؛ پس این بخش تضمین می‌کند همهٔ
+//  توابع نوشتن پارامتر `{ transaction }` را می‌پذیرند و آن را
+//  به `runInTransaction` می‌دهند.
+// ============================================================
+const writerSources = {
+  unitWrite: fs.readFileSync(
+    path.join(here, "services/farm/unitWrite.js"),
+    "utf8",
+  ),
+  hallWrite: fs.readFileSync(
+    path.join(here, "services/farm/hallWrite.js"),
+    "utf8",
+  ),
+  hallDetailsWrite: fs.readFileSync(
+    path.join(here, "services/farm/hallDetailsWrite.js"),
+    "utf8",
+  ),
+  placementWrite: fs.readFileSync(
+    path.join(here, "services/farm/placementWrite.js"),
+    "utf8",
+  ),
+};
+
+const countOf = (source, pattern) =>
+  (source.match(pattern) || []).length;
+
+check(
+  "۱۳.۱۳ · همهٔ سرویس‌های نوشتن پارامتر { transaction } را می‌پذیرند",
+  countOf(writerSources.unitWrite, /\{ transaction: existingTransaction = null \} = \{\}/g) === 3 &&
+    countOf(writerSources.hallWrite, /\{ transaction: existingTransaction = null \} = \{\}/g) === 3 &&
+    countOf(writerSources.hallDetailsWrite, /\{ transaction: existingTransaction = null \} = \{\}/g) === 4 &&
+    countOf(writerSources.placementWrite, /\{ transaction: existingTransaction = null \} = \{\}/g) === 5,
+  [
+    countOf(writerSources.unitWrite, /existingTransaction = null/g),
+    countOf(writerSources.hallWrite, /existingTransaction = null/g),
+    countOf(writerSources.hallDetailsWrite, /existingTransaction = null/g),
+    countOf(writerSources.placementWrite, /existingTransaction = null/g),
+  ].join(","),
+);
+
+check(
+  "۱۳.۱۳ · هیچ تراکنشی بدون عبور تراکنش بیرونی باقی نمانده",
+  countOf(writerSources.unitWrite, /runInTransaction\(async/g) ===
+    countOf(writerSources.unitWrite, /\}, existingTransaction\);/g) &&
+    countOf(writerSources.hallWrite, /runInTransaction\(async/g) ===
+      countOf(writerSources.hallWrite, /\}, existingTransaction\);/g) &&
+    countOf(writerSources.hallDetailsWrite, /runInTransaction\(async/g) ===
+      countOf(writerSources.hallDetailsWrite, /\}, existingTransaction\);/g) &&
+    countOf(writerSources.placementWrite, /runInTransaction\(async/g) >=
+      countOf(writerSources.placementWrite, /\}, existingTransaction\);/g),
+);
+
+check(
+  "۱۳.۱۳ · خواندن ردیف هدف هم داخل همان تراکنش است (قفل ردیف بی‌اثر نباشد)",
+  /const unit = await Unit\.findByPk\(unitId, \{ transaction \}\);/.test(
+    writerSources.unitWrite,
+  ) &&
+    /const flock = await Flock\.findByPk\(id, \{ transaction: existingTransaction \}\);/.test(
+      writerSources.placementWrite,
+    ) &&
+    /const hall = await requireHall\(hall_id, existingTransaction\);/.test(
+      writerSources.hallDetailsWrite,
+    ),
+);
+
+check(
+  "۱۳.۱۳ · رفتار پیش‌فرض (بدون تراکنش بیرونی) دست‌نخورده است",
+  // پیش‌فرض `null` ⇒ همان commit/rollback قبلی در runInTransaction
+  /if \(existing\) return work\(existing\);/.test(
+    fs.readFileSync(path.join(here, "services/farm/transaction.js"), "utf8"),
+  ) &&
+    /await transaction\.commit\(\);/.test(
+      fs.readFileSync(path.join(here, "services/farm/transaction.js"), "utf8"),
+    ),
+);
+
+// ============================================================
 // جمع‌بندی
 // ============================================================
 const failed = results.filter((ok) => !ok).length;

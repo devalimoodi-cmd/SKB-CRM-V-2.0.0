@@ -45,6 +45,7 @@ const Flock = require("../models/Flock");
 const ChickPlacement = require("../models/ChickPlacement");
 const PortalDocument = require("../models/PortalDocument");
 const PortalRequest = require("../models/PortalRequest");
+const Hall = require("../models/Hall");
 
 // ✅ همهٔ مسیرهای این روتر پشت احراز هویت هستند
 router.use(protect);
@@ -338,6 +339,15 @@ const farmCancelChain = [
 ];
 
 router.get("/farm/options", ...farmChain, portalFarmController.getFarmOptions);
+
+// ✅ ۱۳.۱۳: جزئیات یک سالن خودم (پیش‌پرکردن فرم ویرایش/جزئیات).
+// فقط خواندن است ⇒ بدون سقف نوشتن؛ مالکیت ردیف با requireOwnedRow.
+router.get(
+  "/farm/halls/:id",
+  ...farmChain,
+  requireOwnedRow({ model: Hall, label: "سالن" }),
+  portalFarmController.getMyHall,
+);
 
 router.get(
   "/farm/requests",

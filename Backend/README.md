@@ -687,10 +687,31 @@ Backend/validations/hallDetailValidation.js   قاعدهٔ خالص چهار ح�
 ### تست
 
 ```bash
-npm run test:farm-write       # ۳۵ بررسی خالص (بدون دیتابیس)
-npm run test:portal-requests  # ۳۷ بررسی
+npm run test:farm-write       # ۳۹ بررسی خالص (بدون دیتابیس)
+npm run test:portal-requests  # ۵۶ بررسی
 npm run lint                  # ۰ خطا
 ```
 
 📄 گزارش کامل: `docs/REVIEW-WAVE-13.12.md`.
+
+## نوشتن کامل پورتال مشتری — ۸ نوع تازهٔ درخواست (موج ۱۳.۱۳)
+
+خریدار/مشتری از پورتال می‌تواند **ویرایش/حذف واحد و سالن** و **ثبت چهار حوزهٔ
+اطلاعات تکمیلی سالن** را درخواست کند؛ نوشتن واقعی همچنان فقط پس از تأیید
+کارشناس و **در همان تراکنش تأیید** انجام می‌شود.
+
+| موضوع | مقدار |
+|---|---|
+| انواع تازه | `unit_update` · `unit_delete` · `hall_update` · `hall_delete` · `hall_physical_save` · `hall_system_save` · `hall_water_feed_save` · `hall_hygiene_save` |
+| قواعد | `services/portalRequestRules.js` — فهرست سفید چهار حوزه از `validations/hallDetailValidation.FIELDS` مشتق می‌شود (بدون `unit_id`) |
+| اعمال | `services/portalRequestService.js` → `APPLIERS` / `HALL_DETAIL_APPLIERS` → `services/farm/*` با `{ transaction }` |
+| مالکیت | `requireOwnedUnit` / `requireOwnedHall` با `SELECT … FOR UPDATE` داخل تراکنش؛ ردیف غیرخودی ⇒ ۴۰۴ |
+| حذف واحد | بازتایپ `confirm_name` (حذف آبشاری: سالن‌ها، گله‌ها، هفته‌ها، بازدیدها، نشان‌ها) |
+| آرایهٔ تجهیزات | `hall_system_save.items[]` با فهرست سفید ردیف و سقف ۶۰ ردیف |
+| سقف payload | **۸KB** (از ۴KB؛ برای جا شدن ۶۰ ردیف تجهیزات) |
+| اندپوینت تازه | `GET /api/portal/farm/halls/:id` (پیش‌پرکردن فرم ویرایش + پرچم‌های `has_*`) |
+| مجوزها | بدون کلید تازه (همان `customer.portal.farm` + `.request`) |
+| مهاجرت | ندارد (payload از قبل JSONB است) |
+
+📄 گزارش کامل: `docs/REVIEW-WAVE-13.13.md`.
 

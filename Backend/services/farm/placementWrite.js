@@ -148,7 +148,11 @@ const createPlacement = async (body = {}, { transaction = null } = {}) => {
 //  خروجی: { placement }
 //  ⚠️ شمارهٔ گله فقط اگر عدد مثبت باشد نوشته می‌شود (0 ⇒ نادیده).
 // ============================================
-const updatePlacement = async (placementId, body = {}) =>
+const updatePlacement = async (
+  placementId,
+  body = {},
+  { transaction: existingTransaction = null } = {},
+) =>
   runInTransaction(async (transaction) => {
     const placement = await ChickPlacement.findByPk(placementId, { transaction });
     if (!placement) fail("جوجه‌ریزی یافت نشد", 404);
@@ -166,37 +170,44 @@ const updatePlacement = async (placementId, body = {}) =>
 
     await placement.update(updateData, { transaction });
     return { placement };
-  });
+  }, existingTransaction);
 
 // ============================================
 // حذف جوجه‌ریزی
 // ------------------------------------------------------------
 //  خروجی: { placement }
 // ============================================
-const deletePlacement = async (placementId) =>
+const deletePlacement = async (
+  placementId,
+  { transaction: existingTransaction = null } = {},
+) =>
   runInTransaction(async (transaction) => {
     const placement = await ChickPlacement.findByPk(placementId, { transaction });
     if (!placement) fail("جوجه‌ریزی یافت نشد", 404);
 
     await placement.destroy({ transaction });
     return { placement };
-  });
+  }, existingTransaction);
 
 // ============================================
 // حذف کل «گله/دوره» (همهٔ جوجه‌ریزی‌های سالن‌های عضو)
 // ------------------------------------------------------------
 //  خروجی: { flock, removedPlacements }
 // ============================================
-const deleteFlockGroup = async (flockId) => {
+const deleteFlockGroup = async (
+  flockId,
+  { transaction: existingTransaction = null } = {},
+) => {
   const id = parseInt(flockId, 10);
   if (!id) fail("شناسه گله الزامی است", 400);
 
-  const flock = await Flock.findByPk(id);
+  const flock = await Flock.findByPk(id, { transaction: existingTransaction });
   if (!flock) fail("گله یافت نشد", 404);
 
   const placements = await ChickPlacement.findAll({
     where: { flock_id: id },
     attributes: ["id"],
+    transaction: existingTransaction,
   });
 
   return runInTransaction(async (transaction) => {
@@ -207,7 +218,7 @@ const deleteFlockGroup = async (flockId) => {
     await flock.destroy({ transaction });
 
     return { flock, removedPlacements: placements.length };
-  });
+  }, existingTransaction);
 };
 
 // ============================================
@@ -215,7 +226,10 @@ const deleteFlockGroup = async (flockId) => {
 // ------------------------------------------------------------
 //  خروجی: { placement, deactivatedCount }
 // ============================================
-const activatePlacement = async (placementId) =>
+const activatePlacement = async (
+  placementId,
+  { transaction: existingTransaction = null } = {},
+) =>
   runInTransaction(async (transaction) => {
     const placement = await ChickPlacement.findByPk(placementId, { transaction });
     if (!placement) fail("جوجه‌ریزی یافت نشد", 404);
@@ -231,14 +245,17 @@ const activatePlacement = async (placementId) =>
 
     await placement.update({ is_active: true }, { transaction });
     return { placement, deactivatedCount: Number(deactivatedCount) || 0 };
-  });
+  }, existingTransaction);
 
 // ============================================
 // پایان دوره (غیرفعال‌سازی بدون جایگزین)
 // ------------------------------------------------------------
 //  خروجی: { placement }
 // ============================================
-const deactivatePlacement = async (placementId) =>
+const deactivatePlacement = async (
+  placementId,
+  { transaction: existingTransaction = null } = {},
+) =>
   runInTransaction(async (transaction) => {
     const placement = await ChickPlacement.findByPk(placementId, { transaction });
     if (!placement) fail("جوجه‌ریزی یافت نشد", 404);
@@ -248,7 +265,7 @@ const deactivatePlacement = async (placementId) =>
 
     await placement.update({ is_active: false }, { transaction });
     return { placement };
-  });
+  }, existingTransaction);
 
 // ============================================
 // صادرات

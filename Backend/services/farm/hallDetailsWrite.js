@@ -85,7 +85,13 @@ const normalizeItems = (items = []) =>
 // ------------------------------------------------------------
 //  خروجی: { record, created }
 // ============================================
-const savePhysicalInfo = async (body = {}) => {
+//  ✅ ۱۳.۱۳: `{ transaction }` اختیاری — تأیید درخواست پورتال یک تراکنش
+//  واحد دارد و این توابع نباید مرز تراکنش بسازند. `requireHall` هم با
+//  همان تراکنش می‌خواند تا قفل/دیدِ یکسان بماند.
+const savePhysicalInfo = async (
+  body = {},
+  { transaction: existingTransaction = null } = {},
+) => {
   const {
     hall_id,
     unit_id,
@@ -97,7 +103,7 @@ const savePhysicalInfo = async (body = {}) => {
     notes,
   } = body;
 
-  const hall = await requireHall(hall_id);
+  const hall = await requireHall(hall_id, existingTransaction);
 
   return runInTransaction(async (transaction) => {
     const existing = await HallPhysicalInfo.findOne({
@@ -137,7 +143,7 @@ const savePhysicalInfo = async (body = {}) => {
     );
 
     return { record: created, created: true, hall };
-  });
+  }, existingTransaction);
 };
 
 // ============================================
@@ -145,7 +151,10 @@ const savePhysicalInfo = async (body = {}) => {
 // ------------------------------------------------------------
 //  خروجی: { record, created } — record با items همراه است
 // ============================================
-const saveSystem = async (body = {}) => {
+const saveSystem = async (
+  body = {},
+  { transaction: existingTransaction = null } = {},
+) => {
   const {
     hall_id,
     unit_id,
@@ -162,7 +171,7 @@ const saveSystem = async (body = {}) => {
     items,
   } = body;
 
-  const hall = await requireHall(hall_id);
+  const hall = await requireHall(hall_id, existingTransaction);
 
   return runInTransaction(async (transaction) => {
     let system = await HallSystem.findOne({ where: { hall_id }, transaction });
@@ -235,7 +244,7 @@ const saveSystem = async (body = {}) => {
     });
 
     return { record, created, hall };
-  });
+  }, existingTransaction);
 };
 
 // ============================================
@@ -243,7 +252,10 @@ const saveSystem = async (body = {}) => {
 // ------------------------------------------------------------
 //  خروجی: { record, created }
 // ============================================
-const saveWaterFeed = async (body = {}) => {
+const saveWaterFeed = async (
+  body = {},
+  { transaction: existingTransaction = null } = {},
+) => {
   const {
     hall_id,
     unit_id,
@@ -255,7 +267,7 @@ const saveWaterFeed = async (body = {}) => {
     notes,
   } = body;
 
-  const hall = await requireHall(hall_id);
+  const hall = await requireHall(hall_id, existingTransaction);
 
   return runInTransaction(async (transaction) => {
     const existing = await HallWaterFeed.findOne({
@@ -309,7 +321,7 @@ const saveWaterFeed = async (body = {}) => {
     );
 
     return { record: created, created: true, hall };
-  });
+  }, existingTransaction);
 };
 
 // ============================================
@@ -318,7 +330,10 @@ const saveWaterFeed = async (body = {}) => {
 //  خروجی: { record, created }
 //  ⚠️ `customer_id` از خود ردیف سالن تکمیل می‌شود (ستون اجباری است).
 // ============================================
-const saveHygiene = async (body = {}) => {
+const saveHygiene = async (
+  body = {},
+  { transaction: existingTransaction = null } = {},
+) => {
   const {
     hall_id,
     customer_id,
@@ -329,7 +344,7 @@ const saveHygiene = async (body = {}) => {
     description,
   } = body;
 
-  const hall = await requireHall(hall_id);
+  const hall = await requireHall(hall_id, existingTransaction);
 
   return runInTransaction(async (transaction) => {
     const existing = await HallHygiene.findOne({
@@ -376,7 +391,7 @@ const saveHygiene = async (body = {}) => {
     );
 
     return { record: created, created: true, hall };
-  });
+  }, existingTransaction);
 };
 
 // ============================================

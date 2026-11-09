@@ -42,6 +42,9 @@ const uiMeta = (counts = null) => ({
     label: item.label,
     description: item.description,
     icon: item.icon,
+    // ✅ ۱۳.۱۳: کلاینت باید بداند این نوع «حذف» است (هشدار/تأیید دوم)
+    destructive: Boolean(item.destructive),
+    target: item.target || null,
   })),
   statuses: REQUEST_STATUSES.map((item) => ({
     key: item.key,
@@ -199,8 +202,35 @@ const cancelMyRequest = async (req, res) => {
   }
 };
 
+// ============================================
+// GET /api/portal/farm/halls/:id   — ✅ ۱۳.۱۳
+// ------------------------------------------------------------
+//  جزئیات یک سالن خودم (برای پیش‌پرکردن فرم ویرایش/ثبت جزئیات).
+//  🔒 ردیف از `requireOwnedRow` آمده (۴۰۴ برای سالن غیرخودی) و
+//  `customer_id` هرگز از مسیر/کوئری خوانده نمی‌شود.
+// ============================================
+const getMyHall = async (req, res) => {
+  try {
+    const customerId = scopeIdOf(req);
+    if (!customerId) return errorResponse(res, REQUEST_MESSAGES.unlinked, 403);
+
+    const row = req.ownedRow;
+    if (!row) return errorResponse(res, REQUEST_MESSAGES.hall_not_found, 404);
+
+    const data = await service.hallDetailsFor({
+      customerId,
+      hallId: row.id,
+    });
+
+    return successResponse(res, data, "جزئیات سالن");
+  } catch (error) {
+    return failure(res, error, "خطا در دریافت جزئیات سالن");
+  }
+};
+
 module.exports = {
   getFarmOptions,
+  getMyHall,
   listMyRequests,
   createMyRequest,
   cancelMyRequest,

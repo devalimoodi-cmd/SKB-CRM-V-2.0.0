@@ -22,7 +22,22 @@ export const REQUEST_TYPE_LABELS = {
   unit_create: "ثبت واحد مرغداری",
   hall_create: "ثبت سالن",
   placement_create: "ثبت جوجه‌ریزی",
+  // ✅ ۱۳.۱۳
+  unit_update: "ویرایش واحد مرغداری",
+  unit_delete: "حذف واحد مرغداری",
+  hall_update: "ویرایش سالن",
+  hall_delete: "حذف سالن",
+  hall_physical_save: "ثبت اطلاعات فیزیکی سالن",
+  hall_system_save: "ثبت سیستم‌های سالن",
+  hall_water_feed_save: "ثبت آب‌خوری و دان‌خوری",
+  hall_hygiene_save: "ثبت بهداشت سالن",
 };
+
+// ✅ ۱۳.۱۳: انواع «حذف» — مودال بازبینی هشدار قرمز نشان می‌دهد
+export const DESTRUCTIVE_TYPE_KEYS = ["unit_delete", "hall_delete"];
+
+// کلیدهای آرایه‌ای payload (در گرید ویرایش پیش از تأیید نمی‌آیند)
+export const LIST_PAYLOAD_KEYS = ["items"];
 
 export const REQUEST_STATUS_LABELS = {
   pending: "در انتظار تأیید",
@@ -67,10 +82,42 @@ export const PAYLOAD_LABELS = {
   placement_density: "تراکم",
   flock_id: "شناسهٔ گله",
   start_new_flock: "شروع گلهٔ جدید",
+  // ✅ ۱۳.۱۳ — ویرایش/حذف
+  confirm_name: "نام واحد برای تأیید حذف",
+  // ✅ ۱۳.۱۳ — اطلاعات تکمیلی سالن
+  length: "طول سالن (متر)",
+  width: "عرض سالن (متر)",
+  height: "ارتفاع سالن (متر)",
+  area: "مساحت سالن (مترمربع)",
+  floor_type_id: "نوع کف سالن",
+  notes: "توضیحات تکمیلی",
+  fan_count: "تعداد فن",
+  fan_size: "سایز فن",
+  fan_capacity: "ظرفیت فن",
+  heater_count: "تعداد هیتر",
+  heating_system_id: "سیستم گرمایش",
+  cooling_system_id: "سیستم سرمایش",
+  ventilation_system_id: "سیستم تهویه",
+  water_inlet_system_id: "سیستم ورود آب",
+  lighting_system_id: "سیستم روشنایی",
+  waterer_type_id: "نوع آب‌خوری",
+  feeder_type_id: "نوع دان‌خوری",
+  water_lines_count: "تعداد خط آب",
+  feed_lines_count: "تعداد خط دان",
+  auto_feed_system: "دان‌خوری خودکار",
+  last_wash_date: "تاریخ آخرین شست‌وشو",
+  last_disinfect_date: "تاریخ آخرین ضدعفونی",
+  disinfectant_type: "نوع مادهٔ ضدعفونی",
+  description: "توضیحات بهداشت",
+  items: "ردیف‌های تجهیزات",
 };
 
 // کلیدهایی که کارشناس می‌تواند پیش از تأیید ویرایش کند (همهٔ payload)
-export const EDITABLE_PAYLOAD_KEYS = Object.keys(PAYLOAD_LABELS);
+// ✅ ۱۳.۱۳: کلیدهای آرایه‌ای بیرون می‌مانند (ورودی متنی برای آرایه
+// معنا ندارد و بازنویسی آن، دادهٔ تجهیزات را خراب می‌کند).
+export const EDITABLE_PAYLOAD_KEYS = Object.keys(PAYLOAD_LABELS).filter(
+  (key) => !LIST_PAYLOAD_KEYS.includes(key),
+);
 
 const badge = (status) => {
   const tone = STATUS_TONE[status] || "muted";
@@ -78,13 +125,19 @@ const badge = (status) => {
   return `<span class="prq-badge prq-badge--${esc(tone)}">${esc(label)}</span>`;
 };
 
+// ✅ ۱۳.۱۳: مقدار آرایه‌ای (ردیف‌های تجهیزات) به‌جای [object Object]
+const formatPayloadValue = (value) =>
+  Array.isArray(value) ? `${value.length} ردیف` : value;
+
 const payloadSummary = (payload = {}) =>
   Object.entries(payload)
     .filter(([key, value]) => key !== "note" && value !== null && value !== "")
     .slice(0, 5)
     .map(
       ([key, value]) =>
-        `<li><span>${esc(PAYLOAD_LABELS[key] || key)}</span><strong>${esc(value)}</strong></li>`,
+        `<li><span>${esc(PAYLOAD_LABELS[key] || key)}</span><strong>${esc(
+          formatPayloadValue(value),
+        )}</strong></li>`,
     )
     .join("");
 
@@ -166,8 +219,23 @@ export const renderQueue = ({ items = [], pagination = {}, canReview = false } =
 };
 
 // فیلدهای ویرایش payload پیش از تأیید (کارشناس می‌تواند اصلاح کند)
-export const renderPayloadEditor = (payload = {}) =>
-  Object.entries(payload && typeof payload === "object" ? payload : {})
+// ✅ ۱۳.۱۳: کلیدهای آرایه‌ای (مثل items) ورودی متنی نمی‌گیرند؛ فقط
+// تعدادشان نمایش داده می‌شود (ویرایش آن‌ها فقط از فرم پورتال است).
+export const renderPayloadEditor = (payload = {}) => {
+  const source = payload && typeof payload === "object" ? payload : {};
+  const listNotes = LIST_PAYLOAD_KEYS.filter(
+    (key) => Array.isArray(source[key]) && source[key].length > 0,
+  )
+    .map(
+      (key) =>
+        `<p class="prq-sub">${esc(PAYLOAD_LABELS[key] || key)}: ${esc(
+          source[key].length,
+        )} ردیف — ویرایش فقط از پورتال</p>`,
+    )
+    .join("");
+
+  const fields = Object.entries(source)
+    .filter(([key]) => !LIST_PAYLOAD_KEYS.includes(key))
     .map(([key, value]) => {
       const isBoolean = typeof value === "boolean";
       const inputType =
@@ -188,6 +256,9 @@ export const renderPayloadEditor = (payload = {}) =>
     })
     .join("");
 
+  return `${listNotes}${fields}`;
+};
+
 export const renderReviewModalBody = (request = {}) => `
   <div class="prq-review-head">
     ${badge(request.status)}
@@ -196,6 +267,15 @@ export const renderReviewModalBody = (request = {}) => `
       jalaliDate(request.created_at),
     )}</span>
   </div>
+  ${
+    DESTRUCTIVE_TYPE_KEYS.includes(request.type)
+      ? `<p class="prq-warn"><i class="fas fa-triangle-exclamation"></i> این درخواست حذف است${
+          request.type === "unit_delete"
+            ? " و سالن‌ها، دوره‌ها، هفته‌ها و بازدیدهای واحد هم حذف می‌شوند"
+            : ""
+        }؛ بازگشت‌پذیر نیست.</p>`
+      : ""
+  }
   ${request.note ? `<p class="prq-note">📝 ${esc(request.note)}</p>` : ""}
   <div class="prq-fields" id="prqPayloadFields">
     ${renderPayloadEditor(request.payload)}

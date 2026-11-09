@@ -329,10 +329,16 @@ export const renderFarmPanel = ({
   const limits = meta.limits || {};
   const maxPending = Number(limits.max_pending) || 10;
   const pending = Number(counts.pending) || 0;
-  const types =
-    Array.isArray(meta.types) && meta.types.length
-      ? meta.types
-      : Object.keys(FARM_FORM_SPEC).map((key) => ({ key, label: key }));
+  // ✅ ۱۳.۱۳: سرور از این پس ۱۱ نوع را میشناسد، ولی فرم فقط برای
+  // انواعی رندر میشود که `FARM_FORM_SPEC` دارند. بدون این فیلتر،
+  // تبهایی ساخته میشد که فرم/اعتبارسنجی کلاینت برایشان وجود ندارد.
+  // (فرم‌های هشت نوع تازه در موج رابط کاربری اضافه میشوند.)
+  const serverTypes = Array.isArray(meta.types)
+    ? meta.types.filter((item) => item && FARM_FORM_SPEC[item.key])
+    : [];
+  const types = serverTypes.length
+    ? serverTypes
+    : Object.keys(FARM_FORM_SPEC).map((key) => ({ key, label: key }));
 
   const typeTabs = types
     .map(

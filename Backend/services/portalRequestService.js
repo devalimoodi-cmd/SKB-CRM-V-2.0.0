@@ -17,8 +17,10 @@
 //      ردیفی در units/halls/chick_placements نمی‌ماند.
 //   ۴) قفل ردیف (SELECT … FOR UPDATE) + شرط status='pending' مانع
 //      «تأیید دوباره» توسط دو کارشناس هم‌زمان است.
-//   ۵) گله از services/flockResolver حل می‌شود (همان قاعدهٔ ماژول
-//      کارشناسان — بدون نسخهٔ دوم).
+//   ۵) از ۱۳.۱۳ نوشتن واقعی از `services/farm/*` می‌آید (واحد، سالن،
+//      جزئیات سالن، جوجه‌ریزی) — همان کدی که ماژول کارشناس اجرا می‌کند؛
+//      این سرویس فقط مالکیت/تراکنش/خلاصه را اضافه می‌کند و گله همچنان
+//      داخل همان هسته با flockResolver حل می‌شود.
 // ============================================================
 "use strict";
 
@@ -27,14 +29,33 @@ const { sequelize } = require("../config/database");
 const PortalRequest = require("../models/PortalRequest");
 const Unit = require("../models/Unit");
 const Hall = require("../models/Hall");
-const ChickPlacement = require("../models/ChickPlacement");
 const Flock = require("../models/Flock");
 const ChickSource = require("../models/ChickSource");
 const ChickenBreed = require("../models/ChickenBreed");
 const HallType = require("../models/HallType");
 const CustomerPersonalInfo = require("../models/CustomerPersonalInfo");
-const { resolveFlock } = require("./flockResolver");
+// ✅ ۱۳.۱۳: دیکشنری‌های چهار حوزهٔ جزئیات سالن + خود جدول‌ها
+// (فقط برای پیش‌پرکردن فرم مشتری و پرچم «قبلاً ثبت شده»)
+const FloorType = require("../models/FloorType");
+const HeatingSystemType = require("../models/HeatingSystemType");
+const CoolingSystemType = require("../models/CoolingSystemType");
+const VentilationType = require("../models/VentilationType");
+const WaterInletType = require("../models/WaterInletType");
+const LightingSystemType = require("../models/LightingSystemType");
+const WatererType = require("../models/WatererType");
+const FeederType = require("../models/FeederType");
+const HallPhysicalInfo = require("../models/HallPhysicalInfo");
+const HallSystem = require("../models/HallSystem");
+const HallSystemItem = require("../models/HallSystemItem");
+const HallWaterFeed = require("../models/HallWaterFeed");
+const HallHygiene = require("../models/HallHygiene");
 const { validateUnitData } = require("../validations/unitValidation");
+// ✅ ۱۳.۱۳: نوشتن واقعی از هستهٔ مشترک فارم (همان کدی که کارشناس اجرا
+// می‌کند). این سرویس فقط «مالکیت + تراکنش + خلاصهٔ فارسی» را اضافه می‌کند.
+const unitWrite = require("./farm/unitWrite");
+const hallWrite = require("./farm/hallWrite");
+const hallDetailsWrite = require("./farm/hallDetailsWrite");
+const placementWrite = require("./farm/placementWrite");
 const {
   MAX_PENDING_REQUESTS,
   MAX_PAYLOAD_BYTES,
@@ -99,10 +120,18 @@ const countsOf = async (customerId) => {
 };
 
 // کلید طبیعی هر نوع برای تشخیص «درخواست تکراری باز»
+// ✅ ۱۳.۱۳: انواع تازه هم کلید طبیعی دارند تا مشتری نتواند ده درخواست
+// روی همان ردیف باز کند.
 const duplicateKeyOf = (type, payload = {}) => {
   if (type === "unit_create") return [payload.unit_name];
   if (type === "hall_create") return [payload.unit_id, payload.hall_name];
   if (type === "placement_create") return [payload.hall_id];
+  if (type === "unit_update" || type === "unit_delete") return [payload.unit_id];
+  if (type === "hall_update" || type === "hall_delete") return [payload.hall_id];
+  if (type === "hall_physical_save") return [payload.hall_id, "physical"];
+  if (type === "hall_system_save") return [payload.hall_id, "system"];
+  if (type === "hall_water_feed_save") return [payload.hall_id, "water_feed"];
+  if (type === "hall_hygiene_save") return [payload.hall_id, "hygiene"];
   return null;
 };
 
@@ -413,18 +442,48 @@ const safeRollback = async (transaction) => {
 // ------------------------------------------------------------
 //  ⚠️ این توابع فقط داخل تراکنش approveRequest اجرا می‌شوند؛
 //  هیچ‌کدام خودشان commit نمی‌کنند.
+//
+//  ✅ ۱۳.۱۳: نوشتن واقعی از `services/farm/*` می‌آید (یک منبع برای
+//  کارشناس و پورتال). این لایه فقط سه کار دارد:
+//    ۱) اثبات مالکیت ردیف هدف **داخل همان تراکنش** (FOR UPDATE)
+//    ۲) عبور همان تراکنش به هستهٔ فارم
+//    ۳) ساخت خلاصهٔ فارسی نتیجه برای مشتری/کارشناس
+//  🔒 قاعده: هرگز `customer_id` یا `unit_id` از payload گرفته نمی‌شود؛
+//  مالکیت از توکن و اتصال ردیف‌ها می‌آید.
 // ============================================
+
+// ردیف واحد در پروندهٔ همین مشتری (قفل ردیف تا دو تأیید هم‌زمان نسازد)
+const requireOwnedUnit = async ({ customerId, unitId, transaction }) => {
+  const unit = await Unit.findOne({
+    where: {
+      id: unitId,
+      customer_personal_information_id: customerId,
+    },
+    transaction,
+    lock: transaction.LOCK.UPDATE,
+  });
+  if (!unit) throw serviceError("unit_not_found", 404);
+  return unit;
+};
+
+// ردیف سالن در پروندهٔ همین مشتری (قفل ردیف؛ سالن حذف‌شده دیده نمی‌شود)
+const requireOwnedHall = async ({ customerId, hallId, transaction }) => {
+  const hall = await Hall.findOne({
+    where: { id: hallId, customer_id: customerId },
+    transaction,
+    lock: transaction.LOCK.UPDATE,
+  });
+  if (!hall) throw serviceError("hall_not_found", 404);
+  return hall;
+};
+
 const applyRequest = async ({ type, customerId, payload, transaction }) => {
-  if (type === "unit_create") {
-    return applyUnitCreate({ customerId, payload, transaction });
+  if (HALL_DETAIL_APPLIERS[type]) {
+    return applyHallDetailSave({ type, customerId, payload, transaction });
   }
-  if (type === "hall_create") {
-    return applyHallCreate({ customerId, payload, transaction });
-  }
-  if (type === "placement_create") {
-    return applyPlacementCreate({ customerId, payload, transaction });
-  }
-  throw serviceError("invalid_type", 400);
+  const apply = APPLIERS[type];
+  if (!apply) throw serviceError("invalid_type", 400);
+  return apply({ customerId, payload, transaction });
 };
 
 // --------------------------------------------
@@ -474,7 +533,9 @@ const applyUnitCreate = async ({ customerId, payload, transaction }) => {
     );
   }
 
-  const unit = await Unit.create(data, { transaction });
+  // ✅ ۱۳.۱۳: ردیف واقعی با هستهٔ مشترک ساخته می‌شود (نام سالن‌ها،
+  // وضعیت پیش‌فرض واحد و قاعدهٔ نام واحد یک منبع دارد).
+  const { unit } = await unitWrite.createUnit(data, { transaction });
   return {
     entityId: unit.id,
     summary: `واحد «${unit.unit_name}» ثبت شد`,
@@ -482,46 +543,99 @@ const applyUnitCreate = async ({ customerId, payload, transaction }) => {
 };
 
 // --------------------------------------------
+// ۸.۱.۱) ویرایش واحد  (✅ ۱۳.۱۳)
+// --------------------------------------------
+const UNIT_PORTAL_UPDATE_FIELDS = [
+  "unit_name",
+  "address",
+  "hall_count",
+  "capacity",
+  "longitude",
+  "latitude",
+  "manager_name",
+  "manager_phone",
+];
+
+const applyUnitUpdate = async ({ customerId, payload, transaction }) => {
+  const unit = await requireOwnedUnit({
+    customerId,
+    unitId: payload.unit_id,
+    transaction,
+  });
+
+  // نام تکراری در همان پرونده (فقط اگر نام واقعاً عوض شده باشد)
+  if (payload.unit_name && payload.unit_name !== unit.unit_name) {
+    const duplicate = await Unit.findOne({
+      where: {
+        customer_personal_information_id: customerId,
+        unit_name: payload.unit_name,
+      },
+      transaction,
+    });
+    if (duplicate && Number(duplicate.id) !== Number(unit.id)) {
+      throw serviceError("unit_name_taken", 409);
+    }
+  }
+
+  const data = {};
+  for (const field of UNIT_PORTAL_UPDATE_FIELDS) {
+    if (payload[field] !== undefined) data[field] = payload[field];
+  }
+
+  const result = await unitWrite.updateUnit(unit.id, data, { transaction });
+  const renamedHalls = Number(result.renamedHalls) || 0;
+
+  return {
+    entityId: result.unit.id,
+    summary:
+      renamedHalls > 0
+        ? `واحد «${result.unit.unit_name}» ویرایش شد (نام ${renamedHalls} سالن بازتولید شد)`
+        : `واحد «${result.unit.unit_name}» ویرایش شد`,
+  };
+};
+
+// --------------------------------------------
+// ۸.۱.۲) حذف واحد  (✅ ۱۳.۱۳)
+// ------------------------------------------------------------
+//  ⚠️ حذف آبشاری است (هفته‌ها/گله‌ها/بازدیدها/سالن‌ها). به همین دلیل
+//  مشتری باید نام واحد را بازتایپ کند و همین‌جا با نام فعلی سنجیده
+//  می‌شود — اگر بین ثبت و تأیید نام عوض شده باشد، تأیید نمی‌شود.
+// --------------------------------------------
+const applyUnitDelete = async ({ customerId, payload, transaction }) => {
+  const unit = await requireOwnedUnit({
+    customerId,
+    unitId: payload.unit_id,
+    transaction,
+  });
+
+  const typedName = String(payload.confirm_name || "").trim();
+  const currentName = String(unit.unit_name || "").trim();
+  if (typedName.toLowerCase() !== currentName.toLowerCase()) {
+    throw serviceError("confirm_name_mismatch", 400);
+  }
+
+  await unitWrite.deleteUnit(unit.id, { transaction });
+
+  return {
+    entityId: unit.id,
+    summary: `واحد «${currentName}» با همهٔ سوابق وابسته حذف شد`,
+  };
+};
+
+// --------------------------------------------
 // ۸.۲) ثبت سالن
 // ------------------------------------------------------------
-//  شماره/ترتیب سالن دقیقاً مثل hallController محاسبه می‌شود تا
-//  شماره‌گذاری پورتال و ماژول کارشناس یکی باشد.
+//  ✅ ۱۳.۱۳: شماره/ترتیب خودکار و همگام‌سازی `hall_count` از
+//  `services/farm/hallWrite` می‌آید — همان کدی که ماژول کارشناس
+//  اجرا می‌کند. نسخهٔ محلیِ این سرویس (nextHallNumber/nextHallOrder/
+//  syncUnitHallCount) حذف شد تا شماره‌گذاری دو پیاده‌سازی نداشته باشد.
 // --------------------------------------------
-const nextHallNumber = async ({ customerId, unitId, transaction }) => {
-  const last = await Hall.findOne({
-    where: { customer_id: customerId, unit_id: unitId },
-    order: [["hall_number", "DESC"]],
-    attributes: ["hall_number"],
-    transaction,
-  });
-  return (last ? parseInt(last.hall_number || 0) : 0) + 1;
-};
-
-const nextHallOrder = async ({ customerId, unitId, transaction }) => {
-  const last = await Hall.findOne({
-    where: { customer_id: customerId, unit_id: unitId },
-    order: [["hall_order", "DESC"]],
-    attributes: ["hall_order"],
-    transaction,
-  });
-  return (last ? Number(last.hall_order || 0) : 0) + 1;
-};
-
-// همگام‌سازی تعداد سالن‌های واحد (همان قاعدهٔ hallController)
-const syncUnitHallCount = async (unitId, transaction) => {
-  const count = await Hall.count({ where: { unit_id: unitId }, transaction });
-  await Unit.update(
-    { hall_count: count },
-    { where: { id: unitId }, transaction },
-  );
-};
-
 const applyHallCreate = async ({ customerId, payload, transaction }) => {
-  const unit = await Unit.findOne({
-    where: { id: payload.unit_id, customer_personal_information_id: customerId },
+  const unit = await requireOwnedUnit({
+    customerId,
+    unitId: payload.unit_id,
     transaction,
   });
-  if (!unit) throw serviceError("unit_not_found", 404);
 
   if (payload.hall_number) {
     const duplicate = await Hall.findOne({
@@ -535,38 +649,103 @@ const applyHallCreate = async ({ customerId, payload, transaction }) => {
     if (duplicate) throw serviceError("hall_number_taken", 409);
   }
 
-  const hallNumber =
-    payload.hall_number ||
-    (await nextHallNumber({ customerId, unitId: unit.id, transaction }));
-
-  const hall = await Hall.create(
+  const { hall } = await hallWrite.createHall(
     {
       customer_id: customerId,
       unit_id: unit.id,
-      hall_name: payload.hall_name || `سالن ${hallNumber}`,
-      hall_number: String(hallNumber),
-      hall_order: await nextHallOrder({
-        customerId,
-        unitId: unit.id,
-        transaction,
-      }),
-      nominal_capacity: payload.nominal_capacity ?? null,
-      altitude_above_sea: payload.altitude_above_sea ?? null,
-      hall_type_id: payload.hall_type_id ?? null,
-      construction_year: payload.construction_year ?? null,
-      operator_name: payload.operator_name ?? null,
-      is_active: true,
+      hall_name: payload.hall_name,
+      hall_number: payload.hall_number,
+      nominal_capacity: payload.nominal_capacity,
+      altitude_above_sea: payload.altitude_above_sea,
+      hall_type_id: payload.hall_type_id,
+      construction_year: payload.construction_year,
+      operator_name: payload.operator_name,
     },
     { transaction },
   );
-
-  await syncUnitHallCount(unit.id, transaction);
 
   return {
     entityId: hall.id,
     summary: `سالن «${hall.hall_name}» در واحد «${unit.unit_name}» ثبت شد`,
   };
 };
+
+// --------------------------------------------
+// ۸.۲.۱) ویرایش سالن  (✅ ۱۳.۱۳)
+// ------------------------------------------------------------
+//  ⚠️ `unit_id` عمداً در فهرست نیست ⇒ انتقال سالن بین واحدها از
+//  پورتال ممکن نیست (عملیات کارشناس می‌ماند) و شمارش سالن‌های دو
+//  واحد از دو مسیر مختلف تغییر نمی‌کند.
+// --------------------------------------------
+const HALL_PORTAL_UPDATE_FIELDS = [
+  "hall_name",
+  "hall_number",
+  "nominal_capacity",
+  "altitude_above_sea",
+  "hall_type_id",
+  "construction_year",
+  "operator_name",
+];
+
+const applyHallUpdate = async ({ customerId, payload, transaction }) => {
+  const hall = await requireOwnedHall({
+    customerId,
+    hallId: payload.hall_id,
+    transaction,
+  });
+
+  if (
+    payload.hall_number &&
+    String(payload.hall_number) !== String(hall.hall_number || "")
+  ) {
+    const duplicate = await Hall.findOne({
+      where: {
+        customer_id: customerId,
+        unit_id: hall.unit_id,
+        hall_number: String(payload.hall_number),
+      },
+      transaction,
+    });
+    if (duplicate && Number(duplicate.id) !== Number(hall.id)) {
+      throw serviceError("hall_number_taken", 409);
+    }
+  }
+
+  const data = {};
+  for (const field of HALL_PORTAL_UPDATE_FIELDS) {
+    if (payload[field] !== undefined) data[field] = payload[field];
+  }
+
+  const result = await hallWrite.updateHall(hall.id, data, { transaction });
+
+  return {
+    entityId: result.hall.id,
+    summary: `سالن «${result.hall.hall_name}» ویرایش شد`,
+  };
+};
+
+// --------------------------------------------
+// ۸.۲.۲) حذف سالن  (✅ ۱۳.۱۳)
+// ------------------------------------------------------------
+//  حذف «منطقی» است (deletedAt) و `hall_count` واحد همگام می‌شود؛
+//  سوابق بازدید/هفته‌ها همان‌جا می‌مانند (رفتار ماژول کارشناس).
+// --------------------------------------------
+const applyHallDelete = async ({ customerId, payload, transaction }) => {
+  const hall = await requireOwnedHall({
+    customerId,
+    hallId: payload.hall_id,
+    transaction,
+  });
+
+  const hallName = hall.hall_name;
+  await hallWrite.deleteHall(hall.id, { transaction });
+
+  return {
+    entityId: hall.id,
+    summary: `سالن «${hallName}» حذف شد`,
+  };
+};
+
 
 // --------------------------------------------
 // ۸.۳) ثبت جوجه‌ریزی
@@ -582,62 +761,59 @@ const FLOCK_ERROR_CODES = {
 };
 
 const applyPlacementCreate = async ({ customerId, payload, transaction }) => {
-  const unit = await Unit.findOne({
-    where: { id: payload.unit_id, customer_personal_information_id: customerId },
+  const unit = await requireOwnedUnit({
+    customerId,
+    unitId: payload.unit_id,
     transaction,
   });
-  if (!unit) throw serviceError("unit_not_found", 404);
 
-  const hall = await Hall.findOne({
-    where: { id: payload.hall_id, customer_id: customerId },
+  const hall = await requireOwnedHall({
+    customerId,
+    hallId: payload.hall_id,
     transaction,
   });
-  if (!hall) throw serviceError("hall_not_found", 404);
 
   if (hall.unit_id && Number(hall.unit_id) !== Number(unit.id)) {
     throw serviceError("hall_unit_mismatch", 400);
   }
 
-  // فقط یک جوجه‌ریزی فعال در هر سالن
-  const activeInHall = await ChickPlacement.findOne({
-    where: { hall_id: hall.id, is_active: true },
-    transaction,
-  });
-  if (activeInHall) throw serviceError("hall_busy", 409);
-
-  let flock;
+  // ✅ ۱۳.۱۳: ساخت ردیف واقعی با هستهٔ مشترک انجام می‌شود؛ همان‌جا
+  // «تک‌فعال‌بودن جوجه‌ریزی سالن» و حل گله (flockResolver) اجرا می‌شود.
+  let result;
   try {
-    flock = await resolveFlock({
-      customer_id: customerId,
-      unit_id: unit.id,
-      placement_date: payload.placement_date,
-      flock_id: payload.flock_id || null,
-      start_new_flock: Boolean(payload.start_new_flock),
-      transaction,
-    });
+    result = await placementWrite.createPlacement(
+      {
+        customer_id: customerId,
+        unit_id: unit.id,
+        hall_id: hall.id,
+        placement_date: payload.placement_date,
+        flock_id: payload.flock_id || null,
+        start_new_flock: Boolean(payload.start_new_flock),
+        chick_source_id: payload.chick_source_id,
+        breed_id: payload.breed_id,
+        chick_age_on_arrival: payload.chick_age_on_arrival || 1,
+        avg_initial_weight: payload.avg_initial_weight,
+        total_chicks_count: payload.total_chicks_count,
+        placement_density: payload.placement_density,
+      },
+      { transaction },
+    );
   } catch (error) {
-    const code = FLOCK_ERROR_CODES[error.message] || "apply_failed";
-    throw serviceError(code, error.status === 404 ? 404 : 400, error.message);
+    // نگاشت خطاهای هستهٔ فارم به کدهای همین سرویس (پیام فارسی یکدست)
+    const code = FLOCK_ERROR_CODES[error.message];
+    if (code) {
+      throw serviceError(code, error.status === 404 ? 404 : 400, error.message);
+    }
+    if (String(error.message || "").includes("جوجه‌ریزی فعال")) {
+      throw serviceError("hall_busy", 409);
+    }
+    if (String(error.message || "").includes("متعلق به این واحد نیست")) {
+      throw serviceError("hall_unit_mismatch", 400);
+    }
+    throw error;
   }
 
-  const placement = await ChickPlacement.create(
-    {
-      customer_id: customerId,
-      unit_id: unit.id,
-      hall_id: hall.id,
-      placement_date: payload.placement_date,
-      flock_id: flock.id,
-      // شمارهٔ گله در سطح گله است؛ اینجا فقط برای سازگاری ذخیره می‌شود
-      flock_number: flock.flock_number,
-      chick_source_id: payload.chick_source_id || null,
-      breed_id: payload.breed_id || null,
-      chick_age_on_arrival: payload.chick_age_on_arrival || 1,
-      avg_initial_weight: payload.avg_initial_weight || null,
-      total_chicks_count: payload.total_chicks_count || null,
-      placement_density: payload.placement_density || null,
-    },
-    { transaction },
-  );
+  const { placement, flock } = result;
 
   return {
     entityId: placement.id,
@@ -645,6 +821,79 @@ const applyPlacementCreate = async ({ customerId, payload, transaction }) => {
       placement.total_chicks_count ?? "-"
     } قطعه ثبت شد (گله ${flock.flock_number})`,
   };
+};
+
+// --------------------------------------------
+// ۸.۳.۱) ذخیرهٔ اطلاعات تکمیلی سالن  (✅ ۱۳.۱۳)
+// ------------------------------------------------------------
+//  چهار حوزه، همه با هستهٔ مشترک `hallDetailsWrite` (upsert + جایگزینی
+//  ردیف‌های تجهیزات در همان تراکنش). مالکیت از راه خود سالن اثبات
+//  می‌شود، چون `hall_physical_info` / `hall_systems` / `hall_water_feed`
+//  ستون `customer_id` ندارند.
+// --------------------------------------------
+const HALL_DETAIL_APPLIERS = {
+  hall_physical_save: hallDetailsWrite.savePhysicalInfo,
+  hall_system_save: hallDetailsWrite.saveSystem,
+  hall_water_feed_save: hallDetailsWrite.saveWaterFeed,
+  hall_hygiene_save: hallDetailsWrite.saveHygiene,
+};
+
+const HALL_DETAIL_SUMMARIES = {
+  hall_physical_save: "اطلاعات فیزیکی سالن ثبت شد",
+  hall_system_save: "سیستم‌های سالن ثبت شد",
+  hall_water_feed_save: "اطلاعات آب‌خوری/دان‌خوری ثبت شد",
+  hall_hygiene_save: "اطلاعات بهداشت سالن ثبت شد",
+};
+
+const applyHallDetailSave = async ({
+  type,
+  customerId,
+  payload,
+  transaction,
+}) => {
+  const hall = await requireOwnedHall({
+    customerId,
+    hallId: payload.hall_id,
+    transaction,
+  });
+
+  const save = HALL_DETAIL_APPLIERS[type];
+  if (!save) throw serviceError("invalid_type", 400);
+
+  // 🔒 `unit_id` هرگز از payload نمی‌آید؛ از خود ردیف سالن
+  const body = {
+    ...payload,
+    hall_id: hall.id,
+    unit_id: hall.unit_id || null,
+  };
+  // ستون customer_id فقط در جدول بهداشت وجود دارد و اجباری است
+  if (type === "hall_hygiene_save") body.customer_id = customerId;
+
+  const { created } = await save(body, { transaction });
+
+  return {
+    entityId: hall.id,
+    summary: `${HALL_DETAIL_SUMMARIES[type]} «${hall.hall_name}»${
+      created ? " (ثبت تازه)" : ""
+    }`,
+  };
+};
+
+// ============================================
+// ۸.۴) نقشهٔ اعمال (یک منبع — هر نوع تازه باید این‌جا بیاید)
+// ------------------------------------------------------------
+//  ⚠️ `portal-request-test.mjs` بررسی می‌کند که هر کلید
+//  `REQUEST_TYPE_KEYS` یک applier داشته باشد؛ پس فراموش‌کردن یک نوع
+//  در تست شکست می‌خورد، نه در زمان اجرا.
+// ============================================
+const APPLIERS = {
+  unit_create: applyUnitCreate,
+  unit_update: applyUnitUpdate,
+  unit_delete: applyUnitDelete,
+  hall_create: applyHallCreate,
+  hall_update: applyHallUpdate,
+  hall_delete: applyHallDelete,
+  placement_create: applyPlacementCreate,
 };
 
 // ============================================
@@ -655,18 +904,56 @@ const applyPlacementCreate = async ({ customerId, payload, transaction }) => {
 //  فقط id+name فعال‌ها را برمی‌گردانند.
 // ============================================
 const optionsFor = async (customerId) => {
-  const [units, halls, flocks, chickSources, breeds, hallTypes] =
-    await Promise.all([
-      Unit.findAll({
-        where: { customer_personal_information_id: customerId },
-        attributes: ["id", "unit_name", "hall_count", "is_active"],
-        order: [["unit_name", "ASC"]],
-      }),
-      Hall.findAll({
-        where: { customer_id: customerId },
-        attributes: ["id", "unit_id", "hall_name", "hall_number", "is_active"],
-        order: [["hall_order", "ASC"]],
-      }),
+  const [
+    units,
+    halls,
+    flocks,
+    chickSources,
+    breeds,
+    hallTypes,
+    floorTypes,
+    heatingSystems,
+    coolingSystems,
+    ventilationTypes,
+    waterInletTypes,
+    lightingSystems,
+    watererTypes,
+    feederTypes,
+  ] = await Promise.all([
+    Unit.findAll({
+      where: { customer_personal_information_id: customerId },
+      // ✅ ۱۳.۱۳: فیلدهای لازم برای پیش‌پرکردن فرم «ویرایش واحد»
+      attributes: [
+        "id",
+        "unit_name",
+        "hall_count",
+        "is_active",
+        "address",
+        "capacity",
+        "manager_name",
+        "manager_phone",
+        "longitude",
+        "latitude",
+      ],
+      order: [["unit_name", "ASC"]],
+    }),
+    Hall.findAll({
+      where: { customer_id: customerId },
+      // ✅ ۱۳.۱۳: فیلدهای لازم برای فرم «ویرایش سالن»
+      attributes: [
+        "id",
+        "unit_id",
+        "hall_name",
+        "hall_number",
+        "is_active",
+        "nominal_capacity",
+        "altitude_above_sea",
+        "hall_type_id",
+        "construction_year",
+        "operator_name",
+      ],
+      order: [["hall_order", "ASC"]],
+    }),
       Flock.findAll({
         where: { customer_id: customerId, status: "active" },
         attributes: ["id", "unit_id", "flock_number", "placement_date"],
@@ -687,7 +974,91 @@ const optionsFor = async (customerId) => {
         attributes: ["id", "name"],
         order: [["name", "ASC"]],
       }),
+      // ✅ ۱۳.۱۳: هشت دیکشنری چهار حوزهٔ جزئیات سالن (همان‌هایی که
+      // ماژول کارشناس از /api/dictionary می‌گیرد)
+      FloorType.findAll({
+        where: { active: true },
+        attributes: ["id", "name"],
+        order: [["name", "ASC"]],
+      }),
+      HeatingSystemType.findAll({
+        where: { active: true },
+        attributes: ["id", "name"],
+        order: [["name", "ASC"]],
+      }),
+      CoolingSystemType.findAll({
+        where: { active: true },
+        attributes: ["id", "name"],
+        order: [["name", "ASC"]],
+      }),
+      VentilationType.findAll({
+        where: { active: true },
+        attributes: ["id", "name"],
+        order: [["name", "ASC"]],
+      }),
+      WaterInletType.findAll({
+        where: { active: true },
+        attributes: ["id", "name"],
+        order: [["name", "ASC"]],
+      }),
+      LightingSystemType.findAll({
+        where: { active: true },
+        attributes: ["id", "name"],
+        order: [["name", "ASC"]],
+      }),
+      WatererType.findAll({
+        where: { active: true },
+        attributes: ["id", "name"],
+        order: [["name", "ASC"]],
+      }),
+      FeederType.findAll({
+        where: { active: true },
+        attributes: ["id", "name"],
+        order: [["name", "ASC"]],
+      }),
     ]);
+
+  // ✅ ۱۳.۱۳: پرچم «کدام بخش جزئیات قبلاً ثبت شده» (چهار کوئری گروهی،
+  // نه N+1). فرم پورتال با همین پرچم «ثبت» یا «ویرایش» نشان می‌دهد.
+  const hallIds = halls.map((row) => Number(row.id));
+  const [physicalRows, systemRows, waterFeedRows, hygieneRows] = hallIds.length
+    ? await Promise.all([
+        HallPhysicalInfo.findAll({
+          where: { hall_id: { [Op.in]: hallIds } },
+          attributes: ["hall_id"],
+          raw: true,
+        }),
+        HallSystem.findAll({
+          where: { hall_id: { [Op.in]: hallIds } },
+          attributes: ["hall_id"],
+          raw: true,
+        }),
+        HallWaterFeed.findAll({
+          where: { hall_id: { [Op.in]: hallIds } },
+          attributes: ["hall_id"],
+          raw: true,
+        }),
+        HallHygiene.findAll({
+          where: { hall_id: { [Op.in]: hallIds } },
+          attributes: ["hall_id"],
+          raw: true,
+        }),
+      ])
+    : [[], [], [], []];
+
+  const hallIdSet = (rows) => new Set(rows.map((row) => Number(row.hall_id)));
+  const physicalSet = hallIdSet(physicalRows);
+  const systemSet = hallIdSet(systemRows);
+  const waterFeedSet = hallIdSet(waterFeedRows);
+  const hygieneSet = hallIdSet(hygieneRows);
+
+  const dictionaryOf = (rows) =>
+    rows.map((row) => ({ id: Number(row.id), name: row.name }));
+
+  const numberOrNull = (value) =>
+    value === null || value === undefined || value === ""
+      ? null
+      : Number(value);
 
   return {
     units: units.map((row) => ({
@@ -695,6 +1066,12 @@ const optionsFor = async (customerId) => {
       unit_name: row.unit_name,
       hall_count: Number(row.hall_count) || 0,
       is_active: Boolean(row.is_active),
+      address: row.address || null,
+      capacity: numberOrNull(row.capacity),
+      manager_name: row.manager_name || null,
+      manager_phone: row.manager_phone || null,
+      longitude: numberOrNull(row.longitude),
+      latitude: numberOrNull(row.latitude),
     })),
     halls: halls.map((row) => ({
       id: Number(row.id),
@@ -702,6 +1079,15 @@ const optionsFor = async (customerId) => {
       hall_name: row.hall_name,
       hall_number: row.hall_number || null,
       is_active: Boolean(row.is_active),
+      nominal_capacity: numberOrNull(row.nominal_capacity),
+      altitude_above_sea: numberOrNull(row.altitude_above_sea),
+      hall_type_id: numberOrNull(row.hall_type_id),
+      construction_year: numberOrNull(row.construction_year),
+      operator_name: row.operator_name || null,
+      has_physical: physicalSet.has(Number(row.id)),
+      has_system: systemSet.has(Number(row.id)),
+      has_water_feed: waterFeedSet.has(Number(row.id)),
+      has_hygiene: hygieneSet.has(Number(row.id)),
     })),
     flocks: flocks.map((row) => ({
       id: Number(row.id),
@@ -710,12 +1096,83 @@ const optionsFor = async (customerId) => {
       placement_date: row.placement_date || null,
     })),
     dictionaries: {
-      chick_sources: chickSources.map((row) => ({
-        id: Number(row.id),
-        name: row.name,
-      })),
-      breeds: breeds.map((row) => ({ id: Number(row.id), name: row.name })),
-      hall_types: hallTypes.map((row) => ({ id: Number(row.id), name: row.name })),
+      chick_sources: dictionaryOf(chickSources),
+      breeds: dictionaryOf(breeds),
+      hall_types: dictionaryOf(hallTypes),
+      floor_types: dictionaryOf(floorTypes),
+      heating_systems: dictionaryOf(heatingSystems),
+      cooling_systems: dictionaryOf(coolingSystems),
+      ventilation_types: dictionaryOf(ventilationTypes),
+      water_inlet_types: dictionaryOf(waterInletTypes),
+      lighting_systems: dictionaryOf(lightingSystems),
+      waterer_types: dictionaryOf(watererTypes),
+      feeder_types: dictionaryOf(feederTypes),
+    },
+  };
+};
+
+// ============================================
+// ۱۰) جزئیات یک سالن (پیش‌پرکردن فرم ویرایش)  — ✅ ۱۳.۱۳
+// ------------------------------------------------------------
+//  🔒 مالکیت در همان کوئری سنجیده می‌شود (`customer_id`)؛ ردیف غیرخودی
+//  ۴۰۴ می‌گیرد تا وجودش لو نرود و `customer_id` هرگز پارامتر نمی‌شود.
+// ============================================
+const plainRow = (row) =>
+  row && typeof row.get === "function" ? row.get({ plain: true }) : row || null;
+
+const hallDetailsFor = async ({ customerId, hallId }) => {
+  const hall = await Hall.findOne({
+    where: { id: hallId, customer_id: customerId },
+    attributes: [
+      "id",
+      "unit_id",
+      "hall_name",
+      "hall_number",
+      "nominal_capacity",
+      "altitude_above_sea",
+      "hall_type_id",
+      "construction_year",
+      "operator_name",
+      "is_active",
+    ],
+  });
+  if (!hall) throw serviceError("hall_not_found", 404);
+
+  const [physical, system, waterFeed, hygiene] = await Promise.all([
+    HallPhysicalInfo.findOne({ where: { hall_id: hall.id } }),
+    HallSystem.findOne({
+      where: { hall_id: hall.id },
+      include: [
+        {
+          model: HallSystemItem,
+          attributes: hallDetailsWrite.SYSTEM_ITEM_ATTRIBUTES,
+          required: false,
+        },
+      ],
+    }),
+    HallWaterFeed.findOne({ where: { hall_id: hall.id } }),
+    HallHygiene.findOne({ where: { hall_id: hall.id } }),
+  ]);
+
+  const hallPlain = plainRow(hall);
+
+  return {
+    hall: {
+      ...hallPlain,
+      id: Number(hallPlain.id),
+      unit_id: hallPlain.unit_id == null ? null : Number(hallPlain.unit_id),
+    },
+    details: {
+      physical: plainRow(physical),
+      system: plainRow(system),
+      water_feed: plainRow(waterFeed),
+      hygiene: plainRow(hygiene),
+    },
+    flags: {
+      has_physical: Boolean(physical),
+      has_system: Boolean(system),
+      has_water_feed: Boolean(waterFeed),
+      has_hygiene: Boolean(hygiene),
     },
   };
 };
@@ -726,6 +1183,7 @@ module.exports = {
   countsOf,
   createRequest,
   getRequest,
+  hallDetailsFor,
   listMyRequests,
   listQueue,
   optionsFor,
