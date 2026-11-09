@@ -369,17 +369,25 @@ const serviceSource = fs.readFileSync(
   path.join(here, "services/portalRequestService.js"),
   "utf8",
 );
+// ✅ موج ۱۳.۱۲: نوشتن جوجه‌ریزی از کنترلر به services/farm/placementWrite
+//    منتقل شد؛ زنجیرهٔ «یک منبع» اکنون کنترلر ← placementWrite ← flockResolver است.
+const placementWriter = fs.readFileSync(
+  path.join(here, "services/farm/placementWrite.js"),
+  "utf8",
+);
 
 check(
-  "کنترلر کارشناس و سرویس پورتال هر دو از flockResolver استفاده می‌کنند",
-  /require\("\.\.\/services\/flockResolver"\)/.test(writerController) &&
+  "نوشتن جوجه‌ریزی از یک منبع مشترک استفاده می‌کند (placementWrite ← flockResolver)",
+  /require\("\.\.\/flockResolver"\)/.test(placementWriter) &&
+    /require\("\.\.\/services\/farm\/placementWrite"\)/.test(writerController) &&
     /require\("\.\/flockResolver"\)/.test(serviceSource),
 );
 
 check(
-  "منطق ساخت گله در کنترلر تکرار نشده (تعریف محلی حذف شده)",
+  "منطق ساخت گله در هیچ‌کدام تکرار نشده (تعریف محلی حذف شده)",
   !/const createFlockRecord = async/.test(writerController) &&
-    !/const resolveFlock = async/.test(writerController),
+    !/const resolveFlock = async/.test(writerController) &&
+    !/const resolveFlock = async/.test(placementWriter),
 );
 
 // ============================================================

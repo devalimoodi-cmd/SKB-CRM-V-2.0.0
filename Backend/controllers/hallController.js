@@ -10,20 +10,18 @@ const HallSystem = require("../models/HallSystem");
 const HallSystemItem = require("../models/HallSystemItem");
 const HallWaterFeed = require("../models/HallWaterFeed");
 const HallHygiene = require("../models/HallHygiene");
+// ✅ موج ۱۳.۱۲: نوشتن سالن (شمارهٔ خودکار، همگام‌سازی hall_count و حذف
+//    منطقی) به services/farm/hallWrite منتقل شد تا پورتال هم همان
+//    قاعده را پس از تأیید اجرا کند.
+const hallWrite = require("../services/farm/hallWrite");
+const { sendFarmError } = require("../services/farm/httpBridge");
 
 // ============================================
 // همگام‌سازی تعداد واقعی سالن‌های یک واحد (units.hall_count)
+// ------------------------------------------------------------
+// ✅ موج ۱۳.۱۲: این تابع به services/farm/hallWrite منتقل شد
+//    (همان منطق، یک نسخه برای کارشناس و پورتال).
 // ============================================
-const syncUnitHallCount = async (unitId) => {
-  if (!unitId) return;
-  try {
-    // paranoid=true => سالن‌های حذف‌شده (deletedAt) شمرده نمی‌شوند
-    const count = await Hall.count({ where: { unit_id: unitId } });
-    await Unit.update({ hall_count: count }, { where: { id: unitId } });
-  } catch (err) {
-    console.warn("⚠️ خطا در همگام‌سازی تعداد سالن‌های واحد:", err.message);
-  }
-};
 
 // ============================================
 // ایجاد سالن جدید
@@ -31,81 +29,11 @@ const syncUnitHallCount = async (unitId) => {
 
 const createHall = async (req, res) => {
   try {
-    const {
-      customer_id,
-      unit_id,
-      hall_name,
-      hall_number,
-      nominal_capacity,
-      altitude_above_sea,
-      hall_type_id,
-      construction_year,
-      service_expert_id,
-      operator_name,
-      hall_order,
-    } = req.body;
-
-    // اعتبارسنجی‌های الزامی
-    if (!customer_id) return errorResponse(res, "شناسه مشتری الزامی است", 400);
-    if (!unit_id) return errorResponse(res, "شناسه واحد الزامی است", 400);
-    if (!hall_name) return errorResponse(res, "نام سالن الزامی است", 400);
-
-    // بررسی وجود مشتری
-    const customer = await CustomerPersonalInfo.findOne({
-      where: { id: customer_id, active: true },
-    });
-
-    if (!customer) {
-      return errorResponse(res, "مشتری یافت نشد یا غیرفعال است", 404);
-    }
-
-    // بررسی وجود واحد
-    const unit = await Unit.findByPk(unit_id);
-    if (!unit) {
-      return errorResponse(res, "واحد یافت نشد", 404);
-    }
-
-    // شماره‌گذاری اتوماتیک hall_number
-    let finalHallNumber = hall_number;
-    if (!finalHallNumber) {
-      const lastHall = await Hall.findOne({
-        where: { customer_id, unit_id },
-        order: [["hall_number", "DESC"]],
-      });
-      finalHallNumber = lastHall ? parseInt(lastHall.hall_number || 0) + 1 : 1;
-    }
-
-    // محاسبه hall_order
-    let finalHallOrder = hall_order;
-    if (!finalHallOrder) {
-      const lastHall = await Hall.findOne({
-        where: { customer_id, unit_id },
-        order: [["hall_order", "DESC"]],
-      });
-      finalHallOrder = lastHall ? lastHall.hall_order + 1 : 1;
-    }
-
-    const hall = await Hall.create({
-      customer_id,
-      unit_id,
-      hall_name,
-      hall_number: finalHallNumber.toString(),
-      hall_order: finalHallOrder,
-      nominal_capacity,
-      altitude_above_sea,
-      hall_type_id,
-      construction_year,
-      service_expert_id: service_expert_id || null,
-      operator_name,
-      is_active: true,
-    });
-
-    await syncUnitHallCount(unit_id);
-
-    successResponse(res, hall, "سالن با موفقیت ایجاد شد", 201);
+    const { hall } = await hallWrite.createHall(req.body);
+    return successResponse(res, hall, "سالن با موفقیت ایجاد شد", 201);
   } catch (error) {
     console.error("خطا در ایجاد سالن:", error);
-    errorResponse(res, error.message, 500);
+    return sendFarmError(res, error, "خطا در ایجاد سالن");
   }
 };
 // ============================================
@@ -172,26 +100,15 @@ const getHallById = async (req, res) => {
 // ============================================
 const updateHall = async (req, res) => {
   try {
-    const { id } = req.params;
-    const hall = await Hall.findByPk(id);
-
-    if (!hall) {
-      return errorResponse(res, "سالن یافت نشد", 404);
-    }
-
-    const prevUnitId = hall.unit_id;
-    await hall.update(req.body);
-
-    // اگر سالن به واحد دیگری منتقل شده، تعداد هر دو واحد به‌روز شود
-    await syncUnitHallCount(prevUnitId);
-    if (hall.unit_id && hall.unit_id !== prevUnitId) {
-      await syncUnitHallCount(hall.unit_id);
-    }
-
-    successResponse(res, hall, "اطلاعات سالن با موفقیت بروزرسانی شد");
+    const { hall } = await hallWrite.updateHall(req.params.id, req.body);
+    return successResponse(
+      res,
+      hall,
+      "اطلاعات سالن با موفقیت بروزرسانی شد",
+    );
   } catch (error) {
     console.error("خطا در بروزرسانی سالن:", error);
-    errorResponse(res, error.message, 500);
+    return sendFarmError(res, error, "خطا در بروزرسانی سالن");
   }
 };
 
@@ -200,20 +117,15 @@ const updateHall = async (req, res) => {
 // ============================================
 const deleteHall = async (req, res) => {
   try {
-    const { id } = req.params;
-    const hall = await Hall.findByPk(id);
-
-    if (!hall) return errorResponse(res, "سالن یافت نشد", 404);
-
-    const unitId = hall.unit_id;
-    await hall.destroy(); // حذف منطقی (deletedAt پر می‌شود)
-
-    await syncUnitHallCount(unitId);
-
-    successResponse(res, null, "سالن با موفقیت حذف شد (حذف منطقی)");
+    await hallWrite.deleteHall(req.params.id);
+    return successResponse(
+      res,
+      null,
+      "سالن با موفقیت حذف شد (حذف منطقی)",
+    );
   } catch (error) {
     console.error("خطا در حذف سالن:", error);
-    errorResponse(res, error.message, 500);
+    return sendFarmError(res, error, "خطا در حذف سالن");
   }
 };
 

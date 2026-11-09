@@ -2336,12 +2336,39 @@ check(
 check(
   "۱۳.۱۱ · گله از یک منبع مشترک حل می‌شود (flockResolver)",
   /module\.exports = \{\s*\n\s*getNextFlockNumber,/.test(SRC.flockResolver) &&
-    /require\("\.\.\/services\/flockResolver"\)/.test(
-      read("Backend/controllers/chickPlacementController.js"),
+    /require\("\.\.\/flockResolver"\)/.test(
+      read("Backend/services/farm/placementWrite.js"),
     ) &&
     /require\("\.\/flockResolver"\)/.test(SRC.farmService) &&
     !/const resolveFlock = async/.test(
-      read("Backend/controllers/chickPlacementController.js"),
+      read("Backend/services/farm/placementWrite.js"),
+    ),
+);
+
+// ✅ ۱۳.۱۲ — هستهٔ نوشتن مشترک: هیچ کنترلر کارشناسی نباید منطق نوشتن
+//    مستقل داشته باشد؛ همه از services/farm/* می‌گذرند.
+check(
+  "۱۳.۱۲ · نوشتن فارم از هستهٔ مشترک services/farm/* می‌گذرد",
+  /require\("\.\.\/services\/farm\/placementWrite"\)/.test(
+    read("Backend/controllers/chickPlacementController.js"),
+  ) &&
+    /require\("\.\.\/services\/farm\/weeklyWrite"\)/.test(
+      read("Backend/controllers/weeklyController.js"),
+    ) &&
+    /require\("\.\.\/services\/farm\/unitWrite"\)/.test(
+      read("Backend/controllers/unitController.js"),
+    ) &&
+    /require\("\.\.\/services\/farm\/hallWrite"\)/.test(
+      read("Backend/controllers/hallController.js"),
+    ) &&
+    /require\("\.\.\/services\/farm\/hallDetailsWrite"\)/.test(
+      read("Backend/controllers/hallSystemController.js"),
+    ) &&
+    !/const checkWeekOrder = async/.test(
+      read("Backend/controllers/weeklyController.js"),
+    ) &&
+    !/const saveMultipleItems = async/.test(
+      read("Backend/controllers/weeklyController.js"),
     ),
 );
 

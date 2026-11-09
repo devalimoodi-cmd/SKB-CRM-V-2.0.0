@@ -1,77 +1,23 @@
 const HallWaterFeed = require("../models/HallWaterFeed");
-const Hall = require("../models/Hall");
 const { successResponse, errorResponse } = require("../utils/response");
+// ✅ موج ۱۳.۱۲: نوشتن آب‌خوری/دان‌خوری به services/farm/hallDetailsWrite منتقل شد
+const hallDetailsWrite = require("../services/farm/hallDetailsWrite");
+const { sendFarmError } = require("../services/farm/httpBridge");
 
 const createOrUpdateWaterFeed = async (req, res) => {
   try {
-    const {
-      hall_id,
-      unit_id,
-      waterer_type_id,
-      feeder_type_id,
-      water_lines_count,
-      feed_lines_count,
-      auto_feed_system,
-      notes,
-    } = req.body;
+    const { record, created } = await hallDetailsWrite.saveWaterFeed(req.body);
 
-    if (!hall_id) return errorResponse(res, "شناسه سالن الزامی است", 400);
-
-    const hall = await Hall.findByPk(hall_id);
-    if (!hall) return errorResponse(res, "سالن یافت نشد", 404);
-
-    let waterFeed = await HallWaterFeed.findOne({ where: { hall_id } });
-
-    if (waterFeed) {
-      await waterFeed.update({
-        unit_id: unit_id !== undefined ? unit_id : waterFeed.unit_id,
-        waterer_type_id:
-          waterer_type_id !== undefined
-            ? waterer_type_id
-            : waterFeed.waterer_type_id,
-        feeder_type_id:
-          feeder_type_id !== undefined
-            ? feeder_type_id
-            : waterFeed.feeder_type_id,
-        water_lines_count:
-          water_lines_count !== undefined
-            ? water_lines_count
-            : waterFeed.water_lines_count,
-        feed_lines_count:
-          feed_lines_count !== undefined
-            ? feed_lines_count
-            : waterFeed.feed_lines_count,
-        auto_feed_system:
-          auto_feed_system !== undefined
-            ? auto_feed_system
-            : waterFeed.auto_feed_system,
-        notes: notes !== undefined ? notes : waterFeed.notes,
-      });
-      return successResponse(
-        res,
-        waterFeed,
-        "اطلاعات آبخوری و دانخوری بروزرسانی شد",
-      );
-    } else {
-      waterFeed = await HallWaterFeed.create({
-        hall_id,
-        unit_id: unit_id || null,
-        waterer_type_id: waterer_type_id || null,
-        feeder_type_id: feeder_type_id || null,
-        water_lines_count: water_lines_count || null,
-        feed_lines_count: feed_lines_count || null,
-        auto_feed_system: auto_feed_system || false,
-        notes: notes || null,
-      });
-      return successResponse(
-        res,
-        waterFeed,
-        "اطلاعات آبخوری و دانخوری ایجاد شد",
-        201,
-      );
-    }
+    return successResponse(
+      res,
+      record,
+      created
+        ? "اطلاعات آب‌خوری و دان‌خوری ایجاد شد"
+        : "اطلاعات آب‌خوری و دان‌خوری بروزرسانی شد",
+      created ? 201 : 200,
+    );
   } catch (error) {
-    errorResponse(res, error.message, 500);
+    return sendFarmError(res, error, "خطا در ثبت اطلاعات آب‌خوری و دان‌خوری");
   }
 };
 

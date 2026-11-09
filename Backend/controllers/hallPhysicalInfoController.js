@@ -1,56 +1,23 @@
 const HallPhysicalInfo = require("../models/HallPhysicalInfo");
-const Hall = require("../models/Hall");
 const { successResponse, errorResponse } = require("../utils/response");
+// ✅ موج ۱۳.۱۲: نوشتن اطلاعات فیزیکی به services/farm/hallDetailsWrite منتقل شد
+const hallDetailsWrite = require("../services/farm/hallDetailsWrite");
+const { sendFarmError } = require("../services/farm/httpBridge");
 
 const createOrUpdatePhysicalInfo = async (req, res) => {
   try {
-    const {
-      hall_id,
-      unit_id,
-      length,
-      width,
-      height,
-      area,
-      floor_type_id,
-      notes,
-    } = req.body;
+    const { record, created } = await hallDetailsWrite.savePhysicalInfo(
+      req.body,
+    );
 
-    if (!hall_id) return errorResponse(res, "شناسه سالن الزامی است", 400);
-
-    const hall = await Hall.findByPk(hall_id);
-    if (!hall) return errorResponse(res, "سالن یافت نشد", 404);
-
-    let physicalInfo = await HallPhysicalInfo.findOne({ where: { hall_id } });
-
-    if (physicalInfo) {
-      await physicalInfo.update({
-        unit_id: unit_id !== undefined ? unit_id : physicalInfo.unit_id,
-        length: length !== undefined ? length : physicalInfo.length,
-        width: width !== undefined ? width : physicalInfo.width,
-        height: height !== undefined ? height : physicalInfo.height,
-        area: area !== undefined ? area : physicalInfo.area,
-        floor_type_id:
-          floor_type_id !== undefined
-            ? floor_type_id
-            : physicalInfo.floor_type_id,
-        notes: notes !== undefined ? notes : physicalInfo.notes,
-      });
-      return successResponse(res, physicalInfo, "اطلاعات فیزیکی بروزرسانی شد");
-    } else {
-      physicalInfo = await HallPhysicalInfo.create({
-        hall_id,
-        unit_id: unit_id || null,
-        length: length || null,
-        width: width || null,
-        height: height || null,
-        area: area || null,
-        floor_type_id: floor_type_id || null,
-        notes: notes || null,
-      });
-      return successResponse(res, physicalInfo, "اطلاعات فیزیکی ایجاد شد", 201);
-    }
+    return successResponse(
+      res,
+      record,
+      created ? "اطلاعات فیزیکی ایجاد شد" : "اطلاعات فیزیکی بروزرسانی شد",
+      created ? 201 : 200,
+    );
   } catch (error) {
-    errorResponse(res, error.message, 500);
+    return sendFarmError(res, error, "خطا در ثبت اطلاعات فیزیکی");
   }
 };
 

@@ -1,151 +1,34 @@
 const ChickPlacement = require("../models/ChickPlacement");
-const CustomerPersonalInfo = require("../models/CustomerPersonalInfo");
-const Hall = require("../models/Hall");
-const Flock = require("../models/Flock");
-const Unit = require("../models/Unit");
 const ChickenBreed = require("../models/ChickenBreed");
-const {
-  validateChickPlacement,
-} = require("../validations/chickPlacementValidation");
 const { successResponse, errorResponse } = require("../utils/response");
 const { parsePagination } = require("../utils/pagination");
-const { sequelize } = require("../config/database");
-// ✅ موج ۱۳.۱۱: منطق «کدام گله؟» به services/flockResolver منتقل شد تا
-//    مسیر تأیید درخواست مشتری هم از همان قاعده استفاده کند (یک منبع).
-//    فقط resolveFlock این‌جا لازم است؛ دو تابع دیگر در همان فایل‌اند.
-const { resolveFlock } = require("../services/flockResolver");
+// ✅ موج ۱۳.۱۲: منطق نوشتن جوجه‌ریزی به services/farm/placementWrite منتقل
+//    شد؛ همان فایل «کدام گله؟» را از services/flockResolver می‌گیرد، پس
+//    ماژول کارشناس و مسیر تأیید پورتال دقیقاً یک قاعده دارند (یک منبع).
+const placementWrite = require("../services/farm/placementWrite");
+const { sendFarmError } = require("../services/farm/httpBridge");
 
 
 // ============================================
 // ایجاد جوجه‌ریزی جدید (زیر یک گله)
 // ============================================
 const createChickPlacement = async (req, res) => {
-  // ✅ تراکنش: ممکن است گله جدید ساخته شود و سپس جوجه‌ریزی؛ اگر خطا رخ دهد
-  // گلهٔ بی‌استفاده و نیمه‌کاره در دیتابیس باقی نمی‌ماند.
-  let transaction = null;
+  // ✅ تراکنش داخل سرویس مدیریت می‌شود: اگر ساخت گله یا ثبت جوجه‌ریزی
+  // شکست بخورد، هیچ ردیف نیمه‌کاره‌ای نمی‌ماند (همان رفتار قبلی).
   try {
-    const validation = validateChickPlacement(req.body);
-    if (!validation.isValid) {
-      return errorResponse(res, validation.errors[0], 400, validation.errors);
-    }
+    const { placement, flock } = await placementWrite.createPlacement(
+      req.body,
+    );
 
-    const {
-      customer_id,
-      unit_id,
-      hall_id,
-      placement_date,
-      flock_id, // اختیاری — برای «پیوستن به گله مشخص»
-      start_new_flock, // اختیاری — «شروع گله جدید» صریح
-      chick_source_id,
-      breed_id,
-      chick_age_on_arrival,
-      avg_initial_weight,
-      total_chicks_count,
-      placement_density,
-    } = req.body;
-
-    // بررسی وجود مشتری
-    const customer = await CustomerPersonalInfo.findOne({
-      where: { id: customer_id, active: true },
-    });
-    if (!customer) {
-      return errorResponse(res, "مشتری یافت نشد یا غیرفعال است", 404);
-    }
-
-    // بررسی وجود سالن
-    const hall = await Hall.findByPk(hall_id);
-    if (!hall) {
-      return errorResponse(res, "سالن یافت نشد", 404);
-    }
-
-    // واحد الزامی است (گله در سطح واحد تعریف می‌شود)
-    if (!unit_id) {
-      return errorResponse(res, "شناسه واحد الزامی است", 400);
-    }
-    const unit = await Unit.findByPk(unit_id);
-    if (!unit) {
-      return errorResponse(res, "واحد یافت نشد", 404);
-    }
-    if (hall.unit_id && parseInt(hall.unit_id) !== parseInt(unit_id)) {
-      return errorResponse(res, "سالن متعلق به این واحد نیست", 400);
-    }
-
-    // فقط یک جوجه‌ریزی فعال در هر سالن
-    const activeInHall = await ChickPlacement.findOne({
-      where: { hall_id, is_active: true },
-    });
-    if (activeInHall) {
-      return errorResponse(
-        res,
-        "سالن در حال حاضر دارای جوجه‌ریزی فعال است؛ ابتدا دوره فعلی را پایان دهید",
-        400,
-      );
-    }
-
-    // پیدا کردن / ساخت گله
-    transaction = await sequelize.transaction();
-    let flock;
-    try {
-      flock = await resolveFlock({
-        customer_id,
-        unit_id,
-        placement_date,
-        flock_id,
-        start_new_flock: !!start_new_flock,
-        transaction,
-      });
-    } catch (resolveError) {
-      if (transaction) {
-        await transaction.rollback();
-        transaction = null;
-      }
-      return errorResponse(res, resolveError.message, resolveError.status || 400);
-    }
-
-    const chickPlacement = await ChickPlacement.create({
-      customer_id,
-      unit_id,
-      hall_id,
-      placement_date,
-      flock_id: flock.id,
-      // شماره گله در سطح گله است؛ اینجا فقط برای سازگاری ذخیره می‌شود
-      flock_number: flock.flock_number,
-      chick_source_id: chick_source_id || null,
-      breed_id: breed_id || null,
-      chick_age_on_arrival: chick_age_on_arrival || 1,
-      avg_initial_weight: avg_initial_weight || null,
-      total_chicks_count: total_chicks_count || null,
-      placement_density: placement_density || null,
-    }, { transaction });
-
-    // ✅ قلاب تست (فقط خارج از production): برای اثبات rollback تراکنش
-    // در سرور واقعی (NODE_ENV=production) هرگز فعال نمی‌شود.
-    if (
-      process.env.NODE_ENV !== "production" &&
-      process.env.TEST_FAIL_PLACEMENT === "true"
-    ) {
-      throw new Error("TEST_FAIL_PLACEMENT (fault injection)");
-    }
-
-    await transaction.commit();
-    transaction = null;
-
-    successResponse(
+    return successResponse(
       res,
-      { ...chickPlacement.toJSON(), flock },
+      { ...placement.toJSON(), flock },
       "جوجه‌ریزی با موفقیت ثبت شد",
       201,
     );
   } catch (error) {
-    if (transaction) {
-      try {
-        await transaction.rollback();
-      } catch {
-        /* اگر تراکنش قبلاً بسته شده باشد */
-      }
-    }
     console.error("خطا در ثبت جوجه‌ریزی:", error);
-    errorResponse(res, error.message, 500);
+    return sendFarmError(res, error, "خطا در ثبت جوجه‌ریزی");
   }
 };
 
@@ -256,41 +139,14 @@ const getChickPlacementByHallId = async (req, res) => {
 // ============================================
 const updateChickPlacement = async (req, res) => {
   try {
-    const { id } = req.params;
-    const chickPlacement = await ChickPlacement.findByPk(id);
-    if (!chickPlacement) {
-      return errorResponse(res, "جوجه‌ریزی یافت نشد", 404);
-    }
-
-    const allowedFields = [
-      "unit_id",
-      "placement_date",
-      "flock_number",
-      "chick_source_id",
-      "breed_id",
-      "chick_age_on_arrival",
-      "avg_initial_weight",
-      "total_chicks_count",
-      "placement_density",
-    ];
-
-    const updateData = {};
-    for (const field of allowedFields) {
-      if (req.body[field] === undefined) continue;
-      // شماره گله اکنون در سطح گله/دوره است؛ فقط مقدار مثبت معتبر است (0 → نادیده)
-      if (field === "flock_number") {
-        const fn = parseInt(req.body[field]);
-        if (!isNaN(fn) && fn > 0) updateData[field] = fn;
-        continue;
-      }
-      updateData[field] = req.body[field];
-    }
-
-    await chickPlacement.update(updateData);
-    successResponse(res, chickPlacement, "جوجه‌ریزی با موفقیت بروزرسانی شد");
+    const { placement } = await placementWrite.updatePlacement(
+      req.params.id,
+      req.body,
+    );
+    return successResponse(res, placement, "جوجه‌ریزی با موفقیت بروزرسانی شد");
   } catch (error) {
     console.error("خطا در بروزرسانی جوجه‌ریزی:", error);
-    errorResponse(res, error.message, 500);
+    return sendFarmError(res, error, "خطا در بروزرسانی جوجه‌ریزی");
   }
 };
 
@@ -298,50 +154,19 @@ const updateChickPlacement = async (req, res) => {
 // حذف یک «گله/دوره» کامل به همراه همه جوجه‌ریزی‌های سالن‌های عضو
 // ============================================
 const deleteFlockGroup = async (req, res) => {
-  // ✅ تراکنش: حذف گله و همهٔ جوجه‌ریزی‌های آن باید اتمیک باشد
-  let transaction = null;
   try {
-    const flockId = parseInt(req.params.flockId);
-    if (!flockId) {
-      return errorResponse(res, "شناسه گله الزامی است", 400);
-    }
+    const { flock, removedPlacements } = await placementWrite.deleteFlockGroup(
+      req.params.flockId,
+    );
 
-    const flock = await Flock.findByPk(flockId);
-    if (!flock) {
-      return errorResponse(res, "گله یافت نشد", 404);
-    }
-
-    const placements = await ChickPlacement.findAll({
-      where: { flock_id: flockId },
-      attributes: ["id"],
-    });
-
-    // حذف جوجه‌ریزی‌های سالن‌های عضو (با cascade به رکوردهای هفتگی/وابسته)
-    transaction = await sequelize.transaction();
-    for (const p of placements) {
-      await p.destroy({ transaction });
-    }
-
-    await flock.destroy({ transaction });
-
-    await transaction.commit();
-    transaction = null;
-
-    successResponse(
+    return successResponse(
       res,
-      { removedPlacements: placements.length },
-      `گله شماره ${flock.flock_number} و ${placements.length} جوجه‌ریزی آن حذف شد`,
+      { removedPlacements },
+      `گله شماره ${flock.flock_number} و ${removedPlacements} جوجه‌ریزی آن حذف شد`,
     );
   } catch (error) {
-    if (transaction) {
-      try {
-        await transaction.rollback();
-      } catch {
-        /* اگر تراکنش قبلاً بسته شده باشد */
-      }
-    }
     console.error("خطا در حذف گله:", error);
-    errorResponse(res, error.message, 500);
+    return sendFarmError(res, error, "خطا در حذف گله");
   }
 };
 
@@ -350,17 +175,11 @@ const deleteFlockGroup = async (req, res) => {
 // ============================================
 const deleteChickPlacement = async (req, res) => {
   try {
-    const { id } = req.params;
-    const chickPlacement = await ChickPlacement.findByPk(id);
-    if (!chickPlacement) {
-      return errorResponse(res, "جوجه‌ریزی یافت نشد", 404);
-    }
-
-    await chickPlacement.destroy();
-    successResponse(res, null, "جوجه‌ریزی با موفقیت حذف شد");
+    await placementWrite.deletePlacement(req.params.id);
+    return successResponse(res, null, "جوجه‌ریزی با موفقیت حذف شد");
   } catch (error) {
     console.error("خطا در حذف جوجه‌ریزی:", error);
-    errorResponse(res, error.message, 500);
+    return sendFarmError(res, error, "خطا در حذف جوجه‌ریزی");
   }
 };
 
@@ -368,49 +187,18 @@ const deleteChickPlacement = async (req, res) => {
 // فعال کردن یک جوجه‌ریزی (و غیرفعال کردن قبلی همان سالن)
 // ============================================
 const activateChickPlacement = async (req, res) => {
-  // ✅ تراکنش: غیرفعال‌کردن دورهٔ قبلی + فعال‌کردن دورهٔ جدید باید اتمیک باشد
-  let transaction = null;
   try {
-    const { id } = req.params;
-    const newPlacement = await ChickPlacement.findByPk(id);
-
-    if (!newPlacement) {
-      return errorResponse(res, "جوجه‌ریزی یافت نشد", 404);
-    }
-
-    if (newPlacement.is_active) {
-      return errorResponse(res, "این جوجه‌ریزی قبلاً فعال شده است", 400);
-    }
-
-    transaction = await sequelize.transaction();
-
-    // غیرفعال کردن جوجه‌ریزی فعال قبلی همان سالن
-    await ChickPlacement.update(
-      { is_active: false },
-      { where: { hall_id: newPlacement.hall_id, is_active: true }, transaction },
+    const { placement } = await placementWrite.activatePlacement(
+      req.params.id,
     );
-
-    // فعال کردن جوجه‌ریزی جدید
-    await newPlacement.update({ is_active: true }, { transaction });
-
-    await transaction.commit();
-    transaction = null;
-
-    successResponse(
+    return successResponse(
       res,
-      newPlacement,
+      placement,
       "جوجه‌ریزی با موفقیت فعال شد و دوره قبلی غیرفعال گردید",
     );
   } catch (error) {
-    if (transaction) {
-      try {
-        await transaction.rollback();
-      } catch {
-        /* اگر تراکنش قبلاً بسته شده باشد */
-      }
-    }
     console.error("خطا در فعال‌سازی جوجه‌ریزی:", error);
-    errorResponse(res, error.message, 500);
+    return sendFarmError(res, error, "خطا در فعال‌سازی جوجه‌ریزی");
   }
 };
 
@@ -419,22 +207,17 @@ const activateChickPlacement = async (req, res) => {
 // ============================================
 const deactivateChickPlacement = async (req, res) => {
   try {
-    const { id } = req.params;
-    const placement = await ChickPlacement.findByPk(id);
-
-    if (!placement) {
-      return errorResponse(res, "جوجه‌ریزی یافت نشد", 404);
-    }
-
-    if (!placement.is_active) {
-      return errorResponse(res, "این جوجه‌ریزی قبلاً غیرفعال شده است", 400);
-    }
-
-    await placement.update({ is_active: false });
-    successResponse(res, placement, "دوره جوجه‌ریزی با موفقیت پایان یافت");
+    const { placement } = await placementWrite.deactivatePlacement(
+      req.params.id,
+    );
+    return successResponse(
+      res,
+      placement,
+      "دوره جوجه‌ریزی با موفقیت پایان یافت",
+    );
   } catch (error) {
-    console.error("خطا:", error);
-    errorResponse(res, error.message, 500);
+    console.error("خطا در پایان دوره جوجه‌ریزی:", error);
+    return sendFarmError(res, error, "خطا در پایان دوره جوجه‌ریزی");
   }
 };
 

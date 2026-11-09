@@ -808,6 +808,20 @@ npm run test:cache    :: نگهبانهای UI (وجود بخش، سه‌حال�
 
 📄 گزارش کامل: `docs/REVIEW-WAVE-13.11.md`.
 
+## هستهٔ نوشتن مشترک فارم — اثر سمت فرانت (موج ۱۳.۱۲)
+
+این موج **بک‌اندی** است (منطق نوشتن به `Backend/services/farm/*` منتقل شد تا
+پورتال و کارشناس یک قاعده داشته باشند)؛ ولی سه اثر سمت فرانت دارد:
+
+| موضوع | مقدار |
+|---|---|
+| گام تازهٔ گیت | `npm run test:farm-write` → `node ../Backend/farm-write-test.mjs` (۳۵ بررسی) در `tools/gate.mjs` و `tools/gate.ps1` |
+| گارد پورتال | بخش تازه در `npm run test:customer-portal`: «نوشتن فارم از هستهٔ مشترک `services/farm/*` می‌گذرد» (تعداد بررسی‌ها: ۱۷۹) |
+| زنجیرهٔ «یک منبع» | `chickPlacementController → services/farm/placementWrite → services/flockResolver` (گارد و تست بک‌اند به همین زنجیره به‌روزرسانی شدند) |
+
+📄 گزارش کامل: `docs/REVIEW-WAVE-13.12.md`.
+
+
 
 ## رفع ۵۰۰ داشبورد پورتال + انتخاب خودکار آخرین گله (موج ۱۳.۱۰.۱)
 

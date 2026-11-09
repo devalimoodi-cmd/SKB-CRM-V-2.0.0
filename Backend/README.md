@@ -640,3 +640,57 @@ npm run test:permissions         # ۱۹۷ کلید / ۱۸ گروه
 
 
 
+
+## هستهٔ نوشتن فارم: یک منبع برای کارشناس و پورتال (موج ۱۳.۱۲)
+
+تا ۱۳.۱۱ منطق نوشتن واحد/سالن/جوجه‌ریزی/هفتگی **داخل کنترلرهای کارشناس** بود
+و مسیر «تأیید درخواست مشتری» نسخهٔ دومِ همان منطق را داشت. با تازه‌شدن دامنهٔ
+درخواست‌ها (جزئیات سالن، مدیریت جوجه‌ریزی و کل چرخهٔ هفتگی)، هر دو مسیر اکنون
+از **یک** هسته استفاده می‌کنند:
+
+```
+Backend/services/farm/
+  writeErrors.js        FarmWriteError + fail/failValidation/throwIfUnique/httpErrorOf
+  transaction.js        runInTransaction(work, existingTx) + safeRollback
+  httpBridge.js         sendFarmError(res, error, fallback)
+  unitWrite.js          createUnit / updateUnit / deleteUnit  (+ نام خودکار سالن، حذف آبشاری)
+  hallWrite.js          createHall / updateHall / deleteHall  (+ شماره/ترتیب، hall_count)
+  hallDetailsWrite.js   savePhysicalInfo / saveSystem / saveWaterFeed / saveHygiene
+  placementWrite.js     create/update/delete/activate/deactivate + deleteFlockGroup
+  weeklyWrite.js        createWeekly / updateWeekly / deleteWeekly (+ ترتیب/تکرار هفته)
+Backend/validations/hallDetailValidation.js   قاعدهٔ خالص چهار حوزهٔ جزئیات سالن
+```
+
+### 🔒 چهار قاعدهٔ تغییرناپذیر
+
+1. **کنترلر = پوسته**: هیچ کنترلر نوشتنی منطق محلی ندارد؛ فقط
+   `service.*(...)` را صدا می‌زند و با `sendFarmError` خطا را به HTTP نگاشت می‌کند.
+   (گارد: `customer-portal-guard-test` بخش ۱۳.۱۲ و `farm-write-test`.)
+2. **مرز تراکنش در سرویس**: `runInTransaction(work, existingTx)` — اگر تراکنش
+   داده شود، **هیچ** commit/rollback نمی‌کند؛ پس تأیید درخواست پورتال می‌تواند
+   نوشتن ردیف واقعی را داخل تراکنش خودش انجام دهد.
+3. **اعتبارسنجی یک نسخه**: `validations/unitValidation` · `chickPlacementValidation` ·
+   `weeklyValidation` · `hallDetailValidation` — همهٔ پیام‌های فارسی از همین‌ها می‌آیند.
+4. **فهرست سفید ویرایش**: `UNIT_UPDATE_FIELDS` · `HALL_UPDATE_FIELDS` ·
+   `PLACEMENT_UPDATE_FIELDS` · `WEEKLY_UPDATE_FIELDS` — `customer_id`/`id` هرگز
+   از بدنهٔ کلاینت نوشته نمی‌شود.
+
+### پیام‌ها و رفتار حفظ‌شده
+
+همهٔ پیام‌های فارسی، کدهای وضعیت (۴۰۰/۴۰۴/۴۰۹)، نام خودکار سالن‌ها
+(«سالن A - نام واحد»)، شماره/ترتیب خودکار سالن، همگام‌سازی `units.hall_count`،
+قاعدهٔ «یک جوجه‌ریزی فعال در هر سالن»، ترتیب/تکرار هفته و شکل خروجی هفتگی
+**بدون تغییر** ماندند. تنها سه بهبود کوچک: اعتبارسنجی واحد پیش از باز شدن
+تراکنش (رفع نشتی)، فهرست سفید ویرایش سالن (به‌جای `hall.update(req.body)`)
+و تکمیل `customer_id` بهداشت سالن از خود ردیف سالن.
+
+### تست
+
+```bash
+npm run test:farm-write       # ۳۵ بررسی خالص (بدون دیتابیس)
+npm run test:portal-requests  # ۳۷ بررسی
+npm run lint                  # ۰ خطا
+```
+
+📄 گزارش کامل: `docs/REVIEW-WAVE-13.12.md`.
+
