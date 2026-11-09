@@ -563,7 +563,7 @@ export const portalFarmMixin = {
       );
     }
 
-    if (type === "hall_delete") return this.applyFarmValues({}, "");
+    if (type === "hall_delete") return this.keepFarmSelection();
 
     // ---- ۲) جزئیات چهار حوزهٔ سالن: از /farm/halls/:id ----
     if (HALL_DETAIL_TYPES.includes(type)) {
@@ -623,7 +623,9 @@ export const portalFarmMixin = {
       );
     }
 
-    return this.applyFarmValues({}, "");
+    // بقیهٔ نوع‌ها (حذف/فعال‌سازی/پایان دوره): مقدار پیش‌پر ندارد ولی
+    // انتخاب کاربر باید بماند (وگرنه فهرست کشویی پاک می‌شد).
+    return this.keepFarmSelection();
   },
 
   // انتخاب فعلی حفظ می‌شود ولی مقادیری پیش‌پر نمی‌شود (خطای شبکه/۴۰۴)

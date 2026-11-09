@@ -2861,7 +2861,9 @@ check(
     /cache: new Map\(\)/.test(SRC.portalFarm) &&
     /async fetchFarmDetails\(cacheKey, loader\)/.test(SRC.portalFarm) &&
     /async loadFarmWeeklyDetails\(weeklyId\)/.test(SRC.portalFarm) &&
-    /if \(this\.farm\.cache\.has\(cacheKey\)\)/.test(SRC.portalFarm),
+    /if \(this\.farm\.cache\.has\(cacheKey\)\)/.test(SRC.portalFarm) &&
+    // انتخاب کاربر در انواع بدون پیش‌پر (حذف/فعال‌سازی) پاک نمی‌شود
+    !/applyFarmValues\(\{\}, ""\)/.test(SRC.portalFarm),
 );
 
 check(
