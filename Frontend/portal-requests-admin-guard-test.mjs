@@ -363,11 +363,12 @@ check(
 
 check(
   "۱۳.۱۳ · انواع حذف هشدار می‌گیرند و آرایه‌ها ورودی متنی نمی‌شوند",
-  /export const DESTRUCTIVE_TYPE_KEYS = \["unit_delete", "hall_delete"\]/.test(
-    SRC.renderer,
-  ) &&
+  /export const DESTRUCTIVE_TYPE_KEYS = \[/.test(SRC.renderer) &&
+    /"unit_delete",\s*\n\s*"hall_delete",/.test(SRC.renderer) &&
+    /"placement_delete",\s*\n\s*"weekly_delete",/.test(SRC.renderer) &&
     /prq-warn/.test(SRC.renderer) &&
-    /export const LIST_PAYLOAD_KEYS = \["items"\]/.test(SRC.renderer) &&
+    /export const LIST_PAYLOAD_KEYS = \[/.test(SRC.renderer) &&
+    /"items",/.test(SRC.renderer) &&
     /EDITABLE_PAYLOAD_KEYS = Object\.keys\(PAYLOAD_LABELS\)\.filter/.test(
       SRC.renderer,
     ) &&

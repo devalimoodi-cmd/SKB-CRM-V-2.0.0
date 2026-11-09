@@ -31,13 +31,33 @@ export const REQUEST_TYPE_LABELS = {
   hall_system_save: "ثبت سیستم‌های سالن",
   hall_water_feed_save: "ثبت آب‌خوری و دان‌خوری",
   hall_hygiene_save: "ثبت بهداشت سالن",
+  // ✅ ۱۳.۱۴
+  placement_update: "ویرایش جوجه‌ریزی",
+  placement_delete: "حذف جوجه‌ریزی",
+  placement_activate: "فعال‌سازی دوره",
+  placement_deactivate: "پایان دوره",
+  weekly_create: "ثبت اطلاعات هفتگی",
+  weekly_update: "ویرایش اطلاعات هفتگی",
+  weekly_delete: "حذف اطلاعات هفتگی",
 };
 
-// ✅ ۱۳.۱۳: انواع «حذف» — مودال بازبینی هشدار قرمز نشان می‌دهد
-export const DESTRUCTIVE_TYPE_KEYS = ["unit_delete", "hall_delete"];
+// ✅ ۱۳.۱۳/۱۳.۱۴: انواع «حذف» — مودال بازبینی هشدار قرمز نشان می‌دهد
+export const DESTRUCTIVE_TYPE_KEYS = [
+  "unit_delete",
+  "hall_delete",
+  "placement_delete",
+  "weekly_delete",
+];
 
 // کلیدهای آرایه‌ای payload (در گرید ویرایش پیش از تأیید نمی‌آیند)
-export const LIST_PAYLOAD_KEYS = ["items"];
+export const LIST_PAYLOAD_KEYS = [
+  "items",
+  "disease_ids",
+  "vaccine_ids",
+  "medicine_ids",
+  "feed_type_ids",
+  "suggestion_ids",
+];
 
 export const REQUEST_STATUS_LABELS = {
   pending: "در انتظار تأیید",
@@ -110,6 +130,25 @@ export const PAYLOAD_LABELS = {
   disinfectant_type: "نوع مادهٔ ضدعفونی",
   description: "توضیحات بهداشت",
   items: "ردیف‌های تجهیزات",
+  // ✅ ۱۳.۱۴ — دوره و اطلاعات هفتگی
+  placement_id: "شناسهٔ دوره",
+  chick_placement_id: "شناسهٔ دوره",
+  weekly_id: "شناسهٔ هفته",
+  week_number: "شمارهٔ هفته",
+  week_start_date: "تاریخ شروع هفته",
+  week_end_date: "تاریخ پایان هفته",
+  flock_age_days: "سن گله (روز)",
+  daily_feed_intake: "مصرف دان روزانه (کیلوگرم)",
+  weekly_feed_intake: "مصرف دان هفتگی (کیلوگرم)",
+  weekly_weight: "وزن هفتگی (کیلوگرم)",
+  weekly_mortality: "تلفات هفته",
+  blackout_hours: "ساعات خاموشی",
+  additional_notes: "توضیحات هفته",
+  disease_ids: "بیماری‌های هفته",
+  vaccine_ids: "واکسن‌های هفته",
+  medicine_ids: "داروهای هفته",
+  feed_type_ids: "نوع دان مصرفی",
+  suggestion_ids: "پیشنهادها",
 };
 
 // کلیدهایی که کارشناس می‌تواند پیش از تأیید ویرایش کند (همهٔ payload)
@@ -125,9 +164,9 @@ const badge = (status) => {
   return `<span class="prq-badge prq-badge--${esc(tone)}">${esc(label)}</span>`;
 };
 
-// ✅ ۱۳.۱۳: مقدار آرایه‌ای (ردیف‌های تجهیزات) به‌جای [object Object]
+// ✅ ۱۳.۱۳/۱۳.۱۴: مقدار آرایه‌ای (تجهیزات/شناسه‌های هفته) به‌جای [object Object]
 const formatPayloadValue = (value) =>
-  Array.isArray(value) ? `${value.length} ردیف` : value;
+  Array.isArray(value) ? `${value.length} مورد` : value;
 
 const payloadSummary = (payload = {}) =>
   Object.entries(payload)
@@ -269,11 +308,15 @@ export const renderReviewModalBody = (request = {}) => `
   </div>
   ${
     DESTRUCTIVE_TYPE_KEYS.includes(request.type)
-      ? `<p class="prq-warn"><i class="fas fa-triangle-exclamation"></i> این درخواست حذف است${
+      ? `<p class="prq-warn"><i class="fas fa-triangle-exclamation"></i> ${
           request.type === "unit_delete"
-            ? " و سالن‌ها، دوره‌ها، هفته‌ها و بازدیدهای واحد هم حذف می‌شوند"
-            : ""
-        }؛ بازگشت‌پذیر نیست.</p>`
+            ? "این درخواست حذف است و سالن‌ها، دوره‌ها، هفته‌ها و بازدیدهای واحد هم حذف می‌شوند؛ بازگشت‌پذیر نیست."
+            : request.type === "placement_delete"
+              ? "این درخواست حذف دوره است و هفته‌های ثبت‌شدهٔ آن هم حذف می‌شوند؛ بازگشت‌پذیر نیست."
+              : request.type === "weekly_delete"
+                ? "این درخواست حذف یک هفته و آیتم‌های وابستهٔ آن است؛ بازگشت‌پذیر نیست."
+                : "این درخواست حذف است؛ بازگشت‌پذیر نیست."
+        }</p>`
       : ""
   }
   ${request.note ? `<p class="prq-note">📝 ${esc(request.note)}</p>` : ""}

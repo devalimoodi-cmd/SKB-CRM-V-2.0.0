@@ -30,6 +30,8 @@ const { validateUnitData } = require("../validations/unitValidation");
 const {
   validateChickPlacement,
 } = require("../validations/chickPlacementValidation");
+// ✅ ۱۳.۱۴: اعتبارسنجی هفتگیِ کارشناس (یک منبع — بدون نسخهٔ دوم)
+const { validateWeeklyData } = require("../validations/weeklyValidation");
 // ✅ ۱۳.۱۳: اعتبارسنجی/فهرست سفید «اطلاعات تکمیلی سالن» از یک منبع
 // (همان ماژولی که مسیر کارشناس اجرا می‌کند ⇒ نسخهٔ دوم ساخته نمی‌شود).
 const {
@@ -129,6 +131,68 @@ const REQUEST_TYPES = [
     icon: "fa-pump-medical",
     destructive: false,
     target: "hall_id",
+  },
+  // --------------------------------------------
+  // ✅ ۱۳.۱۴ — مدیریت دوره/جوجه‌ریزی
+  // --------------------------------------------
+  {
+    key: "placement_update",
+    label: "ویرایش جوجه‌ریزی",
+    description: "اصلاح تاریخ، مبدأ، نژاد، وزن اولیه یا تعداد جوجه‌ریزی",
+    icon: "fa-pen-to-square",
+    destructive: false,
+    target: "placement_id",
+  },
+  {
+    key: "placement_delete",
+    label: "حذف جوجه‌ریزی",
+    description: "حذف دوره به‌همراه هفته‌های ثبت‌شدهٔ آن (بازگشت‌ناپذیر)",
+    icon: "fa-trash-can",
+    destructive: true,
+    target: "placement_id",
+  },
+  {
+    key: "placement_activate",
+    label: "فعال‌سازی دوره",
+    description: "دورهٔ جاری سالن را فعال کنید (دورهٔ فعال قبلی غیرفعال می‌شود)",
+    icon: "fa-circle-play",
+    destructive: false,
+    target: "placement_id",
+  },
+  {
+    key: "placement_deactivate",
+    label: "پایان دوره",
+    description: "دورهٔ جاری سالن را غیرفعال کنید (بدون جایگزین)",
+    icon: "fa-circle-stop",
+    destructive: false,
+    target: "placement_id",
+  },
+  // --------------------------------------------
+  // ✅ ۱۳.۱۴ — اطلاعات هفتگی دوره
+  // --------------------------------------------
+  {
+    key: "weekly_create",
+    label: "ثبت اطلاعات هفتگی",
+    description: "ثبت هفتهٔ تازه برای یکی از دوره‌های فعال شما",
+    icon: "fa-calendar-plus",
+    destructive: false,
+    target: "chick_placement_id",
+  },
+  {
+    key: "weekly_update",
+    label: "ویرایش اطلاعات هفتگی",
+    description: "اصلاح اعداد و توضیحات یک هفتهٔ ثبت‌شده",
+    icon: "fa-calendar-check",
+    destructive: false,
+    target: "weekly_id",
+  },
+  {
+    key: "weekly_delete",
+    label: "حذف اطلاعات هفتگی",
+    description: "حذف یک هفتهٔ ثبت‌شده و آیتم‌های وابستهٔ آن (بازگشت‌ناپذیر)",
+    icon: "fa-calendar-xmark",
+    destructive: true,
+    target: "weekly_id",
   },
 ];
 
@@ -266,6 +330,16 @@ const REQUEST_MESSAGES = {
     "نام واردشده برای تأیید حذف با نام فعلی واحد مطابقت ندارد",
   hall_detail_hall_missing: "سالن انتخاب‌شده در پروندهٔ شما نیست",
   too_many_items: `حداکثر ${MAX_LIST_ITEMS} ردیف تجهیزات برای هر سالن مجاز است`,
+  // ✅ ۱۳.۱۴ — دوره/جوجه‌ریزی و اطلاعات هفتگی
+  placement_not_found: "جوجه‌ریزی انتخاب‌شده در پروندهٔ شما نیست",
+  placement_already_active: "این دوره از قبل فعال است",
+  placement_already_inactive: "این دوره از قبل غیرفعال است",
+  placement_flock_missing: "این جوجه‌ریزی به گله‌ای متصل نیست",
+  weekly_not_found: "اطلاعات هفتگی انتخاب‌شده در پروندهٔ شما نیست",
+  week_duplicate: "این هفته برای دورهٔ انتخاب‌شده قبلاً ثبت شده است",
+  week_order: "هفته‌ها باید به ترتیب ثبت شوند؛ ابتدا هفتهٔ قبل را ثبت کنید",
+  flock_inactive:
+    "دورهٔ انتخاب‌شده غیرفعال است؛ برای ثبت یا ویرایش هفته ابتدا آن را فعال کنید",
 };
 // ============================================
 // ۵) فهرست سفید payload به‌ازای هر نوع
@@ -282,6 +356,29 @@ const REQUEST_MESSAGES = {
 const hallDetailPayloadKeys = (type, extra = []) => [
   ...(HALL_DETAIL_FIELDS[type] || []).filter((key) => key !== "unit_id"),
   ...extra,
+  "note",
+];
+
+// ✅ ۱۳.۱۴: فیلدهای هفتگیِ قابل ارسال از پورتال.
+// عمداً غایب: `customer_id`/`unit_id`/`hall_id` (از ردیف دوره)،
+// `service_expert_id` (تخصیص کارشناس)، `status`/`is_active` (کارشناس).
+const WEEKLY_PORTAL_KEYS = [
+  "chick_placement_id",
+  "week_start_date",
+  "week_end_date",
+  "week_number",
+  "flock_age_days",
+  "daily_feed_intake",
+  "weekly_feed_intake",
+  "weekly_weight",
+  "weekly_mortality",
+  "blackout_hours",
+  "additional_notes",
+  "disease_ids",
+  "vaccine_ids",
+  "medicine_ids",
+  "feed_type_ids",
+  "suggestion_ids",
   "note",
 ];
 
@@ -353,6 +450,26 @@ const ALLOWED_PAYLOAD_KEYS = {
   hall_system_save: hallDetailPayloadKeys("hall_system_save", ["items"]),
   hall_water_feed_save: hallDetailPayloadKeys("hall_water_feed_save"),
   hall_hygiene_save: hallDetailPayloadKeys("hall_hygiene_save"),
+  // ✅ ۱۳.۱۴ — دوره/جوجه‌ریزی (بدون unit_id/hall_id: از خود ردیف)
+  placement_update: [
+    "placement_id",
+    "placement_date",
+    "flock_number",
+    "chick_source_id",
+    "breed_id",
+    "chick_age_on_arrival",
+    "avg_initial_weight",
+    "total_chicks_count",
+    "placement_density",
+    "note",
+  ],
+  placement_delete: ["placement_id", "note"],
+  placement_activate: ["placement_id", "note"],
+  placement_deactivate: ["placement_id", "note"],
+  // ✅ ۱۳.۱۴ — اطلاعات هفتگی (بدون service_expert_id/status/is_active)
+  weekly_create: WEEKLY_PORTAL_KEYS,
+  weekly_update: ["weekly_id", ...WEEKLY_PORTAL_KEYS],
+  weekly_delete: ["weekly_id", "note"],
 };
 
 // فیلدهای عددی (تبدیل + «خالی ⇒ حذف»)
@@ -413,6 +530,41 @@ const NUMERIC_FIELDS = {
     "feed_lines_count",
   ],
   hall_hygiene_save: ["hall_id"],
+  // ✅ ۱۳.۱۴
+  placement_update: [
+    "placement_id",
+    "flock_number",
+    "chick_source_id",
+    "breed_id",
+    "chick_age_on_arrival",
+    "avg_initial_weight",
+    "total_chicks_count",
+    "placement_density",
+  ],
+  placement_delete: ["placement_id"],
+  placement_activate: ["placement_id"],
+  placement_deactivate: ["placement_id"],
+  weekly_create: [
+    "chick_placement_id",
+    "week_number",
+    "flock_age_days",
+    "daily_feed_intake",
+    "weekly_feed_intake",
+    "weekly_weight",
+    "weekly_mortality",
+    "blackout_hours",
+  ],
+  weekly_update: [
+    "weekly_id",
+    "week_number",
+    "flock_age_days",
+    "daily_feed_intake",
+    "weekly_feed_intake",
+    "weekly_weight",
+    "weekly_mortality",
+    "blackout_hours",
+  ],
+  weekly_delete: ["weekly_id"],
 };
 
 // فیلدهای منطقی
@@ -428,6 +580,13 @@ const BOOLEAN_FIELDS = {
   hall_system_save: [],
   hall_water_feed_save: ["auto_feed_system"],
   hall_hygiene_save: [],
+  placement_update: [],
+  placement_delete: [],
+  placement_activate: [],
+  placement_deactivate: [],
+  weekly_create: [],
+  weekly_update: [],
+  weekly_delete: [],
 };
 
 // فیلدهای تاریخ (رشتهٔ ISO — همان چیزی که سکوئلایز می‌پذیرد)
@@ -443,6 +602,14 @@ const DATE_FIELDS = {
   hall_system_save: [],
   hall_water_feed_save: [],
   hall_hygiene_save: ["last_wash_date", "last_disinfect_date"],
+  // ✅ ۱۳.۱۴
+  placement_update: ["placement_date"],
+  placement_delete: [],
+  placement_activate: [],
+  placement_deactivate: [],
+  weekly_create: ["week_start_date", "week_end_date"],
+  weekly_update: ["week_start_date", "week_end_date"],
+  weekly_delete: [],
 };
 
 // حداکثر طول رشته‌ها (کلیدهایی که اینجا نیستند: ۱۰۰)
@@ -467,6 +634,11 @@ const TEXT_LIMITS = {
   notes: 300,
   disinfectant_type: 100,
   description: 500,
+  // ✅ ۱۳.۱۴
+  week_start_date: 30,
+  week_end_date: 30,
+  flock_number: 20,
+  additional_notes: 1000,
 };
 
 // ============================================
@@ -478,9 +650,24 @@ const TEXT_LIMITS = {
 //  ⚠️ عمداً ردیف‌های با «دستهٔ ناشناخته» حذف نمی‌شوند؛ اعتبارسنج
 //  همان ماژول کارشناس آن‌ها را با پیام روشن رد می‌کند.
 // ============================================
+// شناسه‌های آیتم‌های هفتگی (همان پنج گروه weeklyWrite.WEEKLY_ITEM_GROUPS)
+const WEEKLY_ID_FIELDS = [
+  "disease_ids",
+  "vaccine_ids",
+  "medicine_ids",
+  "feed_type_ids",
+  "suggestion_ids",
+];
+
 const LIST_FIELDS = {
   hall_system_save: ["items"],
+  // ✅ ۱۳.۱۴: پنج گروه آیتم هفتگی، آرایه‌ای از «شناسه» (نه آبجکت)
+  weekly_create: WEEKLY_ID_FIELDS,
+  weekly_update: WEEKLY_ID_FIELDS,
 };
+
+// سقف شناسه در هر گروه (بیشتر از این عملاً معنا ندارد)
+const MAX_ID_LIST_ITEMS = 100;
 
 const LIST_ITEM_ALLOWED_KEYS = [
   "category",
@@ -566,6 +753,19 @@ const sanitizeListItems = (value) => {
     .filter(Boolean);
 };
 
+// ✅ ۱۳.۱۴: پاک‌سازی آرایهٔ «شناسه» (پنج گروه هفتگی)
+//  رشتهٔ عددی/فارسی ⇒ عدد مثبت، تکراری‌ها حذف، سقف ۱۰۰
+const sanitizeIdList = (value) => {
+  if (!Array.isArray(value)) return [];
+  const out = [];
+  for (const item of value.slice(0, MAX_ID_LIST_ITEMS)) {
+    const parsed = toNumber(item);
+    if (!Number.isInteger(parsed) || parsed <= 0) continue;
+    if (!out.includes(parsed)) out.push(parsed);
+  }
+  return out;
+};
+
 const sanitizePayload = (type, body) => {
   const allowed = ALLOWED_PAYLOAD_KEYS[type];
   if (!allowed) return {};
@@ -582,9 +782,10 @@ const sanitizePayload = (type, body) => {
     const value = source[key];
 
     if (lists.includes(key)) {
-      // `sanitizeListItems` حداکثر ۶۱ ردیف برمی‌گرداند (یک بیشتر از
-      // سقف) تا اعتبارسنج اگر بیشتر فرستاده شده، پیام روشن بدهد.
-      payload[key] = sanitizeListItems(value);
+      // آیتم‌های هفتگی = آرایهٔ شناسه؛ تجهیزات سالن = آرایهٔ آبجکت
+      payload[key] = WEEKLY_ID_FIELDS.includes(key)
+        ? sanitizeIdList(value)
+        : sanitizeListItems(value);
       continue;
     }
 
@@ -759,7 +960,15 @@ const UNIT_UPDATE_PLACEHOLDERS = {
 };
 
 // کلیدهایی که «تغییر» حساب نمی‌شوند (شناسهٔ ردیف و توضیح درخواست)
-const NON_CHANGE_KEYS = ["unit_id", "hall_id", "placement_id", "note", "confirm_name"];
+const NON_CHANGE_KEYS = [
+  "unit_id",
+  "hall_id",
+  "placement_id",
+  "chick_placement_id",
+  "weekly_id",
+  "note",
+  "confirm_name",
+];
 
 const changeKeysOf = (payload) =>
   Object.keys(payload || {}).filter((key) => !NON_CHANGE_KEYS.includes(key));
@@ -832,6 +1041,150 @@ const validateHallDeletePayload = (payload) => {
   return { isValid: errors.length === 0, errors };
 };
 
+// --------------------------------------------
+// ۷.۶) مدیریت دوره/جوجه‌ریزی  (✅ ۱۳.۱۴)
+// ------------------------------------------------------------
+//  ویرایش: همان `validateChickPlacement` کارشناس، با پرکردن فیلدهای
+//  اجباریِ نیامده (فقط فیلدهای ارسالی سنجیده می‌شوند).
+// --------------------------------------------
+const PLACEMENT_UPDATE_PLACEHOLDERS = {
+  customer_id: 1,
+  hall_id: 1,
+  placement_date: "2026-01-01",
+  chick_source_id: 1,
+  breed_id: 1,
+  avg_initial_weight: 0.04,
+  total_chicks_count: 1,
+};
+
+const validatePlacementUpdatePayload = (payload) => {
+  const errors = [];
+
+  if (!isPositiveInt(payload.placement_id)) {
+    errors.push("شناسهٔ جوجه‌ریزی الزامی است");
+  }
+  if (changeKeysOf(payload).length === 0) {
+    errors.push(REQUEST_MESSAGES.nothing_to_change);
+  }
+
+  const filled = { ...payload };
+  for (const [key, fallback] of Object.entries(PLACEMENT_UPDATE_PLACEHOLDERS)) {
+    if (filled[key] === undefined || filled[key] === null || filled[key] === "") {
+      filled[key] = fallback;
+    }
+  }
+
+  errors.push(...validateChickPlacement(filled).errors);
+
+  if (
+    payload.placement_density !== undefined &&
+    !isIntInRange(payload.placement_density, 1, 100)
+  ) {
+    errors.push("تراکم جوجه‌ریزی باید عددی بین ۱ تا ۱۰۰ باشد");
+  }
+
+  return { isValid: errors.length === 0, errors };
+};
+
+// حذف/فعال‌سازی/پایان دوره: فقط شناسه لازم است
+const validatePlacementIdPayload = (payload) => {
+  const errors = [];
+  if (!isPositiveInt(payload.placement_id)) {
+    errors.push("شناسهٔ جوجه‌ریزی الزامی است");
+  }
+  return { isValid: errors.length === 0, errors };
+};
+
+// --------------------------------------------
+// ۷.۷) اطلاعات هفتگی  (✅ ۱۳.۱۴)
+// ------------------------------------------------------------
+//  ثبت: `validateWeeklyData` با شناسهٔ مشتری/سالن خنثی (از ردیف دوره
+//  در لایهٔ اعمال پر می‌شوند). ویرایش: همان قاعده با placeholder، پس
+//  فقط فیلدهای ارسالی بررسی می‌شوند.
+// --------------------------------------------
+const WEEKLY_CREATE_PLACEHOLDERS = {
+  customer_id: 1,
+  hall_id: 1,
+};
+
+const WEEKLY_UPDATE_PLACEHOLDERS = {
+  customer_id: 1,
+  hall_id: 1,
+  chick_placement_id: 1,
+  week_start_date: "2026-01-01",
+  week_end_date: "2026-01-02",
+  week_number: 1,
+  flock_age_days: 1,
+  weekly_mortality: 0,
+  weekly_weight: 1,
+};
+
+const fillPlaceholders = (payload, placeholders) => {
+  const filled = { ...payload };
+  for (const [key, fallback] of Object.entries(placeholders)) {
+    if (filled[key] === undefined || filled[key] === null || filled[key] === "") {
+      filled[key] = fallback;
+    }
+  }
+  return filled;
+};
+
+// آرایه‌های شناسه: اگر آمده باشند باید آرایهٔ شناسهٔ مثبت باشند
+const idListErrors = (payload) => {
+  const errors = [];
+  for (const key of WEEKLY_ID_FIELDS) {
+    if (payload[key] === undefined) continue;
+    if (!Array.isArray(payload[key])) {
+      errors.push("فهرست آیتم‌های هفتگی باید آرایه باشد");
+      continue;
+    }
+    if (payload[key].length > MAX_ID_LIST_ITEMS) {
+      errors.push(`حداکثر ${MAX_ID_LIST_ITEMS} شناسه در هر گروه مجاز است`);
+    }
+    if (payload[key].some((id) => !isPositiveInt(id))) {
+      errors.push("شناسهٔ آیتم هفتگی معتبر نیست");
+    }
+  }
+  return errors;
+};
+
+const validateWeeklyCreatePayload = (payload) => {
+  const errors = [];
+
+  if (!isPositiveInt(payload.chick_placement_id)) {
+    errors.push("شناسهٔ دوره (جوجه‌ریزی) الزامی است");
+  }
+
+  errors.push(...validateWeeklyData(fillPlaceholders(payload, WEEKLY_CREATE_PLACEHOLDERS)).errors);
+  errors.push(...idListErrors(payload));
+
+  return { isValid: errors.length === 0, errors };
+};
+
+const validateWeeklyUpdatePayload = (payload) => {
+  const errors = [];
+
+  if (!isPositiveInt(payload.weekly_id)) {
+    errors.push("شناسهٔ اطلاعات هفتگی الزامی است");
+  }
+  if (changeKeysOf(payload).length === 0) {
+    errors.push(REQUEST_MESSAGES.nothing_to_change);
+  }
+
+  errors.push(...validateWeeklyData(fillPlaceholders(payload, WEEKLY_UPDATE_PLACEHOLDERS)).errors);
+  errors.push(...idListErrors(payload));
+
+  return { isValid: errors.length === 0, errors };
+};
+
+const validateWeeklyDeletePayload = (payload) => {
+  const errors = [];
+  if (!isPositiveInt(payload.weekly_id)) {
+    errors.push("شناسهٔ اطلاعات هفتگی الزامی است");
+  }
+  return { isValid: errors.length === 0, errors };
+};
+
 const PAYLOAD_VALIDATORS = {
   unit_create: validateUnitPayload,
   hall_create: validateHallPayload,
@@ -840,6 +1193,14 @@ const PAYLOAD_VALIDATORS = {
   unit_delete: validateUnitDeletePayload,
   hall_update: validateHallUpdatePayload,
   hall_delete: validateHallDeletePayload,
+  // ✅ ۱۳.۱۴
+  placement_update: validatePlacementUpdatePayload,
+  placement_delete: validatePlacementIdPayload,
+  placement_activate: validatePlacementIdPayload,
+  placement_deactivate: validatePlacementIdPayload,
+  weekly_create: validateWeeklyCreatePayload,
+  weekly_update: validateWeeklyUpdatePayload,
+  weekly_delete: validateWeeklyDeletePayload,
 };
 
 // ✅ ۱۳.۱۳: چهار حوزهٔ جزئیات سالن دقیقاً همان اعتبارسنج کارشناس را
@@ -975,6 +1336,8 @@ module.exports = {
   LIST_FIELDS,
   LIST_ITEM_ALLOWED_KEYS,
   MAX_LIST_ITEMS,
+  WEEKLY_ID_FIELDS,
+  MAX_ID_LIST_ITEMS,
   DESTRUCTIVE_TYPES,
   PENDING_STATUS,
   LIMITS,

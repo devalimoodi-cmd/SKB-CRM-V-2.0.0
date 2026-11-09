@@ -228,9 +228,37 @@ const getMyHall = async (req, res) => {
   }
 };
 
+// ============================================
+// GET /api/portal/farm/placements/:id   — ✅ ۱۳.۱۴
+// ------------------------------------------------------------
+//  جزئیات یک دورهٔ خودم + فهرست هفته‌های ثبت‌شده (پیش‌پرکردن فرم).
+//  🔒 ردیف از `requireOwnedRow` آمده (۴۰۴ برای دورهٔ غیرخودی).
+// ============================================
+const getMyPlacement = async (req, res) => {
+  try {
+    const customerId = scopeIdOf(req);
+    if (!customerId) return errorResponse(res, REQUEST_MESSAGES.unlinked, 403);
+
+    const row = req.ownedRow;
+    if (!row) {
+      return errorResponse(res, REQUEST_MESSAGES.placement_not_found, 404);
+    }
+
+    const data = await service.placementDetailsFor({
+      customerId,
+      placementId: row.id,
+    });
+
+    return successResponse(res, data, "جزئیات دوره");
+  } catch (error) {
+    return failure(res, error, "خطا در دریافت جزئیات دوره");
+  }
+};
+
 module.exports = {
   getFarmOptions,
   getMyHall,
+  getMyPlacement,
   listMyRequests,
   createMyRequest,
   cancelMyRequest,

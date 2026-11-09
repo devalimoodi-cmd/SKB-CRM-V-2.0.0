@@ -29,6 +29,8 @@ const { sequelize } = require("../config/database");
 const PortalRequest = require("../models/PortalRequest");
 const Unit = require("../models/Unit");
 const Hall = require("../models/Hall");
+const ChickPlacement = require("../models/ChickPlacement");
+const WeeklyManagement = require("../models/WeeklyManagement");
 const Flock = require("../models/Flock");
 const ChickSource = require("../models/ChickSource");
 const ChickenBreed = require("../models/ChickenBreed");
@@ -44,6 +46,12 @@ const WaterInletType = require("../models/WaterInletType");
 const LightingSystemType = require("../models/LightingSystemType");
 const WatererType = require("../models/WatererType");
 const FeederType = require("../models/FeederType");
+// ✅ ۱۳.۱۴: دیکشنری‌های آیتم‌های هفتگی
+const Disease = require("../models/Disease");
+const Vaccine = require("../models/Vaccine");
+const Medicine = require("../models/Medicine");
+const FeedType = require("../models/FeedType");
+const SuggestionType = require("../models/SuggestionType");
 const HallPhysicalInfo = require("../models/HallPhysicalInfo");
 const HallSystem = require("../models/HallSystem");
 const HallSystemItem = require("../models/HallSystemItem");
@@ -56,6 +64,7 @@ const unitWrite = require("./farm/unitWrite");
 const hallWrite = require("./farm/hallWrite");
 const hallDetailsWrite = require("./farm/hallDetailsWrite");
 const placementWrite = require("./farm/placementWrite");
+const weeklyWrite = require("./farm/weeklyWrite");
 const {
   MAX_PENDING_REQUESTS,
   MAX_PAYLOAD_BYTES,
@@ -132,6 +141,21 @@ const duplicateKeyOf = (type, payload = {}) => {
   if (type === "hall_system_save") return [payload.hall_id, "system"];
   if (type === "hall_water_feed_save") return [payload.hall_id, "water_feed"];
   if (type === "hall_hygiene_save") return [payload.hall_id, "hygiene"];
+  // ✅ ۱۳.۱۴
+  if (
+    type === "placement_update" ||
+    type === "placement_delete" ||
+    type === "placement_activate" ||
+    type === "placement_deactivate"
+  ) {
+    return [payload.placement_id];
+  }
+  if (type === "weekly_create") {
+    return [payload.chick_placement_id, payload.week_number];
+  }
+  if (type === "weekly_update" || type === "weekly_delete") {
+    return [payload.weekly_id];
+  }
   return null;
 };
 
@@ -879,6 +903,290 @@ const applyHallDetailSave = async ({
   };
 };
 
+// --------------------------------------------
+// ۸.۵) مدیریت دوره/جوجه‌ریزی  (✅ ۱۳.۱۴)
+// ------------------------------------------------------------
+//  🔒 مالکیت از `ChickPlacement.customer_id` (همان کوئری + قفل ردیف).
+//  `unit_id`/`hall_id` عمداً از payload خوانده نمی‌شوند (از ردیف دوره).
+// --------------------------------------------
+const requireOwnedPlacement = async ({
+  customerId,
+  placementId,
+  transaction,
+}) => {
+  const placement = await ChickPlacement.findOne({
+    where: { id: placementId, customer_id: customerId },
+    transaction,
+    lock: transaction.LOCK.UPDATE,
+  });
+  if (!placement) throw serviceError("placement_not_found", 404);
+  return placement;
+};
+
+const PLACEMENT_PORTAL_FIELDS = [
+  "placement_date",
+  "flock_number",
+  "chick_source_id",
+  "breed_id",
+  "chick_age_on_arrival",
+  "avg_initial_weight",
+  "total_chicks_count",
+  "placement_density",
+];
+
+const placementLabel = (placement) =>
+  `دورهٔ ${placement.placement_date || "-"}${
+    placement.flock_number ? ` (گله ${placement.flock_number})` : ""
+  }`;
+
+const applyPlacementUpdate = async ({ customerId, payload, transaction }) => {
+  const placement = await requireOwnedPlacement({
+    customerId,
+    placementId: payload.placement_id,
+    transaction,
+  });
+
+  const data = {};
+  for (const field of PLACEMENT_PORTAL_FIELDS) {
+    if (payload[field] !== undefined) data[field] = payload[field];
+  }
+
+  const result = await placementWrite.updatePlacement(placement.id, data, {
+    transaction,
+  });
+
+  return {
+    entityId: result.placement.id,
+    summary: `${placementLabel(result.placement)} ویرایش شد`,
+  };
+};
+
+const applyPlacementDelete = async ({ customerId, payload, transaction }) => {
+  const placement = await requireOwnedPlacement({
+    customerId,
+    placementId: payload.placement_id,
+    transaction,
+  });
+
+  await placementWrite.deletePlacement(placement.id, { transaction });
+
+  return {
+    entityId: placement.id,
+    summary: `${placementLabel(placement)} حذف شد`,
+  };
+};
+
+const applyPlacementActivate = async ({ customerId, payload, transaction }) => {
+  const placement = await requireOwnedPlacement({
+    customerId,
+    placementId: payload.placement_id,
+    transaction,
+  });
+
+  if (placement.is_active) throw serviceError("placement_already_active", 409);
+
+  const result = await placementWrite.activatePlacement(placement.id, {
+    transaction,
+  });
+
+  return {
+    entityId: result.placement.id,
+    summary: `${placementLabel(result.placement)} فعال شد${
+      result.deactivatedCount > 0
+        ? ` (${result.deactivatedCount} دورهٔ فعال قبلی غیرفعال شد)`
+        : ""
+    }`,
+  };
+};
+
+const applyPlacementDeactivate = async ({
+  customerId,
+  payload,
+  transaction,
+}) => {
+  const placement = await requireOwnedPlacement({
+    customerId,
+    placementId: payload.placement_id,
+    transaction,
+  });
+
+  if (!placement.is_active) {
+    throw serviceError("placement_already_inactive", 409);
+  }
+
+  const result = await placementWrite.deactivatePlacement(placement.id, {
+    transaction,
+  });
+
+  return {
+    entityId: result.placement.id,
+    summary: `${placementLabel(result.placement)} پایان یافت`,
+  };
+};
+
+// --------------------------------------------
+// ۸.۶) اطلاعات هفتگی  (✅ ۱۳.۱۴)
+// ------------------------------------------------------------
+//  🔒 مالکیت: `WeeklyManagement.customer_id` برای ویرایش/حذف و
+//  `ChickPlacement.customer_id` برای ثبت (هفته هنوز وجود ندارد).
+//  `hall_id`/`unit_id`/`customer_id` از ردیف دوره می‌آیند، نه payload.
+// --------------------------------------------
+const requireOwnedWeekly = async ({ customerId, weeklyId, transaction }) => {
+  const weekly = await WeeklyManagement.findOne({
+    where: { id: weeklyId, customer_id: customerId },
+    transaction,
+    lock: transaction.LOCK.UPDATE,
+  });
+  if (!weekly) throw serviceError("weekly_not_found", 404);
+  return weekly;
+};
+
+const requireActivePlacement = async ({
+  customerId,
+  placementId,
+  transaction,
+}) => {
+  const placement = await requireOwnedPlacement({
+    customerId,
+    placementId,
+    transaction,
+  });
+  if (!placement.is_active) throw serviceError("flock_inactive", 400);
+  return placement;
+};
+
+const WEEKLY_ID_LIST_KEYS = [
+  "disease_ids",
+  "vaccine_ids",
+  "medicine_ids",
+  "feed_type_ids",
+  "suggestion_ids",
+];
+
+const WEEKLY_PORTAL_UPDATE_FIELDS = [
+  "week_start_date",
+  "week_end_date",
+  "week_number",
+  "flock_age_days",
+  "daily_feed_intake",
+  "weekly_feed_intake",
+  "weekly_weight",
+  "weekly_mortality",
+  "blackout_hours",
+  "additional_notes",
+];
+
+// فقط کلیدهایی که واقعاً ارسال شده‌اند (آرایه‌های شناسه هم شامل)
+const weeklyWriteDataOf = (payload) => {
+  const data = {};
+  for (const field of WEEKLY_PORTAL_UPDATE_FIELDS) {
+    if (payload[field] !== undefined) data[field] = payload[field];
+  }
+  for (const key of WEEKLY_ID_LIST_KEYS) {
+    if (payload[key] !== undefined) data[key] = payload[key];
+  }
+  return data;
+};
+
+// نگاشت خطاهای فارسی هستهٔ هفتگی به کدهای همین سرویس
+const mapWeeklyError = (error) => {
+  if (error && error.code) return error;
+  const message = String((error && error.message) || "");
+  if (message.includes("قبلاً ثبت شده")) {
+    return serviceError("week_duplicate", 409, message);
+  }
+  if (message.includes("باید هفته")) {
+    return serviceError("week_order", 400, message);
+  }
+  if (message.includes("غیرفعال")) {
+    return serviceError("flock_inactive", 400, message);
+  }
+  return error;
+};
+
+const applyWeeklyCreate = async ({ customerId, payload, transaction }) => {
+  const placement = await requireActivePlacement({
+    customerId,
+    placementId: payload.chick_placement_id,
+    transaction,
+  });
+
+  let result;
+  try {
+    result = await weeklyWrite.createWeekly(
+      {
+        // 🔒 شناسه‌ها از ردیف دوره — نه از payload
+        customer_id: customerId,
+        unit_id: placement.unit_id || null,
+        hall_id: placement.hall_id,
+        chick_placement_id: placement.id,
+        ...weeklyWriteDataOf(payload),
+      },
+      { transaction },
+    );
+  } catch (error) {
+    throw mapWeeklyError(error);
+  }
+
+  return {
+    entityId: result.id,
+    summary: `هفتهٔ ${payload.week_number} برای ${placementLabel(
+      placement,
+    )} ثبت شد`,
+  };
+};
+
+const applyWeeklyUpdate = async ({ customerId, payload, transaction }) => {
+  const weekly = await requireOwnedWeekly({
+    customerId,
+    weeklyId: payload.weekly_id,
+    transaction,
+  });
+
+  await requireActivePlacement({
+    customerId,
+    placementId: weekly.chick_placement_id,
+    transaction,
+  });
+
+  let result;
+  try {
+    result = await weeklyWrite.updateWeekly(
+      weekly.id,
+      weeklyWriteDataOf(payload),
+      { transaction },
+    );
+  } catch (error) {
+    throw mapWeeklyError(error);
+  }
+
+  return {
+    entityId: weekly.id,
+    summary: `اطلاعات هفتهٔ ${result.record.week_number} ویرایش شد`,
+  };
+};
+
+const applyWeeklyDelete = async ({ customerId, payload, transaction }) => {
+  const weekly = await requireOwnedWeekly({
+    customerId,
+    weeklyId: payload.weekly_id,
+    transaction,
+  });
+
+  await requireActivePlacement({
+    customerId,
+    placementId: weekly.chick_placement_id,
+    transaction,
+  });
+
+  await weeklyWrite.deleteWeekly(weekly.id, { transaction });
+
+  return {
+    entityId: weekly.id,
+    summary: `اطلاعات هفتهٔ ${weekly.week_number} حذف شد`,
+  };
+};
+
 // ============================================
 // ۸.۴) نقشهٔ اعمال (یک منبع — هر نوع تازه باید این‌جا بیاید)
 // ------------------------------------------------------------
@@ -894,6 +1202,14 @@ const APPLIERS = {
   hall_update: applyHallUpdate,
   hall_delete: applyHallDelete,
   placement_create: applyPlacementCreate,
+  // ✅ ۱۳.۱۴
+  placement_update: applyPlacementUpdate,
+  placement_delete: applyPlacementDelete,
+  placement_activate: applyPlacementActivate,
+  placement_deactivate: applyPlacementDeactivate,
+  weekly_create: applyWeeklyCreate,
+  weekly_update: applyWeeklyUpdate,
+  weekly_delete: applyWeeklyDelete,
 };
 
 // ============================================
@@ -919,6 +1235,12 @@ const optionsFor = async (customerId) => {
     lightingSystems,
     watererTypes,
     feederTypes,
+    placements,
+    diseases,
+    vaccines,
+    medicines,
+    feedTypes,
+    suggestionTypes,
   ] = await Promise.all([
     Unit.findAll({
       where: { customer_personal_information_id: customerId },
@@ -1016,6 +1338,49 @@ const optionsFor = async (customerId) => {
         attributes: ["id", "name"],
         order: [["name", "ASC"]],
       }),
+      // ✅ ۱۳.۱۴: دوره‌های خودم (برای ثبت هفته/ویرایش دوره)
+      ChickPlacement.findAll({
+        where: { customer_id: customerId },
+        attributes: [
+          "id",
+          "unit_id",
+          "hall_id",
+          "placement_date",
+          "flock_number",
+          "total_chicks_count",
+          "is_active",
+        ],
+        order: [
+          ["is_active", "DESC"],
+          ["placement_date", "DESC"],
+        ],
+      }),
+      // ✅ ۱۳.۱۴: پنج دیکشنری آیتم‌های هفتگی (همان‌هایی که کارشناس دارد)
+      Disease.findAll({
+        where: { active: true },
+        attributes: ["id", "name"],
+        order: [["name", "ASC"]],
+      }),
+      Vaccine.findAll({
+        where: { active: true },
+        attributes: ["id", "name"],
+        order: [["name", "ASC"]],
+      }),
+      Medicine.findAll({
+        where: { active: true },
+        attributes: ["id", "name"],
+        order: [["name", "ASC"]],
+      }),
+      FeedType.findAll({
+        where: { active: true },
+        attributes: ["id", "name"],
+        order: [["name", "ASC"]],
+      }),
+      SuggestionType.findAll({
+        where: { active: true },
+        attributes: ["id", "name"],
+        order: [["name", "ASC"]],
+      }),
     ]);
 
   // ✅ ۱۳.۱۳: پرچم «کدام بخش جزئیات قبلاً ثبت شده» (چهار کوئری گروهی،
@@ -1107,7 +1472,23 @@ const optionsFor = async (customerId) => {
       lighting_systems: dictionaryOf(lightingSystems),
       waterer_types: dictionaryOf(watererTypes),
       feeder_types: dictionaryOf(feederTypes),
+      // ✅ ۱۳.۱۴
+      diseases: dictionaryOf(diseases),
+      vaccines: dictionaryOf(vaccines),
+      medicines: dictionaryOf(medicines),
+      feed_types: dictionaryOf(feedTypes),
+      suggestion_types: dictionaryOf(suggestionTypes),
     },
+    // ✅ ۱۳.۱۴: دوره‌های خودم (پیش‌پرکردن فرم هفته/ویرایش دوره)
+    placements: placements.map((row) => ({
+      id: Number(row.id),
+      unit_id: row.unit_id == null ? null : Number(row.unit_id),
+      hall_id: row.hall_id == null ? null : Number(row.hall_id),
+      placement_date: row.placement_date || null,
+      flock_number: row.flock_number == null ? null : Number(row.flock_number),
+      total_chicks_count: numberOrNull(row.total_chicks_count),
+      is_active: Boolean(row.is_active),
+    })),
   };
 };
 
@@ -1177,6 +1558,64 @@ const hallDetailsFor = async ({ customerId, hallId }) => {
   };
 };
 
+// ============================================
+// ۱۱) جزئیات یک دوره (پیش‌پرکردن فرم هفته/ویرایش)  — ✅ ۱۳.۱۴
+// ------------------------------------------------------------
+//  🔒 مالکیت در همان کوئری (`customer_id`)؛ دورهٔ غیرخودی ⇒ ۴۰۴.
+// ============================================
+const placementDetailsFor = async ({ customerId, placementId }) => {
+  const placement = await ChickPlacement.findOne({
+    where: { id: placementId, customer_id: customerId },
+    attributes: [
+      "id",
+      "unit_id",
+      "hall_id",
+      "placement_date",
+      "flock_number",
+      "chick_source_id",
+      "breed_id",
+      "chick_age_on_arrival",
+      "avg_initial_weight",
+      "total_chicks_count",
+      "placement_density",
+      "is_active",
+    ],
+  });
+  if (!placement) throw serviceError("placement_not_found", 404);
+
+  const weeklies = await WeeklyManagement.findAll({
+    where: { chick_placement_id: placement.id },
+    attributes: [
+      "id",
+      "week_number",
+      "week_start_date",
+      "week_end_date",
+      "flock_age_days",
+      "weekly_mortality",
+      "weekly_weight",
+      "is_active",
+    ],
+    order: [["week_number", "ASC"]],
+  });
+
+  const placementPlain = plainRow(placement);
+
+  return {
+    placement: {
+      ...placementPlain,
+      id: Number(placementPlain.id),
+      unit_id:
+        placementPlain.unit_id == null ? null : Number(placementPlain.unit_id),
+      hall_id:
+        placementPlain.hall_id == null ? null : Number(placementPlain.hall_id),
+    },
+    weeklies: weeklies.map((row) => {
+      const plain = plainRow(row);
+      return { ...plain, id: Number(plain.id) };
+    }),
+  };
+};
+
 module.exports = {
   approveRequest,
   cancelMyRequest,
@@ -1184,6 +1623,7 @@ module.exports = {
   createRequest,
   getRequest,
   hallDetailsFor,
+  placementDetailsFor,
   listMyRequests,
   listQueue,
   optionsFor,

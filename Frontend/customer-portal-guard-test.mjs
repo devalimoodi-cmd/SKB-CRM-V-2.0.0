@@ -141,6 +141,7 @@ const FILES = {
   adminPanelService: "Frontend/src/features/admin-panel/admin-panel.service.js",
   docs1311: "docs/REVIEW-WAVE-13.11.md",
   docs1313: "docs/REVIEW-WAVE-13.13.md",
+  docs1314: "docs/REVIEW-WAVE-13.14.md",
   backendRequestTest: "Backend/portal-request-test.mjs",
 };
 
@@ -611,12 +612,13 @@ check(
 );
 
 check(
-  "مسیر: ۱۸ GET خواندنی + نوشتن‌های محدود (پروفایل ۳ + مدارک ۲ + فارم ۲ · بدون PUT)",
+  "مسیر: ۱۹ GET خواندنی + نوشتن‌های محدود (پروفایل ۳ + مدارک ۲ + فارم ۲ · بدون PUT)",
   // ✅ موج ۱۳.۸: ۸ مسیر خواندنی قبلی + پروفایل + چهار مسیر داشبورد = ۱۳
   // ✅ موج ۱۳.۱۰: دو GET مدارک (فهرست + فایل) ⇒ ۱۵
   // ✅ موج ۱۳.۱۱: دو GET درخواست‌های فارم (options + requests) ⇒ ۱۷
   // ✅ موج ۱۳.۱۳: یک GET جزئیات سالن (/farm/halls/:id) ⇒ ۱۸
-  (SRC.routes.match(/router\.get\(/g) || []).length === 18 &&
+  // ✅ موج ۱۳.۱۴: یک GET جزئیات دوره (/farm/placements/:id) ⇒ ۱۹
+  (SRC.routes.match(/router\.get\(/g) || []).length === 19 &&
     (SRC.routes.match(/router\.patch\(/g) || []).length === 1 &&
     // ۲ پروفایل/موبایل + ۱ آپلود مدرک + ۲ درخواست فارم (ثبت/لغو)
     (SRC.routes.match(/router\.post\(/g) || []).length === 5 &&
@@ -2624,6 +2626,94 @@ check(
       SRC.portalFarmRenderer,
     ) &&
     /if \(!FARM_FORM_SPEC\[key\]\) return;/.test(SRC.portalFarm),
+);
+
+// ============================================================
+// ✅ موج ۱۳.۱۴ — مدیریت دوره/جوجه‌ریزی + اطلاعات هفتگی
+// ============================================================
+
+check(
+  "۱۳.۱۴ · هفت نوع تازه در قواعد ثبت شده‌اند",
+  [
+    "placement_update",
+    "placement_delete",
+    "placement_activate",
+    "placement_deactivate",
+    "weekly_create",
+    "weekly_update",
+    "weekly_delete",
+  ].every((type) => SRC.farmRules.includes(`key: "${type}"`)),
+);
+
+check(
+  "۱۳.۱۴ · اعتبارسنجی هفته از همان ماژول کارشناس می‌آید",
+  /require\("\.\.\/validations\/weeklyValidation"\)/.test(SRC.farmRules) &&
+    /validateWeeklyData/.test(SRC.farmRules) &&
+    /const WEEKLY_PORTAL_KEYS = \[/.test(SRC.farmRules) &&
+    !/service_expert_id",\n\s+"week_start_date/.test(SRC.farmRules),
+);
+
+check(
+  "۱۳.۱۴ · آیتم‌های هفتگی آرایهٔ شناسه‌اند (سقف‌دار و بدون تکرار)",
+  /const WEEKLY_ID_FIELDS = \[/.test(SRC.farmRules) &&
+    /const sanitizeIdList = \(value\) => \{/.test(SRC.farmRules) &&
+    /MAX_ID_LIST_ITEMS/.test(SRC.farmRules) &&
+    /weekly_create: WEEKLY_ID_FIELDS/.test(SRC.farmRules),
+);
+
+check(
+  "۱۳.۱۴ · نوشتن دوره/هفته در سرویس پورتال از هستهٔ فارم می‌گذرد",
+  /require\("\.\/farm\/weeklyWrite"\)/.test(SRC.farmService) &&
+    /weeklyWrite\.createWeekly\(/.test(SRC.farmService) &&
+    /weeklyWrite\.updateWeekly\(/.test(SRC.farmService) &&
+    /weeklyWrite\.deleteWeekly\(/.test(SRC.farmService) &&
+    /placementWrite\.activatePlacement\(/.test(SRC.farmService) &&
+    !/WeeklyManagement\.create/.test(SRC.farmService),
+);
+
+check(
+  "۱۳.۱۴ · مالکیت دوره/هفته داخل همان تراکنش و کلید غیرمجاز در payload نیست",
+  /const requireOwnedPlacement = async/.test(SRC.farmService) &&
+    /const requireOwnedWeekly = async/.test(SRC.farmService) &&
+    !/unit_id: payload\.unit_id/.test(SRC.farmService) &&
+    !/hall_id: payload\.hall_id/.test(SRC.farmService) &&
+    /if \(!placement\.is_active\) throw serviceError\("flock_inactive", 400\)/.test(
+      SRC.farmService,
+    ),
+);
+
+check(
+  "۱۳.۱۴ · مسیر «جزئیات دورهٔ خودم» با مالکیت ردیف ثبت شده است",
+  /"\/farm\/placements\/:id"/.test(SRC.farmRoutes) &&
+    /requireOwnedRow\(\{ model: ChickPlacement, label: "دوره" \}\)/.test(
+      SRC.farmRoutes,
+    ) &&
+    /placementDetailsFor/.test(SRC.farmService),
+);
+
+check(
+  "۱۳.۱۴ · گزینه‌های فرم: دوره‌های خودم + پنج دیکشنری هفتگی",
+  /placements: placements\.map/.test(SRC.farmService) &&
+    /diseases: dictionaryOf\(diseases\)/.test(SRC.farmService) &&
+    /vaccines: dictionaryOf\(vaccines\)/.test(SRC.farmService) &&
+    /medicines: dictionaryOf\(medicines\)/.test(SRC.farmService) &&
+    /feed_types: dictionaryOf\(feedTypes\)/.test(SRC.farmService) &&
+    /suggestion_types: dictionaryOf\(suggestionTypes\)/.test(SRC.farmService),
+);
+
+check(
+  "۱۳.۱۴ · صف کارشناس: برچسب هفت نوع + آیتم‌های آرایه‌ای",
+  /placement_update: "ویرایش جوجه‌ریزی"/.test(SRC.adminRequestsRenderer) &&
+    /weekly_create: "ثبت اطلاعات هفتگی"/.test(SRC.adminRequestsRenderer) &&
+    /weekly_delete: "حذف اطلاعات هفتگی"/.test(SRC.adminRequestsRenderer) &&
+    /"disease_ids"/.test(SRC.adminRequestsRenderer) &&
+    /"suggestion_ids"/.test(SRC.adminRequestsRenderer),
+);
+
+check(
+  "۱۳.۱۴ · مستندات موج ۱۳.۱۴ موجود است",
+  /۱۳\.۱۴/.test(read(FILES.docs1314)) &&
+    /weekly_create/.test(read(FILES.docs1314)),
 );
 
 // ============================================================

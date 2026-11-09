@@ -45,10 +45,21 @@ const WAVE_1313_TYPES = [
   "hall_hygiene_save",
 ];
 
+// ✅ موج ۱۳.۱۴: مدیریت دوره/جوجه‌ریزی + اطلاعات هفتگی
+const WAVE_1314_TYPES = [
+  "placement_update",
+  "placement_delete",
+  "placement_activate",
+  "placement_deactivate",
+  "weekly_create",
+  "weekly_update",
+  "weekly_delete",
+];
+
 check(
-  "انواع درخواست طبق طراحی است (۳ نوع ایجاد + ۸ نوع ۱۳.۱۳)",
+  "انواع درخواست طبق طراحی است (۳ ایجاد + ۸ نوع ۱۳.۱۳ + ۷ نوع ۱۳.۱۴)",
   rules.REQUEST_TYPE_KEYS.join(",") ===
-    CREATE_TYPES.concat(WAVE_1313_TYPES).join(","),
+    CREATE_TYPES.concat(WAVE_1313_TYPES, WAVE_1314_TYPES).join(","),
   rules.REQUEST_TYPE_KEYS.join(","),
 );
 
@@ -588,7 +599,8 @@ check(
 
 check(
   "۱۳.۱۳ · انواع حذف و ستون هدف در قواعد تعریف شده‌اند",
-  rules.DESTRUCTIVE_TYPES.join(",") === "unit_delete,hall_delete" &&
+  rules.DESTRUCTIVE_TYPES.includes("unit_delete") &&
+    rules.DESTRUCTIVE_TYPES.includes("hall_delete") &&
     rules.isDestructiveType("unit_delete") === true &&
     rules.isDestructiveType("hall_update") === false &&
     rules.targetFieldOf("hall_physical_save") === "hall_id" &&
@@ -674,6 +686,199 @@ check(
   "همهٔ فایل‌های بک‌اند موج ۱۳.۱۱ موجودند",
   REQUIRED_FILES.every((rel) => fs.existsSync(path.join(here, rel))),
   REQUIRED_FILES.filter((rel) => !fs.existsSync(path.join(here, rel))).join(","),
+);
+
+// ============================================================
+// ۱۲) موج ۱۳.۱۴ — دوره/جوجه‌ریزی و اطلاعات هفتگی
+// ============================================================
+const weeklyValidation = require("./validations/weeklyValidation.js");
+const weeklyWriter = fs.readFileSync(
+  path.join(here, "services/farm/weeklyWrite.js"),
+  "utf8",
+);
+
+check(
+  "۱۳.۱۴ · هر هفت نوع تازه اعتبارسنج و فهرست سفید دارند",
+  WAVE_1314_TYPES.every(
+    (type) =>
+      rules.hasPayloadValidator(type) && !!rules.ALLOWED_PAYLOAD_KEYS[type],
+  ),
+);
+
+check(
+  "۱۳.۱۴ · ویرایش دوره بدون تغییرات و با تراکم نامعتبر رد می‌شود",
+  rules.validatePayload("placement_update", { placement_id: 5 }).isValid ===
+    false &&
+    rules.validatePayload("placement_update", {
+      placement_id: 5,
+      placement_density: 400,
+    }).isValid === false &&
+    rules.validatePayload("placement_update", {
+      placement_id: 5,
+      total_chicks_count: 12000,
+      placement_density: 18,
+    }).isValid === true,
+);
+
+check(
+  "۱۳.۱۴ · حذف/فعال‌سازی/پایان دوره فقط شناسهٔ مثبت می‌خواهند",
+  ["placement_delete", "placement_activate", "placement_deactivate"].every(
+    (type) =>
+      rules.validatePayload(type, {}).isValid === false &&
+      rules.validatePayload(type, { placement_id: 3 }).isValid === true,
+  ),
+);
+
+check(
+  "۱۳.۱۴ · فهرست سفید هفتگی کلیدهای کارشناسی را راه نمی‌دهد",
+  !rules.ALLOWED_PAYLOAD_KEYS.weekly_create.includes("customer_id") &&
+    !rules.ALLOWED_PAYLOAD_KEYS.weekly_create.includes("unit_id") &&
+    !rules.ALLOWED_PAYLOAD_KEYS.weekly_create.includes("hall_id") &&
+    !rules.ALLOWED_PAYLOAD_KEYS.weekly_create.includes("service_expert_id") &&
+    !rules.ALLOWED_PAYLOAD_KEYS.weekly_create.includes("is_active") &&
+    !rules.ALLOWED_PAYLOAD_KEYS.weekly_create.includes("status"),
+);
+
+check(
+  "۱۳.۱۴ · انواع حذف دوره/هفته در فهرست هشدار و ستون هدف آمده‌اند",
+  rules.DESTRUCTIVE_TYPES.join(",") ===
+    "unit_delete,hall_delete,placement_delete,weekly_delete" &&
+    rules.targetFieldOf("placement_activate") === "placement_id" &&
+    rules.targetFieldOf("weekly_create") === "chick_placement_id" &&
+    rules.targetFieldOf("weekly_delete") === "weekly_id",
+);
+
+const weeklyPayload = rules.sanitizePayload("weekly_create", {
+  chick_placement_id: "5",
+  week_number: "2",
+  week_start_date: "2026-01-05",
+  week_end_date: "2026-01-11",
+  flock_age_days: "14",
+  weekly_mortality: "3",
+  weekly_weight: "0.45",
+  daily_feed_intake: "20",
+  weekly_feed_intake: "140",
+  disease_ids: ["1", 2, 2, 0, "x"],
+  vaccine_ids: "not-an-array",
+});
+
+check(
+  "۱۳.۱۴ · ثبت هفته معتبر پذیرفته و آیتم‌ها نرمال می‌شوند (تکراری/نامعتبر حذف)",
+  weeklyPayload.chick_placement_id === 5 &&
+    weeklyPayload.week_number === 2 &&
+    weeklyPayload.disease_ids.join(",") === "1,2" &&
+    Array.isArray(weeklyPayload.vaccine_ids) &&
+    rules.validatePayload("weekly_create", weeklyPayload).isValid === true,
+  JSON.stringify(weeklyPayload),
+);
+
+check(
+  "۱۳.۱۴ · ثبت هفته: نبود شمارهٔ هفته/وزن و ناسازگاری دان رد می‌شود",
+  rules.validatePayload("weekly_create", { chick_placement_id: 5 }).isValid ===
+    false &&
+    rules.validatePayload("weekly_create", {
+      chick_placement_id: 5,
+      week_number: 2,
+      week_start_date: "2026-01-05",
+      week_end_date: "2026-01-11",
+      flock_age_days: 14,
+      weekly_mortality: 3,
+      weekly_weight: 0.45,
+      daily_feed_intake: 20,
+      weekly_feed_intake: 999,
+    }).isValid === false,
+);
+
+check(
+  "۱۳.۱۴ · قاعدهٔ دان روزانه/هفتگی از همان اعتبارسنج کارشناس می‌آید",
+  /validateWeeklyData/.test(
+    fs.readFileSync(path.join(here, "services/portalRequestRules.js"), "utf8"),
+  ) &&
+    rules.validatePayload("weekly_create", {
+      chick_placement_id: 5,
+      week_number: 2,
+      week_start_date: "2026-01-05",
+      week_end_date: "2026-01-11",
+      flock_age_days: 14,
+      weekly_mortality: 3,
+      weekly_weight: 0.45,
+      daily_feed_intake: 20,
+      weekly_feed_intake: 140,
+    }).isValid ===
+      weeklyValidation.validateWeeklyData({
+        customer_id: 1,
+        hall_id: 1,
+        chick_placement_id: 5,
+        week_number: 2,
+        week_start_date: "2026-01-05",
+        week_end_date: "2026-01-11",
+        flock_age_days: 14,
+        weekly_mortality: 3,
+        weekly_weight: 0.45,
+        daily_feed_intake: 20,
+        weekly_feed_intake: 140,
+      }).isValid,
+);
+
+check(
+  "۱۳.۱۴ · ویرایش/حذف هفته شناسهٔ هفته می‌خواهد و «بدون تغییر» رد می‌شود",
+  rules.validatePayload("weekly_update", { weekly_id: 9 }).isValid === false &&
+    rules.validatePayload("weekly_update", {
+      weekly_id: 9,
+      weekly_mortality: 4,
+    }).isValid === true &&
+    rules.validatePayload("weekly_delete", { weekly_id: 9 }).isValid === true &&
+    rules.validatePayload("weekly_delete", {}).isValid === false,
+);
+
+check(
+  "۱۳.۱۴ · معماری: نوشتن دوره/هفته از هستهٔ مشترک فارم می‌گذرد",
+  /require\("\.\/farm\/weeklyWrite"\)/.test(serviceSource) &&
+    /weeklyWrite\.createWeekly\(/.test(serviceSource) &&
+    /weeklyWrite\.updateWeekly\(/.test(serviceSource) &&
+    /weeklyWrite\.deleteWeekly\(/.test(serviceSource) &&
+    /placementWrite\.activatePlacement\(/.test(serviceSource) &&
+    /placementWrite\.deactivatePlacement\(/.test(serviceSource) &&
+    /placementWrite\.deletePlacement\(/.test(serviceSource) &&
+    /runInTransaction\(async \(trx\)/.test(weeklyWriter),
+);
+
+check(
+  "۱۳.۱۴ · مالکیت دوره/هفته داخل همان تراکنش سنجیده می‌شود",
+  /const requireOwnedPlacement = async/.test(serviceSource) &&
+    /const requireOwnedWeekly = async/.test(serviceSource) &&
+    /where: \{ id: placementId, customer_id: customerId \}/.test(
+      serviceSource,
+    ) &&
+    /where: \{ id: weeklyId, customer_id: customerId \}/.test(serviceSource),
+);
+
+check(
+  "۱۳.۱۴ · هر نوع تازه یک applier و یک کلید تکرار دارد",
+  WAVE_1314_TYPES.every((type) => serviceSource.includes(`${type}:`)) &&
+    WAVE_1314_TYPES.every((type) =>
+      serviceSource.includes(`type === "${type}"`),
+    ),
+);
+
+check(
+  "۱۳.۱۴ · گزینه‌های فرم: دوره‌های خودم + پنج دیکشنری هفتگی",
+  /placements: placements\.map/.test(serviceSource) &&
+    /diseases: dictionaryOf\(diseases\)/.test(serviceSource) &&
+    /vaccines: dictionaryOf\(vaccines\)/.test(serviceSource) &&
+    /medicines: dictionaryOf\(medicines\)/.test(serviceSource) &&
+    /feed_types: dictionaryOf\(feedTypes\)/.test(serviceSource) &&
+    /suggestion_types: dictionaryOf\(suggestionTypes\)/.test(serviceSource),
+);
+
+check(
+  "۱۳.۱۴ · مسیر «جزئیات دورهٔ خودم» با مالکیت ردیف ثبت شده است",
+  /"\/farm\/placements\/:id"/.test(farmRoutesSource) &&
+    /requireOwnedRow\(\{ model: ChickPlacement, label: "دوره" \}\)/.test(
+      farmRoutesSource,
+    ) &&
+    /placementDetailsFor/.test(serviceSource) &&
+    /weeklies: weeklies\.map/.test(serviceSource),
 );
 
 // ============================================================

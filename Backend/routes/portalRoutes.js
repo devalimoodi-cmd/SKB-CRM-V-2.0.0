@@ -349,6 +349,15 @@ router.get(
   portalFarmController.getMyHall,
 );
 
+// ✅ ۱۳.۱۴: جزئیات یک دورهٔ خودم (پیش‌پرکردن فرم هفته/ویرایش دوره).
+// فقط خواندن ⇒ بدون سقف نوشتن؛ مالکیت ردیف با requireOwnedRow.
+router.get(
+  "/farm/placements/:id",
+  ...farmChain,
+  requireOwnedRow({ model: ChickPlacement, label: "دوره" }),
+  portalFarmController.getMyPlacement,
+);
+
 router.get(
   "/farm/requests",
   ...farmChain,

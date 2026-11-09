@@ -688,7 +688,7 @@ Backend/validations/hallDetailValidation.js   قاعدهٔ خالص چهار ح�
 
 ```bash
 npm run test:farm-write       # ۳۹ بررسی خالص (بدون دیتابیس)
-npm run test:portal-requests  # ۵۶ بررسی
+npm run test:portal-requests  # ۷۰ بررسی
 npm run lint                  # ۰ خطا
 ```
 
@@ -714,4 +714,20 @@ npm run lint                  # ۰ خطا
 | مهاجرت | ندارد (payload از قبل JSONB است) |
 
 📄 گزارش کامل: `docs/REVIEW-WAVE-13.13.md`.
+
+## مدیریت دوره و اطلاعات هفتگی از پورتال — ۷ نوع تازه (موج ۱۳.۱۴)
+
+| موضوع | مقدار |
+|---|---|
+| انواع تازه | `placement_update` · `placement_delete` · `placement_activate` · `placement_deactivate` · `weekly_create` · `weekly_update` · `weekly_delete` |
+| قواعد | `services/portalRequestRules.js` — دوره با `validateChickPlacement`، هفته با `validations/weeklyValidation.validateWeeklyData` (بدون نسخهٔ دوم) |
+| آیتم‌های هفته | `disease_ids` · `vaccine_ids` · `medicine_ids` · `feed_type_ids` · `suggestion_ids` — آرایهٔ شناسه با سقف ۱۰۰ و حذف تکراری |
+| اعمال | `placementWrite.*` و `weeklyWrite.*` با `{ transaction }` داخل تراکنش تأیید |
+| مالکیت | `requireOwnedPlacement` / `requireOwnedWeekly` با `SELECT … FOR UPDATE`؛ ردیف غیرخودی ⇒ ۴۰۴ |
+| دورهٔ غیرفعال | ثبت/ویرایش هفته ⇒ خطای `flock_inactive` با پیام روشن |
+| اندپوینت تازه | `GET /api/portal/farm/placements/:id` (دوره + هفته‌های ثبت‌شده) |
+| گزینه‌ها | `optionsFor`: `placements[]` + پنج دیکشنری هفتگی |
+| مجوزها | بدون کلید تازه (۱۹۷ کلید / ۱۸ گروه دست‌نخورده) |
+
+📄 گزارش کامل: `docs/REVIEW-WAVE-13.14.md`.
 
