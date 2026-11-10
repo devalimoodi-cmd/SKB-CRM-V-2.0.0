@@ -352,7 +352,12 @@ check(
   const dynamicArgs = [];
 
   files.forEach((file) => {
-    const source = fs.readFileSync(path.join(routesDir, file), "utf8");
+    const source = fs
+      .readFileSync(path.join(routesDir, file), "utf8")
+      // ✅ ۱۳.۱۸: توضیحات حذف می‌شوند تا نام‌های نمونه در کامنت
+      //    (مثل «requirePermission(view)» یا «...keys») «کلید پویا» شمرده نشوند.
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/^\s*\/\/.*$/gm, "");
 
     const collect = (raw) =>
       raw
@@ -377,8 +382,13 @@ check(
     });
   });
 
-  // تنها آرگومانِ متغیرِ مجاز: پارامتر خودِ زنجیره‌ساز در portalRoutes
-  const allowedDynamic = new Set(["portalRoutes.js:key"]);
+  // ✅ ۱۳.۱۸: پورتال هیچ کلید مجوز دستی ندارد — کلید پایه و کلیدهای هر
+  //    اندپوینت از config/portalSchema می‌آیند، پس تنها دو نامِ پویای مجاز
+  //    باقی می‌ماند: پارامتر حلقهٔ اندپوینت و کلید پایه.
+  const allowedDynamic = new Set([
+    "portalRoutes.js:key",
+    "portalRoutes.js:PORTAL_BASE_KEY",
+  ]);
 
   const unknown = Array.from(used).filter(
     (key) => !catalog.isValidPermission(key),
@@ -391,7 +401,7 @@ check(
   );
 
   check(
-    "نگهبان مسیرها: کلیدهای پویا فقط از زنجیره‌سازِ مجاز (tabChain) می‌آیند",
+    "نگهبان مسیرها: کلیدهای پویا فقط از زنجیره‌سازِ مجاز (chainFor) می‌آیند",
     dynamicArgs.every((item) => allowedDynamic.has(item)),
     dynamicArgs.join("|") || "-",
   );

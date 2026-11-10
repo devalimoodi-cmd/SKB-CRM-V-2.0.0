@@ -49,6 +49,8 @@ const createRateLimiter = ({
   max = 100,
   message = "تعداد درخواست‌ها بیش از حد مجاز است. لطفاً کمی بعد تلاش کنید.",
   decrementOnSuccess = false,
+  // ✅ ۱۳.۱۸: نام فقط برای «نشانهٔ خوانا» در گارد هم‌ترازی پورتال
+  name = "custom",
 } = {}) => {
   const buckets = new Map(); // key → { count, resetAt }
 
@@ -61,7 +63,7 @@ const createRateLimiter = ({
   }, 5 * 60 * 1000);
   if (typeof cleanup.unref === "function") cleanup.unref();
 
-  return (req, res, next) => {
+  const limiter = (req, res, next) => {
     if (process.env.RATE_LIMIT_DISABLED === "true") return next();
 
     const key = req.ip || "unknown";
@@ -94,6 +96,11 @@ const createRateLimiter = ({
 
     return next();
   };
+
+  // ✅ ۱۳.۱۸: نشانهٔ نام برای گارد هم‌ترازی پورتال (بدون تأثیر رفتاری)
+  limiter.__rateLimiter = name;
+
+  return limiter;
 };
 
 // ===== محدودیت کلی API (هر دقیقه برای هر آی‌پی) =====
@@ -124,6 +131,7 @@ const setupAdminLimiter = createRateLimiter({
 // یک پیامک هزینه‌دار. با ۱۰ درخواست در دقیقه، کرک عملی نیست و
 // هزینهٔ پیامک هم کنترل می‌شود.
 const otpLimiter = createRateLimiter({
+  name: "otpLimiter",
   windowMs: 60 * 1000,
   max: Number(process.env.LOGIN_OTP_RATE_MAX || 10),
   message:
@@ -135,6 +143,7 @@ const otpLimiter = createRateLimiter({
 // دومی پیامک هزینه‌دار می‌فرستد؛ سقف کلی API (۱۲۰۰/دقیقه) برای این‌ها
 // بسنده نیست.
 const portalWriteLimiter = createRateLimiter({
+  name: "portalWriteLimiter",
   windowMs: 60 * 1000,
   max: Number(process.env.PORTAL_WRITE_RATE_MAX || 20),
   message:

@@ -1,28 +1,39 @@
 // ============================================================
 // routes/portalRoutes.js
-// «پورتال مشتری» — فاز ۱۳.۲، ۱۳.۳، ۱۳.۴ و ۱۳.۵
+// «پورتال مشتری» — فاز ۱۳.۲ تا ۱۳.۱۹
 // ------------------------------------------------------------
 // ⚠️ تنها مسیرهای اختصاصی نقش مشتری. هیچ‌یک از ۲۰+ فایل مسیر موجود
 //    باز نشده‌اند: نقش «مشتری» به هیچ GET موجودی اضافه نشده است.
-//    در ۱۳.۳ دادهٔ بیشتر (سالن/گله/هفته/بازدید) و در ۱۳.۴ جزئیات
-//    هفته/بازدید و دانلود پیوست، از همین روتر آمد — نه از باز کردن
-//    مسیرهای کارکنان.
 //
-// زنجیرهٔ دسترسی (به ترتیب و همه اجباری):
-//   1) protect                 ⇒ توکن معتبر + کاربر فعال + نشست باز
-//   2) authorize("customer")    ⇒ فقط نقش مشتری (کارکنان ۴۰۳ می‌گیرند)
-//   3) کلید مجوز customer.portal.view  (قابل بستن از پنل مدیریت)
-//      ← ۱۳.۵: هر تب کلید مستقل خودش را دارد (tabChain):
-//        customer.portal.halls / .flocks / .weeks / .visits
-//      ← مسیرهای جزئیات بازدید/پیوست کلید جدا دارند:
-//        customer.portal.visit.report  (۱۳.۴)
-//   4) requireCustomerLink      ⇒ مشتری بدون پروندهٔ متصل ⇒ ۴۰۳ روشن
-//   5) controller              ⇒ customer_id فقط از req.customerScopeId
+// ✅ موج ۱۳.۱۸ — «صفر رشتهٔ کلید دستی»
+// ------------------------------------------------------------
+//  پیش از این موج، هر مسیر زنجیرهٔ خودش را دستی می‌ساخت: کلید مجوز،
+//  کلید محتوا، مدل مالکیت و سقف نرخ، هر کدام یک رشتهٔ تایپ‌شده در
+//  همین فایل. سه جای دیگر (کنترلر، منوی فرانت، api.const) هم همان
+//  کلیدها را جدا تایپ می‌کردند ⇒ هر موج تازه یک ناهم‌ترازی تازه.
 //
-// 🔒 همهٔ مسیرها GET و بدون شناسهٔ «مشتری» هستند؛ تنها پارامتر مجاز
-//    page/limit است (سقف ۵۰ در parsePagination). از ۱۳.۴ شناسهٔ
-//    «ردیف خودم» در مسیر مجاز است (:id) و کنترلر مالکیت را با
-//    customer_id در همان کوئری می‌سنجد.
+//  از ۱۳.۱۸ همه‌چیز از config/portalSchema می‌آید و این فایل فقط
+//  «اعلان مسیر» است:
+//      router.<method>("<path>", ...chainFor("<ENDPOINT_ID>"), controller.method)
+//  دو گارد، هم‌ترازی را اجرا می‌سنجند:
+//      Backend/portal-schema-test.mjs        (روتر ⇔ اسکیما)
+//      Frontend/portal-schema-guard-test.mjs (منو/پنل/HTML/API ⇔ اسکیما)
+//
+// زنجیرهٔ دسترسی (به ترتیب و همه اجباری — chainFor همین را می‌سازد):
+//   1) protect                       ⇒ توکن معتبر + کاربر فعال + نشست باز
+//   2) authorize("customer")          ⇒ فقط نقش مشتری (کارکنان ۴۰۳)
+//   3) requirePermission(view)        ⇒ کلید پایه (قابل بستن از پنل)
+//   4) requirePermission(...keys)     ⇒ کلید همان تب/محتوا
+//   5) requireOwnScope                ⇒ فقط مسیرهای «پروندهٔ خودم»
+//   6) portalWriteLimiter             ⇒ فقط نوشتن‌ها
+//   7) requireOwnedRow                ⇒ مالکیت ردیف (:id) — ۴۰۴ نه ۴۰۳
+//   8) otpLimiter                     ⇒ مسیرهای پیامکی
+//   9) quota + multer                 ⇒ تنها آپلود پورتال
+//   10) requireCustomerLink (داخل BASE) ⇒ مشتری بدون پرونده ⇒ ۴۰۳ روشن
+//
+// 🔒 همهٔ مسیرها GET‌اند به‌جز هفت نوشتنِ شناخته‌شده؛ تنها پارامتر
+//    مجاز page/limit است (سقف ۵۰ در parsePagination). شناسهٔ «ردیف
+//    خودم» در مسیر مجاز است (:id) و مالکیت در سرور سنجیده می‌شود.
 // ============================================================
 "use strict";
 
@@ -44,133 +55,131 @@ const portalFarmController = require("../controllers/portalFarmController");
 const portalCompletionController = require("../controllers/portalCompletionController");
 
 const { uploadPortalDocumentSingle } = require("../middleware/upload");
+
+// ✅ ۱۳.۱۸ — اسکیمای مشترک: تنها منبع کلیدها/مالکیت/سقف‌ها
+const {
+  PORTAL_BASE_KEY,
+  PORTAL_ROLE,
+  endpointById,
+} = require("../config/portalSchema");
+
+// مدل‌ها فقط برای requireOwnedRow (نامشان در اسکیما آمده است)
 const Flock = require("../models/Flock");
 const ChickPlacement = require("../models/ChickPlacement");
 const PortalDocument = require("../models/PortalDocument");
 const PortalRequest = require("../models/PortalRequest");
 const Hall = require("../models/Hall");
-// ✅ ۱۳.۱۹: مالکیت «پایان دورهٔ خودم» در مسیر سنجیده می‌شود
 const FlockCompletion = require("../models/FlockCompletion");
-
-// ✅ ۱۳.۱۵: مالکیت «هفتهٔ خودم» در مسیر سنجیده می‌شود
 const WeeklyManagement = require("../models/WeeklyManagement");
 
 // ✅ همهٔ مسیرهای این روتر پشت احراز هویت هستند
 router.use(protect);
 
-// زنجیرهٔ مشترک دسترسی (یک منبع حقیقت — هر مسیر تازه باید از همین بگذرد)
-const customerChain = [
-  authorize("customer"),
-  requirePermission("customer.portal.view"),
-  requireCustomerLink,
-];
+// نامِ مدل در اسکیما ⇐ مدل واقعی Sequelize
+const MODEL_BY_NAME = {
+  Flock,
+  ChickPlacement,
+  PortalDocument,
+  PortalRequest,
+  Hall,
+  FlockCompletion,
+  WeeklyManagement,
+};
 
-// ✅ ۱۳.۵: زنجیرهٔ «هر تب» = زنجیرهٔ مشترک + کلید همان تب.
-//    هر مسیر تازهٔ پورتال باید از tabChain استفاده کند، نه customerChain،
-//    تا مدیر بتواند هر بخش را جدا ببندد (کلیدهای customer.portal.*).
-const tabChain = (key) => [...customerChain, requirePermission(key)];
+// ============================================================
+// ✅ ۱۳.۱۸ — تنها سازندهٔ زنجیره
+// ------------------------------------------------------------
+//  ترتیب میان‌افزارها «قرارداد» است و گارد هم همین ترتیب را می‌سنجد
+//  (پیش از ۱۳.۱۸ کلید profile.edit در PATCH /profile پیش از
+//  requireOwnScope بود؛ حالا همهٔ کلیدها یک‌جا و پیش از اسکوپ
+//  می‌آیند — چون requireCustomerLink پیش‌تر اسکوپ را تضمین کرده،
+//  رفتار پاسخ عوض نمی‌شود و «رد زودتر» امن‌تر است).
+//
+//  اگر مدلی در MODEL_BY_NAME نباشد، همان لحظهٔ استارت خطا می‌دهد
+//  (به‌جای مسیرِ بی‌مالکیت در زمان اجرا).
+// ============================================================
+const chainFor = (endpointId) => {
+  const endpoint = endpointById(endpointId);
+  // 🔒 «BASE» = نقش مشتری + کلید پایه + وجود پروندهٔ مشتری.
+  //    requireCustomerLink پیش از هر کوئری اجرا می‌شود تا مشتری بدون
+  //    پرونده پاسخ ۴۰۳ روشن بگیرد (نه فهرست خالی یا ۵۰۰).
+  const chain = [
+    authorize(PORTAL_ROLE),
+    requirePermission(PORTAL_BASE_KEY),
+    requireCustomerLink,
+  ];
 
-// ✅ ۱۳.۴: زنجیرهٔ «محتوای گزارش بازدید» = زنجیرهٔ تب بازدیدها + کلید جدا
-//    (متن گزارش، پیوست‌ها و دانلود فایل — حساس‌ترین بخش پرونده)
-const visitReportChain = [
-  ...customerChain,
-  requirePermission("customer.portal.visits"),
-  requirePermission("customer.portal.visit.report"),
-];
+  endpoint.keys.forEach((key) => chain.push(requirePermission(key)));
 
-// ✅ ۱۳.۸: زنجیرهٔ «پروفایل من» — مشاهده و ویرایش کلید جدا دارند:
-//    • دیدن پروفایل: customer.portal.profile
-//    • نوشتن:        همان + customer.portal.profile.edit
-const profileChain = [
-  ...customerChain,
-  requirePermission("customer.portal.profile"),
-  requireOwnScope,
-];
+  if (endpoint.scope === "own") chain.push(requireOwnScope);
+  if (endpoint.write) chain.push(portalWriteLimiter);
 
-const profileEditChain = [
-  ...profileChain,
-  requirePermission("customer.portal.profile.edit"),
-];
+  endpoint.ownership.forEach((row) => {
+    const model = MODEL_BY_NAME[row.model];
+    if (!model) {
+      throw new Error(`پورتال: مدل مالکیت ناشناخته در اسکیما «${row.model}»`);
+    }
+    chain.push(
+      requireOwnedRow({
+        model,
+        source: row.source,
+        key: row.key,
+        store: row.store,
+        label: row.label,
+      }),
+    );
+  });
 
-// ✅ ۱۳.۸: زنجیرهٔ «داشبورد تحلیلی» — هر زیربخش کلید خودش را دارد
-//    (تحلیل / مقایسه با گله‌های خودم / خروجی CSV / نمودارها)
-const dashboardChain = [
-  ...customerChain,
-  requirePermission("customer.portal.dashboard"),
-];
+  if (endpoint.otp) chain.push(otpLimiter);
 
-// 🔒 داشبورد شناسهٔ «گله» را در کوئری می‌گیرد ⇒ پیش از کنترلر باید ثابت
-//    شود که آن گله در پروندهٔ همین مشتری است (وگرنه دادهٔ گلهٔ دیگری
-//    از مسیر dashboardController بیرون می‌رفت). ردیف غیرخودی → ۴۰۴.
-//    ⚠️ نام‌گذاری گیج‌کنندهٔ ماژول کارشناسان: flockGroupId = Flock.id
-//    (دورهٔ گله) ولی flockId = ChickPlacement.id (جوجه‌ریزی/سالن).
-const dashboardOwnership = [
-  requireOwnedRow({
-    model: Flock,
-    source: "query",
-    key: "flockGroupId",
-    store: "ownedFlock",
-    label: "گلهٔ داشبورد",
-  }),
-  requireOwnedRow({
-    model: ChickPlacement,
-    source: "query",
-    key: "flockId",
-    store: "ownedFlockById",
-    label: "جوجه‌ریزی نمودار",
-  }),
-];
+  // آپلود: سهمیه **پیش از** multer سنجیده می‌شود (هیچ فایل یتیمی نمی‌ماند)
+  if (endpoint.upload) {
+    chain.push(
+      portalDocumentsController.ensureDocumentQuota,
+      uploadPortalDocumentSingle,
+    );
+  }
 
-// خلاصهٔ پروندهٔ خودم (شمارنده‌ها + ۳ ردیف آخر) — محتوای هر بخش در
-// کنترلر با همان کلیدهای customer.portal.* فیلتر می‌شود
-router.get("/me", ...customerChain, portalController.getPortalSummary);
+  return chain;
+};
 
-// فهرست صفحه‌بندی‌شدهٔ سالن‌های خودم
-router.get(
-  "/halls",
-  ...tabChain("customer.portal.halls"),
-  portalController.getMyHalls,
-);
+// ============================================================
+// خلاصهٔ پروندهٔ خودم (شمارنده‌ها + ۳ ردیف آخر)
+//  محتوای هر بخش در کنترلر با همان کلیدهای customer.portal.* فیلتر می‌شود
+// ============================================================
+router.get("/me", ...chainFor("PORTAL_ME"), portalController.getPortalSummary);
 
-// فهرست صفحه‌بندی‌شدهٔ گله‌های خودم
-router.get(
-  "/flocks",
-  ...tabChain("customer.portal.flocks"),
-  portalController.getMyFlocks,
-);
+// ============================================================
+// ۱۳.۳ — «دادهٔ بیشتر»: سالن / گله / هفته / بازدید
+//  هر تب کلید مستقل خودش را دارد (قابل بستن جدا توسط مدیر)
+// ============================================================
+router.get("/halls", ...chainFor("PORTAL_HALLS"), portalController.getMyHalls);
 
-// فهرست صفحه‌بندی‌شدهٔ هفته‌های مدیریتی خودم
-router.get(
-  "/weeks",
-  ...tabChain("customer.portal.weeks"),
-  portalController.getMyWeeks,
-);
+router.get("/flocks", ...chainFor("PORTAL_FLOCKS"), portalController.getMyFlocks);
 
-// فهرست صفحه‌بندی‌شدهٔ بازدیدهای خودم (تاریخ/وضعیت + نشانهٔ وجود گزارش)
-router.get(
-  "/visits",
-  ...tabChain("customer.portal.visits"),
-  portalController.getMyVisits,
-);
+router.get("/weeks", ...chainFor("PORTAL_WEEKS"), portalController.getMyWeeks);
+
+router.get("/visits", ...chainFor("PORTAL_VISITS"), portalController.getMyVisits);
 
 // ۱۳.۴ — جزئیات یک هفتهٔ مدیریتی (بیماری/واکسن/دارو/خوراک)
 router.get(
   "/weeks/:id",
-  ...tabChain("customer.portal.weeks"),
+  ...chainFor("PORTAL_WEEK_DETAIL"),
   portalController.getMyWeekDetail,
 );
 
 // ۱۳.۴ — جزئیات یک بازدید: متن گزارش + فهرست پیوست‌ها
+//  🔒 کلید جدا: customer.portal.visit.report (حساس‌ترین بخش پرونده)
 router.get(
   "/visits/:id",
-  ...visitReportChain,
+  ...chainFor("PORTAL_VISIT_DETAIL"),
   portalController.getMyVisitDetail,
 );
 
 // ۱۳.۴ — دانلود یک پیوست مشخص (فایل داخل uploads/ و متعلق به همان بازدید)
 router.get(
   "/visits/:id/attachments/:attachmentId",
-  ...visitReportChain,
+  ...chainFor("PORTAL_VISIT_ATTACHMENT"),
   portalController.downloadMyAttachment,
 );
 
@@ -187,30 +196,25 @@ router.get(
 //    مسیر PATCH عمداً mobile_number را نادیده می‌گیرد
 //    (services/portalProfileRules → PROFILE_LOCKED).
 // ============================================================
-router.get("/profile", ...profileChain, portalController.getMyProfile);
+router.get("/profile", ...chainFor("PORTAL_PROFILE"), portalController.getMyProfile);
 
 router.patch(
   "/profile",
-  ...profileEditChain,
-  portalWriteLimiter,
+  ...chainFor("PORTAL_PROFILE_UPDATE"),
   portalController.updateMyProfile,
 );
 
 // درخواست کد: سقف نوشتن + سقف سخت‌گیرانهٔ کد (هر پیامک هزینه دارد)
 router.post(
   "/profile/mobile/request",
-  ...profileEditChain,
-  portalWriteLimiter,
-  otpLimiter,
+  ...chainFor("PORTAL_PROFILE_MOBILE_REQUEST"),
   portalProfileOtpController.requestMobileChange,
 );
 
 // تأیید کد: فقط سقف نوشتن (هر حدس، یک verify است ⇒ otpLimiter هم می‌آید)
 router.post(
   "/profile/mobile/confirm",
-  ...profileEditChain,
-  portalWriteLimiter,
-  otpLimiter,
+  ...chainFor("PORTAL_PROFILE_MOBILE_CONFIRM"),
   portalProfileOtpController.confirmMobileChange,
 );
 
@@ -218,38 +222,31 @@ router.post(
 // ۱۳.۸ — «داشبورد تحلیلی من»
 // ------------------------------------------------------------
 // به‌جای باز کردن /api/dashboard/* برای نقش مشتری (که با customerId
-// در کوئری، کل داده‌های شرکت را لو می‌داد) این چهار مسیر اضافه شد:
-//   GET /dashboard/options   گله‌ها/سالن‌های خودم + کدام نمودار مجاز است
-//   GET /dashboard/summary   شمارنده‌های خودم (بدون آمار سایر مشتریان)
-//   GET /dashboard/charts    دادهٔ نمودارها (customerId تحمیل می‌شود)
-//   GET /dashboard/analysis  تحلیل‌ها (فقط گله‌های خودم)
+// در کوئری، کل داده‌های شرکت را لو می‌داد) این چهار مسیر اضافه شد.
+// 🔒 نمودارها شناسهٔ گله/جوجه‌ریزی را در کوئری می‌گیرند ⇒ مالکیت
+//    پیش از کنترلر با requireOwnedRow سنجیده می‌شود (۴۰۴).
 // ============================================================
 router.get(
   "/dashboard/options",
-  ...dashboardChain,
+  ...chainFor("DASHBOARD_OPTIONS"),
   portalDashboardController.getMyDashboardOptions,
 );
 
 router.get(
   "/dashboard/summary",
-  ...dashboardChain,
-  requirePermission("customer.portal.dashboard.analysis"),
+  ...chainFor("DASHBOARD_SUMMARY"),
   portalDashboardController.getMyDashboardSummary,
 );
 
-// نمودارها: کلید پایهٔ تب + مالکیت ردیف. کدام نمودار رسم شود با
-// کلیدهای customer.portal.chart.* کنترل می‌شود (options.charts).
 router.get(
   "/dashboard/charts",
-  ...dashboardChain,
-  ...dashboardOwnership,
+  ...chainFor("DASHBOARD_CHARTS"),
   portalDashboardController.getMyCharts,
 );
 
 router.get(
   "/dashboard/analysis",
-  ...dashboardChain,
-  requirePermission("customer.portal.dashboard.analysis"),
+  ...chainFor("DASHBOARD_ANALYSIS"),
   portalDashboardController.getMyAnalysis,
 );
 
@@ -266,55 +263,29 @@ router.get(
 //     زیر /uploads که در server.js بدون احراز هویت سرو می‌شود.
 //   • حذف نرم است (paranoid) ⇒ فایل برای بازبینی کارشناس می‌ماند.
 //   • مالکیت ردیف با requireOwnedRow سنجیده می‌شود؛ مدرک مشتری دیگر
-//     ⇒ ۴۰۴ (نه ۴۰۳) تا وجود ردیف لو نرود. مدرک حذف‌شده هم چون
-//     paranoid است در همان findOne دیده نمی‌شود ⇒ ۴۰۴.
+//     ⇒ ۴۰۴ (نه ۴۰۳) تا وجود ردیف لو نرود.
 // ============================================================
-const documentsChain = tabChain("customer.portal.documents");
-
-// آپلود: مجوز نوشتن + سقف نوشتن + سهمیه + multer (به همین ترتیب)
-const documentsUploadChain = [
-  ...documentsChain,
-  requirePermission("customer.portal.documents.upload"),
-  portalWriteLimiter,
-  portalDocumentsController.ensureDocumentQuota,
-  uploadPortalDocumentSingle,
-];
-
-// حذف: مجوز حذف + سقف نوشتن + مالکیت ردیف
-const documentsDeleteChain = [
-  ...documentsChain,
-  requirePermission("customer.portal.documents.delete"),
-  portalWriteLimiter,
-  requireOwnedRow({ model: PortalDocument, label: "مدرک" }),
-];
-
-// دانلود: فقط مالکیت ردیف (نوشتن نیست، پس بدون سقف نوشتن)
-const documentsFileChain = [
-  ...documentsChain,
-  requireOwnedRow({ model: PortalDocument, label: "مدرک" }),
-];
-
 router.get(
   "/documents",
-  ...documentsChain,
+  ...chainFor("PORTAL_DOCUMENTS"),
   portalDocumentsController.listMyDocuments,
 );
 
 router.post(
   "/documents",
-  ...documentsUploadChain,
+  ...chainFor("PORTAL_DOCUMENT_UPLOAD"),
   portalDocumentsController.uploadMyDocument,
 );
 
 router.get(
   "/documents/:id/file",
-  ...documentsFileChain,
+  ...chainFor("PORTAL_DOCUMENT_FILE"),
   portalDocumentsController.downloadMyDocument,
 );
 
 router.delete(
   "/documents/:id",
-  ...documentsDeleteChain,
+  ...chainFor("PORTAL_DOCUMENT_DELETE"),
   portalDocumentsController.deleteMyDocument,
 );
 
@@ -328,51 +299,51 @@ router.delete(
 // 🔒 قواعد این بخش:
 //   • customer_id فقط از توکن (req.customerScopeId)
 //   • payload فقط با فهرست سفید ذخیره می‌شود (services/portalRequestRules)
-//   • سقف نوشتن پورتال (portalWriteLimiter) روی هر دو نوشتن فعال است
 //   • لغو فقط روی ردیف خودم: requireOwnedRow ⇒ ردیف غیرخودی ۴۰۴
 // ============================================================
-const farmChain = tabChain("customer.portal.farm");
-
-const farmRequestChain = [
-  ...farmChain,
-  requirePermission("customer.portal.farm.request"),
-  portalWriteLimiter,
-];
-
-const farmCancelChain = [
-  ...farmChain,
-  requirePermission("customer.portal.farm.cancel"),
-  portalWriteLimiter,
-  requireOwnedRow({ model: PortalRequest, label: "درخواست" }),
-];
-
-router.get("/farm/options", ...farmChain, portalFarmController.getFarmOptions);
+router.get(
+  "/farm/options",
+  ...chainFor("FARM_OPTIONS"),
+  portalFarmController.getFarmOptions,
+);
 
 // ✅ ۱۳.۱۳: جزئیات یک سالن خودم (پیش‌پرکردن فرم ویرایش/جزئیات).
-// فقط خواندن است ⇒ بدون سقف نوشتن؛ مالکیت ردیف با requireOwnedRow.
 router.get(
   "/farm/halls/:id",
-  ...farmChain,
-  requireOwnedRow({ model: Hall, label: "سالن" }),
+  ...chainFor("FARM_HALL_DETAIL"),
   portalFarmController.getMyHall,
 );
 
 // ✅ ۱۳.۱۴: جزئیات یک دورهٔ خودم (پیش‌پرکردن فرم هفته/ویرایش دوره).
-// فقط خواندن ⇒ بدون سقف نوشتن؛ مالکیت ردیف با requireOwnedRow.
 router.get(
   "/farm/placements/:id",
-  ...farmChain,
-  requireOwnedRow({ model: ChickPlacement, label: "دوره" }),
+  ...chainFor("FARM_PLACEMENT_DETAIL"),
   portalFarmController.getMyPlacement,
 );
 
 // ✅ ۱۳.۱۵: جزئیات یک هفتهٔ خودم (پیش‌پرکردن فرم ویرایش هفته).
-// فقط خواندن ⇒ بدون سقف نوشتن؛ مالکیت ردیف با requireOwnedRow.
 router.get(
   "/farm/weeklies/:id",
-  ...farmChain,
-  requireOwnedRow({ model: WeeklyManagement, label: "هفته" }),
+  ...chainFor("FARM_WEEKLY_DETAIL"),
   portalFarmController.getMyWeekly,
+);
+
+router.get(
+  "/farm/requests",
+  ...chainFor("FARM_REQUESTS"),
+  portalFarmController.listMyRequests,
+);
+
+router.post(
+  "/farm/requests",
+  ...chainFor("FARM_REQUEST_CREATE"),
+  portalFarmController.createMyRequest,
+);
+
+router.post(
+  "/farm/requests/:id/cancel",
+  ...chainFor("FARM_REQUEST_CANCEL"),
+  portalFarmController.cancelMyRequest,
 );
 
 // ============================================================
@@ -386,45 +357,17 @@ router.get(
 //   • customer.portal.completion        → فهرست + شاخص‌های هر دوره
 //   • customer.portal.completion.report → گزارش نهایی (ریز سالن‌ها،
 //     روند هفتگی، جمع دارو/واکسن)
-//   مالکیت ردیف با requireOwnedRow سنجیده می‌شود ⇒ دورهٔ غیرخودی ۴۰۴.
 // ============================================================
-const completionChain = tabChain("customer.portal.completion");
-
-const completionReportChain = [
-  ...completionChain,
-  requirePermission("customer.portal.completion.report"),
-  requireOwnedRow({ model: FlockCompletion, label: "پایان دوره" }),
-];
-
 router.get(
   "/completions",
-  ...completionChain,
+  ...chainFor("PORTAL_COMPLETIONS"),
   portalCompletionController.listMyCompletions,
 );
 
 router.get(
   "/completions/:id",
-  ...completionReportChain,
+  ...chainFor("PORTAL_COMPLETION_DETAIL"),
   portalCompletionController.getMyCompletion,
 );
 
-router.get(
-  "/farm/requests",
-  ...farmChain,
-  portalFarmController.listMyRequests,
-);
-
-router.post(
-  "/farm/requests",
-  ...farmRequestChain,
-  portalFarmController.createMyRequest,
-);
-
-router.post(
-  "/farm/requests/:id/cancel",
-  ...farmCancelChain,
-  portalFarmController.cancelMyRequest,
-);
-
 module.exports = router;
-

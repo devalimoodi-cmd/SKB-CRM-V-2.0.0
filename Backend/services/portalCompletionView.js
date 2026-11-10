@@ -34,6 +34,9 @@ const {
   toInt,
 } = require("./flockMetrics");
 
+// ✅ ۱۳.۱۸: فهرست «هرگزها» یک‌جا در config/portalSchema است (نه دو نسخه)
+const { FORBIDDEN_FIELDS } = require("../config/portalSchema");
+
 // ============================================================
 // ۱) انواع پایان دوره (برچسب یکتا برای UI)
 // ============================================================
@@ -199,7 +202,34 @@ const HALL_METRICS = [
 ];
 
 // ============================================================
-// ۴) ابزارهای خالص (بدون DB)
+// ۴) «هرگزها» — سنجش در زمان بارگذاری ماژول
+// ------------------------------------------------------------
+//  اگر روزی کسی price_per_kg یا notes را به یکی از فهرست‌های سفید
+//  اضافه کند، این ماژول بالا نمی‌آید (خطای صریح در استارت سرور)
+//  — بهتر از لو رفتن خاموش در اولین درخواست مشتری.
+// ============================================================
+const WHITELIST_KEYS = [
+  ...DB_ATTRIBUTES,
+  ...HALL_DB_ATTRIBUTES,
+  ...WEEK_ATTRIBUTES,
+  ...LIST_KEYS,
+  ...DETAIL_KEYS,
+  ...METRICS.map((metric) => metric.key),
+  ...HALL_METRICS.map((metric) => metric.key),
+];
+
+const LEAKED_FIELDS = WHITELIST_KEYS.filter((key) =>
+  FORBIDDEN_FIELDS.includes(key),
+);
+
+if (LEAKED_FIELDS.length) {
+  throw new Error(
+    `پورتال: فیلد ممنوع در فهرست سفید «پایان دوره»: ${LEAKED_FIELDS.join(", ")}`,
+  );
+}
+
+// ============================================================
+// ۵) ابزارهای خالص (بدون DB)
 // ============================================================
 const plainOf = (row) => {
   if (!row) return {};
@@ -530,6 +560,8 @@ module.exports = {
   DB_ATTRIBUTES,
   HALL_DB_ATTRIBUTES,
   WEEK_ATTRIBUTES,
+  // ✅ ۱۳.۱۸: فهرست «هرگزها» از اسکیمای مشترک (برای گارد هم‌ترازی)
+  FORBIDDEN_KEYS: FORBIDDEN_FIELDS,
   typeLabelOf,
   completionListRow,
   completionReportView,

@@ -150,7 +150,7 @@ const protect = async (req, res, next) => {
 };
 
 const authorize = (...roles) => {
-  return (req, res, next) => {
+  const guard = (req, res, next) => {
     if (!req.user) {
       return res.status(401).json({
         success: false,
@@ -168,6 +168,12 @@ const authorize = (...roles) => {
     }
     next();
   };
+
+  // ✅ ۱۳.۱۸: نشانهٔ نقش‌های مجاز برای گارد هم‌ترازی پورتال
+  //    (روتر پورتال فقط باید authorize(PORTAL_ROLE) داشته باشد)
+  guard.__roles = Object.freeze(roles.flat().filter(Boolean).map(String));
+
+  return guard;
 };
 
 // ✅ دسترسی به «منبع خودِ کاربر» یا نقش‌های مجاز

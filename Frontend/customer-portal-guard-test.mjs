@@ -25,6 +25,9 @@ const require = createRequire(import.meta.url);
 const here = import.meta.dirname;
 const ROOT = path.join(here, "..");
 
+// ✅ ۱۳.۱۸ — اسکیمای مشترک پورتال (منبع کلیدها/مسیرها/مالکیت/پنل‌ها)
+const portalSchema = require(path.join(ROOT, "Backend/config/portalSchema.js"));
+
 const results = [];
 const check = (name, ok, extra = "") => {
   results.push(ok);
@@ -601,25 +604,37 @@ check(
 // ============================================================
 // ۵) مسیر پورتال: زنجیرهٔ دسترسی و بدون هیچ مسیر نوشتنی
 // ============================================================
-// زنجیرهٔ دسترسی فقط از بدنهٔ router سنجیده می‌شود (نه توضیحات بالای فایل)
-const routeBody = SRC.routes.slice(
-  SRC.routes.indexOf("router.use(protect)"),
-);
+// ✅ ۱۳.۱۸: «زنجیرهٔ مشترک» دیگر یک آرایهٔ دستی نیست؛ chainFor آن را از
+//    اسکیما می‌سازد. پس ترتیب قرارداد را در خودِ سازندهٔ زنجیره می‌سنجیم.
+const chainSource =
+  (SRC.routes.match(/const chainFor = \(endpointId\) => \{[\s\S]*?\n\};/) ||
+    [])[0] || "";
 const chain = [
-  'router.use(protect)',
-  'authorize("customer")',
-  'requirePermission("customer.portal.view")',
-  "requireCustomerLink",
-  "portalController.getPortalSummary",
-].map((needle) => routeBody.indexOf(needle));
+  "authorize(PORTAL_ROLE)",
+  "requirePermission(PORTAL_BASE_KEY)",
+  "requireCustomerLink,",
+  "requireOwnScope",
+  "portalWriteLimiter",
+  "requireOwnedRow",
+  "otpLimiter",
+  "uploadPortalDocumentSingle",
+].map((needle) => chainSource.indexOf(needle));
 
 check(
   "مسیر: زنجیرهٔ protect → authorize(customer) → permission → scope → controller",
-  chain.every((index) => index >= 0) &&
+  /router\.use\(protect\);/.test(SRC.routes) &&
+    portalSchema.PORTAL_ROLE === "customer" &&
+    chain.every((index) => index >= 0) &&
     chain[0] < chain[1] &&
     chain[1] < chain[2] &&
     chain[2] < chain[3] &&
-    chain[3] < chain[4],
+    chain[3] < chain[4] &&
+    chain[4] < chain[5] &&
+    chain[5] < chain[6] &&
+    chain[6] < chain[7] &&
+    /chainFor\("PORTAL_ME"\)[\s\S]{0,40}portalController\.getPortalSummary/.test(
+      SRC.routes,
+    ),
   chain.join(","),
 );
 
@@ -642,41 +657,52 @@ check(
     (SRC.routes.match(/router\.delete\(/g) || []).length === 1 &&
     /router\.delete\(\s*\n\s*"\/documents\/:id",/.test(SRC.routes) &&
     // نوشتن‌های پروفایل فقط روی مسیرهای پروفایل‌اند
-    /"\/profile",\s*\n\s*\.\.\.profileEditChain/.test(SRC.routes) &&
+    // ✅ ۱۳.۱۸: زنجیرهٔ ویرایش پروفایل از اسکیما می‌آید (کلید profile.edit)
+    /"\/profile",\s*\n\s*\.\.\.chainFor\("PORTAL_PROFILE_UPDATE"\)/.test(
+      SRC.routes,
+    ) &&
     /"\/profile\/mobile\/request"/.test(SRC.routes) &&
     /"\/profile\/mobile\/confirm"/.test(SRC.routes),
 );
 
 check(
   "مسیر: خلاصه از زنجیرهٔ مشترک و هر تب از زنجیرهٔ خودش (۱۳.۵) عبور می‌کند",
-  /const customerChain = \[/.test(SRC.routes) &&
-    /router\.get\("\/me", \.\.\.customerChain/.test(SRC.routes) &&
-    /const tabChain = \(key\) => \[\.\.\.customerChain, requirePermission\(key\)\]/.test(
-      SRC.routes,
-    ) &&
-    (SRC.routes.match(/\.\.\.tabChain\("customer\.portal\.[a-z]+"\)/g) || [])
-      .length === 5,
+  // ✅ ۱۳.۱۸: یک سازندهٔ زنجیره، یک کلید پایه، و ۲۹ اعلان مسیر — همه از
+  //    اسکیما. «زنجیرهٔ هر تب» حالا فقط کلیدهای همان اندپوینت است.
+  /const chainFor = \(endpointId\) => \{/.test(SRC.routes) &&
+    /chainFor\("PORTAL_ME"\)/.test(SRC.routes) &&
+    (SRC.routes.match(/\.\.\.chainFor\("[A-Z0-9_]+"\)/g) || []).length ===
+      portalSchema.PORTAL_TOTALS.endpoints &&
+    portalSchema.PORTAL_TOTALS.endpoints === 29,
 );
 
 // ✅ ۱۳.۵ — هر تب پورتال کلید مجوز مستقل خودش را دارد
 check(
   "مسیر (۱۳.۵): هر تب پورتال کلید مجوز مستقل خودش را دارد",
-  ["halls", "flocks", "weeks", "visits"].every((name) =>
-    new RegExp(`\\.\\.\\.tabChain\\("customer\\.portal\\.${name}"\\)`).test(
-      SRC.routes,
-    ),
+  ["PORTAL_HALLS", "PORTAL_FLOCKS", "PORTAL_WEEKS", "PORTAL_VISITS"].every(
+    (id) => portalSchema.endpointById(id).keys.length === 1,
   ) &&
-    /requirePermission\("customer\.portal\.visits"\),\s*requirePermission\("customer\.portal\.visit\.report"\)/.test(
-      SRC.routes,
-    ),
+    new Set(
+      ["PORTAL_HALLS", "PORTAL_FLOCKS", "PORTAL_WEEKS", "PORTAL_VISITS"].map(
+        (id) => portalSchema.endpointById(id).keys[0],
+      ),
+    ).size === 4 &&
+    portalSchema
+      .endpointKeys("PORTAL_VISIT_DETAIL")
+      .includes(portalSchema.KEYS.VISIT_REPORT),
 );
 
 // ۱۳.۴ — مسیرهای محتوای گزارش بازدید، کلید مجوز جدا دارند
 check(
   "مسیر (۱۳.۴): بازدید/پیوست از زنجیرهٔ visitReportChain (کلید جدا) عبور می‌کنند",
-  /const visitReportChain = \[/.test(SRC.routes) &&
-    /requirePermission\("customer\.portal\.visit\.report"\)/.test(SRC.routes) &&
-    (SRC.routes.match(/\.\.\.visitReportChain,/g) || []).length === 2,
+  // ✅ ۱۳.۱۸: «کلید جدا» حالا در اسکیما اعلان می‌شود:
+  //    keys: [VISITS, VISIT_REPORT] — و chainFor هر دو را اعمال می‌کند.
+  ["PORTAL_VISIT_DETAIL", "PORTAL_VISIT_ATTACHMENT"].every(
+    (id) =>
+      portalSchema.endpointById(id).keys.length === 2 &&
+      portalSchema.endpointKeys(id).includes(portalSchema.KEYS.VISIT_REPORT),
+  ) &&
+    /\.\.\.chainFor\("PORTAL_VISIT_ATTACHMENT"\)/.test(SRC.routes),
 );
 
 check(
@@ -1165,12 +1191,12 @@ check(
 
 check(
   "۱۳.۴ · مجوز: بازدید/پیوست از زنجیرهٔ کلید جدا و همان requireCustomerLink عبور می‌کنند",
-  /const visitReportChain = \[\s*\.\.\.customerChain,\s*requirePermission\("customer\.portal\.visits"\),\s*requirePermission\("customer\.portal\.visit\.report"\),?\s*\]/.test(
-    SRC.routes.replace(/\r\n/g, "\n"),
+  ["PORTAL_VISIT_DETAIL", "PORTAL_VISIT_ATTACHMENT"].every((id) =>
+    portalSchema.endpointKeys(id).includes(portalSchema.KEYS.VISIT_REPORT),
   ) &&
-    /const customerChain = \[[\s\S]{0,200}?requireCustomerLink/.test(
-      SRC.routes.replace(/\r\n/g, "\n"),
-    ),
+    portalSchema.PORTAL_BASE_KEY === portalSchema.KEYS.VIEW &&
+    // «BASE» همان requireCustomerLink را برای هر ۲۹ مسیر اعمال می‌کند
+    stripComments(SRC.routes).includes("requireCustomerLink,"),
 );
 
 check(
@@ -1292,17 +1318,15 @@ check(
 
 check(
   "۱۳.۵ · کنترلر: خلاصهٔ پرونده بخش‌های بسته را لو نمی‌دهد (sections + null)",
-  /userHasPermission\(req, "customer\.portal\.halls"\)/.test(SRC.controller) &&
-    /userHasPermission\(req, "customer\.portal\.flocks"\)/.test(SRC.controller) &&
-    /userHasPermission\(req, "customer\.portal\.weeks"\)/.test(SRC.controller) &&
-    /userHasPermission\(req, "customer\.portal\.visits"\)/.test(SRC.controller) &&
-    /const sections = \{/.test(SRC.controller) &&
-    // ✅ ۱۳.۸: بلوک features بین sections و counters اضافه شد
-    /sections,\s*\n\s*\/\/[^\n]*\n\s*features: \{[\s\S]*?\n\s*\},\s*\n\s*counters: \{/.test(
-      SRC.controller,
-    ) &&
-    (SRC.controller.match(/orNull\(can/g) || []).length >= 5 &&
-    /latest: \{[\s\S]{0,320}?canFlocks\s*\n?\s*\?[\s\S]{0,200}?: \[\]/.test(
+  // ✅ ۱۳.۱۸: کلیدها/بخش‌ها دیگر دستی تایپ نمی‌شوند؛ کنترلر آن‌ها را از
+  //    اسکیمای مشترک می‌سازد (PORTAL_SECTION_PANELS + panelOpen) و
+  //    شمارندهٔ بخش بسته null و «آخرین‌ها»ی آن خالی می‌ماند.
+  /require\("\.\.\/config\/portalSchema"\)/.test(SRC.controller) &&
+    /PORTAL_SECTION_PANELS\.forEach/.test(SRC.controller) &&
+    /panelOpen\(panelId, has\)/.test(SRC.controller) &&
+    /sections,\s*\n\s*\/\/[^\n]*\n\s*features,/.test(SRC.controller) &&
+    (SRC.controller.match(/orNull\(sections\./g) || []).length >= 5 &&
+    /latest: \{[\s\S]{0,240}?sections\.flocks\s*\n?\s*\?[\s\S]{0,220}?: \[\]/.test(
       SRC.controller,
     ),
 );
@@ -1535,18 +1559,24 @@ check(
 
 check(
   "۱۳.۸ · مسیرها: پروفایل/داشبورد پشت زنجیرهٔ مجوز + محدودکنندهٔ نوشتن + مالکیت گله",
-  /const profileChain = \[/.test(SRC.routes) &&
-    /requirePermission\("customer\.portal\.profile"\)/.test(SRC.routes) &&
-    /requirePermission\("customer\.portal\.profile\.edit"\)/.test(SRC.routes) &&
-    // ✅ موج ۱۳.۱۰: سه نوشتنِ ۱۳.۸ + آپلود و حذف مدرک ⇒ ۵
-    // ✅ موج ۱۳.۱۱: ثبت درخواست فارم + لغو درخواست ⇒ ۷
-    (SRC.routes.match(/(^|\r?\n)[ \t]+portalWriteLimiter,[ \t]*\r?\n/g) || [])
-      .length === 7 &&
-    (SRC.routes.match(/(^|\r?\n)[ \t]+otpLimiter,[ \t]*\r?\n/g) || []).length === 2 &&
-    /requireOwnedRow\(\{\s*\n\s*model: Flock/.test(SRC.routes) &&
-    /key: "flockGroupId"/.test(SRC.routes) &&
-    /key: "flockId"/.test(SRC.routes) &&
-    /requirePermission\("customer\.portal\.dashboard\.analysis"\)/.test(SRC.routes),
+  portalSchema.KEYS.PROFILE === "customer.portal.profile" &&
+    portalSchema.KEYS.PROFILE_EDIT === "customer.portal.profile.edit" &&
+    // ✅ ۱۳.۱۸: هفت نوشتن و دو مسیر پیامکی، در اسکیما اعلان شده‌اند و
+    //    chainFor سقف نرخ را یک‌جا و پیش از مالکیت ردیف می‌گذارد.
+    portalSchema.PORTAL_TOTALS.writes === 7 &&
+    portalSchema.PORTAL_ENDPOINTS.filter((row) => row.otp).length === 2 &&
+    portalSchema
+      .endpointById("DASHBOARD_CHARTS")
+      .ownership.some((row) => row.model === "Flock" && row.key === "flockGroupId") &&
+    portalSchema
+      .endpointById("DASHBOARD_CHARTS")
+      .ownership.some(
+        (row) => row.model === "ChickPlacement" && row.key === "flockId",
+      ) &&
+    portalSchema
+      .endpointKeys("DASHBOARD_ANALYSIS")
+      .includes(portalSchema.KEYS.DASHBOARD_ANALYSIS) &&
+    /chainFor\("PORTAL_PROFILE_UPDATE"\)/.test(SRC.routes),
 );
 
 check(
@@ -1849,14 +1879,23 @@ const DELETE_CALL_PATTERN =
 
 check(
   "۱۳.۱۰ · مسیرها: چهار مسیر مدارک با زنجیرهٔ تب + کلید آپلود/حذف + مالکیت ردیف",
-  /const documentsChain = tabChain\("customer\.portal\.documents"\)/.test(
-    SRC.routes,
-  ) &&
-    /requirePermission\("customer\.portal\.documents\.upload"\)/.test(SRC.routes) &&
-    /requirePermission\("customer\.portal\.documents\.delete"\)/.test(SRC.routes) &&
-    /requireOwnedRow\(\{ model: PortalDocument, label: "مدرک" \}\)/.test(
-      SRC.routes,
-    ) &&
+  [
+    "PORTAL_DOCUMENTS",
+    "PORTAL_DOCUMENT_UPLOAD",
+    "PORTAL_DOCUMENT_FILE",
+    "PORTAL_DOCUMENT_DELETE",
+  ].every((id) => SRC.routes.includes('...chainFor("' + id + '")')) &&
+    portalSchema
+      .endpointKeys("PORTAL_DOCUMENT_UPLOAD")
+      .includes(portalSchema.KEYS.DOCUMENTS_UPLOAD) &&
+    portalSchema
+      .endpointKeys("PORTAL_DOCUMENT_DELETE")
+      .includes(portalSchema.KEYS.DOCUMENTS_DELETE) &&
+    portalSchema
+      .endpointById("PORTAL_DOCUMENT_DELETE")
+      .ownership.some(
+        (row) => row.model === "PortalDocument" && row.label === "مدرک",
+      ) &&
     /router\.get\(\s*\n\s*"\/documents",/.test(SRC.routes) &&
     /router\.post\(\s*\n\s*"\/documents",/.test(SRC.routes) &&
     /router\.get\(\s*\n\s*"\/documents\/:id\/file",/.test(SRC.routes) &&
@@ -2408,11 +2447,13 @@ check(
 
 check(
   "۱۳.۱۱ · لغو درخواست: مالکیت ردیف + فقط pending + سقف نوشتن",
-  /const farmCancelChain = \[/.test(SRC.routes) &&
-    /requireOwnedRow\(\{ model: PortalRequest, label: "درخواست" \}\)/.test(
-      SRC.routes,
+  // ✅ ۱۳.۱۸: مالکیت و سقفِ نوشتن در اسکیما اعلان شده‌اند (نه در متن روتر)
+  portalSchema
+    .endpointById("FARM_REQUEST_CANCEL")
+    .ownership.some(
+      (row) => row.model === "PortalRequest" && row.label === "درخواست",
     ) &&
-    /portalWriteLimiter,/.test(SRC.routes) &&
+    portalSchema.endpointById("FARM_REQUEST_CANCEL").write === true &&
     /cancel_only_pending", 409/.test(SRC.farmService),
 );
 
@@ -2456,11 +2497,13 @@ check(
 
 check(
   "۱۳.۱۱ · پورتال: سرور هم features.farm_* و sections.farm را برمی‌گرداند",
-  /customer\.portal\.farm\.request/.test(SRC.controller) &&
-    /customer\.portal\.farm\.cancel/.test(SRC.controller) &&
-    /farm: canFarm,/.test(SRC.controller) &&
-    /farm_request: Boolean\(canFarm && canFarmRequest\)/.test(SRC.controller) &&
-    /farm_cancel: Boolean\(canFarm && canFarmCancel\)/.test(SRC.controller),
+  // ✅ ۱۳.۱۸: پرچم‌ها دیگر دستی تایپ نمی‌شوند؛ هر دو بلوک از اسکیمای
+  //    مشترک (PORTAL_FEATURES / PORTAL_SECTION_PANELS) ساخته می‌شوند و
+  //    گارد «portal-schema-test» کلیدهای farm_request/farm_cancel را
+  //    دقیق می‌سنجد.
+  /require\("\.\.\/config\/portalSchema"\)/.test(SRC.controller) &&
+    /PORTAL_FEATURES\.forEach/.test(SRC.controller) &&
+    /PORTAL_SECTION_PANELS\.forEach/.test(SRC.controller),
 );
 
 check(
@@ -2596,7 +2639,12 @@ check(
 check(
   "۱۳.۱۳ · مسیر «جزئیات سالن خودم» با مالکیت ردیف و بدون سقف نوشتن",
   /"\/farm\/halls\/:id"/.test(SRC.farmRoutes) &&
-    /requireOwnedRow\(\{ model: Hall, label: "سالن" \}\)/.test(SRC.farmRoutes) &&
+    // ✅ ۱۳.۱۸: مالکیت ردیف در اسکیما اعلان شده (model/label) و chainFor
+    //    آن را به‌صورت requireOwnedRow روی مسیر سوار می‌کند.
+    portalSchema
+      .endpointById("FARM_HALL_DETAIL")
+      .ownership.some((row) => row.model === "Hall" && row.label === "سالن") &&
+    portalSchema.endpointById("FARM_HALL_DETAIL").write === false &&
     /hallDetailsFor/.test(SRC.farmService),
 );
 
@@ -2707,9 +2755,12 @@ check(
 check(
   "۱۳.۱۴ · مسیر «جزئیات دورهٔ خودم» با مالکیت ردیف ثبت شده است",
   /"\/farm\/placements\/:id"/.test(SRC.farmRoutes) &&
-    /requireOwnedRow\(\{ model: ChickPlacement, label: "دوره" \}\)/.test(
-      SRC.farmRoutes,
-    ) &&
+    portalSchema
+      .endpointById("FARM_PLACEMENT_DETAIL")
+      .ownership.some(
+        (row) => row.model === "ChickPlacement" && row.label === "دوره",
+      ) &&
+    portalSchema.endpointById("FARM_PLACEMENT_DETAIL").write === false &&
     /placementDetailsFor/.test(SRC.farmService),
 );
 
@@ -2855,9 +2906,12 @@ check(
     /async getFarmPlacementDetails\(id\)/.test(SRC.portalApi) &&
     /async getFarmWeeklyDetails\(id\)/.test(SRC.portalApi) &&
     /"\/farm\/weeklies\/:id"/.test(SRC.farmRoutes) &&
-    /requireOwnedRow\(\{ model: WeeklyManagement, label: "هفته" \}\)/.test(
-      SRC.farmRoutes,
-    ) &&
+    portalSchema
+      .endpointById("FARM_WEEKLY_DETAIL")
+      .ownership.some(
+        (row) => row.model === "WeeklyManagement" && row.label === "هفته",
+      ) &&
+    portalSchema.endpointById("FARM_WEEKLY_DETAIL").write === false &&
     /const weeklyDetailsFor = async \(\{ customerId, weeklyId \}\)/.test(
       SRC.farmService,
     ) &&

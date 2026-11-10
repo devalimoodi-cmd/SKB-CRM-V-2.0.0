@@ -28,6 +28,8 @@ const check = (name, ok, extra = "") => {
 
 const rules = require("./services/portalRequestRules.js");
 const flockResolver = require("./services/flockResolver.js");
+// ✅ ۱۳.۱۸ — اسکیمای مشترک پورتال: مالکیت ردیفِ مسیرهای جزئیات از همین‌جا می‌آید
+const portalSchema = require("./config/portalSchema.js");
 
 // ============================================================
 // ۱) انواع و وضعیت‌ها
@@ -653,9 +655,10 @@ check(
 check(
   "۱۳.۱۳ · مسیر «جزئیات سالن خودم» با مالکیت ردیف ثبت شده است",
   /"\/farm\/halls\/:id"/.test(farmRoutesSource) &&
-    /requireOwnedRow\(\{ model: Hall, label: "سالن" \}\)/.test(
-      farmRoutesSource,
-    ) &&
+    // ✅ ۱۳.۱۸: مالکیت ردیف در اسکیما اعلان می‌شود و chainFor آن را می‌سازد
+    portalSchema
+      .endpointById("FARM_HALL_DETAIL")
+      .ownership.some((row) => row.model === "Hall" && row.label === "سالن") &&
     /hallDetailsFor/.test(serviceSource),
 );
 
@@ -876,9 +879,11 @@ check(
 check(
   "۱۳.۱۴ · مسیر «جزئیات دورهٔ خودم» با مالکیت ردیف ثبت شده است",
   /"\/farm\/placements\/:id"/.test(farmRoutesSource) &&
-    /requireOwnedRow\(\{ model: ChickPlacement, label: "دوره" \}\)/.test(
-      farmRoutesSource,
-    ) &&
+    portalSchema
+      .endpointById("FARM_PLACEMENT_DETAIL")
+      .ownership.some(
+        (row) => row.model === "ChickPlacement" && row.label === "دوره",
+      ) &&
     /placementDetailsFor/.test(serviceSource) &&
     /weeklies: weeklies\.map/.test(serviceSource),
 );
@@ -919,9 +924,11 @@ check(
 check(
   "۱۳.۱۵ · مسیر /farm/weeklies/:id فقط خواندنی و با requireOwnedRow",
   /"\/farm\/weeklies\/:id"/.test(farmRoutesSource) &&
-    /requireOwnedRow\(\{ model: WeeklyManagement, label: "هفته" \}\)/.test(
-      farmRoutesSource,
-    ) &&
+    portalSchema
+      .endpointById("FARM_WEEKLY_DETAIL")
+      .ownership.some(
+        (row) => row.model === "WeeklyManagement" && row.label === "هفته",
+      ) &&
     /getMyWeekly/.test(farmControllerSource) &&
     /weeklyDetailsFor\(\{/.test(farmControllerSource) &&
     /REQUEST_MESSAGES\.weekly_not_found/.test(farmControllerSource),

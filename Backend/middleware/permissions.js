@@ -48,7 +48,7 @@ const resolvePermissions = async (req) => {
 const requirePermission = (...keys) => {
   const wanted = keys.flat().filter(Boolean);
 
-  return async (req, res, next) => {
+  const guard = async (req, res, next) => {
     try {
       if (!req.user) {
         return res.status(401).json({
@@ -90,6 +90,13 @@ const requirePermission = (...keys) => {
       });
     }
   };
+
+  // ✅ ۱۳.۱۸: «نشانهٔ خوانا» برای گارد هم‌ترازی پورتال
+  //    (config/portalSchema). فقط آزمون‌پذیری؛ رفتار میان‌افزار
+  //    ذره‌ای عوض نمی‌شود (کلیدها همان‌ها هستند، فقط قابل خواندن‌اند).
+  guard.__permissionKeys = Object.freeze([...wanted]);
+
+  return guard;
 };
 
 // خوانا‌تر: چند کلید، یکی کافی است

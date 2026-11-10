@@ -62,6 +62,7 @@ const STEPS = [
   'test:portal-menu',
   'test:farm-write',
   'test:portal-completion',
+  'test:portal-schema', 'test:portal-schema-guard',
   'test:registration',
   'audit:size', 'audit:dead-exports', 'audit:surface', 'audit:big-methods',
 ];

@@ -73,6 +73,8 @@ const CODE = {
 
 const view = require(path.join(ROOT, FILES.view));
 const catalog = require(path.join(ROOT, FILES.permissions));
+// ✅ ۱۳.۱۸ — اسکیمای مشترک پورتال (پنل‌ها/کلیدها/قابلیت‌ها)
+const schema = require(path.join(ROOT, "Backend/config/portalSchema.js"));
 
 // ============================================================
 // ۱) فایل‌ها و صادرات
@@ -360,16 +362,24 @@ check(
   "۱۳.۱۹ · مسیرها: دو GET تازه در زنجیرهٔ تب «پایان دوره»",
   /router\.get\(\s*"\/completions"/.test(CODE.routes) &&
     /router\.get\(\s*"\/completions\/:id"/.test(CODE.routes) &&
-    /const completionChain = tabChain\("customer\.portal\.completion"\)/.test(
-      CODE.routes,
-    ),
+    // ✅ ۱۳.۱۸: زنجیرهٔ تب از اسکیما می‌آید (کلید customer.portal.completion)
+    /\.\.\.chainFor\("PORTAL_COMPLETIONS"\)/.test(CODE.routes) &&
+    /\.\.\.chainFor\("PORTAL_COMPLETION_DETAIL"\)/.test(CODE.routes),
 );
 
 check(
   "۱۳.۱۹ · مسیرها: گزارش تفصیلی کلید جدا + مالکیت ردیف (۴۰۴ غیرخودی)",
-  /customer\.portal\.completion\.report/.test(CODE.routes) &&
-    /requireOwnedRow\(\{\s*model:\s*FlockCompletion/.test(CODE.routes) &&
-    /label:\s*"پایان دوره"/.test(CODE.routes),
+  // ✅ ۱۳.۱۸: کلید جدا و مالکیت ردیف در config/portalSchema اعلان شده‌اند
+  //    و chainFor آن‌ها را روی همان مسیر سوار می‌کند.
+  (schema.endpointById("PORTAL_COMPLETION_DETAIL").keys || []).includes(
+    schema.KEYS.COMPLETION_REPORT,
+  ) &&
+    schema
+      .endpointById("PORTAL_COMPLETION_DETAIL")
+      .ownership.some(
+        (row) => row.model === "FlockCompletion" && row.label === "پایان دوره",
+      ) &&
+    /requireOwnedRow/.test(CODE.routes),
 );
 
 check(
@@ -418,14 +428,21 @@ check(
 // ۵) پورتال: بخش‌های خلاصه + کلیدها
 // ============================================================
 check(
-  "۱۳.۱۹ · portalController: sections دو پنل تازه را برمی‌گرداند",
-  /completion:\s*canCompletion,/.test(SRC.portalController) &&
-    /finalReport:\s*Boolean\(canCompletion && canCompletionReport\)/.test(
-      SRC.portalController,
+  "۱۳.۱۹ · پنل «پایان دوره»/«گزارش نهایی» در اسکیما و خلاصهٔ /me حاضرند",
+  // ✅ ۱۳.۱۸: به‌جای پرچم دستی در کنترلر، اسکیمای مشترک منبع است
+  schema.PORTAL_SECTION_PANELS.includes("completion") &&
+    schema.PORTAL_SECTION_PANELS.includes("finalReport") &&
+    schema.panelById("finalReport").content.mode === "all" &&
+    schema.panelById("finalReport").content.keys.length === 2 &&
+    schema
+      .panelById("finalReport")
+      .content.keys.includes(schema.KEYS.COMPLETION_REPORT) &&
+    schema.PORTAL_FEATURES.some(
+      (row) =>
+        row.key === "completion_report" &&
+        row.extra === schema.KEYS.COMPLETION_REPORT,
     ) &&
-    /completion_report:\s*Boolean\(canCompletion && canCompletionReport\)/.test(
-      SRC.portalController,
-    ),
+    /PORTAL_FEATURES\.forEach/.test(SRC.portalController),
 );
 
 check(

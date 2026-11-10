@@ -22,6 +22,7 @@
     "test:permissions": "node permissions-test.mjs",
     "test:portal-requests": "node portal-request-test.mjs",
     "test:portal-completion": "node portal-completion-test.mjs",
+    "test:portal-schema": "node portal-schema-test.mjs",
     "test:farm-write": "node farm-write-test.mjs",
     "test:presence:e2e": "node presence-e2e-test.mjs",
     "test:sessions:e2e": "node session-e2e-test.mjs",

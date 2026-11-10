@@ -55,7 +55,7 @@ const scopeOf = (req) =>
 //   store   نام کلید روی req برای ردیف تأییدشده (پیش‌فرض "ownedRow")
 //   label   برچسب فارسی برای لاگ/پیام
 // ============================================
-const requireOwnedRow =
+const ownedRowGuard =
   ({ model, source = "params", key = "id", field = "customer_id", store = "ownedRow", label = "ردیف" } = {}) =>
   async (req, res, next) => {
     try {
@@ -96,6 +96,22 @@ const requireOwnedRow =
       });
     }
   };
+
+// ✅ ۱۳.۱۸ — پوستهٔ عمومی: همان میان‌افزار بالا + «نشانهٔ خوانا» تا
+//    گارد هم‌ترازی پورتال بتواند مدل/منبع/کلید هر ردیف را بخواند
+//    و با config/portalSchema بسنجد (بدون تغییر رفتار).
+const requireOwnedRow = (options = {}) => {
+  const guard = ownedRowGuard(options);
+  guard.__ownedRow = Object.freeze({
+    model: options.model ? options.model.name : null,
+    source: options.source || "params",
+    key: options.key || "id",
+    field: options.field || "customer_id",
+    store: options.store || "ownedRow",
+    label: options.label || "ردیف",
+  });
+  return guard;
+};
 
 // ============================================
 // ۲) «پروندهٔ خودم» — درخواست بدون اسکوپ رد می‌شود (بدون کوئری)

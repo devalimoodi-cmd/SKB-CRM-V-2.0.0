@@ -56,6 +56,15 @@ const {
 } = require("../services/portalProfileRules");
 const { maskMobile } = require("../services/registrationRules");
 
+// ✅ موج ۱۳.۱۸ — اسکیمای مشترک پورتال: تنها منبع کلیدها/پنل‌ها/قابلیت‌ها
+const {
+  KEYS,
+  PORTAL_SECTION_PANELS,
+  PORTAL_FEATURES,
+  panelById,
+  panelOpen,
+} = require("../config/portalSchema");
+
 // سقف ردیف‌های «آخرین‌ها» (پورتال سبک بماند)
 const LATEST_LIMIT = 3;
 
@@ -210,59 +219,39 @@ const getPortalSummary = async (req, res) => {
     // ✅ ۱۳.۵: بخشی که مدیر برای نقش/کاربرِ مشتری بسته است، در خلاصه هم
     //    لو نمی‌رود: شمارندهٔ آن null می‌شود (کارت مربوطه در UI حذف
     //    می‌شود) و «آخرین ردیف‌ها»ی آن خالی برمی‌گردد.
-    //    کلیدها: customer.portal.{halls,flocks,weeks,visits}
-    // ✅ ۱۳.۸: تب‌های «پروفایل من» و «داشبورد تحلیلی» هم کلید مستقل دارند.
-    const [
-      canHalls,
-      canFlocks,
-      canWeeks,
-      canVisits,
-      canProfile,
-      canProfileEdit,
-      canDashboard,
-      canDashboardAnalysis,
-      canDashboardCompare,
-      canDashboardExport,
-      canFarm,
-      canFarmRequest,
-      canFarmCancel,
-      canCompletion,
-      canCompletionReport,
-    ] = await Promise.all([
-      userHasPermission(req, "customer.portal.halls"),
-      userHasPermission(req, "customer.portal.flocks"),
-      userHasPermission(req, "customer.portal.weeks"),
-      userHasPermission(req, "customer.portal.visits"),
-      userHasPermission(req, "customer.portal.profile"),
-      userHasPermission(req, "customer.portal.profile.edit"),
-      userHasPermission(req, "customer.portal.dashboard"),
-      userHasPermission(req, "customer.portal.dashboard.analysis"),
-      userHasPermission(req, "customer.portal.dashboard.compare"),
-      userHasPermission(req, "customer.portal.dashboard.export"),
-      // ✅ موج ۱۳.۱۱ — «درخواست‌های فارم» (الگوی ب)
-      userHasPermission(req, "customer.portal.farm"),
-      userHasPermission(req, "customer.portal.farm.request"),
-      userHasPermission(req, "customer.portal.farm.cancel"),
-      // ✅ موج ۱۳.۱۹ — «پایان دوره» + گزارش تفصیلی آن
-      userHasPermission(req, "customer.portal.completion"),
-      userHasPermission(req, "customer.portal.completion.report"),
-    ]);
+    //    ✅ ۱۳.۸ / ۱۳.۱۸: کلید محتوای هر بخش از همان پنل در اسکیما می‌آید.
+    // ✅ ۱۳.۱۸: فهرست کلیدهای لازم از اسکیمای مشترک ساخته می‌شود
+    //    (کلیدهای محتوای بخش‌ها + کلید افزون هر قابلیت). پیش از این موج
+    //    ۱۵ کلید دستی تایپ شده بود و کلید تازه‌ای که در منو/روتر اضافه
+    //    می‌شد، این‌جا جا می‌ماند ⇒ پنل باز ولی دکمهٔ بسته.
+    const summaryKeys = [
+      ...new Set([
+        ...PORTAL_SECTION_PANELS.flatMap(
+          (panelId) => panelById(panelId).content.keys,
+        ),
+        ...PORTAL_FEATURES.map((feature) => feature.extra),
+      ]),
+    ];
 
-    const sections = {
-      halls: canHalls,
-      flocks: canFlocks,
-      weeks: canWeeks,
-      visits: canVisits,
-      profile: canProfile,
-      dashboard: canDashboard,
-      // ✅ تب «درخواست‌های فارم» — تا تأیید کارشناس چیزی ساخته نمی‌شود
-      farm: canFarm,
-      // ✅ ۱۳.۱۹: «پایان دوره» و «گزارش نهایی» — گزارش نهایی فقط با
-      //    هر دو کلید (فهرست + تفصیل) باز می‌شود تا پنل هرگز بدون
-      //    انتخابگر دوره به کاربر نشان داده نشود.
-      completion: canCompletion,
-      finalReport: Boolean(canCompletion && canCompletionReport),
-    };
+    const grantedFlags = await Promise.all(
+      summaryKeys.map((key) => userHasPermission(req, key)),
+    );
+
+    // has(کلید) ⇒ «این مجوز برای این حساب روشن است؟»
+    const has = (key) => grantedFlags[summaryKeys.indexOf(key)] === true;
+
+    // بخش‌ها: همان منطق «لایهٔ محتوا» که فرانت و گارد هم اجرا می‌کنند
+    const sections = {};
+    PORTAL_SECTION_PANELS.forEach((panelId) => {
+      sections[panelId] = panelOpen(panelId, has);
+    });
+
+    // قابلیت درون‌تبی = «پنلش باز» + «کلید افزونش روشن»
+    const features = {};
+    PORTAL_FEATURES.forEach((feature) => {
+      const panelKeys = panelById(feature.panel).content.keys;
+      features[feature.key] = panelKeys.every((key) => has(key)) && has(feature.extra);
+    });
 
     // null = «این بخش بسته است» (با 0 اشتباه نشود)
     const orNull = (allowed, value) => (allowed ? value : null);
@@ -278,33 +267,23 @@ const getPortalSummary = async (req, res) => {
         },
         // ✅ منبع حقیقت برای فرانت: کدام تب‌ها برای این حساب باز است
         sections,
-        // ✅ ۱۳.۸: قابلیت‌های درون‌تبی (ویرایش پروفایل/تحلیل/مقایسه)
-        features: {
-          can_edit_profile: Boolean(canProfile && canProfileEdit),
-          dashboard_analysis: Boolean(canDashboard && canDashboardAnalysis),
-          dashboard_compare: Boolean(canDashboard && canDashboardCompare),
-          dashboard_export: Boolean(canDashboard && canDashboardExport),
-          // ✅ ۱۳.۱۱: فقط گیت دکمه‌ها — اعمال واقعی پس از تأیید کارشناس
-          farm_request: Boolean(canFarm && canFarmRequest),
-          farm_cancel: Boolean(canFarm && canFarmCancel),
-          // ✅ ۱۳.۱۹: دکمهٔ «مشاهدهٔ گزارش نهایی» روی کارت پایان دوره
-          completion_report: Boolean(canCompletion && canCompletionReport),
-        },
+        // ✅ ۱۳.۱۸: قابلیت‌های درون‌تبی از PORTAL_FEATURES ساخته شد
+        features,
         counters: {
-          halls: orNull(canHalls, hallsTotal),
-          active_halls: orNull(canHalls, hallsActive),
-          active_flocks: orNull(canFlocks, flocksActive),
-          weeks_recorded: orNull(canWeeks, weeksRecorded),
-          unread_visits: orNull(canVisits, visitsUnread),
+          halls: orNull(sections.halls, hallsTotal),
+          active_halls: orNull(sections.halls, hallsActive),
+          active_flocks: orNull(sections.flocks, flocksActive),
+          weeks_recorded: orNull(sections.weeks, weeksRecorded),
+          unread_visits: orNull(sections.visits, visitsUnread),
         },
         latest: {
-          flocks: canFlocks
+          flocks: sections.flocks
             ? latestFlocks.map((row) => flockView(toPlain(row)))
             : [],
-          weeks: canWeeks
+          weeks: sections.weeks
             ? latestWeeks.map((row) => weekView(toPlain(row)))
             : [],
-          visits: canVisits
+          visits: sections.visits
             ? latestVisits.map((row) => visitView(toPlain(row)))
             : [],
         },
@@ -1016,7 +995,8 @@ const getMyProfile = async (req, res) => {
         })
       : null;
 
-    const canEdit = await userHasPermission(req, "customer.portal.profile.edit");
+    // ✅ ۱۳.۱۸: کلید از اسکیمای مشترک (نه رشتهٔ دستی)
+    const canEdit = await userHasPermission(req, KEYS.PROFILE_EDIT);
 
     return successResponse(
       res,

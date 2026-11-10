@@ -17,8 +17,8 @@
 // 🔒 قواعد:
 //   • مقایسه فقط بین گله‌های خودِ مشتری (تصمیم کارفرما در ۱۳.۸)
 //   • هرگز customerId از بدنه/کوئری خوانده نمی‌شود
-//   • کلیدهای customer.portal.chart.* فقط برچسب نمایش را کنترل می‌کنند
-//     و در همین پاسخ به‌صورت charts:{...} برمی‌گردند
+//   • کلیدهای نمودار فقط برچسب نمایش را کنترل می‌کنند و در همین پاسخ
+//     به‌صورت charts:{...} برمی‌گردند (فهرستشان: PORTAL_CHARTS در اسکیما)
 // ============================================================
 "use strict";
 
@@ -34,6 +34,8 @@ const {
 } = require("../services/portalDashboardScope");
 const { userHasPermission } = require("../middleware/permissions");
 const { successResponse, errorResponse } = require("../utils/response");
+// ✅ ۱۳.۱۸ — فهرست نمودارها + کلیدهایشان (تنها منبع تعریف)
+const { PORTAL_CHARTS } = require("../config/portalSchema");
 
 const denyUnlinked = (res) =>
   errorResponse(
@@ -105,21 +107,15 @@ const getMyDashboardOptions = async (req, res) => {
       }),
     );
 
-    const [
-      canWeight,
-      canGain,
-      canMortality,
-      canFeed,
-      canFcr,
-      canStandards,
-    ] = await Promise.all([
-      userHasPermission(req, "customer.portal.chart.weight"),
-      userHasPermission(req, "customer.portal.chart.gain"),
-      userHasPermission(req, "customer.portal.chart.mortality"),
-      userHasPermission(req, "customer.portal.chart.feed"),
-      userHasPermission(req, "customer.portal.chart.fcr"),
-      userHasPermission(req, "customer.portal.chart.standards"),
-    ]);
+    // ✅ ۱۳.۱۸: فهرست نمودارها و کلیدهایشان از اسکیمای مشترک می‌آید
+    //    (پیش از این شش کلید در سه جا دستی تایپ می‌شد)
+    const grantedCharts = await Promise.all(
+      PORTAL_CHARTS.map((chart) => userHasPermission(req, chart.permission)),
+    );
+    const charts = PORTAL_CHARTS.reduce((acc, chart, index) => {
+      acc[chart.key] = grantedCharts[index] === true;
+      return acc;
+    }, {});
 
     return successResponse(
       res,
@@ -145,14 +141,8 @@ const getMyDashboardOptions = async (req, res) => {
             is_active: Boolean(plain.is_active),
           };
         }),
-        charts: {
-          weight: canWeight,
-          gain: canGain,
-          mortality: canMortality,
-          feed: canFeed,
-          fcr: canFcr,
-          standards: canStandards,
-        },
+        // ✅ ۱۳.۱۸: { weight, gain, mortality, feed, fcr, standards } از اسکیما
+        charts,
         meta: { scope: "self", generated_at: new Date().toISOString() },
       },
       "گزینه‌های نمودار شما",

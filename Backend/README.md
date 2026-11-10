@@ -806,4 +806,26 @@ npm run lint                  # ۰ خطا
 | آزمون | `npm run test:portal-completion` ⇒ **۳۱** بررسی (اجرای واقعی فهرست سفید، تجمیع، روند، هشدارها + سیم‌کشی مسیر/کنترلر/سرویس) |
 
 📄 گزارش کامل: `docs/REVIEW-WAVE-13.19.md`.
+## اسکیمای مشترک پورتال و گاردهای هم‌ترازی (موج ۱۳.۱۸)
+
+این موج قابلیت تازه‌ای به پورتال مشتری اضافه نمی‌کند؛ **یک واقعیت واحد**
+(کلید مجوز، مسیر، پنل، مالکیت ردیف) را از چهار جای دست‌تایپ‌شده به **یک فایل**
+منتقل می‌کند و دو گارد می‌نویسد که هم‌ترازی را اجرا می‌سنجند.
+
+| موضوع | مقدار |
+|---|---|
+| فایل تازه | `config/portalSchema.js` — خالص و بدون DB: `KEYS` (۲۶) · `PORTAL_PANELS` (۱۴) · `PORTAL_ENDPOINTS` (۲۹: ۲۲ خواندن + ۷ نوشتن) · `PORTAL_FEATURES` (۹) · `PORTAL_SECTION_PANELS` (۹) · `PORTAL_CHARTS` (۶) · `FORBIDDEN_FIELDS` · `WHITELIST_MODELS` · `panelOpen`/`endpointById` |
+| روتر | `routes/portalRoutes.js` بازنویسی شد: تنها `chainFor("<ENDPOINT_ID>")`؛ در کل فایل **یک** `requirePermission(` و **یک** `requireOwnedRow(` — هر دو داخل `chainFor` |
+| زنجیره | `protect` → `authorize("customer")` → `requirePermission(customer.portal.view)` → `requireCustomerLink` → کلیدهای اندپوینت → `requireOwnScope` → `portalWriteLimiter` → `requireOwnedRow` → `otpLimiter` → سهمیه + multer |
+| خطای زودهنگام | مدل ناشناخته در `ownership` ⇒ **خطای استارت** (نه مسیر بی‌مالکیت در زمان اجرا) |
+| `/me` | `sections`/`features` دیگر پرچم دستی ندارند: `PORTAL_SECTION_PANELS` + `PORTAL_FEATURES` + `panelOpen` |
+| نمودارها | `portalDashboardController` پرچم‌ها را از `PORTAL_CHARTS` می‌سازد (بدون فهرست دوم) |
+| فیلدهای «هرگز» | `FORBIDDEN_FIELDS` از اسکیما؛ `services/portalCompletionView.js` هنگام بارگذاری assert می‌کند که هیچ فیلد ممنوعی در فهرست سفید نیست |
+| ستون‌های مدل | `WHITELIST_MODELS`: FlockCompletion=۶۶ · FlockCompletionHall=۲۴ · WeeklyManagement=۲۰ ⇒ ستون تازه = FAIL (تصمیم نمایش آگاهانه) |
+| نشانه‌های آزمون | `requirePermission.__permissionKeys` · `authorize.__roles` · `requireOwnedRow.__ownedRow` · `createRateLimiter.__rateLimiter` (فقط برای گاردها؛ بدون تغییر رفتار) |
+| اندپوینت/کلید/مایگریشن تازه | **هیچ** — همان ۲۹ مسیر و ۲۲۷ کلید |
+| آزمون | `npm run test:portal-schema` ⇒ **۴۶** بررسی: پیمایش واقعی `router.stack` (طول زنجیره، نقش، ترتیب کلیدها، جای سقف‌ها، مالکیت هر ردیف، آخرین لایه = کنترلر) + پنل ⇔ `portal.html` + فیلد ممنوع + شمارندهٔ ستون‌ها |
+
+📄 گزارش کامل: `docs/REVIEW-WAVE-13.18.md`.
+
 
