@@ -9,6 +9,7 @@
 //   ۲) api.const.js    (مسیرها)        ⇔ PORTAL_ENDPOINTS.path
 //   ۳) portal.views.js (requires/All)  ⇔ پنل: mode + keys
 //   ۴) features.* در مرورگر            ⇔ PORTAL_FEATURES
+//      (✅ ۱۳.۲۰: صفر استثنا — هر قابلیت سرور باید در UI خوانده شود)
 //   ۵) charts.* در رندرکننده           ⇔ PORTAL_CHARTS
 //   ۶) فیلدهای «هرگز»                  ⇔ هیچ‌جای UI پورتال
 //
@@ -342,20 +343,55 @@ check(
   [...featureReads].filter((name) => !declaredFeatures.includes(name)).join(", "),
 );
 
-// پرچم‌هایی که سرور می‌فرستد ولی UI فعلاً مصرف نمی‌کند (مستند، نه فراموش‌شده)
-const SERVER_ONLY_FEATURES = [
-  "dashboard_analysis", // تحلیل/مقایسه در همین نسخه به تب اختصاصی نرسیده
-  "completion_report", // دکمهٔ گزارش نهایی در ۱۳.۱۹ از contentKey منو می‌آید
-];
+// ✅ موج ۱۳.۲۰ — فهرست استثنای «فقط-سرور» حذف شد. در ۱۳.۱۸ دو پرچم
+//    (`dashboard_analysis` و `completion_report`) صرفاً «مستند» بودند؛
+//    اکنون هر دو گیت واقعی UI هستند، پس گارد سخت‌گیرانه است: هر قابلیتی
+//    که سرور اعلام می‌کند باید در مرورگر هم خوانده شود.
+check(
+  "۱۳.۲۰ · هر قابلیت اعلام‌شده در سرور، در مرورگر هم خوانده می‌شود (صفر استثنا)",
+  declaredFeatures.every((name) => featureReads.has(name)),
+  declaredFeatures.filter((name) => !featureReads.has(name)).join(", "),
+);
+
+// ------------------------------------------------------------
+// ۴.۱) دو گیت تازهٔ ۱۳.۲۰ — «سرور اول، کلاینت fallback»
+// ------------------------------------------------------------
+const extraClean = stripComments(read(FILES.extra));
+const viewsClean = stripComments(read(FILES.views));
+const ANALYSIS_CALL = 'getDashboardAnalysis({ scope: "all" })';
+const analysisGateAt = extraClean.indexOf("this.canOpenDashboardAnalysis()");
+const analysisCallAt = extraClean.indexOf(ANALYSIS_CALL);
 
 check(
-  "۱۳.۱۸ · هر قابلیت اسکیما یا در مرورگر مصرف می‌شود یا «فقط-سرور» مستند است",
-  declaredFeatures.every(
-    (name) => featureReads.has(name) || SERVER_ONLY_FEATURES.includes(name),
-  ),
-  declaredFeatures
-    .filter((name) => !featureReads.has(name) && !SERVER_ONLY_FEATURES.includes(name))
-    .join(", "),
+  "۱۳.۲۰ · درخواست /dashboard/analysis داخل گیت features.dashboard_analysis است",
+  // (۱) helper سرور-اول وجود دارد
+  /canOpenDashboardAnalysis\(\) \{/.test(extraClean) &&
+    /if \(features && typeof features\.dashboard_analysis === "boolean"\)/.test(
+      extraClean,
+    ) &&
+    // (۲) همان helper در شرط بلوک استاندارد نژاد است (همراه با پرچم نمودار)
+    /if \(\s*standardsBox &&\s*allowed\.standards !== false &&\s*this\.canOpenDashboardAnalysis\(\),?\s*\)/.test(
+      extraClean,
+    ) &&
+    // (۳) و فراخوانی اندپوینت *بعد* از گیت می‌آید (نه قبلش)
+    analysisGateAt > -1 &&
+    analysisCallAt > analysisGateAt,
+  `gate=${analysisGateAt} call=${analysisCallAt}`,
+);
+
+const reportGateStart = viewsClean.indexOf("completionCanReport() {");
+const reportGate = viewsClean.slice(
+  reportGateStart,
+  viewsClean.indexOf("},", reportGateStart),
+);
+
+check(
+  "۱۳.۲۰ · دکمهٔ «گزارش نهایی» اول از features.completion_report می‌پرسد",
+  reportGateStart > -1 &&
+    /typeof features\.completion_report === "boolean"/.test(reportGate) &&
+    reportGate.indexOf("features.completion_report") > -1 &&
+    reportGate.indexOf("features.completion_report") <
+      reportGate.indexOf('canPermission("customer.portal.completion.report")'),
 );
 
 check(

@@ -1363,8 +1363,17 @@ export const portalViewsMixin = {
     }
   },
 
-  // گیت دکمهٔ «گزارش نهایی» — همان کلید محتوای سرور
+  // گیت دکمهٔ «گزارش نهایی»
+  // ✅ موج ۱۳.۲۰ — منبع اول: پاسخ سرور (`features.completion_report` که
+  //    portalSchema از کلید COMPLETION_REPORT می‌سازد). fallback کلاینت
+  //    فقط برای زمانی است که /me قدیمی یا fixture بدون features باشد؛
+  //    با این ترتیب، دکمه هیچ‌وقت با کلید بستهٔ سرور دیده نمی‌شود
+  //    (canPermission به‌طور پیش‌فرض fail-open است).
   completionCanReport() {
+    const features = this.data && this.data.features;
+    if (features && typeof features.completion_report === "boolean") {
+      return features.completion_report;
+    }
     return Boolean(this.canPermission("customer.portal.completion.report"));
   },
 

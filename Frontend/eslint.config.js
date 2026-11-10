@@ -152,4 +152,27 @@ module.exports = [
     },
     rules: COMMON_RULES,
   },
+  // ✅ موج ۱۳.۲۰ — گاردهای ریشهٔ Frontend (*.mjs) اسکریپت **Node** هستند،
+  //    نه کد مرورگر: `process`/`Buffer` در آن‌ها استفاده می‌شود. پیش از این
+  //    بلوک، `eslint *.mjs` برای هر چهار گارد «process is not defined»
+  //    می‌داد؛ به همین دلیل هم اسکریپت `lint:guards` وجود نداشت.
+  //    ⚠️ این بلوک فقط فایل‌های ریشه را می‌گیرد (الگوی `*.mjs` در فلت‌کانفیگ
+  //    به زیرپوشه‌ها سرایت نمی‌کند) و برای کد مرورگر همان بلوک قبلی معتبر است.
+  {
+    files: ["*.mjs"],
+    languageOptions: {
+      ecmaVersion: 2023,
+      sourceType: "module",
+      globals: {
+        ...BROWSER_GLOBALS,
+        process: "readonly",
+        Buffer: "readonly",
+        globalThis: "readonly",
+        // تایمر فاز بعد در Node — در گاردهای قدیمی‌تر (body-split) استفاده می‌شود
+        setImmediate: "readonly",
+        clearImmediate: "readonly",
+      },
+    },
+    rules: COMMON_RULES,
+  },
 ];

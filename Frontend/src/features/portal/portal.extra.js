@@ -126,6 +126,20 @@ export const portalExtraMixin = {
     return this.canPermission("customer.portal.dashboard.compare");
   },
 
+  // گیت UI برای «تحلیل داشبورد» (استاندارد نژاد) — منبع اول: پاسخ سرور
+  // ✅ موج ۱۳.۲۰ — چرا لازم شد؟ دادهٔ استاندارد نژاد از
+  //    GET /portal/dashboard/analysis می‌آید که در اسکیمای مشترک *دو* کلید
+  //    می‌خواهد (dashboard + dashboard.analysis)، ولی گیت قبلی فقط
+  //    charts.standards بود؛ اگر مدیر فقط dashboard.analysis را می‌بست،
+  //    کلاینت درخواستی می‌فرستاد که قطعاً ۴۰۳ بود و UI خطا نشان می‌داد.
+  canOpenDashboardAnalysis() {
+    const features = this.data && this.data.features;
+    if (features && typeof features.dashboard_analysis === "boolean") {
+      return features.dashboard_analysis;
+    }
+    return this.canPermission("customer.portal.dashboard.analysis");
+  },
+
   // کمکی: مجوز کلاینت با fail-open (هم‌قاعده با canSee)
   canPermission(key) {
     const service = typeof window !== "undefined" ? window.permissionService : null;
@@ -696,11 +710,19 @@ export const portalExtraMixin = {
       }
     }
 
-    // مقایسه با استاندارد نژاد — فقط اگر مجوزش باز باشد
+    // مقایسه با استاندارد نژاد — دو شرط لازم است:
+    //   ۱) پرچم نمودار باز باشد (`charts.standards`) — تصمیم «نمایش نمودار»
+    //   ۲) ✅ ۱۳.۲۰: کلید کل دادهٔ تحلیل باز باشد (`features.dashboard_analysis`)
+    //      که همان "dashboard + dashboard.analysis" سرور است؛ بدون این
+    //      شرط، درخواست قطعاً ۴۰۳ می‌شد و پیام خطا نمایش داده می‌شد.
     // ✅ موج ۱۳.۱۰.۱ — `scope: "all"` تا گلهٔ **بسته** هم در نمودار
     //    استاندارد نژاد بیاید (سرور فقط با scope=all دوره‌های گذشته را
     //    هم می‌آورد و customerId همچنان از توکن تحمیل می‌شود).
-    if (standardsBox && allowed.standards !== false) {
+    if (
+      standardsBox &&
+      allowed.standards !== false &&
+      this.canOpenDashboardAnalysis()
+    ) {
       try {
         const analysis = payloadDataOf(
           await portalApi.getDashboardAnalysis({ scope: "all" }),

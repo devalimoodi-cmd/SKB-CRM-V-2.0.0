@@ -908,6 +908,26 @@ npm run test:cache    :: نگهبانهای UI (وجود بخش، سه‌حال�
 
 📄 گزارش کامل: `docs/REVIEW-WAVE-13.17.md`.
 
+## دو پرچم بی‌صاحب و یک ۴۰۳ خاموش (موج ۱۳.۲۰)
+
+اسکیمای ۱۳.۱۸ دو ناهم‌ترازی را قابل‌مشاهده کرد: بلوک «استاندارد نژاد»
+فقط با `charts.standards` گیت شده بود (ولی داده‌اش دو کلید می‌خواست)، و
+دکمهٔ «گزارش نهایی» کلید را **دستی تایپ** می‌کرد و `features.completion_report`
+را نمی‌خواند. این موج فقط همین دو گیت را سرور-اول کرد.
+
+| موضوع | مقدار |
+|---|---|
+| سبک گیت | «سرور اول، کلاینت fallback» — همان الگوی `canEditProfile()` موج ۱۳.۸ |
+| `canOpenDashboardAnalysis()` | `features.dashboard_analysis` (که = پنل باز + کلید `dashboard.analysis`) و در نبودِ آن `canPermission` |
+| شرط استاندارد نژاد | `standardsBox && allowed.standards !== false && this.canOpenDashboardAnalysis()` — بدون این شرط، کلید بستهٔ تحلیل ⇒ درخواست قطعاً ۴۰۳ + پیام خطا |
+| `completionCanReport()` | اول `features.completion_report`، بعد `canPermission("customer.portal.completion.report")` (چون `canPermission` در فرانت fail-open است) |
+| گارد | `test:portal-schema-guard` ۲۸ ⇒ **۳۰**؛ فهرست استثنای `SERVER_ONLY_FEATURES` **حذف** شد |
+| بررسی ترتیبی | گارد ایندکس «گیت» را با ایندکس فراخوانی `getDashboardAnalysis({ scope: "all" })` مقایسه می‌کند (نه فقط وجود رشته) |
+| لینت گاردها | `eslint.config.js` بلوک `*.mjs` (Node globals) گرفت + اسکریپت تازهٔ `npm run lint:guards` ⇒ صفر خطا |
+| بک‌اند | **هیچ تغییر** — صفر اندپوینت، صفر کلید (۲۲۷/۱۸)، صفر مایگریشن |
+
+📄 گزارش کامل: `docs/REVIEW-WAVE-13.20.md`.
+
 ## «پایان دوره» و «گزارش نهایی دوره» — دو پنل واقعی (موج ۱۳.۱۹)
 
 آخرین دو آیتم «به‌زودی» پورتال (`#/hatchery/completion` و `#/reports/final`)
@@ -943,7 +963,7 @@ npm run test:cache    :: نگهبانهای UI (وجود بخش، سه‌حال�
 | تنها «به‌زودی» | پنل `soon` هیچ کلید محتوایی ندارد و در منو هم `contentKey` خالی است (بدون استثنای دستی) |
 | API ⇔ اسکیما | هر مسیر `api.const.js` در اندپوینت‌های اسکیما هست و **هر مسیر یکتای اسکیما** در فرانت وجود دارد (۲۶) — اندپوینت یتیم یا ۴۰۴ خاموش ممکن نیست |
 | `VIEW_TABS` | شش تب؛ `mode`/`keys` و کلید منو هر تب از اسکیما می‌آید (نرمال‌سازی `\r\n` پیش از پارس) |
-| قابلیت‌ها | هر `features.*` که مرورگر می‌خواند در `PORTAL_FEATURES` اعلام شده؛ پرچم‌های فقط-سرور در `SERVER_ONLY_FEATURES` مستندند |
+| قابلیت‌ها | هر `features.*` که مرورگر می‌خواند در `PORTAL_FEATURES` اعلام شده؛ پرچم‌های فقط-سرور در `SERVER_ONLY_FEATURES` مستندند (✅ ۱۳.۲۰: این استثنا حذف شد و هر دو پرچم گیت واقعی شدند) |
 | نمودارها | رندرکننده هیچ پرچم ناشناسی نمی‌خواند؛ هر ۶ نمودار `PORTAL_CHARTS` در UI هم رندر می‌شود |
 | فیلدهای «هرگز» | اقتصاد گله/`notes` داخلی/`completed_by`/`customer_id` در UI نیست (`notes` فقط به‌عنوان یادداشت خودِ مشتری در فرم مجاز است) |
 | گارد تازه | `npm run test:portal-schema-guard` ⇒ **۲۸** بررسی |
