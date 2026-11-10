@@ -255,6 +255,13 @@ export const API_CONSTANTS = {
       FARM_HALL_DETAILS: (id) => `/portal/farm/halls/${id}`,
       FARM_PLACEMENT_DETAILS: (id) => `/portal/farm/placements/${id}`,
       FARM_WEEKLY_DETAILS: (id) => `/portal/farm/weeklies/${id}`,
+
+    // ✅ موج ۱۳.۱۹ — «پایان دوره» و «گزارش نهایی دوره»
+    //  🔒 شناسهٔ پایان دوره فقط از پاسخ همین سرور می‌آید و در
+    //     portal.api با rowId اعتبارسنجی می‌شود؛ سرور هم مالکیت را
+    //     با customer_id در همان کوئری می‌سنجد (۴۰۴ برای ردیف غیرخودی).
+    COMPLETIONS: "/portal/completions",
+    COMPLETION_DETAIL: (id) => `/portal/completions/${id}`,
     },
     // ===== ✅ موج ۱۳.۱۱ — صف «درخواست‌های پورتال» (فقط کارکنان) =====
     //  ⚠️ این مسیرها `authorize("customer")` ندارند؛ با کلید مجوز

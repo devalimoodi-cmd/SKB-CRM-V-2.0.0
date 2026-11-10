@@ -411,3 +411,182 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* ============================================================
+   ✅ ۱۳.۱۹ — «پایان دوره» و «گزارش نهایی دوره»
+   ------------------------------------------------------------
+   کارت‌های شاخص (KPI)، برچسب‌های کوچک، نمودار روند و چیدمان
+   گزارش. همه از متغیرهای رنگ سراسری استفاده می‌کنند.
+   ============================================================ */
+.portal-views__kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.portal-kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+}
+
+.portal-kpi__label {
+  font-size: 0.72rem;
+  color: var(--text-gray);
+}
+
+.portal-kpi__value {
+  font-size: 0.98rem;
+  font-weight: 700;
+  color: var(--text-dark);
+}
+
+.portal-kpi__unit {
+  font-size: 0.68rem;
+  color: var(--text-light);
+}
+
+.portal-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  font-size: 0.72rem;
+  color: var(--text-gray);
+  background: var(--bg-surface-2, var(--bg-surface));
+  border: 1px solid var(--border-light);
+  border-radius: 999px;
+}
+
+.portal-views__notices {
+  margin: 10px 0 0;
+  padding: 0 0 0 2px;
+  list-style: none;
+  display: grid;
+  gap: 6px;
+  font-size: 0.76rem;
+  line-height: 1.7;
+  color: var(--text-gray);
+}
+
+.portal-views__notices i {
+  color: var(--warning);
+}
+
+.portal-trend {
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-light);
+  border-radius: 10px;
+}
+
+.portal-trend__legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.72rem;
+  color: var(--text-gray);
+}
+
+.portal-trend__key::before {
+  content: "";
+  display: inline-block;
+  width: 10px;
+  height: 3px;
+  margin-inline-end: 4px;
+  border-radius: 2px;
+  vertical-align: middle;
+}
+
+.portal-trend__key--weight::before {
+  background: var(--primary);
+}
+
+.portal-trend__key--fcr::before {
+  background: var(--warning);
+}
+
+.portal-trend__weeks {
+  margin-inline-start: auto;
+}
+
+.portal-trend svg {
+  width: 100%;
+  height: auto;
+  margin-top: 6px;
+  direction: ltr;
+}
+
+.portal-trend__line {
+  fill: none;
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.portal-trend__line--weight {
+  stroke: var(--primary);
+}
+
+.portal-trend__line--fcr {
+  stroke: var(--warning);
+  stroke-dasharray: 5 4;
+}
+
+.portal-report {
+  display: grid;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.portal-report__title {
+  margin: 6px 0 0;
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: var(--text-dark);
+}
+
+.portal-report__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.78rem;
+  color: var(--text-gray);
+}
+
+.portal-report__label {
+  font-weight: 600;
+  color: var(--text-dark);
+}
+
+/* گزارش نهایی روی کاغذ: فقط خود گزارش (بدون ناوبری/کارت‌های کمکی) */
+@media print {
+  .portal-nav,
+  .portal-nav__bar,
+  .portal-nav__backdrop,
+  .portal-card__head i,
+  .portal-views__toolbar,
+  .portal-btn,
+  .portal-footer {
+    display: none !important;
+  }
+
+  .portal-card,
+  .portal-report {
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+  }
+
+  .portal-trend svg {
+    width: 100%;
+  }
+}
+

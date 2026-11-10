@@ -44,7 +44,9 @@ check(
   // ✅ موج ۱۳.۱۷: ۲۸ کلید «لایهٔ منو»ی پورتال (۷ منو + ۲۱ زیرمنو)
   //    ⇒ ۱۹۷ + ۲۸ = ۲۲۵ کلید؛ گروه تازه‌ای اضافه نشد (همان گروه
   //    «پورتال مشتری» = ۲۴ + ۲۸ = ۵۲ کلید)
-  catalog.TOTAL_PERMISSIONS === 225 && catalog.PERMISSION_GROUPS.length === 18,
+  // ✅ موج ۱۳.۱۹: ۲ کلید «پایان دوره» (فهرست) و «گزارش تفصیلی پایان
+  //    دوره» ⇒ ۲۲۵ + ۲ = ۲۲۷ کلید؛ همان ۱۸ گروه (پورتال = ۵۴ کلید)
+  catalog.TOTAL_PERMISSIONS === 227 && catalog.PERMISSION_GROUPS.length === 18,
   `keys=${catalog.TOTAL_PERMISSIONS} groups=${catalog.PERMISSION_GROUPS.length}`,
 );
 
@@ -106,6 +108,44 @@ check(
   `menus=${PORTAL_MENU_KEYS.length} portalKeys=${
     catalog.PERMISSION_GROUPS.find((g) => g.key === "portal")?.items.length
   }`,
+);
+
+// ============================================================
+// ✅ موج ۱۳.۱۹ — کلیدهای «پایان دوره» (دو کلید محتوا)
+// ------------------------------------------------------------
+//  این دو کلید مثل customer.portal.visit.report «محتوا» را کنترل
+//  می‌کنند (سرور هم اجرا می‌کند): فهرست پایان دوره‌ها + گزارش تفصیلی.
+// ============================================================
+const COMPLETION_KEYS = [
+  "customer.portal.completion",
+  "customer.portal.completion.report",
+];
+
+check(
+  "۱۳.۱۹ · کاتالوگ: ۲ کلید «پایان دوره» با پیش‌فرض «فقط مشتری» و بدون قفل",
+  COMPLETION_KEYS.length === 2 &&
+    COMPLETION_KEYS.every((key) => {
+      const entry = catalog.PERMISSIONS[key];
+      return (
+        Boolean(entry) &&
+        entry.group === "portal" &&
+        entry.defaults.customer === true &&
+        entry.defaults.super_admin === false &&
+        entry.defaults.admin === false &&
+        entry.defaults.sub_admin === false &&
+        entry.defaults.expert === false &&
+        (entry.lockedTo || []).length === 0
+      );
+    }),
+  `completion=${COMPLETION_KEYS.length}`,
+);
+
+check(
+  "۱۳.۱۹ · کاتالوگ: کلید «گزارش تفصیلی» جدا از کلید «فهرست» است",
+  Boolean(catalog.PERMISSIONS["customer.portal.completion"]) &&
+    Boolean(catalog.PERMISSIONS["customer.portal.completion.report"]) &&
+    catalog.PERMISSIONS["customer.portal.completion"].title !==
+      catalog.PERMISSIONS["customer.portal.completion.report"].title,
 );
 
 check(

@@ -279,12 +279,11 @@
                                         </a>
                                     </li>
                                     <li>
-                                        <a class="portal-nav__sublink portal-nav__sublink--soon"
+                                        <a class="portal-nav__sublink"
                                             href="#/hatchery/completion" data-portal-route="#/hatchery/completion"
-                                            data-portal-tab="soon"
+                                            data-portal-tab="completion"
                                             data-permission="customer.portal.menu.hatchery.completion">
                                             پایان دوره
-                                            <span class="portal-nav__badge">به‌زودی</span>
                                         </a>
                                     </li>
                                 </ul>
@@ -350,12 +349,11 @@
                                             data-permission="customer.portal.menu.reports.visits">بازدیدهای کارشناس</a>
                                     </li>
                                     <li>
-                                        <a class="portal-nav__sublink portal-nav__sublink--soon"
+                                        <a class="portal-nav__sublink"
                                             href="#/reports/final" data-portal-route="#/reports/final"
-                                            data-portal-tab="soon"
+                                            data-portal-tab="finalReport"
                                             data-permission="customer.portal.menu.reports.final">
                                             گزارش نهایی دوره
-                                            <span class="portal-nav__badge">به‌زودی</span>
                                         </a>
                                     </li>
                                 </ul>
@@ -520,6 +518,32 @@
                         </div>
                         <div class="portal-tab__status" id="portalPlacementsStatus"></div>
                         <div class="portal-views" id="portalPlacementsBody"></div>
+                    </div>
+
+                    <!-- ===== ✅ موج ۱۳.۱۹ — «پایان دوره» و «گزارش نهایی دوره» =====
+                         دو پنل واقعی (از «به‌زودی» بیرون آمدند). داده از دو مسیر
+                         تازهٔ همان پورتال می‌آید و اقتصاد گله نمایش داده نمی‌شود:
+                           completion  → GET /api/portal/completions
+                           finalReport → GET /api/portal/completions  (انتخاب‌گر)
+                                         + GET /api/portal/completions/:id
+                         ⚠️ :id فقط از پاسخ همان فهرست می‌آید، نه از URL؛ سرور
+                            مالکیت ردیف را با customer_id می‌سنجد (۴۰۴). -->
+                    <div class="portal-card portal-tabpanel" data-portal-panel="completion" role="tabpanel" hidden>
+                        <div class="portal-card__head">
+                            <i class="fas fa-flag-checkered"></i>
+                            <span>پایان دوره‌های من</span>
+                        </div>
+                        <div class="portal-tab__status" id="portalCompletionStatus"></div>
+                        <div class="portal-views" id="portalCompletionBody"></div>
+                    </div>
+
+                    <div class="portal-card portal-tabpanel" data-portal-panel="finalReport" role="tabpanel" hidden>
+                        <div class="portal-card__head">
+                            <i class="fas fa-file-lines"></i>
+                            <span>گزارش نهایی دوره</span>
+                        </div>
+                        <div class="portal-tab__status" id="portalFinalStatus"></div>
+                        <div class="portal-views" id="portalFinalBody"></div>
                     </div>
 
                     <div class="portal-card portal-tabpanel" data-portal-panel="soon" role="tabpanel" hidden>

@@ -20,7 +20,9 @@
 //      اگر contentKey بسته باشد، پنل داده نمی‌گیرد حتی اگر منو باز
 //      باشد (و برعکس، بستن منو دسترسی داده را باز نمی‌کند).
 //   ۳) `panel` باید دقیقاً یکی از data-portal-panel های portal.html
-//      باشد؛ گارد تست هر ۱۲ پنل را می‌شمارد (هیچ پنل یتیمی نمی‌ماند).
+//      باشد؛ گارد تست هر ۱۴ پنل را می‌شمارد (هیچ پنل یتیمی نمی‌ماند).
+//   ✅ ۱۳.۱۹: دو پنل «پایان دوره» و «گزارش نهایی دوره» واقعی شدند
+//      (از «به‌زودی» بیرون آمدند) و فقط «ضدعفونی دوره» soon ماند.
 // ============================================================
 
 // کلید محتوایی مشترک زیرمنوهای «مزرعه/جوجه‌ریزی/درخواست/هفتگی»
@@ -34,6 +36,9 @@ const PROFILE = "customer.portal.profile";
 const DOCUMENTS = "customer.portal.documents";
 const DASHBOARD = "customer.portal.dashboard";
 const MENU = "customer.portal.menu";
+// ✅ ۱۳.۱۹ — «پایان دوره» (فهرست) و «گزارش تفصیلی» (دو کلید محتوا)
+const COMPLETION = "customer.portal.completion";
+const COMPLETION_REPORT = "customer.portal.completion.report";
 
 // ============================================================
 // درخت منو: ۷ منو + ۲۱ زیرمنو = ۲۸ آیتم
@@ -191,9 +196,10 @@ export const PORTAL_MENUS = [
         key: `${MENU}.hatchery.placements`,
         contentKey: FARM,
       },
-      // ⚠️ دو آیتم زیر در ۱۳.۱۷ پنل «به‌زودی» دارند: اندپوینت پورتال
-      //    برای تاریخچهٔ ضدعفونی/پایان دوره هنوز وجود ندارد و ما
-      //    دادهٔ جعلی نشان نمی‌دهیم (contentKey خالی = فقط UI).
+      // ⚠️ «ضدعفونی دوره» در ۱۳.۱۷/۱۳.۱۹ همچنان پنل «به‌زودی» دارد:
+      //    hall_hygiene فقط «وضعیت فعلی» هر سالن است، تاریخچهٔ دوره‌ای
+      //    ندارد؛ تا جدول تاریخچه ساخته نشود دادهٔ جعلی نشان نمی‌دهیم.
+      //    (وضعیت فعلی در «مزرعهٔ من → بهداشت» دیده می‌شود.)
       {
         id: "hygiene",
         label: "ضدعفونی دوره",
@@ -202,13 +208,14 @@ export const PORTAL_MENUS = [
         key: `${MENU}.hatchery.hygiene`,
         contentKey: "",
       },
+      // ✅ ۱۳.۱۹: پنل واقعی — GET /api/portal/completions
       {
         id: "completion",
         label: "پایان دوره",
         route: "#/hatchery/completion",
-        panel: "soon",
+        panel: "completion",
         key: `${MENU}.hatchery.completion`,
-        contentKey: "",
+        contentKey: COMPLETION,
       },
     ],
   },
@@ -300,13 +307,14 @@ export const PORTAL_MENUS = [
         key: `${MENU}.reports.visits`,
         contentKey: VISITS,
       },
+      // ✅ ۱۳.۱۹: پنل واقعی — فهرست + گزارش تفصیلی (دو کلید محتوا)
       {
         id: "final",
         label: "گزارش نهایی دوره",
         route: "#/reports/final",
-        panel: "soon",
+        panel: "finalReport",
         key: `${MENU}.reports.final`,
-        contentKey: "",
+        contentKey: COMPLETION_REPORT,
       },
     ],
   },

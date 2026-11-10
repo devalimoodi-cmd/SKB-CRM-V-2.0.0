@@ -33,6 +33,9 @@ import { farmSpecOf } from "./portal.farm.rules.js";
 // برای واگذاری بارگذاری تب‌های قبلی (فارم/مدارک/پروفایل/داشبورد)
 import { portalFarmMixin } from "./portal.farm.js";
 
+// ✅ ۱۳.۱۹: اندازهٔ صفحهٔ «پایان دوره» (سرور سقف ۵۰ می‌گذارد)
+const COMPLETION_PAGE = 20;
+
 // ============================================================
 // پیکربندی چهار پنل تازه — کلید = مقدار data-portal-panel در HTML
 // ------------------------------------------------------------
@@ -70,34 +73,43 @@ export const VIEW_TABS = {
   },
   soon: {
     permission: "customer.portal.menu.hatchery.hygiene",
-    permissionAny: [
-      "customer.portal.menu.hatchery.hygiene",
-      "customer.portal.menu.hatchery.completion",
-      "customer.portal.menu.reports.final",
-    ],
+    permissionAny: ["customer.portal.menu.hatchery.hygiene"],
     title: "به‌زودی",
     bodyId: "portalSoonBody",
     statusId: "",
     requires: "",
   },
+  // ✅ ۱۳.۱۹ — «پایان دوره»: فهرست دوره‌های بسته‌شده + شاخص‌های نهایی
+  completion: {
+    permission: "customer.portal.menu.hatchery.completion",
+    title: "پایان دوره",
+    bodyId: "portalCompletionBody",
+    statusId: "portalCompletionStatus",
+    requires: "customer.portal.completion",
+  },
+  // ✅ ۱۳.۱۹ — «گزارش نهایی دوره»: انتخاب دوره + گزارش تفصیلی
+  //  🔒 دو کلید لازم است: فهرست (customer.portal.completion) برای
+  //     انتخابگر و گزارش تفصیلی (…completion.report) برای خودِ گزارش.
+  finalReport: {
+    permission: "customer.portal.menu.reports.final",
+    title: "گزارش نهایی دوره",
+    bodyId: "portalFinalBody",
+    statusId: "portalFinalStatus",
+    requiresAll: [
+      "customer.portal.completion",
+      "customer.portal.completion.report",
+    ],
+  },
 };
 
-// متن «به‌زودی» — به تفکیک مسیر (صادقانه: چه چیزی نیست و کِی می‌آید)
+// متن «به‌زودی» — به تفکیک مسیر (صادقانه: چه چیزی نیست و چرا)
+// ✅ ۱۳.۱۹: «پایان دوره» و «گزارش نهایی دوره» پنل واقعی گرفتند و از
+//    این فهرست بیرون رفتند؛ فقط «ضدعفونی دوره» ماند (بدون جدول تاریخچه).
 export const SOON_VIEWS = {
   "#/hatchery/hygiene": {
     title: "ضدعفونی دوره",
-    lead: "تاریخچهٔ ضدعفونی هر دوره هنوز در پورتال نمایش داده نمی‌شود.",
-    text: "این بخش در موج بعدی فعال می‌شود: پس از آن می‌توانید تاریخ، نوع مادهٔ ضدعفونی و بازهٔ کار را برای هر دوره ببینید. فعلاً همین اطلاعات را می‌توانید از کارشناس خود بخواهید.",
-  },
-  "#/hatchery/completion": {
-    title: "پایان دوره",
-    lead: "پروندهٔ «پایان دوره» هنوز در پورتال نیست.",
-    text: "این بخش در موج بعدی فعال می‌شود: شاخص‌های نهایی دوره (تلفات کل، ضریب تبدیل، وزن نهایی) و وضعیت تسویه. تا آن زمان گزارش کارشناس در بخش «گزارش‌ها» در دسترس است.",
-  },
-  "#/reports/final": {
-    title: "گزارش نهایی دوره",
-    lead: "گزارش تجمیعی نهایی هنوز در پورتال تولید نمی‌شود.",
-    text: "این بخش در موج بعدی فعال می‌شود و خلاصهٔ یک‌صفحه‌ای هر دوره (نمودار وزن، تلفات، دارو/واکسن و توصیه‌ها) را نشان می‌دهد. فعلاً گزارش‌های بازدید کارشناس در دسترس‌اند.",
+    lead: "تاریخچهٔ ضدعفونی هر دوره در پورتال نمایش داده نمی‌شود.",
+    text: "در پایگاه داده فقط «وضعیت فعلی» بهداشت هر سالن نگه‌داری می‌شود، نه سابقهٔ دوره‌به‌دوره؛ بنابراین نمودار تاریخچه ساخته نمی‌شود و دادهٔ ساختگی هم نشان نمی‌دهیم. وضعیت فعلی هر سالن را از «مزرعهٔ من → بهداشت» ببینید و سابقهٔ قبلی را از کارشناس خود بخواهید.",
   },
 };
 
@@ -470,7 +482,473 @@ export const renderSoonView = (route) => {
   </div>`;
 };
 
-// پیام خطای خوانا (بدون نمایش متن خام HTTP)
+// ============================================================
+// ۵) «پایان دوره» — فهرست دوره‌های بسته‌شده (✅ ۱۳.۱۹)
+// ------------------------------------------------------------
+//  🔑 برچسب/یکای هر شاخص از پاسخ سرور (meta.metrics) می‌آید ⇒ این
+//     فایل هیچ فهرست برچسب دومی برای این اعداد نمی‌سازد.
+// ============================================================
+const metricText = (metric, value) => {
+  if (value === null || value === undefined || value === "") return "—";
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return esc(value);
+  if (metric && metric.kind === "int") return num(Math.round(parsed));
+  const digits =
+    metric && Number.isInteger(metric.digits) ? metric.digits : 2;
+  return num(Number(parsed.toFixed(digits)));
+};
+
+// کارت‌های شاخص (KPI) — مشترک بین «پایان دوره» و «گزارش نهایی»
+const kpiGrid = (metrics = [], source = {}, tag = "completion") =>
+  `<div class="portal-views__kpi-grid" data-view-kpi-grid="${esc(tag)}">${(
+    Array.isArray(metrics) ? metrics : []
+  )
+    .filter((metric) => metric && metric.key)
+    .map(
+      (metric) => `<div class="portal-kpi" data-view-kpi="${esc(metric.key)}">
+        <span class="portal-kpi__label">${esc(metric.label)}</span>
+        <span class="portal-kpi__value">${metricText(
+          metric,
+          source ? source[metric.key] : null,
+        )}</span>
+        ${
+          metric.unit
+            ? `<span class="portal-kpi__unit">${esc(metric.unit)}</span>`
+            : ""
+        }
+      </div>`,
+    )
+    .join("")}</div>`;
+
+const completionCard = (item, metrics, canReport) => {
+  const date = dateOf(item.completion_date) || "بدون تاریخ";
+  const typeLabel = String(item.completion_type_label || "").trim();
+  const confirmed = item.confirmed_by_customer
+    ? "تأییدشده توسط شما"
+    : "تأیید شما ثبت نشده";
+  return `<div class="portal-views__card" data-view-completion="${esc(item.id)}">
+    <div class="portal-views__card-head">
+      <i class="fas fa-flag-checkered" aria-hidden="true"></i>
+      <span>دورهٔ ${esc(date)}</span>
+    </div>
+    <div class="portal-views__meta">
+      ${typeLabel ? `<span class="portal-chip">${esc(typeLabel)}</span>` : ""}
+      <span class="portal-chip">${esc(confirmed)}</span>
+      <span>شمارهٔ گله: <strong>${esc(item.flock_id ?? "—")}</strong></span>
+    </div>
+    ${kpiGrid(metrics, item, "completion")}
+    ${
+      canReport
+        ? `<div class="portal-views__note">
+             <button type="button" class="portal-btn" data-view-completion-report="${esc(
+               item.id,
+             )}">
+               <i class="fas fa-file-lines" aria-hidden="true"></i>
+               گزارش نهایی این دوره
+             </button>
+           </div>`
+        : `<p class="portal-views__note">
+             <i class="fas fa-lock" aria-hidden="true"></i>
+             گزارش تفصیلی این دوره برای حساب شما بسته است.
+           </p>`
+    }
+  </div>`;
+};
+
+export const renderCompletionView = ({
+  items = [],
+  metrics = [],
+  pagination = null,
+  canReport = false,
+} = {}) => {
+  const rows = Array.isArray(items) ? items : [];
+  if (!rows.length) {
+    return renderNotice(
+      "پایان دوره‌ای ثبت نشده است",
+      "وقتی کارشناس پایان یک دوره را ثبت کند، شاخص‌های نهایی همان دوره (زنده‌مانی، ضریب تبدیل، وزن و خوراک) این‌جا نمایش داده می‌شود.",
+      "info",
+    );
+  }
+
+  const page = Number(pagination && pagination.page) || 1;
+  const pages = Number(pagination && pagination.pages) || 1;
+  const more =
+    page < pages
+      ? `<div class="portal-views__toolbar">
+           <button type="button" class="portal-btn" data-view-completion-more>
+             <i class="fas fa-angles-down" aria-hidden="true"></i>
+             نمایش دوره‌های قدیمی‌تر
+           </button>
+         </div>`
+      : "";
+
+  return `<div class="portal-views__grid" data-view-completions>${rows
+    .map((item) => completionCard(item, metrics, canReport))
+    .join("")}</div>${more}<p class="portal-views__note">
+    <i class="fas fa-circle-info" aria-hidden="true"></i>
+    اعداد این بخش همان چیزی است که کارشناس در فرم پایان دوره ثبت کرده؛
+    اطلاعات مالی (درآمد/هزینه/سود) در پورتال نمایش داده نمی‌شود.
+  </p>`;
+};
+
+// ============================================================
+// ۶) «گزارش نهایی دوره» — روند، ریز سالن‌ها، دارو/واکسن (✅ ۱۳.۱۹)
+// ------------------------------------------------------------
+//  ⚠️ برچسب‌های این بخش عمداً همین‌جا نوشته شده‌اند: این فیلدها در
+//     مشخصات فرم‌های ۱۳.۱۶ (portal.payload.js) نیستند، پس منبع
+//     برچسبی برایشان وجود ندارد. یک منبع = همین فایل.
+// ============================================================
+const REPORT_FIELD_LABELS = {
+  completion_date: "تاریخ ثبت پایان دوره",
+  completion_type: "نوع پایان دوره",
+  slaughter_date: "تاریخ کشتار",
+  slaughter_end_date: "پایان کشتار",
+  slaughter_age_days: "سن کشتار (روز)",
+  slaughter_age_end_days: "سن پایان کشتار (روز)",
+  slaughter_age_method: "مبنای سن کشتار",
+  slaughterhouse_name: "کشتارگاه",
+  transport_mortality: "تلفات حمل",
+  total_sent: "کل ارسال به کشتار",
+  total_live_weight: "وزن زندهٔ کل (کیلوگرم)",
+  avg_live_weight: "میانگین وزن زنده (کیلوگرم)",
+  final_week_number: "آخرین هفتهٔ ثبت‌شده",
+  feed_basis: "مبنای خوراک",
+  flock_id: "شمارهٔ گله",
+};
+
+const reportLabel = (key) => REPORT_FIELD_LABELS[key] || labelFor(key);
+
+const FEED_BASIS_LABELS = {
+  system: "داده‌های سیستمی (هفته‌های ثبت‌شده)",
+  declared: "اطلاعات اعلامی مرغدار",
+};
+
+// ردیف‌های «اطلاعات کشتار/دوره» — فقط مقدارهای موجود
+const reportMetaRows = (completion) => {
+  const keys = [
+    "completion_date",
+    "completion_type",
+    "slaughter_date",
+    "slaughter_age_days",
+    "slaughter_age_end_days",
+    "slaughter_age_method",
+    "slaughterhouse_name",
+    "transport_mortality",
+    "total_sent",
+    "total_live_weight",
+    "avg_live_weight",
+    "final_week_number",
+    "feed_basis",
+  ];
+  return keys
+    .map((key) => {
+      let raw = completion ? completion[key] : null;
+      if (key === "completion_type") raw = completion && completion.completion_type_label;
+      if (key === "feed_basis") raw = FEED_BASIS_LABELS[raw] || raw;
+      return [key, raw];
+    })
+    .filter(([, value]) => value !== null && value !== undefined && value !== "")
+    .map(
+      ([key, value]) => `<tr>
+        <th scope="row">${esc(reportLabel(key))}</th>
+        <td>${esc(typeof value === "number" ? num(value) : value)}</td>
+      </tr>`,
+    )
+    .join("");
+};
+
+// محدودهٔ عددی یک سری (برای مقیاس نمودار)
+const seriesRange = (values) => {
+  const numbers = (Array.isArray(values) ? values : [])
+    .map((value) => Number(value))
+    .filter((value) => Number.isFinite(value));
+  if (!numbers.length) return null;
+  return { min: Math.min(...numbers), max: Math.max(...numbers) };
+};
+
+// خط سری روی SVG (بدون کتابخانه؛ اعداد فقط از پاسخ سرور)
+const seriesPoints = (values, { width, height, pad, min, max }) => {
+  const rows = Array.isArray(values) ? values : [];
+  const span = max - min > 0 ? max - min : 1;
+  const usable = height - pad * 2;
+  const points = [];
+  rows.forEach((value, index) => {
+    if (value === null || value === undefined) return;
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) return;
+    const x =
+      rows.length > 1
+        ? pad + (index / (rows.length - 1)) * (width - pad * 2)
+        : width / 2;
+    const y = height - pad - ((parsed - min) / span) * usable;
+    points.push(`${Math.round(x)},${Math.round(y)}`);
+  });
+  return points.join(" ");
+};
+
+// نمودار روند هفتگی: وزن (فیروزه‌ای) و ضریب تبدیل (نارنجی)
+export const renderTrendChart = (trend) => {
+  const weeks = trend && Array.isArray(trend.weeks) ? trend.weeks : [];
+  if (weeks.length < 2) return "";
+
+  const width = 560;
+  const height = 180;
+  const pad = 18;
+  const weightRange = seriesRange(trend.weight);
+  const fcrRange = seriesRange(trend.fcr);
+  if (!weightRange && !fcrRange) return "";
+
+  const weightLine = weightRange
+    ? seriesPoints(trend.weight, { width, height, pad, ...weightRange })
+    : "";
+  const fcrLine = fcrRange
+    ? seriesPoints(trend.fcr, { width, height, pad, ...fcrRange })
+    : "";
+
+  return `<div class="portal-trend" data-view-trend>
+    <div class="portal-trend__legend">
+      <span class="portal-trend__key portal-trend__key--weight">وزن (کیلوگرم)</span>
+      <span class="portal-trend__key portal-trend__key--fcr">ضریب تبدیل</span>
+      <span class="portal-trend__weeks">هفته ${esc(weeks[0])} تا ${esc(
+        weeks[weeks.length - 1],
+      )}</span>
+    </div>
+    <svg viewBox="0 0 ${width} ${height}" role="img"
+      aria-label="روند وزن و ضریب تبدیل هفته‌های این دوره">
+      ${
+        weightLine
+          ? `<polyline class="portal-trend__line portal-trend__line--weight" points="${weightLine}" />`
+          : ""
+      }
+      ${
+        fcrLine
+          ? `<polyline class="portal-trend__line portal-trend__line--fcr" points="${fcrLine}" />`
+          : ""
+      }
+    </svg>
+  </div>`;
+};
+
+// ریز سالن‌ها — هر ستون برچسبش از سرور (meta.hall_metrics) می‌آید
+const hallsTable = (halls, hallMetrics) => {
+  const rows = Array.isArray(halls) ? halls : [];
+  if (!rows.length) {
+    return `<div class="portal-views__empty">
+      <i class="fas fa-circle-info" aria-hidden="true"></i>
+      ریز سالن‌ها برای این دوره ثبت نشده است.
+    </div>`;
+  }
+  const metrics = (Array.isArray(hallMetrics) ? hallMetrics : []).filter(
+    (metric) => metric && metric.key,
+  );
+  return `<div class="portal-views__table-wrap">
+    <table class="portal-table" data-view-report-halls>
+      <thead><tr>
+        <th>سالن</th>
+        ${metrics
+          .map(
+            (metric) =>
+              `<th>${esc(metric.label)}${
+                metric.unit ? ` (${esc(metric.unit)})` : ""
+              }</th>`,
+          )
+          .join("")}
+      </tr></thead>
+      <tbody>${rows
+        .map(
+          (hall) => `<tr>
+            <td>${esc(hall.hall_name || `سالن ${hall.hall_id ?? ""}`)}</td>
+            ${metrics
+              .map((metric) => `<td>${metricText(metric, hall[metric.key])}</td>`)
+              .join("")}
+          </tr>`,
+        )
+        .join("")}</tbody>
+    </table>
+  </div>`;
+};
+
+// جمع دارو/واکسن — فقط نام و تعداد (شناسه‌ای نمایش داده نمی‌شود)
+const usageChips = (rows, emptyText) => {
+  const list = Array.isArray(rows) ? rows : [];
+  if (!list.length) {
+    return `<span class="portal-views__note">${esc(emptyText)}</span>`;
+  }
+  return `<div class="portal-views__meta">${list
+    .map(
+      (item) =>
+        `<span class="portal-chip">${esc(item.name)} × ${esc(item.count)}</span>`,
+    )
+    .join("")}</div>`;
+};
+
+// ردیف مقایسهٔ «محاسبهٔ سیستمی» با «عدد ثبت‌شده»
+const compareRow = (label, computed, stored, digits = 2) => {
+  const text = (value) =>
+    value === null || value === undefined || value === ""
+      ? "—"
+      : num(Number(Number(value).toFixed(digits)));
+  return `<tr>
+    <th scope="row">${esc(label)}</th>
+    <td>${text(computed)}</td>
+    <td>${text(stored)}</td>
+  </tr>`;
+};
+
+const reportSelect = (items, selectedId) => {
+  const rows = Array.isArray(items) ? items : [];
+  if (!rows.length) return "";
+  const options = rows
+    .map((item) => {
+      const label = `${dateOf(item.completion_date) || "بدون تاریخ"}${
+        item.completion_type_label ? ` — ${item.completion_type_label}` : ""
+      }`;
+      const selected = String(item.id) === String(selectedId) ? " selected" : "";
+      return `<option value="${esc(item.id)}"${selected}>${esc(label)}</option>`;
+    })
+    .join("");
+  return `<div class="portal-views__toolbar">
+    <div class="portal-views__field">
+      <label for="portalFinalSelect">دوره</label>
+      <select id="portalFinalSelect" data-view-report-select>${options}</select>
+    </div>
+  </div>`;
+};
+
+export const renderFinalReportView = ({
+  items = [],
+  metrics = [],
+  hallMetrics = [],
+  report = null,
+  selectedId = "",
+} = {}) => {
+  const rows = Array.isArray(items) ? items : [];
+  const toolbar = reportSelect(rows, selectedId || (rows[0] && rows[0].id) || "");
+
+  if (!rows.length) {
+    return `${toolbar}${renderNotice(
+      "دوره‌ای برای گزارش نیست",
+      "گزارش نهایی وقتی ساخته می‌شود که کارشناس پایان یک دوره را ثبت کرده باشد.",
+      "info",
+    )}`;
+  }
+
+  if (!report || !report.completion) {
+    return `${toolbar}${renderNotice(
+      "گزارش نهایی این دوره در دسترس نیست",
+      "برای دیدن گزارش، یکی از دوره‌های فهرست بالا را انتخاب کنید یا بعداً دوباره تلاش کنید.",
+      "info",
+    )}`;
+  }
+
+  const completion = report.completion;
+  const totals = report.totals || {};
+  const stored = report.stored || {};
+
+  // اعداد «محاسبه‌شده» (از هفته‌ها) و در نبود آن‌ها «ثبت‌شده»
+  const summarySource = {
+    initial_chicks_count: totals.initialChicks,
+    final_chicks_count: totals.finalChicks,
+    survival_percent: totals.survivalRate,
+    final_fcr: totals.fcr,
+    final_avg_weight: totals.lastWeight,
+    total_feed_intake: totals.totalFeed,
+    adg_grams: stored.adg_grams,
+    epi: stored.epi,
+    slaughter_age_days: totals.ageDays,
+  };
+
+  const notices = (Array.isArray(report.notices) ? report.notices : [])
+    .map(
+      (text) =>
+        `<li><i class="fas fa-circle-info" aria-hidden="true"></i> ${esc(
+          text,
+        )}</li>`,
+    )
+    .join("");
+
+  return `${toolbar}
+  <div class="portal-report" data-view-final-report="${esc(completion.id)}">
+    <div class="portal-views__card-head">
+      <i class="fas fa-flag-checkered" aria-hidden="true"></i>
+      <span>گزارش دورهٔ ${esc(dateOf(completion.completion_date) || "بدون تاریخ")}</span>
+    </div>
+    <div class="portal-views__meta">
+      <span>شمارهٔ گله: <strong>${esc(completion.flock_id ?? "—")}</strong></span>
+      ${
+        completion.completion_type_label
+          ? `<span class="portal-chip">${esc(completion.completion_type_label)}</span>`
+          : ""
+      }
+      <span>هفته‌های ثبت‌شده: <strong>${esc(
+        (report.weekly && report.weekly.weeks_count) || 0,
+      )}</strong></span>
+    </div>
+
+    ${
+      notices
+        ? `<ul class="portal-views__notices" data-view-report-notices>${notices}</ul>`
+        : ""
+    }
+
+    ${kpiGrid(metrics, summarySource, "final")}
+
+    <div class="portal-views__table-wrap">
+      <table class="portal-table" data-view-report-compare>
+        <thead><tr>
+          <th>شاخص</th>
+          <th>محاسبه از هفته‌ها</th>
+          <th>ثبت‌شده در پایان دوره</th>
+        </tr></thead>
+        <tbody>
+          ${compareRow("ضریب تبدیل", totals.fcr, stored.final_fcr, 2)}
+          ${compareRow("درصد زنده‌مانی", totals.survivalRate, stored.survival_percent, 2)}
+          ${compareRow("درصد تلفات", totals.mortalityRate, stored.mortality_rate, 2)}
+          ${compareRow("خوراک کل (کیلوگرم)", totals.totalFeed, stored.total_feed_intake, 2)}
+          ${compareRow("وزن نهایی (کیلوگرم)", totals.lastWeight, stored.final_avg_weight, 3)}
+        </tbody>
+      </table>
+    </div>
+
+    ${
+      renderTrendChart(report.trend) ||
+      `<div class="portal-views__empty">
+         <i class="fas fa-chart-line" aria-hidden="true"></i>
+         برای رسم روند، دست‌کم دو هفتهٔ ثبت‌شده لازم است.
+       </div>`
+    }
+
+    <h4 class="portal-report__title">ریز سالن‌ها</h4>
+    ${hallsTable(report.halls, hallMetrics)}
+
+    <h4 class="portal-report__title">دارو و واکسن مصرفی</h4>
+    <div class="portal-report__row">
+      <span class="portal-report__label">دارو:</span>
+      ${usageChips(report.medicines, "دارویی برای این دوره ثبت نشده است.")}
+    </div>
+    <div class="portal-report__row">
+      <span class="portal-report__label">واکسن:</span>
+      ${usageChips(report.vaccines, "واکسنی برای این دوره ثبت نشده است.")}
+    </div>
+
+    <h4 class="portal-report__title">اطلاعات دوره و کشتار</h4>
+    <div class="portal-views__table-wrap">
+      <table class="portal-table" data-view-report-meta>
+        <tbody>${reportMetaRows(completion)}</tbody>
+      </table>
+    </div>
+
+    <p class="portal-views__note">
+      <i class="fas fa-circle-info" aria-hidden="true"></i>
+      «محاسبه از هفته‌ها» با همان موتور شاخص‌های سیستم انجام می‌شود؛ اگر با
+      عدد ثبت‌شدهٔ کارشناس تفاوت داشت، هر دو نمایش داده می‌شود.
+      اطلاعات مالی (درآمد/هزینه/سود) در پورتال نمایش داده نمی‌شود.
+    </p>
+  </div>`;
+};
+
+// __APPEND__
+
 const viewErrorMessage = (error) => {
   const message = String((error && error.message) || "").trim();
   if (!message || /^HTTP error/i.test(message)) {
@@ -506,6 +984,26 @@ export const portalViewsMixin = {
       dictionaries: {},
     };
     this.extra.soon = { loaded: true, loading: false };
+    // ✅ ۱۳.۱۹ — «پایان دوره» و «گزارش نهایی دوره»
+    this.extra.completion = {
+      loaded: false,
+      loading: false,
+      items: [],
+      metrics: [],
+      pagination: null,
+      page: 1,
+      cache: new Map(),
+    };
+    this.extra.finalReport = {
+      loaded: false,
+      loading: false,
+      items: [],
+      metrics: [],
+      hallMetrics: [],
+      report: null,
+      completionId: "",
+      pendingId: "",
+    };
 
     // کش مشترک options (یک GET برای سه پنل)
     this.unitsCache = null;
@@ -539,6 +1037,40 @@ export const portalViewsMixin = {
         );
       });
     }
+
+    // ✅ ۱۳.۱۹ — کارت «پایان دوره»: گزارش نهایی + صفحهٔ بعد
+    //  🔒 شناسهٔ دوره فقط از `data-view-completion-report` همان کارت
+    //     می‌آید (خروجی سرور) و در نهایت سرور مالکیت را می‌سنجد.
+    const completionBody = this.el(VIEW_TABS.completion.bodyId);
+    if (completionBody) {
+      completionBody.addEventListener("click", (event) => {
+        const reportButton = event.target.closest(
+          "[data-view-completion-report]",
+        );
+        if (reportButton) {
+          event.preventDefault();
+          return this.openFinalReport(
+            reportButton.getAttribute("data-view-completion-report"),
+          );
+        }
+        const moreButton = event.target.closest("[data-view-completion-more]");
+        if (moreButton) {
+          event.preventDefault();
+          return this.loadCompletionView({ append: true });
+        }
+        return null;
+      });
+    }
+
+    // ✅ ۱۳.۱۹ — انتخاب دوره در «گزارش نهایی»
+    const finalBody = this.el(VIEW_TABS.finalReport.bodyId);
+    if (finalBody) {
+      finalBody.addEventListener("change", (event) => {
+        const select = event.target.closest("[data-view-report-select]");
+        if (!select) return null;
+        return this.selectCompletionForReport(select.value);
+      });
+    }
   },
 
   // ===== ورود پنل: همهٔ تب‌های خاص از همین نقطه می‌گذرند =====
@@ -546,6 +1078,8 @@ export const portalViewsMixin = {
     if (key === "units") return this.loadUnitsView();
     if (key === "hallDetail") return this.loadHallDetailView();
     if (key === "placements") return this.loadPlacementsView();
+    if (key === "completion") return this.loadCompletionView();
+    if (key === "finalReport") return this.loadFinalReportView();
     if (key === "soon") return this.loadSoonView();
     // فارم/مدارک/پروفایل/داشبورد ⇒ همان منطق لایه‌های قبلی
     return portalFarmMixin.loadExtraTab.call(this, key);
@@ -553,7 +1087,13 @@ export const portalViewsMixin = {
 
   // ===== لایهٔ محتوا (همان کلیدی که سرور ۴۰۳ می‌دهد) =====
   canViewContent(conf) {
-    if (!conf || !conf.requires) return true;
+    if (!conf) return true;
+    // ✅ ۱۳.۱۹: پنل‌هایی که به بیش از یک کلید نیاز دارند (گزارش نهایی
+    // = فهرست + تفصیل) — رفتار بقیهٔ پنل‌ها تغییر نمی‌کند.
+    if (Array.isArray(conf.requiresAll) && conf.requiresAll.length) {
+      return conf.requiresAll.every((key) => Boolean(this.canPermission(key)));
+    }
+    if (!conf.requires) return true;
     return Boolean(this.canPermission(conf.requires));
   },
 
@@ -778,6 +1318,68 @@ export const portalViewsMixin = {
     return this.renderPlacements();
   },
 
+  // ===== ۵) «پایان دوره» — فهرست دوره‌های بسته‌شده (✅ ۱۳.۱۹) =====
+  //  🔒 حالت دوم (append) فقط صفحهٔ بعدِ همان فهرست را می‌گیرد؛ هیچ
+  //     شناسه‌ای از URL/ورودی آزاد نمی‌آید.
+  async loadCompletionView({ append = false } = {}) {
+    const state = this.extra.completion;
+    if (!state || state.loading) return;
+
+    if (!this.canViewContent(VIEW_TABS.completion)) {
+      state.loaded = true;
+      this.setExtraStatus("completion", "ready");
+      this.renderViewDenied("completion");
+      return;
+    }
+
+    state.loading = true;
+    this.setExtraStatus("completion", "loading");
+    const nextPage = append ? (Number(state.page) || 1) + 1 : 1;
+
+    try {
+      const data = payloadDataOf(
+        await portalApi.getCompletions({
+          page: nextPage,
+          limit: COMPLETION_PAGE,
+        }),
+      );
+      const items = Array.isArray(data.items) ? data.items : [];
+      const meta = data.meta || {};
+      state.items = append ? [...state.items, ...items] : items;
+      state.metrics =
+        Array.isArray(meta.metrics) && meta.metrics.length
+          ? meta.metrics
+          : state.metrics;
+      state.pagination = data.pagination || null;
+      state.page = Number(data.pagination && data.pagination.page) || nextPage;
+      state.loaded = true;
+      this.setExtraStatus("completion", "ready");
+      this.renderCompletion();
+    } catch (error) {
+      state.loaded = true;
+      this.setExtraStatus("completion", "error", viewErrorMessage(error));
+    } finally {
+      state.loading = false;
+    }
+  },
+
+  // گیت دکمهٔ «گزارش نهایی» — همان کلید محتوای سرور
+  completionCanReport() {
+    return Boolean(this.canPermission("customer.portal.completion.report"));
+  },
+
+  renderCompletion() {
+    const state = this.extra.completion;
+    const body = this.el(VIEW_TABS.completion.bodyId);
+    if (!state || !body) return;
+    body.innerHTML = renderCompletionView({
+      items: state.items,
+      metrics: state.metrics,
+      pagination: state.pagination,
+      canReport: this.completionCanReport(),
+    });
+  },
+
   // ===== ۴) «به‌زودی» (بدون درخواست) =====
   loadSoonView() {
     const entry = this.routeEntry || null;
@@ -792,6 +1394,136 @@ export const portalViewsMixin = {
     const conf = SOON_VIEWS[key];
     if (title) title.textContent = conf ? conf.title : VIEW_TABS.soon.title;
     return key;
+  },
+
+  // ===== ۶) «گزارش نهایی دوره» (✅ ۱۳.۱۹) =====
+  async loadFinalReportView() {
+    const state = this.extra.finalReport;
+    if (!state || state.loading) return;
+
+    if (!this.canViewContent(VIEW_TABS.finalReport)) {
+      state.loaded = true;
+      this.setExtraStatus("finalReport", "ready");
+      this.renderViewDenied("finalReport");
+      return;
+    }
+
+    state.loading = true;
+    this.setExtraStatus("finalReport", "loading");
+
+    try {
+      // انتخابگر دوره: یک GET کوچک از همان فهرست (بدون پارامتر آزاد)
+      if (!state.items.length) {
+        const data = payloadDataOf(
+          await portalApi.getCompletions({ page: 1, limit: COMPLETION_PAGE }),
+        );
+        const meta = data.meta || {};
+        state.items = Array.isArray(data.items) ? data.items : [];
+        state.metrics = Array.isArray(meta.metrics) ? meta.metrics : [];
+        state.hallMetrics = Array.isArray(meta.hall_metrics)
+          ? meta.hall_metrics
+          : [];
+      }
+      state.loaded = true;
+      this.setExtraStatus("finalReport", "ready");
+
+      const wanted = String(
+        state.pendingId ||
+          state.completionId ||
+          (state.items[0] && state.items[0].id) ||
+          "",
+      );
+      state.pendingId = "";
+      if (!wanted) return this.renderFinalReport();
+      return this.selectCompletionForReport(wanted, { silent: true });
+    } catch (error) {
+      state.loaded = true;
+      this.setExtraStatus("finalReport", "error", viewErrorMessage(error));
+    } finally {
+      state.loading = false;
+    }
+  },
+
+  // انتخاب دوره — فقط شناسه‌ای که در فهرست خودم آمده پذیرفته می‌شود
+  async selectCompletionForReport(rawId, { silent = false } = {}) {
+    const state = this.extra.finalReport;
+    const id = String(rawId ?? "").trim();
+    if (!state || !id) return null;
+
+    const allowed = state.items.some((row) => String(row.id) === id);
+    if (!allowed) return null;
+    state.completionId = id;
+
+    const current = state.report && state.report.completion;
+    if (current && String(current.id) === id) {
+      return this.renderFinalReport();
+    }
+
+    const body = this.el(VIEW_TABS.finalReport.bodyId);
+    if (!silent && body) {
+      body.innerHTML = `<div class="portal-views__loading">
+        <i class="fas fa-spinner fa-spin" aria-hidden="true"></i> در حال دریافت گزارش دوره…
+      </div>`;
+    }
+
+    try {
+      state.report = payloadDataOf(await portalApi.getCompletionReport(id));
+      const meta = (state.report && state.report.meta) || {};
+      if (Array.isArray(meta.metrics) && meta.metrics.length) {
+        state.metrics = meta.metrics;
+      }
+      if (Array.isArray(meta.hall_metrics) && meta.hall_metrics.length) {
+        state.hallMetrics = meta.hall_metrics;
+      }
+    } catch (error) {
+      state.report = null;
+      if (body) {
+        body.innerHTML = renderNotice(
+          "دریافت گزارش نهایی ناموفق بود",
+          viewErrorMessage(error),
+          "error",
+        );
+      }
+      return null;
+    }
+
+    return this.renderFinalReport();
+  },
+
+  renderFinalReport() {
+    const state = this.extra.finalReport;
+    const body = this.el(VIEW_TABS.finalReport.bodyId);
+    if (!state || !body) return;
+    body.innerHTML = renderFinalReportView({
+      items: state.items,
+      metrics: state.metrics,
+      hallMetrics: state.hallMetrics,
+      report: state.report,
+      selectedId: state.completionId,
+    });
+  },
+
+  // پرش از کارت «پایان دوره» به گزارش نهایی همان دوره
+  openFinalReport(rawId) {
+    const state = this.extra.finalReport;
+    const id = String(rawId ?? "").trim();
+    if (!state || !id) return null;
+    state.pendingId = id;
+
+    if (typeof this.goToRoute === "function") this.goToRoute("#/reports/final");
+    if (
+      this.activeRoute !== "#/reports/final" &&
+      typeof this.activateTab === "function"
+    ) {
+      this.activateTab("finalReport");
+    }
+
+    // پنل از قبل بار شده بود ⇒ همان انتخاب را مستقیم بارگذاری می‌کنیم
+    if (state.loaded) {
+      state.pendingId = "";
+      return this.selectCompletionForReport(id);
+    }
+    return id;
   },
 
   // ===== پس از فعال‌شدن مسیر (پوسته صدا می‌زند) =====
@@ -814,6 +1546,21 @@ export const portalViewsMixin = {
     }
 
     if (entry.panel === "soon") return this.renderSoon(entry.route);
+
+    // ✅ ۱۳.۱۹: بازگشت به این دو پنل، درخواست دوباره نمی‌فرستد
+    if (entry.panel === "completion" && state.completion && state.completion.loaded) {
+      this.renderCompletion();
+      return "completion";
+    }
+
+    if (
+      entry.panel === "finalReport" &&
+      state.finalReport &&
+      state.finalReport.loaded
+    ) {
+      this.renderFinalReport();
+      return "finalReport";
+    }
 
     if (entry.panel === "placements" && state.placements && state.placements.loaded) {
       this.renderPlacements();

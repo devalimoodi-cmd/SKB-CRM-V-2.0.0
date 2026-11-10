@@ -65,6 +65,7 @@ $steps = @(
   'test:portal-requests',
   'test:portal-menu',
   'test:farm-write',
+  'test:portal-completion',
   'test:registration',
   'audit:size', 'audit:dead-exports', 'audit:surface', 'audit:big-methods'
 )

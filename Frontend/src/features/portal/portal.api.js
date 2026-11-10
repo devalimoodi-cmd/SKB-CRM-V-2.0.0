@@ -448,4 +448,26 @@ export const portalApi = {
       API_CONSTANTS.ENDPOINTS.PORTAL.FARM_WEEKLY_DETAILS(rowId(id)),
     );
   },
+
+  // ============================================================
+  // ✅ موج ۱۳.۱۹ — «پایان دوره» و «گزارش نهایی دوره»
+  // ------------------------------------------------------------
+  //  🔒 شناسهٔ پایان دوره فقط از پاسخ فهرست می‌آید و با rowId
+  //     اعتبارسنجی می‌شود؛ سرور مالکیت را در همان کوئری می‌سنجد.
+  //  ⚠️ فهرست فقط page/limit می‌فرستد (سقف ۵۰ در سرور) و هیچ
+  //     شناسهٔ مشتری در آدرس/بدنه نیست.
+  // ============================================================
+  async getCompletions(params = {}) {
+    return apiService.get(
+      API_CONSTANTS.ENDPOINTS.PORTAL.COMPLETIONS,
+      pageParams(params),
+    );
+  },
+
+  // گزارش تفصیلی یک دورهٔ خودم (ریز سالن‌ها + روند + دارو/واکسن)
+  async getCompletionReport(id) {
+    return apiService.get(
+      API_CONSTANTS.ENDPOINTS.PORTAL.COMPLETION_DETAIL(rowId(id)),
+    );
+  },
 };

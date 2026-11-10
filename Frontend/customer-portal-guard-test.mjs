@@ -624,14 +624,15 @@ check(
 );
 
 check(
-  "مسیر: ۲۰ GET خواندنی + نوشتن‌های محدود (پروفایل ۳ + مدارک ۲ + فارم ۲ · بدون PUT)",
+  "مسیر: ۲۲ GET خواندنی + نوشتن‌های محدود (پروفایل ۳ + مدارک ۲ + فارم ۲ · بدون PUT)",
   // ✅ موج ۱۳.۸: ۸ مسیر خواندنی قبلی + پروفایل + چهار مسیر داشبورد = ۱۳
   // ✅ موج ۱۳.۱۰: دو GET مدارک (فهرست + فایل) ⇒ ۱۵
   // ✅ موج ۱۳.۱۱: دو GET درخواست‌های فارم (options + requests) ⇒ ۱۷
   // ✅ موج ۱۳.۱۳: یک GET جزئیات سالن (/farm/halls/:id) ⇒ ۱۸
   // ✅ موج ۱۳.۱۴: یک GET جزئیات دوره (/farm/placements/:id) ⇒ ۱۹
   // ✅ موج ۱۳.۱۵: یک GET جزئیات هفته (/farm/weeklies/:id) ⇒ ۲۰
-  (SRC.routes.match(/router\.get\(/g) || []).length === 20 &&
+  // ✅ موج ۱۳.۱۹: دو GET «پایان دوره» (/completions + /completions/:id) ⇒ ۲۲
+  (SRC.routes.match(/router\.get\(/g) || []).length === 22 &&
     (SRC.routes.match(/router\.patch\(/g) || []).length === 1 &&
     // ۲ پروفایل/موبایل + ۱ آپلود مدرک + ۲ درخواست فارم (ثبت/لغو)
     (SRC.routes.match(/router\.post\(/g) || []).length === 5 &&
@@ -753,9 +754,10 @@ check(
   // ✅ موج ۱۳.۱۰: ۳ کلید «مدارک من» (۱۸۸ ⇒ ۱۹۱)
   // ✅ موج ۱۳.۱۱: ۶ کلید «درخواست‌های فارم» + یک گروه تازه (۱۹۱ ⇒ ۱۹۷ / ۱۸)
   // ✅ موج ۱۳.۱۷: ۲۸ کلید «لایهٔ منوی» پورتال (۱۹۷ ⇒ ۲۲۵ / همان ۱۸ گروه)
-  catalog.TOTAL_PERMISSIONS === 225 &&
+  // ✅ موج ۱۳.۱۹: ۲ کلید «پایان دوره» و «گزارش تفصیلی» (۲۲۵ ⇒ ۲۲۷)
+  catalog.TOTAL_PERMISSIONS === 227 &&
     catalog.PERMISSION_GROUPS.length === 18 &&
-    /TOTAL_PERMISSIONS === 225 && catalog\.PERMISSION_GROUPS\.length === 18/.test(
+    /TOTAL_PERMISSIONS === 227 && catalog\.PERMISSION_GROUPS\.length === 18/.test(
       SRC.permissionsTest,
     ),
   `keys=${catalog.TOTAL_PERMISSIONS} groups=${catalog.PERMISSION_GROUPS.length}`,

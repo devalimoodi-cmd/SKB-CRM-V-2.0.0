@@ -226,6 +226,8 @@ const getPortalSummary = async (req, res) => {
       canFarm,
       canFarmRequest,
       canFarmCancel,
+      canCompletion,
+      canCompletionReport,
     ] = await Promise.all([
       userHasPermission(req, "customer.portal.halls"),
       userHasPermission(req, "customer.portal.flocks"),
@@ -241,6 +243,9 @@ const getPortalSummary = async (req, res) => {
       userHasPermission(req, "customer.portal.farm"),
       userHasPermission(req, "customer.portal.farm.request"),
       userHasPermission(req, "customer.portal.farm.cancel"),
+      // ✅ موج ۱۳.۱۹ — «پایان دوره» + گزارش تفصیلی آن
+      userHasPermission(req, "customer.portal.completion"),
+      userHasPermission(req, "customer.portal.completion.report"),
     ]);
 
     const sections = {
@@ -252,6 +257,11 @@ const getPortalSummary = async (req, res) => {
       dashboard: canDashboard,
       // ✅ تب «درخواست‌های فارم» — تا تأیید کارشناس چیزی ساخته نمی‌شود
       farm: canFarm,
+      // ✅ ۱۳.۱۹: «پایان دوره» و «گزارش نهایی» — گزارش نهایی فقط با
+      //    هر دو کلید (فهرست + تفصیل) باز می‌شود تا پنل هرگز بدون
+      //    انتخابگر دوره به کاربر نشان داده نشود.
+      completion: canCompletion,
+      finalReport: Boolean(canCompletion && canCompletionReport),
     };
 
     // null = «این بخش بسته است» (با 0 اشتباه نشود)
@@ -277,6 +287,8 @@ const getPortalSummary = async (req, res) => {
           // ✅ ۱۳.۱۱: فقط گیت دکمه‌ها — اعمال واقعی پس از تأیید کارشناس
           farm_request: Boolean(canFarm && canFarmRequest),
           farm_cancel: Boolean(canFarm && canFarmCancel),
+          // ✅ ۱۳.۱۹: دکمهٔ «مشاهدهٔ گزارش نهایی» روی کارت پایان دوره
+          completion_report: Boolean(canCompletion && canCompletionReport),
         },
         counters: {
           halls: orNull(canHalls, hallsTotal),

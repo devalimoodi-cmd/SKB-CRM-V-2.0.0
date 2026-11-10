@@ -154,12 +154,14 @@ check(
 );
 
 check(
-  "۱۳.۱۷ · ۱۲ پنل یکتا در مدل تعریف شده است",
-  PORTAL_MENU_PANELS.length === 12 &&
+  "۱۳.۱۷ · ۱۴ پنل یکتا در مدل تعریف شده است",
+  PORTAL_MENU_PANELS.length === 14 &&
     [
+      "completion",
       "dashboard",
       "documents",
       "farm",
+      "finalReport",
       "flocks",
       "hallDetail",
       "halls",
@@ -192,13 +194,14 @@ check(
 );
 
 check(
-  "۱۳.۱۷ · لایهٔ محتوا فقط برای سه بخش «به‌زودی» خالی است (بستهٔ صادق)",
+  "۱۳.۱۷ · لایهٔ محتوا فقط برای بخش «به‌زودی» خالی است (بستهٔ صادق)",
+  // ✅ ۱۳.۱۹: «پایان دوره» و «گزارش نهایی» کلید محتوا گرفتند ⇒ فقط ۱ soon
   PORTAL_ROUTE_LIST.every((route) => {
     const entry = PORTAL_ROUTES[route];
     if (entry.contentKey) return true;
     return entry.panel === "soon";
   }) &&
-    PORTAL_ROUTE_LIST.filter((route) => !PORTAL_ROUTES[route].contentKey).length === 3,
+    PORTAL_ROUTE_LIST.filter((route) => !PORTAL_ROUTES[route].contentKey).length === 1,
 );
 
 check(
@@ -212,6 +215,9 @@ check(
     "customer.portal.profile",
     "customer.portal.documents",
     "customer.portal.dashboard",
+    // ✅ ۱۳.۱۹
+    "customer.portal.completion",
+    "customer.portal.completion.report",
   ].every((key) =>
     PORTAL_ROUTE_LIST.some((route) => PORTAL_ROUTES[route].contentKey === key),
   ),
@@ -393,11 +399,13 @@ check(
 );
 
 check(
-  "۱۳.۱۷ · هر سه پنل تازه بدنهٔ رندر دارند (units/hallDetail/placements/soon)",
+  "۱۳.۱۷ · هر پنل تازه بدنهٔ رندر دارد (units/hallDetail/placements/completion/finalReport/soon)",
   [
     'id="portalUnitsBody"',
     'id="portalHallDetailBody"',
     'id="portalPlacementsBody"',
+    'id="portalCompletionBody"',
+    'id="portalFinalBody"',
     'id="portalSoonBody"',
   ].every((token) => SRC.html.includes(token)),
 );
@@ -417,14 +425,21 @@ check(
 );
 
 const viewCalls = [...CODE.views.matchAll(/portalApi\.(\w+)/g)].map((m) => m[1]);
+// ✅ ۱۳.۱۹: هر متد ممکن است چند بار صدا زده شود ⇒ یکتاها سنجیده می‌شوند
+const viewCallNames = [...new Set(viewCalls)].sort();
 
 check(
-  "۱۳.۱۷ · فقط سه GET مجاز صدا زده می‌شود (options/hall/placement)",
-  viewCalls.length === 3 &&
-    viewCalls.every((name) =>
-      ["getFarmOptions", "getFarmHallDetails", "getFarmPlacementDetails"].includes(name),
-    ),
-  `calls=${viewCalls.join(",")}`,
+  "۱۳.۱۷ · فقط GETهای مجاز صدا زده می‌شود (options/hall/placement/completion)",
+  // ✅ ۱۳.۱۹: دو GET تازهٔ «پایان دوره» — همچنان فقط خواندنی
+  viewCallNames.join(",") ===
+    [
+      "getCompletionReport",
+      "getCompletions",
+      "getFarmHallDetails",
+      "getFarmOptions",
+      "getFarmPlacementDetails",
+    ].join(","),
+  `calls=${viewCallNames.join(",")}`,
 );
 
 check(
@@ -475,9 +490,10 @@ try {
 }
 
 check(
-  "۱۳.۱۷ · چهار پنل تازه در رجیستری VIEW_TABS ثبت شده‌اند",
+  "۱۳.۱۷ · شش پنل تازه در رجیستری VIEW_TABS ثبت شده‌اند",
   Boolean(views) &&
-    Object.keys(views.VIEW_TABS).sort().join(",") === "hallDetail,placements,soon,units" &&
+    Object.keys(views.VIEW_TABS).sort().join(",") ===
+      "completion,finalReport,hallDetail,placements,soon,units" &&
     Object.values(views.VIEW_TABS).every(
       (conf) => conf.permission?.startsWith("customer.portal.menu.") && conf.bodyId,
     ),
@@ -495,10 +511,9 @@ check(
 );
 
 check(
-  "۱۳.۱۷ · سه بخش «به‌زودی» متن صادقانه دارند (بدون دادهٔ ساختگی)",
+  "۱۳.۱۹ · یک بخش «به‌زودی» با متن صادقانه مانده است (بدون دادهٔ ساختگی)",
   Boolean(views) &&
-    Object.keys(views.SOON_VIEWS).sort().join(",") ===
-      "#/hatchery/completion,#/hatchery/hygiene,#/reports/final" &&
+    Object.keys(views.SOON_VIEWS).sort().join(",") === "#/hatchery/hygiene" &&
     Object.values(views.SOON_VIEWS).every((view) => view.title && view.lead && view.text),
 );
 
@@ -568,6 +583,110 @@ check(
         html.includes('data-view-placement="3"') && html.includes("data-view-placement-weeks")
       );
     })(),
+);
+
+check(
+  "۱۳.۱۹ · پایان دوره: فهرست خالی ⇒ پیام، ردیف واقعی ⇒ کارت KPI با برچسب سرور",
+  Boolean(views) &&
+    views.renderCompletionView({ items: [] }).includes("portal-notice") &&
+    (() => {
+      const html = views.renderCompletionView({
+        items: [
+          {
+            id: 9,
+            completion_date: "2026-03-01",
+            completion_type_label: "پایان عادی",
+            confirmed_by_customer: true,
+            final_fcr: 1.9,
+            survival_percent: 95,
+          },
+        ],
+        metrics: [
+          { key: "final_fcr", label: "ضریب تبدیل نهایی", kind: "decimal", digits: 2 },
+          { key: "survival_percent", label: "درصد زنده‌مانی", unit: "٪", kind: "decimal", digits: 2 },
+        ],
+        canReport: true,
+      });
+      return (
+        html.includes('data-view-completion="9"') &&
+        html.includes('data-view-completion-report="9"') &&
+        html.includes("ضریب تبدیل نهایی") &&
+        html.includes("1.9")
+      );
+    })(),
+);
+
+check(
+  "۱۳.۱۹ · گزارش نهایی: بدون دوره ⇒ پیام؛ با گزارش ⇒ سالن/مقایسه/دارو/روند",
+  Boolean(views) &&
+    views.renderFinalReportView({ items: [] }).includes("portal-notice") &&
+    (() => {
+      const html = views.renderFinalReportView({
+        items: [{ id: 4, completion_date: "2026-03-01", completion_type_label: "پایان عادی" }],
+        metrics: [
+          { key: "final_fcr", label: "ضریب تبدیل نهایی", kind: "decimal", digits: 2 },
+        ],
+        hallMetrics: [
+          { key: "final_avg_weight", label: "وزن نهایی", unit: "کیلوگرم", kind: "decimal", digits: 3 },
+        ],
+        report: {
+          completion: {
+            id: 4,
+            completion_date: "2026-03-01",
+            completion_type_label: "پایان عادی",
+            flock_id: 7,
+            feed_basis: "system",
+          },
+          totals: {
+            fcr: 1.48,
+            survivalRate: 95,
+            mortalityRate: 5,
+            totalFeed: 87000,
+            lastWeight: 2.067,
+            initialChicks: 30000,
+            finalChicks: 28500,
+            ageDays: 42,
+          },
+          stored: {
+            final_fcr: 1.9,
+            survival_percent: 95,
+            mortality_rate: 5,
+            total_feed_intake: 87000,
+            final_avg_weight: 2.067,
+          },
+          weekly: { weeks_count: 3 },
+          halls: [{ hall_id: 11, hall_name: "سالن الف", final_avg_weight: 2.05 }],
+          trend: { weeks: [1, 2, 3], weight: [1.2, 1.7, 2.0], fcr: [1.6, 1.5, 1.48] },
+          medicines: [{ name: "ویتامین", count: 2 }],
+          vaccines: [],
+          notices: ["هشدار نمونه"],
+          meta: {},
+        },
+      });
+      return (
+        html.includes('data-view-final-report="4"') &&
+        html.includes("data-view-report-halls") &&
+        html.includes("data-view-report-compare") &&
+        html.includes("data-view-trend") &&
+        html.includes("ویتامین") &&
+        html.includes("هشدار نمونه")
+      );
+    })(),
+);
+
+check(
+  "۱۳.۱۹ · نمودار روند با کمتر از دو هفته رسم نمی‌شود (بدون دادهٔ جعلی)",
+  Boolean(views) &&
+    views.renderTrendChart({ weeks: [1], weight: [1.2], fcr: [1.5] }) === "" &&
+    views.renderTrendChart(null) === "",
+);
+
+check(
+  "۱۳.۱۹ · پنل «گزارش نهایی» دو کلید محتوا لازم دارد (فهرست + تفصیل)",
+  Boolean(views) &&
+    views.VIEW_TABS.finalReport.requiresAll.join(",") ===
+      "customer.portal.completion,customer.portal.completion.report" &&
+    views.VIEW_TABS.completion.requires === "customer.portal.completion",
 );
 
 check(
@@ -770,19 +889,19 @@ check(
 );
 
 check(
-  "۱۳.۱۷ · نمونهٔ سرویس همهٔ متدهای پوسته و چهار تب تازه را دارد",
+  "۱۳.۱۷ · نمونهٔ سرویس همهٔ متدهای پوسته و پنل‌های تازه را دارد",
   Boolean(service) &&
     ["initShell", "bindShell", "activateRoute", "goToRoute", "syncNav", "applyMenuVisibility"]
       .every((name) => typeof service.portalService[name] === "function") &&
-    ["units", "hallDetail", "placements", "soon"].every(
+    ["units", "hallDetail", "placements", "completion", "finalReport", "soon"].every(
       (key) => key in service.portalService.extra,
     ),
 );
 
 check(
-  "۱۳.۱۷ · canSee برای چهار پنل تازه پاسخ می‌دهد (بدون مجوز = باز، هم‌الگو با ۱۳.۵)",
+  "۱۳.۱۹ · canSee برای پنل‌های تازه پاسخ می‌دهد (بدون مجوز = باز، هم‌الگو با ۱۳.۵)",
   Boolean(service) &&
-    ["units", "hallDetail", "placements", "soon"].every(
+    ["units", "hallDetail", "placements", "completion", "finalReport", "soon"].every(
       (key) => service.portalService.canSee(key) === true,
     ),
 );
@@ -832,10 +951,11 @@ check(
 );
 
 check(
-  "۱۳.۱۷ · کاتالوگ: شمارش کلیدها با permissions-test هم‌خوان است (۲۲۵ / ۱۸)",
-  catalog.TOTAL_PERMISSIONS === 225 &&
+  "۱۳.۱۷ · کاتالوگ: شمارش کلیدها با permissions-test هم‌خوان است (۲۲۷ / ۱۸)",
+  // ✅ ۱۳.۱۹: دو کلید «پایان دوره» ⇒ ۲۲۵ + ۲ = ۲۲۷
+  catalog.TOTAL_PERMISSIONS === 227 &&
     catalog.PERMISSION_GROUPS.length === 18 &&
-    /TOTAL_PERMISSIONS === 225 && catalog\.PERMISSION_GROUPS\.length === 18/.test(
+    /TOTAL_PERMISSIONS === 227 && catalog\.PERMISSION_GROUPS\.length === 18/.test(
       SRC.permissionsTest,
     ),
 );

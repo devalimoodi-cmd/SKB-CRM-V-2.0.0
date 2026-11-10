@@ -787,3 +787,23 @@ npm run lint                  # ۰ خطا
 
 📄 گزارش کامل: `docs/REVIEW-WAVE-13.17.md`.
 
+## «پایان دوره» و «گزارش نهایی دوره» برای مشتری (موج ۱۳.۱۹)
+
+آخرین دو بخش بی‌دادهٔ پورتال، اندپوینت واقعی گرفتند. **بدون مایگریشن و
+بدون ستون تازه**: همان جدول‌های `flock_completions` / `flock_completion_halls`
+و هفته‌های همان جوجه‌ریزی‌ها خوانده می‌شوند.
+
+| موضوع | مقدار |
+|---|---|
+| مسیرها | `GET /api/portal/completions` (فهرست) · `GET /api/portal/completions/:id` (گزارش تفصیلی) — هر دو GET |
+| زنجیرهٔ دسترسی | `protect → authorize(customer) → customer.portal.view → requireCustomerLink → customer.portal.completion` و برای `:id` هم `customer.portal.completion.report` + `requireOwnedRow` |
+| فهرست سفید | `services/portalCompletionView.js` (خالص): ۲۲ کلید فهرست / ۳۳ کلید گزارش؛ اقتصاد گله، `notes`، `completed_by` و `customer_id` هرگز بیرون نمی‌روند |
+| موتور محاسبه | همان `services/flockMetrics.js` — `aggregateFlock` + `summarizeWeeks` + `buildFlockTrend` (هیچ فرمول دومی) |
+| گزارش | `totals` (جمع سالن‌ها) + `stored` (عدد ثبت‌شدهٔ کارشناس) + `weekly` + ریز سالن‌ها + جمع دارو/واکسن (فقط نام و تعداد) + `notices` صادقانه |
+| کوئری‌ها | همه با `customer_id: customerId`؛ نام سالن‌ها هم با همان اسکوپ؛ دارو/واکسن فقط از ردیف‌های هفتگی خودِ مشتری |
+| کلیدها | ۲ کلید تازه (۲۲۵ ⇒ **۲۲۷** / ۱۸ گروه) — مدیر می‌تواند خلاصه را نشان دهد و گزارش تفصیلی را ببندد |
+| خلاصهٔ پرونده | `/api/portal/me` دو بخش `completion` و `finalReport` (دومی فقط با هر دو کلید) + `features.completion_report` |
+| آزمون | `npm run test:portal-completion` ⇒ **۳۱** بررسی (اجرای واقعی فهرست سفید، تجمیع، روند، هشدارها + سیم‌کشی مسیر/کنترلر/سرویس) |
+
+📄 گزارش کامل: `docs/REVIEW-WAVE-13.19.md`.
+

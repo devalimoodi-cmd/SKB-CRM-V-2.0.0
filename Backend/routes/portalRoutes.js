@@ -40,12 +40,18 @@ const portalDashboardController = require("../controllers/portalDashboardControl
 const portalDocumentsController = require("../controllers/portalDocumentsController");
 // ✅ موج ۱۳.۱۱ — «درخواست‌های فارم» (الگوی ب: درخواست مشتری + تأیید کارشناس)
 const portalFarmController = require("../controllers/portalFarmController");
+// ✅ موج ۱۳.۱۹ — «پایان دوره» و «گزارش نهایی دوره» (فقط خواندن)
+const portalCompletionController = require("../controllers/portalCompletionController");
+
 const { uploadPortalDocumentSingle } = require("../middleware/upload");
 const Flock = require("../models/Flock");
 const ChickPlacement = require("../models/ChickPlacement");
 const PortalDocument = require("../models/PortalDocument");
 const PortalRequest = require("../models/PortalRequest");
 const Hall = require("../models/Hall");
+// ✅ ۱۳.۱۹: مالکیت «پایان دورهٔ خودم» در مسیر سنجیده می‌شود
+const FlockCompletion = require("../models/FlockCompletion");
+
 // ✅ ۱۳.۱۵: مالکیت «هفتهٔ خودم» در مسیر سنجیده می‌شود
 const WeeklyManagement = require("../models/WeeklyManagement");
 
@@ -367,6 +373,39 @@ router.get(
   ...farmChain,
   requireOwnedRow({ model: WeeklyManagement, label: "هفته" }),
   portalFarmController.getMyWeekly,
+);
+
+// ============================================================
+// ✅ ۱۳.۱۹ — «پایان دوره» و «گزارش نهایی دوره» (فقط خواندن)
+// ------------------------------------------------------------
+//  منبع داده: flock_completions (+ flock_completion_halls) و
+//  هفته‌های همان جوجه‌ریزی‌ها. **هیچ مایگریشن و هیچ ستون تازه‌ای
+//  لازم نشد** — فقط خواندنِ همان چیزی که کارشناس ثبت کرده است.
+//
+// 🔒 دو کلید محتوا (قابل بستن جدا توسط مدیر):
+//   • customer.portal.completion        → فهرست + شاخص‌های هر دوره
+//   • customer.portal.completion.report → گزارش نهایی (ریز سالن‌ها،
+//     روند هفتگی، جمع دارو/واکسن)
+//   مالکیت ردیف با requireOwnedRow سنجیده می‌شود ⇒ دورهٔ غیرخودی ۴۰۴.
+// ============================================================
+const completionChain = tabChain("customer.portal.completion");
+
+const completionReportChain = [
+  ...completionChain,
+  requirePermission("customer.portal.completion.report"),
+  requireOwnedRow({ model: FlockCompletion, label: "پایان دوره" }),
+];
+
+router.get(
+  "/completions",
+  ...completionChain,
+  portalCompletionController.listMyCompletions,
+);
+
+router.get(
+  "/completions/:id",
+  ...completionReportChain,
+  portalCompletionController.getMyCompletion,
 );
 
 router.get(
