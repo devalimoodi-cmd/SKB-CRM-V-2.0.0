@@ -35,13 +35,20 @@ import { EXTRA_TABS, applyPortalExtra } from "./portal.extra.js";
 import { DOCUMENT_TABS, applyPortalDocuments } from "./portal.documents.js";
 // ✅ موج ۱۳.۱۱ — تب «درخواست‌های فارم» (درخواست مشتری + تأیید کارشناس)
 import { FARM_TABS, applyPortalFarm } from "./portal.farm.js";
+// ✅ موج ۱۳.۱۷ — نماهای خواندنی تازه (واحدها/جزئیات سالن/دوره‌ها/به‌زودی)
+import { VIEW_TABS, applyPortalViews } from "./portal.views.js";
+// ✅ موج ۱۳.۱۷ — پوستهٔ ناوبری (منو/زیرمنو + hash routing + drawer موبایل)
+import { applyPortalShell } from "./portal.shell.js";
+// مسیر جاری برای هم‌راستاسازی URL پس از بارگذاری
+import { parseHash } from "./portal.menu.js";
 
 // 🔗 ۱۳.۱۰: تب «مدارک من» در همان رجیستری «تب‌های خاص» ثبت می‌شود تا
 //    چرخهٔ پنهان‌سازی/فعال‌سازی، `canSee` و `ALL_TAB_KEYS` بدون تغییر
 //    دوم کار کنند (tabConf/canSee از EXTRA_TABS می‌خوانند).
 //    ✅ ۱۳.۱۱: تب «درخواست‌های فارم» هم به همین رجیستری اضافه می‌شود.
+//    ✅ ۱۳.۱۷: چهار نمای تازهٔ ناوبری (واحدها/جزئیات سالن/دوره‌ها/به‌زودی).
 //    ⚠️ این خط باید **قبل** از ساخت ALL_TAB_KEYS اجرا شود.
-Object.assign(EXTRA_TABS, DOCUMENT_TABS, FARM_TABS);
+Object.assign(EXTRA_TABS, DOCUMENT_TABS, FARM_TABS, VIEW_TABS);
 
 // پیام ۴۰۳ِ «بدون پروندهٔ متصل» از سرور همین عبارت را دارد
 const LINK_MISSING = /متصل نشده است/;
@@ -137,6 +144,9 @@ class PortalService {
     this.initDocumentsTab();
     // ✅ ۱۳.۱۱: وضعیت تب «درخواست‌های فارم» (همان الگو)
     this.initFarmTab();
+    // ✅ ۱۳.۱۷: وضعیت چهار نمای تازه + وضعیت پوستهٔ ناوبری
+    this.initViews();
+    this.initShell();
   }
 
   el(id) {
@@ -170,6 +180,9 @@ class PortalService {
     this.bindDocuments();
     // ✅ ۱۳.۱۱: رویدادهای تب «درخواست‌های فارم» (ثبت/لغو)
     this.bindFarm();
+    // ✅ ۱۳.۱۷: رویدادهای چهار نمای تازه + پوستهٔ ناوبری (hash/drawer)
+    this.bindViews();
+    this.bindShell();
     await this.load();
   }
 
@@ -222,6 +235,10 @@ class PortalService {
       typeof window !== "undefined" ? window.permissionService : null;
     if (!service || typeof service.can !== "function") return true;
     if (typeof service.hasData === "function" && !service.hasData()) return true;
+    // ✅ ۱۳.۱۷: پنل‌های چندمسیره (مثل «به‌زودی») با هر یک از کلیدهایشان باز می‌شوند
+    if (Array.isArray(conf.permissionAny) && conf.permissionAny.length) {
+      return conf.permissionAny.some((token) => Boolean(service.can(token)));
+    }
     return Boolean(service.can(conf.permission));
   }
 
@@ -300,6 +317,11 @@ class PortalService {
       tabs.addEventListener("click", (event) => {
         const button = event.target.closest("[data-portal-tab]");
         if (!button || button.disabled) return;
+        // ✅ ۱۳.۱۷: لینک‌های ناوبری (data-portal-route) را پوستهٔ shell
+        //    مدیریت می‌کند (hash routing) — این‌جا فقط تب‌های کلاسیک.
+        if (button.hasAttribute && button.hasAttribute("data-portal-route")) {
+          return;
+        }
         event.preventDefault();
         this.activateTab(button.getAttribute("data-portal-tab"));
       });
@@ -462,6 +484,24 @@ class PortalService {
       // ✅ ۱۳.۵: تب‌هایی که مجوزشان بسته است پنهان می‌شوند و درخواستی
       //    نمی‌فرستند؛ تب فعال هم اگر بسته بود به اولین تبِ مجاز می‌رود.
       const visible = this.applyTabVisibility();
+      // ✅ ۱۳.۱۷: ناوبری دو لایه — ابتدا منو/زیرمنو هم‌راستا می‌شود،
+      //    بعد مسیر فعلی URL (یا اولین مسیر مجاز) فعال می‌شود.
+      //    اگر هیچ آیتمی مجاز نبود، همان رفتار ۱۳.۵ (تب اول مجاز).
+      const hasMenu = this.applyMenuVisibility();
+      if (hasMenu) {
+        const hash =
+          typeof window !== "undefined" && window.location
+            ? window.location.hash
+            : "";
+        const resolved = this.activateRoute(parseHash(hash) || "");
+        if (!resolved) {
+          const first = visible.includes(this.activeTab)
+            ? this.activeTab
+            : visible[0];
+          if (first) this.activateTab(first);
+        }
+        return;
+      }
       // تب پیش‌فرض یک‌بار و تنبل بارگذاری می‌شود
       const first = visible.includes(this.activeTab)
         ? this.activeTab
@@ -543,6 +583,9 @@ class PortalService {
     });
     const tabs = this.el("portalTabs");
     if (tabs) tabs.hidden = !enabled;
+    // ✅ ۱۳.۱۷: کل پوستهٔ ناوبری (سایدبار/drawer) هم پنهان می‌شود
+    const nav = this.el("portalNav");
+    if (nav) nav.hidden = !enabled;
     const panels = this.el("portalTabPanels");
     if (panels && !enabled) panels.hidden = true;
     if (!enabled) {
@@ -688,6 +731,14 @@ applyPortalDocuments(PortalService);
 //    loadExtraTab آن بتواند نسخهٔ لایه‌های قبلی (مدارک/پروفایل/داشبورد)
 //    را واگذاری کند.
 applyPortalFarm(PortalService);
+
+// ✅ ۱۳.۱۷: نماهای خواندنی تازه، *بعد* از فارم سوار می‌شوند تا
+//    loadExtraTab این فایل بتواند نسخهٔ فارم را واگذار کند.
+applyPortalViews(PortalService);
+
+// ✅ ۱۳.۱۷: پوستهٔ ناوبری آخرین mixin — فقط activateRoute،
+//    applyMenuVisibility و مدیریت drawer/hash را اضافه می‌کند.
+applyPortalShell(PortalService);
 
 export const portalService = new PortalService();
 

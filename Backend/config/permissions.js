@@ -263,6 +263,108 @@ const PORTAL = [
     "لغو درخواستِ در انتظار تأیید (پیش از بررسی کارشناس)",
     D.customerOnly,
   ),
+  // ============================================================
+  // ✅ موج ۱۳.۱۷ — «منوهای پورتال» (ناوبری دو لایه)
+  // ------------------------------------------------------------
+  //  چرا ۲۸ کلید تازه وقتی پورتال همین حالا ۲۴ کلید دارد؟
+  //   ۱) تا ۱۳.۱۶ پورتال یک نوار تَب افقی داشت: هر تَب یک کلید
+  //      «محتوا» بود (customer.portal.halls …). از ۱۳.۱۷ ناوبری
+  //      «منو + زیرمنو» شد؛ اگر منوها به کلید محتوا گیت می‌شدند،
+  //      بستن یک بخش، *کل منو* را ناپدید می‌کرد (همان اشکالی که در
+  //      گروه adminMenus توضیح داده شد).
+  //   ۲) پس دو لایه داریم — دقیقاً مثل admin.menu.*:
+  //        • لایهٔ «منو»   → فقط دیده‌شدنِ آیتم در ناوبری
+  //        • لایهٔ «محتوا» → همان ۲۴ کلید قبلی، که *سرور* هم اجرا
+  //          می‌کند (/api/portal/* با همین کلیدها ۴۰۳ می‌دهد)
+  //   ۳) `data-permission` هر لینک در portal.html همین کلیدها هستند؛
+  //      اگر مدیر «مزرعهٔ من» را ببندد، ۷ آیتم آن با هم پنهان می‌شود
+  //      ولی دسترسی داده (customer.portal.farm) دست‌نخورده می‌ماند.
+  //  ⚠️ این کلیدها فقط UI را کنترل می‌کنند (پیش‌فرض: مشتری روشن،
+  //      بقیه خاموش). هیچ اندپوینتی با این کلیدها محافظت نمی‌شود؛
+  //      اسکوپِ داده همیشه با req.customerScopeId است.
+  // ============================================================
+  // — لایهٔ منو: داشبورد —
+  item("customer.portal.menu.dashboard", "منوی «داشبورد» (پورتال)", D.customerOnly),
+  item(
+    "customer.portal.menu.dashboard.charts",
+    "زیرمنوی «نمودارها» در داشبورد پورتال",
+    D.customerOnly,
+  ),
+  item(
+    "customer.portal.menu.dashboard.compare",
+    "زیرمنوی «مقایسهٔ گله‌ها» در داشبورد پورتال",
+    D.customerOnly,
+  ),
+  // — لایهٔ منو: پروندهٔ من —
+  item("customer.portal.menu.profile", "منوی «پروندهٔ من» (پورتال)", D.customerOnly),
+  item("customer.portal.menu.profile.me", "زیرمنوی «پروفایل من» (پورتال)", D.customerOnly),
+  item(
+    "customer.portal.menu.profile.documents",
+    "زیرمنوی «مدارک من» (پورتال)",
+    D.customerOnly,
+  ),
+  // — لایهٔ منو: مزرعهٔ من (کلید محتوایی: customer.portal.halls / customer.portal.farm) —
+  item("customer.portal.menu.farm", "منوی «مزرعهٔ من» (پورتال)", D.customerOnly),
+  item("customer.portal.menu.farm.units", "زیرمنوی «واحدها» (پورتال)", D.customerOnly),
+  item("customer.portal.menu.farm.halls", "زیرمنوی «سالن‌ها» (پورتال)", D.customerOnly),
+  item(
+    "customer.portal.menu.farm.physical",
+    "زیرمنوی «اطلاعات فیزیکی سالن» (پورتال)",
+    D.customerOnly,
+  ),
+  item("customer.portal.menu.farm.systems", "زیرمنوی «سیستم‌های سالن» (پورتال)", D.customerOnly),
+  item(
+    "customer.portal.menu.farm.waterFeed",
+    "زیرمنوی «آبخوری و دانخوری» (پورتال)",
+    D.customerOnly,
+  ),
+  item("customer.portal.menu.farm.hygiene", "زیرمنوی «بهداشت سالن» (پورتال)", D.customerOnly),
+  // — لایهٔ منو: جوجه‌ریزی —
+  item("customer.portal.menu.hatchery", "منوی «جوجه‌ریزی» (پورتال)", D.customerOnly),
+  item(
+    "customer.portal.menu.hatchery.flocks",
+    "زیرمنوی «گله‌های من» (پورتال)",
+    D.customerOnly,
+  ),
+  item(
+    "customer.portal.menu.hatchery.placements",
+    "زیرمنوی «دوره‌های جوجه‌ریزی» (پورتال)",
+    D.customerOnly,
+  ),
+  // ⚠️ دو زیرمنوی زیر در ۱۳.۱۷ پنل «به‌زودی» دارند (اندپوینت پورتال
+  //    برای تاریخچهٔ ضدعفونی و پایان دوره هنوز نیست)؛ کلید از الان
+  //    هست تا مدیر بتواند حتی همان صفحهٔ اطلاع‌رسانی را ببندد.
+  item(
+    "customer.portal.menu.hatchery.hygiene",
+    "زیرمنوی «ضدعفونی دوره» (پورتال)",
+    D.customerOnly,
+  ),
+  item(
+    "customer.portal.menu.hatchery.completion",
+    "زیرمنوی «پایان دوره» (پورتال)",
+    D.customerOnly,
+  ),
+  // — لایهٔ منو: مدیریت هفتگی —
+  item("customer.portal.menu.weekly", "منوی «مدیریت هفتگی» (پورتال)", D.customerOnly),
+  item(
+    "customer.portal.menu.weekly.create",
+    "زیرمنوی «ثبت هفته» (پورتال)",
+    D.customerOnly,
+  ),
+  item("customer.portal.menu.weekly.list", "زیرمنوی «هفته‌های ثبت‌شده» (پورتال)", D.customerOnly),
+  item("customer.portal.menu.weekly.trend", "زیرمنوی «نمودار روند» (پورتال)", D.customerOnly),
+  // — لایهٔ منو: درخواست‌های من —
+  item("customer.portal.menu.requests", "منوی «درخواست‌های من» (پورتال)", D.customerOnly),
+  item("customer.portal.menu.requests.new", "زیرمنوی «ثبت درخواست» (پورتال)", D.customerOnly),
+  item("customer.portal.menu.requests.list", "زیرمنوی «پیگیری درخواست‌ها» (پورتال)", D.customerOnly),
+  // — لایهٔ منو: گزارش‌ها —
+  item("customer.portal.menu.reports", "منوی «گزارش‌ها» (پورتال)", D.customerOnly),
+  item(
+    "customer.portal.menu.reports.visits",
+    "زیرمنوی «بازدیدهای کارشناس» (پورتال)",
+    D.customerOnly,
+  ),
+  item("customer.portal.menu.reports.final", "زیرمنوی «گزارش نهایی دوره» (پورتال)", D.customerOnly),
 ];
 
 // ============================================================

@@ -752,9 +752,10 @@ check(
   // ✅ موج ۱۳.۸: ۱۲ کلید پروفایل/داشبورد (۱۷۶ ⇒ ۱۸۸)
   // ✅ موج ۱۳.۱۰: ۳ کلید «مدارک من» (۱۸۸ ⇒ ۱۹۱)
   // ✅ موج ۱۳.۱۱: ۶ کلید «درخواست‌های فارم» + یک گروه تازه (۱۹۱ ⇒ ۱۹۷ / ۱۸)
-  catalog.TOTAL_PERMISSIONS === 197 &&
+  // ✅ موج ۱۳.۱۷: ۲۸ کلید «لایهٔ منوی» پورتال (۱۹۷ ⇒ ۲۲۵ / همان ۱۸ گروه)
+  catalog.TOTAL_PERMISSIONS === 225 &&
     catalog.PERMISSION_GROUPS.length === 18 &&
-    /TOTAL_PERMISSIONS === 197 && catalog\.PERMISSION_GROUPS\.length === 18/.test(
+    /TOTAL_PERMISSIONS === 225 && catalog\.PERMISSION_GROUPS\.length === 18/.test(
       SRC.permissionsTest,
     ),
   `keys=${catalog.TOTAL_PERMISSIONS} groups=${catalog.PERMISSION_GROUPS.length}`,

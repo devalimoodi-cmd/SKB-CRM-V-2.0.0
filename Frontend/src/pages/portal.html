@@ -37,6 +37,9 @@
 
     <!-- ===== Feature Styles ===== -->
     <link rel="stylesheet" href="/features/portal/portal.css">
+    <!-- ✅ موج ۱۳.۱۷ — پوستهٔ ناوبری (سایدبار دسکتاپ + drawer موبایل)
+         فایل جدا تا portal.css (که گارد ۱۳.۳ اندازه‌اش را می‌سنجد) رشد نکند. -->
+    <link rel="stylesheet" href="/features/portal/portal.nav.css">
 
     <link rel="icon" type="image/png" href="/assets/images/favicon.ico">
 </head>
@@ -138,40 +141,239 @@
             <!-- ۱۳.۵: اگر مدیری بخشی را از پنل دسترسی ببندد، پیام اینجا
                  می‌آید و تبِ بسته اصلاً رندر نمی‌شود. (بیرون از بلوک
                  تب‌ها، تا وقتی همه بسته‌اند هم دیده شود.) -->
-            <div class="portal-status" id="portalTabsNotice"></div>
-            <section class="portal-tabs-block" id="portalFullData">
-                <div class="portal-tabs" id="portalTabs" role="tablist" aria-label="بخش‌های پروندهٔ من">
-                    <button type="button" class="portal-tab is-active" role="tab" data-portal-tab="halls"
-                        aria-selected="true">
-                        <i class="fas fa-warehouse"></i> سالن‌ها
-                    </button>
-                    <button type="button" class="portal-tab" role="tab" data-portal-tab="flocks" aria-selected="false">
-                        <i class="fas fa-egg"></i> گله‌ها
-                    </button>
-                    <button type="button" class="portal-tab" role="tab" data-portal-tab="weeks" aria-selected="false">
-                        <i class="fas fa-chart-line"></i> هفته‌های مدیریتی
-                    </button>
-                    <button type="button" class="portal-tab" role="tab" data-portal-tab="visits" aria-selected="false">
-                        <i class="fas fa-clipboard-list"></i> بازدیدها
-                    </button>
-                    <!-- ✅ موج ۱۳.۸ — دو تب تازه (پروفایل من / داشبورد تحلیلی) -->
-                    <button type="button" class="portal-tab" role="tab" data-portal-tab="profile" aria-selected="false">
-                        <i class="fas fa-id-card"></i> پروفایل من
-                    </button>
-                    <button type="button" class="portal-tab" role="tab" data-portal-tab="dashboard" aria-selected="false">
-                        <i class="fas fa-chart-pie"></i> داشبورد تحلیلی
-                    </button>
-                    <!-- ✅ موج ۱۳.۱۰ — تب «مدارک من» (آپلود/دانلود/حذف نرم) -->
-                    <button type="button" class="portal-tab" role="tab" data-portal-tab="documents" aria-selected="false">
-                        <i class="fas fa-folder-open"></i> مدارک من
-                    </button>
-                    <!-- ✅ موج ۱۳.۱۱ — تب «درخواست‌های من» (الگوی ب: درخواست + تأیید کارشناس) -->
-                    <button type="button" class="portal-tab" role="tab" data-portal-tab="farm" aria-selected="false">
-                        <i class="fas fa-paper-plane"></i> درخواست‌های من
-                    </button>
-                </div>
+            <!-- ============================================================
+                 ✅ موج ۱۳.۱۷ — پوستهٔ ناوبری پورتال (منو + زیرمنو)
+                 ------------------------------------------------------------
+                 • دسکتاپ (≥۱۰۲۵px): سایدبار چسبان سمت راست.
+                 • موبایل/تبلت: هدر با دکمهٔ همبرگری + drawer.
+                 • هر لینک سه صفت دارد:
+                     data-portal-route  → مسیر hash (فهرست سفید در portal.menu.js)
+                     data-portal-tab    → پنل مقصد (برای canSee/activateTab)
+                     data-permission    → کلید «لایهٔ منو» (customer.portal.menu.*)
+                 🔒 هیچ فرمی در ناوبری نیست؛ همه <a> هستند.
+                 ⚠️ لایهٔ «منو» فقط دیده‌شدن را کنترل می‌کند؛ داده با کلید
+                    محتوایی (customer.portal.halls …) و اسکوپ سرور می‌آید.
+                 ============================================================ -->
+            <div class="portal-shell" id="portalShell">
+                <nav class="portal-nav" id="portalNav" aria-label="منوی پورتال مشتری" hidden>
+                    <!-- نوار بالای منو: در موبایل همبرگری، در دسکتاپ عنوان -->
+                    <div class="portal-nav__bar">
+                        <button type="button" class="portal-nav__toggle" id="portalNavToggle"
+                            aria-controls="portalNavPanel" aria-expanded="false">
+                            <i class="fas fa-bars" aria-hidden="true"></i>
+                            <span>منوی پورتال</span>
+                        </button>
+                        <span class="portal-nav__current" id="portalNavCurrent">داشبورد</span>
+                    </div>
+                    <div class="portal-nav__backdrop" id="portalNavBackdrop" hidden></div>
 
-                <div class="portal-tabpanels" id="portalTabPanels">
+                    <div class="portal-nav__panel" id="portalNavPanel">
+                        <ul class="portal-nav__list" id="portalTabs">
+                            <li class="portal-nav__item" data-portal-menu="dashboard">
+                                <a class="portal-nav__link" href="#/dashboard" data-portal-route="#/dashboard"
+                                    data-portal-tab="dashboard" data-permission="customer.portal.menu.dashboard"
+                                    aria-selected="true">
+                                    <i class="fas fa-chart-pie" aria-hidden="true"></i>
+                                    <span>داشبورد</span>
+                                </a>
+                                <ul class="portal-nav__sub">
+                                    <li>
+                                        <a class="portal-nav__sublink" href="#/dashboard/charts"
+                                            data-portal-route="#/dashboard/charts" data-portal-tab="dashboard"
+                                            data-permission="customer.portal.menu.dashboard.charts">نمودارها</a>
+                                    </li>
+                                    <li>
+                                        <a class="portal-nav__sublink" href="#/dashboard/compare"
+                                            data-portal-route="#/dashboard/compare" data-portal-tab="dashboard"
+                                            data-permission="customer.portal.menu.dashboard.compare">مقایسهٔ گله‌ها</a>
+                                    </li>
+                                </ul>
+                            </li>
+
+                            <li class="portal-nav__item" data-portal-menu="profile">
+                                <a class="portal-nav__link" href="#/profile" data-portal-route="#/profile"
+                                    data-portal-tab="profile" data-permission="customer.portal.menu.profile"
+                                    aria-selected="false">
+                                    <i class="fas fa-id-card" aria-hidden="true"></i>
+                                    <span>پروندهٔ من</span>
+                                </a>
+                                <ul class="portal-nav__sub">
+                                    <li>
+                                        <a class="portal-nav__sublink" href="#/profile/me"
+                                            data-portal-route="#/profile/me" data-portal-tab="profile"
+                                            data-permission="customer.portal.menu.profile.me">پروفایل من</a>
+                                    </li>
+                                    <li>
+                                        <a class="portal-nav__sublink" href="#/profile/documents"
+                                            data-portal-route="#/profile/documents" data-portal-tab="documents"
+                                            data-permission="customer.portal.menu.profile.documents">مدارک من</a>
+                                    </li>
+                                </ul>
+                            </li>
+                            <li class="portal-nav__item" data-portal-menu="farm">
+                                <a class="portal-nav__link" href="#/farm" data-portal-route="#/farm"
+                                    data-portal-tab="units" data-permission="customer.portal.menu.farm"
+                                    aria-selected="false">
+                                    <i class="fas fa-warehouse" aria-hidden="true"></i>
+                                    <span>مزرعهٔ من</span>
+                                </a>
+                                <ul class="portal-nav__sub">
+                                    <li>
+                                        <a class="portal-nav__sublink" href="#/farm/units"
+                                            data-portal-route="#/farm/units" data-portal-tab="units"
+                                            data-permission="customer.portal.menu.farm.units">واحدها</a>
+                                    </li>
+                                    <li>
+                                        <a class="portal-nav__sublink" href="#/farm/halls"
+                                            data-portal-route="#/farm/halls" data-portal-tab="halls"
+                                            data-permission="customer.portal.menu.farm.halls">سالن‌ها</a>
+                                    </li>
+                                    <li>
+                                        <a class="portal-nav__sublink" href="#/farm/physical"
+                                            data-portal-route="#/farm/physical" data-portal-tab="hallDetail"
+                                            data-permission="customer.portal.menu.farm.physical">اطلاعات فیزیکی</a>
+                                    </li>
+                                    <li>
+                                        <a class="portal-nav__sublink" href="#/farm/systems"
+                                            data-portal-route="#/farm/systems" data-portal-tab="hallDetail"
+                                            data-permission="customer.portal.menu.farm.systems">سیستم‌ها</a>
+                                    </li>
+                                    <li>
+                                        <a class="portal-nav__sublink" href="#/farm/water-feed"
+                                            data-portal-route="#/farm/water-feed" data-portal-tab="hallDetail"
+                                            data-permission="customer.portal.menu.farm.waterFeed">آبخوری و دانخوری</a>
+                                    </li>
+                                    <li>
+                                        <a class="portal-nav__sublink" href="#/farm/hygiene"
+                                            data-portal-route="#/farm/hygiene" data-portal-tab="hallDetail"
+                                            data-permission="customer.portal.menu.farm.hygiene">بهداشت</a>
+                                    </li>
+                                </ul>
+                            </li>
+
+                            <li class="portal-nav__item" data-portal-menu="hatchery">
+                                <a class="portal-nav__link" href="#/hatchery" data-portal-route="#/hatchery"
+                                    data-portal-tab="flocks" data-permission="customer.portal.menu.hatchery"
+                                    aria-selected="false">
+                                    <i class="fas fa-egg" aria-hidden="true"></i>
+                                    <span>جوجه‌ریزی</span>
+                                </a>
+                                <ul class="portal-nav__sub">
+                                    <li>
+                                        <a class="portal-nav__sublink" href="#/hatchery/flocks"
+                                            data-portal-route="#/hatchery/flocks" data-portal-tab="flocks"
+                                            data-permission="customer.portal.menu.hatchery.flocks">گله‌های من</a>
+                                    </li>
+                                    <li>
+                                        <a class="portal-nav__sublink" href="#/hatchery/placements"
+                                            data-portal-route="#/hatchery/placements" data-portal-tab="placements"
+                                            data-permission="customer.portal.menu.hatchery.placements">دوره‌های جوجه‌ریزی</a>
+                                    </li>
+                                    <li>
+                                        <a class="portal-nav__sublink portal-nav__sublink--soon"
+                                            href="#/hatchery/hygiene" data-portal-route="#/hatchery/hygiene"
+                                            data-portal-tab="soon"
+                                            data-permission="customer.portal.menu.hatchery.hygiene">
+                                            ضدعفونی دوره
+                                            <span class="portal-nav__badge">به‌زودی</span>
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="portal-nav__sublink portal-nav__sublink--soon"
+                                            href="#/hatchery/completion" data-portal-route="#/hatchery/completion"
+                                            data-portal-tab="soon"
+                                            data-permission="customer.portal.menu.hatchery.completion">
+                                            پایان دوره
+                                            <span class="portal-nav__badge">به‌زودی</span>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </li>
+                            <li class="portal-nav__item" data-portal-menu="weekly">
+                                <a class="portal-nav__link" href="#/weekly" data-portal-route="#/weekly"
+                                    data-portal-tab="weeks" data-permission="customer.portal.menu.weekly"
+                                    aria-selected="false">
+                                    <i class="fas fa-chart-line" aria-hidden="true"></i>
+                                    <span>مدیریت هفتگی</span>
+                                </a>
+                                <ul class="portal-nav__sub">
+                                    <li>
+                                        <a class="portal-nav__sublink" href="#/weekly/new"
+                                            data-portal-route="#/weekly/new" data-portal-tab="farm"
+                                            data-permission="customer.portal.menu.weekly.create">ثبت هفته</a>
+                                    </li>
+                                    <li>
+                                        <a class="portal-nav__sublink" href="#/weekly/list"
+                                            data-portal-route="#/weekly/list" data-portal-tab="weeks"
+                                            data-permission="customer.portal.menu.weekly.list">هفته‌های ثبت‌شده</a>
+                                    </li>
+                                    <li>
+                                        <a class="portal-nav__sublink" href="#/weekly/trend"
+                                            data-portal-route="#/weekly/trend" data-portal-tab="weeks"
+                                            data-permission="customer.portal.menu.weekly.trend">نمودار روند</a>
+                                    </li>
+                                </ul>
+                            </li>
+
+                            <li class="portal-nav__item" data-portal-menu="requests">
+                                <a class="portal-nav__link" href="#/requests" data-portal-route="#/requests"
+                                    data-portal-tab="farm" data-permission="customer.portal.menu.requests"
+                                    aria-selected="false">
+                                    <i class="fas fa-paper-plane" aria-hidden="true"></i>
+                                    <span>درخواست‌های من</span>
+                                </a>
+                                <ul class="portal-nav__sub">
+                                    <li>
+                                        <a class="portal-nav__sublink" href="#/requests/new"
+                                            data-portal-route="#/requests/new" data-portal-tab="farm"
+                                            data-permission="customer.portal.menu.requests.new">ثبت درخواست</a>
+                                    </li>
+                                    <li>
+                                        <a class="portal-nav__sublink" href="#/requests/list"
+                                            data-portal-route="#/requests/list" data-portal-tab="farm"
+                                            data-permission="customer.portal.menu.requests.list">پیگیری درخواست‌ها</a>
+                                    </li>
+                                </ul>
+                            </li>
+
+                            <li class="portal-nav__item" data-portal-menu="reports">
+                                <a class="portal-nav__link" href="#/reports" data-portal-route="#/reports"
+                                    data-portal-tab="visits" data-permission="customer.portal.menu.reports"
+                                    aria-selected="false">
+                                    <i class="fas fa-file-lines" aria-hidden="true"></i>
+                                    <span>گزارش‌ها</span>
+                                </a>
+                                <ul class="portal-nav__sub">
+                                    <li>
+                                        <a class="portal-nav__sublink" href="#/reports/visits"
+                                            data-portal-route="#/reports/visits" data-portal-tab="visits"
+                                            data-permission="customer.portal.menu.reports.visits">بازدیدهای کارشناس</a>
+                                    </li>
+                                    <li>
+                                        <a class="portal-nav__sublink portal-nav__sublink--soon"
+                                            href="#/reports/final" data-portal-route="#/reports/final"
+                                            data-portal-tab="soon"
+                                            data-permission="customer.portal.menu.reports.final">
+                                            گزارش نهایی دوره
+                                            <span class="portal-nav__badge">به‌زودی</span>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </li>
+
+                        </ul>
+                        <p class="portal-nav__hint">
+                            <i class="fas fa-info-circle" aria-hidden="true"></i>
+                            هر بخش فقط وقتی دیده می‌شود که مدیر سیستم آن را برای شما باز کرده باشد.
+                        </p>
+                    </div>
+                </nav>
+
+
+                <div class="portal-main" id="portalMain">
+                    <div class="portal-status" id="portalTabsNotice"></div>
+                    <section class="portal-tabs-block" id="portalFullData">
+                        <div class="portal-tabpanels" id="portalTabPanels">
                     <!-- ✅ ۱۳.۸ — پروفایل من (ویرایش با فهرست سفید + موبایل با کد پیامکی) -->
                     <div class="portal-card portal-tabpanel" data-portal-panel="profile" role="tabpanel" hidden>
                         <div class="portal-card__head">
@@ -283,8 +485,54 @@
                         <ul class="portal-list" id="portalVisitsList"></ul>
                         <div class="portal-list__pager" id="portalVisitsPager"></div>
                     </div>
+
+                    <!-- ===== ✅ موج ۱۳.۱۷ — چهار پنل تازهٔ ناوبری =====
+                         همه فقط خواندنی و بدون تگ فرم. داده از اندپوینت‌های
+                         موجود پورتال می‌آید (بدون هیچ مسیر تازهٔ سرور):
+                           units       → GET /api/portal/farm/options (units[])
+                           hallDetail  → GET /api/portal/farm/halls/:id (details.*)
+                           placements  → GET /api/portal/farm/options (placements[])
+                                         + GET /api/portal/farm/placements/:id
+                           soon        → هیچ درخواستی نمی‌فرستد (دادهٔ جعلی نداریم)
+                         ⚠️ شناسهٔ سالن/دوره فقط از همان پاسخ‌ها می‌آید، نه از URL. -->
+                    <div class="portal-card portal-tabpanel" data-portal-panel="units" role="tabpanel" hidden>
+                        <div class="portal-card__head">
+                            <i class="fas fa-warehouse"></i>
+                            <span>واحدهای من</span>
+                        </div>
+                        <div class="portal-tab__status" id="portalUnitsStatus"></div>
+                        <div class="portal-views" id="portalUnitsBody"></div>
+                    </div>
+
+                    <div class="portal-card portal-tabpanel" data-portal-panel="hallDetail" role="tabpanel" hidden>
+                        <div class="portal-card__head">
+                            <i class="fas fa-ruler-combined"></i>
+                            <span id="portalHallDetailTitle">جزئیات سالن</span>
+                        </div>
+                        <div class="portal-tab__status" id="portalHallDetailStatus"></div>
+                        <div class="portal-views" id="portalHallDetailBody"></div>
+                    </div>
+
+                    <div class="portal-card portal-tabpanel" data-portal-panel="placements" role="tabpanel" hidden>
+                        <div class="portal-card__head">
+                            <i class="fas fa-egg"></i>
+                            <span>دوره‌های جوجه‌ریزی من</span>
+                        </div>
+                        <div class="portal-tab__status" id="portalPlacementsStatus"></div>
+                        <div class="portal-views" id="portalPlacementsBody"></div>
+                    </div>
+
+                    <div class="portal-card portal-tabpanel" data-portal-panel="soon" role="tabpanel" hidden>
+                        <div class="portal-card__head">
+                            <i class="fas fa-hourglass-half"></i>
+                            <span id="portalSoonTitle">به‌زودی</span>
+                        </div>
+                        <div class="portal-views" id="portalSoonBody"></div>
+                    </div>
                 </div>
-            </section>
+                    </section>
+                </div>
+            </div>
 
             <!-- اطلاعات کمکی: فقط لینک‌های خودِ کاربر (بدون دادهٔ مشتری) -->
             <div class="portal-card" style="margin-top: 18px;">
@@ -362,6 +610,10 @@
     <script type="module" src="/features/portal/portal.renderer.js"></script>
     <!-- ✅ ۱۳.۸ — تب‌های «پروفایل من» و «داشبورد تحلیلی» (mixin روی سرویس) -->
     <script type="module" src="/features/portal/portal.extra.js"></script>
+    <!-- ✅ ۱۳.۱۷ — مدل منو → نماهای تازه → پوستهٔ ناوبری (ترتیب وابستگی) -->
+    <script type="module" src="/features/portal/portal.menu.js"></script>
+    <script type="module" src="/features/portal/portal.views.js"></script>
+    <script type="module" src="/features/portal/portal.shell.js"></script>
     <script type="module" src="/features/portal/portal.service.js"></script>
 
     <!-- ===== App ===== -->

@@ -886,7 +886,27 @@ npm run test:cache    :: نگهبانهای UI (وجود بخش، سه‌حال�
 
 📄 گزارش کامل: `docs/REVIEW-WAVE-13.16.md`.
 
+## پوستهٔ ناوبری منو + زیرمنو در پورتال مشتری (موج ۱۳.۱۷)
 
+پس از ۱۳.۱۶ همهٔ ۱۸ نوع درخواست فرم و نمایش خوانا داشتند، ولی خودِ پورتال
+هنوز یک صفحهٔ تک‌فهرستی بود: رسیدن به «جزئیات سالن» فقط با اسکرول، بدون
+آدرس قابل اشتراک‌گذاری و بدون ناوبری موبایل. این موج پورتال را به
+**۷ منو · ۲۱ زیرمنو · ۲۸ مسیر · ۱۲ پنل** تبدیل می‌کند — بدون یک اندپوینت
+یا نوع درخواست تازه.
+
+| موضوع | مقدار |
+|---|---|
+| مدل منو | `features/portal/portal.menu.js` (تازه، **خالص**/بدون DOM): `PORTAL_MENUS` · `PORTAL_ROUTES` · `PORTAL_ROUTE_LIST` · `PORTAL_MENU_PANELS` |
+| مسیر امن | `normalizeHash`/`parseHash` حداکثر **دو بخش**؛ `#/farm/units/12` و `?customer_id=` ⇒ `null` (ضد IDOR) و `resolveRoute` برای alias/deny/fallback |
+| دو لایهٔ کلید | ۲۸ کلید `customer.portal.menu.*` (۱۹۷ ⇒ **۲۲۵** کلید / همان ۱۸ گروه) + `contentKey` = همان کلید سرور؛ سه بخش «به‌زودی» `contentKey` خالی |
+| کش قدیمی مجوز | `menuFallbackMode()` — کاربری که صفحه را قبل از دیپلوی باز کرده، منوی خالی نمی‌بیند |
+| پوسته | `features/portal/portal.shell.js` (تازه): hash routing + `hashchange` (back/forward) + `replaceState` + `aria-current` + آکاردئون + drawer موبایل (Escape/backdrop) — بدون هیچ درخواست |
+| نماهای تازه | `features/portal/portal.views.js` (تازه): واحدها · جزئیات سالن (۴ بخش) · دوره‌های جوجه‌ریزی · «به‌زودی» — فقط **سه GET** و برچسب‌ها از `portal.payload.js` |
+| استایل | `features/portal/portal.nav.css` (تازه، ۳۶۰ خط) جدا از `portal.css`؛ drawer زیر ۱۰۲۵px + `prefers-reduced-motion` |
+| گارد تازه | `npm run test:portal-menu` ⇒ **۷۷** بررسی (شامل اجرای واقعی مدل مسیر، رندر نماها، پوسته و نمونهٔ سرویس) |
+| گارد پورتال | شمارش کلید ۱۹۷ ⇒ ۲۲۵ (تعداد بررسی‌ها همان ۲۲۰) |
+
+📄 گزارش کامل: `docs/REVIEW-WAVE-13.17.md`.
 
 ## رفع ۵۰۰ داشبورد پورتال + انتخاب خودکار آخرین گله (موج ۱۳.۱۰.۱)
 

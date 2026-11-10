@@ -41,8 +41,94 @@ check(
   //    مشتری + view/review برای کارشناس + منوی پنل ادمین) و یک گروه
   //    تازه («پنل مدیریت — درخواست‌های پورتال»)
   //    ⇒ ۱۹۱ + ۶ = ۱۹۷ کلید و ۱۷ + ۱ = ۱۸ گروه
-  catalog.TOTAL_PERMISSIONS === 197 && catalog.PERMISSION_GROUPS.length === 18,
+  // ✅ موج ۱۳.۱۷: ۲۸ کلید «لایهٔ منو»ی پورتال (۷ منو + ۲۱ زیرمنو)
+  //    ⇒ ۱۹۷ + ۲۸ = ۲۲۵ کلید؛ گروه تازه‌ای اضافه نشد (همان گروه
+  //    «پورتال مشتری» = ۲۴ + ۲۸ = ۵۲ کلید)
+  catalog.TOTAL_PERMISSIONS === 225 && catalog.PERMISSION_GROUPS.length === 18,
   `keys=${catalog.TOTAL_PERMISSIONS} groups=${catalog.PERMISSION_GROUPS.length}`,
+);
+
+// ============================================================
+// ✅ موج ۱۳.۱۷ — کلیدهای «منو/زیرمنوی» پورتال (ناوبری دو لایه)
+// ------------------------------------------------------------
+//  این ۲۸ کلید فقط ناوبری را کنترل می‌کنند، نه داده را. تست سه چیز
+//  را می‌سنجد: (۱) همه در گروه portal هستند، (۲) پیش‌فرضشان دقیقاً
+//  «فقط مشتری» است، (۳) هیچ‌کدام قفل‌شده نیستند (مدیر می‌تواند
+//  با ماتریس نقش‌ها باز/بسته کند).
+// ============================================================
+const PORTAL_MENU_KEYS = [
+  "customer.portal.menu.dashboard",
+  "customer.portal.menu.dashboard.charts",
+  "customer.portal.menu.dashboard.compare",
+  "customer.portal.menu.profile",
+  "customer.portal.menu.profile.me",
+  "customer.portal.menu.profile.documents",
+  "customer.portal.menu.farm",
+  "customer.portal.menu.farm.units",
+  "customer.portal.menu.farm.halls",
+  "customer.portal.menu.farm.physical",
+  "customer.portal.menu.farm.systems",
+  "customer.portal.menu.farm.waterFeed",
+  "customer.portal.menu.farm.hygiene",
+  "customer.portal.menu.hatchery",
+  "customer.portal.menu.hatchery.flocks",
+  "customer.portal.menu.hatchery.placements",
+  "customer.portal.menu.hatchery.hygiene",
+  "customer.portal.menu.hatchery.completion",
+  "customer.portal.menu.weekly",
+  "customer.portal.menu.weekly.create",
+  "customer.portal.menu.weekly.list",
+  "customer.portal.menu.weekly.trend",
+  "customer.portal.menu.requests",
+  "customer.portal.menu.requests.new",
+  "customer.portal.menu.requests.list",
+  "customer.portal.menu.reports",
+  "customer.portal.menu.reports.visits",
+  "customer.portal.menu.reports.final",
+];
+
+check(
+  "۱۳.۱۷ · کاتالوگ: ۲۸ کلید منو/زیرمنوی پورتال با پیش‌فرض «فقط مشتری»",
+  PORTAL_MENU_KEYS.length === 28 &&
+    PORTAL_MENU_KEYS.every((key) => {
+      const entry = catalog.PERMISSIONS[key];
+      return (
+        Boolean(entry) &&
+        entry.group === "portal" &&
+        entry.defaults.customer === true &&
+        entry.defaults.super_admin === false &&
+        entry.defaults.admin === false &&
+        entry.defaults.sub_admin === false &&
+        entry.defaults.expert === false &&
+        (entry.lockedTo || []).length === 0
+      );
+    }),
+  `menus=${PORTAL_MENU_KEYS.length} portalKeys=${
+    catalog.PERMISSION_GROUPS.find((g) => g.key === "portal")?.items.length
+  }`,
+);
+
+check(
+  "۱۳.۱۷ · کاتالوگ: ۷ منوی اصلی پورتال (تعداد منوها = ۷)",
+  PORTAL_MENU_KEYS.filter((key) => key.split(".").length === 4).length === 7,
+);
+
+check(
+  "۱۳.۱۷ · کاتالوگ: هر منوی اصلی حداقل یک زیرمنو دارد",
+  [
+    "dashboard",
+    "profile",
+    "farm",
+    "hatchery",
+    "weekly",
+    "requests",
+    "reports",
+  ].every((menu) => {
+    const prefix = `customer.portal.menu.${menu}.`;
+    return PORTAL_MENU_KEYS.some(
+      (key) => key.startsWith(prefix) && key !== `customer.portal.menu.${menu}`,
+    );
+  }),
 );
 
 check(

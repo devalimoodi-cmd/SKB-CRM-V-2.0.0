@@ -633,7 +633,7 @@ Backend/private/portal_documents/customer_<customerId>/doc_<ts>_<rand>.<ext>
 ```bash
 npm run db:migrate && npm run db:verify
 npm run test:portal-requests     # ۳۷ بررسی خالص (بدون دیتابیس)
-npm run test:permissions         # ۱۹۷ کلید / ۱۸ گروه
+npm run test:permissions         # ۲۲۵ کلید / ۱۸ گروه
 ```
 
 📄 گزارش کامل: `docs/REVIEW-WAVE-13.11.md`.
@@ -768,4 +768,22 @@ npm run lint                  # ۰ خطا
 | آزمون | `Backend/portal-request-test.mjs` — ۶ بررسی تازه (۸۰ در کل) |
 
 📄 گزارش کامل: `docs/REVIEW-WAVE-13.16.md`.
+
+## ۲۸ کلید «لایهٔ منو» برای پوستهٔ ناوبری پورتال (موج ۱۳.۱۷)
+
+موج ۱۳.۱۷ خودش سمت سرور هیچ اندپوینت یا نوع درخواست تازه‌ای ندارد؛ تنها
+تغییر بک‌اند، بازکردن ۲۸ کلید مجوز است تا مدیر بتواند دیده‌شدن هر آیتم
+منوی پورتال را جدا کنترل کند.
+
+| موضوع | مقدار |
+|---|---|
+| کلیدهای تازه | ۲۸ کلید `customer.portal.menu.*` (۷ منو + ۲۱ زیرمنو) در همان گروه «portal» |
+| شمارش کلید | ۱۹۷ ⇒ **۲۲۵** کلید / ۱۸ گروه (بدون گروه تازه) |
+| پیش‌فرض | `customer: true` و سایر نقش‌ها `false` (هم‌الگو با `customer.portal.view`) |
+| قفل‌شدگی | بدون `lockedTo` ⇒ هر آیتم از پنل مدیریت باز/بسته می‌شود |
+| دو لایه | کلید منو = دیده‌شدن؛ کلید محتوا (`customer.portal.farm/…`) = دسترسی داده که سرور اجرا می‌کند |
+| اندپوینت تازه | ندارد — همان ۲۱ GET قبلی پورتال |
+| آزمون | `permissions-test.mjs` — انتظار ۲۲۵ کلید / ۱۸ گروه + آینگی نسخهٔ فرانت |
+
+📄 گزارش کامل: `docs/REVIEW-WAVE-13.17.md`.
 
