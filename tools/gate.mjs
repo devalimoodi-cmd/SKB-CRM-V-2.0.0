@@ -64,6 +64,7 @@ const STEPS = [
   'test:portal-completion',
   'test:portal-schema', 'test:portal-schema-guard',
   'test:portal-tree',
+  'test:portal-tickets',
   'test:registration',
   'audit:size', 'audit:dead-exports', 'audit:surface', 'audit:big-methods',
 ];

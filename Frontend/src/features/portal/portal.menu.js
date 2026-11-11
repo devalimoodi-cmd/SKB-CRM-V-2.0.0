@@ -39,7 +39,7 @@ const MENU = "customer.portal.menu";
 // ✅ ۱۳.۱۹ — «پایان دوره» (فهرست) و «گزارش تفصیلی» (دو کلید محتوا)
 const COMPLETION = "customer.portal.completion";
 const COMPLETION_REPORT = "customer.portal.completion.report";
-// ✅ ۱۳.۲۱ — «ارسال تیکت» (محتوای پنل تیکت؛ گیت سرور در ۱۳.۲۲)
+// ✅ ۱۳.۲۱ — «ارسال تیکت» (محتوای پنل تیکت)؛ ۱۳.۲۲: سرور هم همین را می‌خواند
 const TICKETS = "customer.portal.tickets";
 
 // ============================================================

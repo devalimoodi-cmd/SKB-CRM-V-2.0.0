@@ -58,8 +58,9 @@ const KEYS = Object.freeze({
   FARM_REQUEST: "customer.portal.farm.request",
   FARM_CANCEL: "customer.portal.farm.cancel",
   // ✅ موج ۱۳.۲۱ — «ارسال تیکت» (گفتگو با پشتیبانی از داخل پورتال).
-  //    امروز این پنل روی همان روت /api/suggestions اجرا می‌شود و کلید
-  //    فقط «دیده‌شدن» را کنترل می‌کند؛ گیت سرور در ۱۳.۲۲ می‌آید.
+  //    ✅ ۱۳.۲۲: این کلید حالا هم «دیده‌شدن» را کنترل می‌کند و هم گیتِ
+  //    واقعیِ سرور است: شش روت گفتگوی خودِ کاربر در /api/suggestions
+  //    با `requireRolePermission("customer", ...)` بسته می‌شوند.
   TICKETS: "customer.portal.tickets",
   COMPLETION: "customer.portal.completion",
   COMPLETION_REPORT: "customer.portal.completion.report",
@@ -768,8 +769,9 @@ const PORTAL_FEATURES = [
   { key: "documents_upload", panel: "documents", extra: KEYS.DOCUMENTS_UPLOAD },
   { key: "documents_delete", panel: "documents", extra: KEYS.DOCUMENTS_DELETE },
   { key: "completion_report", panel: "completion", extra: KEYS.COMPLETION_REPORT },
-  // ✅ ۱۳.۲۱ — دکمه/فرم «ارسال تیکت». امروز فقط «دیده‌شدن» را کنترل
-  //    می‌کند (روت /api/suggestions با protect)؛ گیت سرور در ۱۳.۲۲.
+  // ✅ ۱۳.۲۱ — دکمه/فرم «ارسال تیکت». ۱۳.۲۲: سرور هم همین کلید را
+  //    می‌خواند (requireRolePermission روی شش روت گفتگوی مشتری) ⇒ پرچم
+  //    `features.tickets` دقیقاً همان چیزی است که سرور اجازه می‌دهد.
   { key: "tickets", panel: "tickets", extra: KEYS.TICKETS },
 ];
 

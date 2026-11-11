@@ -3,12 +3,21 @@
 // «نظرات و پیشنهادات» — همهٔ روت‌ها نیاز به احراز هویت دارند
 // ⚠️ ترتیب مهم است: روت‌های ثابت قبل از روت‌های :id بیایند
 // ✅ کنترل دسترسی مدیریتی بر پایهٔ مجوز (پنل ← مدیریت نقش‌ها)
+// ✅ ۱۳.۲۲ — گیت واقعی «ارسال تیکت»: شش روت گفتگوی خودِ کاربر
+//    (ارسال/فهرست/شمارش/مشاهده/پاسخ/خواندن) با کلید محتوایی
+//    `customer.portal.tickets` بسته می‌شوند، ولی **فقط برای نقش مشتری**
+//    (requireRolePermission) تا مودال پاکت پیام‌های کارشناس/ادمین
+//    که از همین روت‌ها استفاده می‌کند دست‌نخورده بماند.
 // ============================================================
 const express = require("express");
 const router = express.Router();
 const { protect, authorize, ADMIN_ROLES } = require("../middleware/auth");
-const { requirePermission } = require("../middleware/permissions");
+const {
+  requirePermission,
+  requireRolePermission,
+} = require("../middleware/permissions");
 const { createRateLimiter } = require("../middleware/rateLimit");
+const { KEYS: PORTAL_KEYS } = require("../config/portalSchema");
 const suggestionController = require("../controllers/suggestionController");
 
 const CAN_VIEW = requirePermission("suggestions.admin.view");
@@ -16,6 +25,12 @@ const CAN_REPLY = requirePermission("suggestions.reply");
 const CAN_STATUS = requirePermission("suggestions.status");
 const CAN_DELETE = requirePermission("suggestions.delete");
 const ADMIN_ONLY = authorize(...ADMIN_ROLES);
+
+// ✅ ۱۳.۲۲: کلید از اسکیمای پورتال خوانده می‌شود (یک منبع، نه رشتهٔ دستی)
+const CUSTOMER_TICKETS = requireRolePermission(
+  "customer",
+  PORTAL_KEYS.TICKETS,
+);
 
 // ✅ محدودیت نرخ برای ارسال پیام (هر آی‌پی) — ضد اسپم/فلود
 const suggestionLimiter = createRateLimiter({
@@ -27,18 +42,32 @@ const suggestionLimiter = createRateLimiter({
 
 router.use(protect);
 
-// ===== کاربر جاری =====
-router.post("/", suggestionLimiter, suggestionController.createSuggestion);
-router.get("/mine", suggestionController.getMySuggestions);
-router.get("/unread-count", suggestionController.getUnreadCount);
+// ===== کاربر جاری (گیت «ارسال تیکت» — فقط نقش مشتری) =====
+router.post(
+  "/",
+  CUSTOMER_TICKETS,
+  suggestionLimiter,
+  suggestionController.createSuggestion,
+);
+router.get("/mine", CUSTOMER_TICKETS, suggestionController.getMySuggestions);
+router.get(
+  "/unread-count",
+  CUSTOMER_TICKETS,
+  suggestionController.getUnreadCount,
+);
 
 // ===== ادمین‌ها (قبل از :id) =====
 router.get("/", CAN_VIEW, suggestionController.listSuggestions);
 
-// ===== گفتگوی خود کاربر =====
-router.get("/:id", suggestionController.getMyThread);
-router.post("/:id/reply", suggestionLimiter, suggestionController.replyToThread);
-router.post("/:id/read", suggestionController.markThreadRead);
+// ===== گفتگوی خود کاربر (گیت «ارسال تیکت» — فقط نقش مشتری) =====
+router.get("/:id", CUSTOMER_TICKETS, suggestionController.getMyThread);
+router.post(
+  "/:id/reply",
+  CUSTOMER_TICKETS,
+  suggestionLimiter,
+  suggestionController.replyToThread,
+);
+router.post("/:id/read", CUSTOMER_TICKETS, suggestionController.markThreadRead);
 
 // ===== ادمین‌ها روی یک گفتگو =====
 router.get("/:id/admin", CAN_VIEW, suggestionController.getThreadAdmin);

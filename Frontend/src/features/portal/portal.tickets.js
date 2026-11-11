@@ -18,8 +18,9 @@
 //   ۴) هر متن DB با `esc` فرار می‌شود.
 //   ۵) گیتِ نمایش: `features.tickets` از سرور (سرور اول)؛ اگر
 //      پاسخ قدیمی/کش‌شده بود، fallback به همان کلید در مرورگر.
-//      ⚠️ امروز روت /api/suggestions فقط protect دارد (چون مودال
-//      هدر برای کارشناس/ادمین هم هست)؛ گیت سرور در ۱۳.۲۲ می‌آید.
+//      ✅ ۱۳.۲۲: سرور هم همین کلید را برای نقش مشتری اعمال می‌کند
+//      (requireRolePermission روی شش روت گفتگوی خودِ کاربر)، پس
+//      «دیده‌شدن» و «اجازهٔ واقعی» یکی‌اند و درخواستِ قطعاً-۴۰۳ نداریم.
 // ============================================================
 import { messagesApi } from "../messages/messages.api.js";
 import { notificationService } from "../../core/services/notification.service.js";
@@ -244,7 +245,10 @@ export const portalTicketsMixin = {
 
     try {
       const conf = this.ticketTabConf();
-      if (conf && !this.canViewContent(conf)) {
+      // ✅ ۱۳.۲۲: گیتِ محتوا سرور-اول است. `canViewContent` از
+      //    `canPermission` می‌آید که در فرانت fail-open است (درس ۱۳.۲۰)؛
+      //    اگر کلید بسته باشد، پنل «دسترسی ندارید» می‌دهد نه خطای شبکه.
+      if (conf && !this.canCreateTicket()) {
         state.loaded = true;
         this.setExtraStatus("tickets", "ready");
         this.renderViewDenied("tickets");

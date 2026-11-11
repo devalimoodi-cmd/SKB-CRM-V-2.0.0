@@ -99,6 +99,30 @@ const requirePermission = (...keys) => {
   return guard;
 };
 
+// ===== نیاز به کلید، فقط برای یک نقش (بقیهٔ نقش‌ها بی‌بررسی رد می‌شوند) =====
+// 🔒 چرا لازم شد (۱۳.۲۲): روت `/api/suggestions` هم «گفتگوی مشتری» است و هم
+//    مودال پاکت پیام‌های هدر برای کارشناس/ادمین. کلید محتوا
+//    `customer.portal.tickets` در کاتالوگ **فقط-مشتری** است (D.customerOnly)،
+//    پس گیتِ عمومی `requirePermission(key)` مودال کارکنان را هم می‌بست.
+//    این پوشش همان میان‌افزار را فقط برای نقش هدف اجرا می‌کند؛ بقیهٔ نقش‌ها
+//    دقیقاً همان رفتار قبل از ۱۳.۲۲ را دارند (فقط `protect`).
+const requireRolePermission = (role, ...keys) => {
+  const inner = requirePermission(...keys);
+  const onlyRoles = Object.freeze([String(role || "")].filter(Boolean));
+
+  const guard = async (req, res, next) => {
+    // کاربر احراز هویت‌نشده یا نقش دیگر ⇒ همان مسیر قبلی (بدون کلید)
+    if (req.user && !onlyRoles.includes(String(req.user.role))) return next();
+    return inner(req, res, next);
+  };
+
+  // ✅ همان نشانه‌های خوانا برای گاردهای هم‌ترازی (رفتار عوض نمی‌شود)
+  guard.__permissionKeys = inner.__permissionKeys;
+  guard.__onlyRoles = onlyRoles;
+
+  return guard;
+};
+
 // خوانا‌تر: چند کلید، یکی کافی است
 const requireAnyPermission = (...keys) => requirePermission(...keys);
 
@@ -113,6 +137,7 @@ const userHasPermission = async (req, permissionKey) => {
 module.exports = {
   requirePermission,
   requireAnyPermission,
+  requireRolePermission,
   userHasPermission,
   isEnforcing,
 };
