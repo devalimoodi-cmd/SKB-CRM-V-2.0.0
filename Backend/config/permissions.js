@@ -326,22 +326,24 @@ const PORTAL = [
     "زیرمنوی «مدارک من» (پورتال)",
     D.customerOnly,
   ),
-  // — لایهٔ منو: مزرعهٔ من (کلید محتوایی: customer.portal.halls / customer.portal.farm) —
-  item("customer.portal.menu.farm", "منوی «مزرعهٔ من» (پورتال)", D.customerOnly),
+  // — لایهٔ منو: واحدهای من (کلید محتوایی: customer.portal.halls / customer.portal.farm) —
+  //   ✅ ۱۳.۲۱: منو «واحدها» شد و چهار کلید جزئیات سالن، «گیت بخش‌های
+  //   آکاردئون» هستند (نه مسیر مستقل) — هیچ کلیدی حذف نشد.
+  item("customer.portal.menu.farm", "منوی «واحدهای من» (پورتال)", D.customerOnly),
   item("customer.portal.menu.farm.units", "زیرمنوی «واحدها» (پورتال)", D.customerOnly),
   item("customer.portal.menu.farm.halls", "زیرمنوی «سالن‌ها» (پورتال)", D.customerOnly),
   item(
     "customer.portal.menu.farm.physical",
-    "زیرمنوی «اطلاعات فیزیکی سالن» (پورتال)",
+    "بخش «اطلاعات فیزیکی» در آکاردئون سالن (پورتال)",
     D.customerOnly,
   ),
-  item("customer.portal.menu.farm.systems", "زیرمنوی «سیستم‌های سالن» (پورتال)", D.customerOnly),
+  item("customer.portal.menu.farm.systems", "بخش «سیستم‌های سالن» در آکاردئون سالن (پورتال)", D.customerOnly),
   item(
     "customer.portal.menu.farm.waterFeed",
-    "زیرمنوی «آبخوری و دانخوری» (پورتال)",
+    "بخش «آبخوری و دانخوری» در آکاردئون سالن (پورتال)",
     D.customerOnly,
   ),
-  item("customer.portal.menu.farm.hygiene", "زیرمنوی «بهداشت سالن» (پورتال)", D.customerOnly),
+  item("customer.portal.menu.farm.hygiene", "بخش «بهداشت سالن» در آکاردئون سالن (پورتال)", D.customerOnly),
   // — لایهٔ منو: جوجه‌ریزی —
   item("customer.portal.menu.hatchery", "منوی «جوجه‌ریزی» (پورتال)", D.customerOnly),
   item(
@@ -369,17 +371,12 @@ const PORTAL = [
   ),
   // — لایهٔ منو: مدیریت هفتگی —
   item("customer.portal.menu.weekly", "منوی «مدیریت هفتگی» (پورتال)", D.customerOnly),
-  item(
-    "customer.portal.menu.weekly.create",
-    "زیرمنوی «ثبت هفته» (پورتال)",
-    D.customerOnly,
-  ),
+  // ⚠️ ۱۳.۲۱: زیرمنوی «ثبت هفته» حذف شد — ثبت از شیت همان پنل هفتگی
+  //    انجام می‌شود (کلید محتوایی: customer.portal.farm.request).
   item("customer.portal.menu.weekly.list", "زیرمنوی «هفته‌های ثبت‌شده» (پورتال)", D.customerOnly),
   item("customer.portal.menu.weekly.trend", "زیرمنوی «نمودار روند» (پورتال)", D.customerOnly),
-  // — لایهٔ منو: درخواست‌های من —
-  item("customer.portal.menu.requests", "منوی «درخواست‌های من» (پورتال)", D.customerOnly),
-  item("customer.portal.menu.requests.new", "زیرمنوی «ثبت درخواست» (پورتال)", D.customerOnly),
-  item("customer.portal.menu.requests.list", "زیرمنوی «پیگیری درخواست‌ها» (پورتال)", D.customerOnly),
+  // — لایهٔ منو: ارسال تیکت (جای «درخواست‌های من» در ۱۳.۲۱) —
+  item("customer.portal.menu.tickets", "منوی «ارسال تیکت» (پورتال)", D.customerOnly),
   // — لایهٔ منو: گزارش‌ها —
   item("customer.portal.menu.reports", "منوی «گزارش‌ها» (پورتال)", D.customerOnly),
   item(
@@ -388,6 +385,11 @@ const PORTAL = [
     D.customerOnly,
   ),
   item("customer.portal.menu.reports.final", "زیرمنوی «گزارش نهایی دوره» (پورتال)", D.customerOnly),
+  // — لایهٔ محتوا: «ارسال تیکت» —
+  //   ✅ ۱۳.۲۱: کنترل «دیده‌شدن» پنل تیکت. روت /api/suggestions امروز
+  //   فقط protect دارد (چون مودال هدر برای کارشناس/ادمین هم هست)؛
+  //   گیت سرور با همین کلید در موج ۱۳.۲۲ اضافه می‌شود.
+  item("customer.portal.tickets", "ارسال تیکت و گفتگو با پشتیبانی (پورتال)", D.customerOnly),
 ];
 
 // ============================================================

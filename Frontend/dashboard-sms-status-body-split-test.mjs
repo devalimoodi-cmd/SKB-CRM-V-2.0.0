@@ -553,7 +553,7 @@ const cases = [
       '"level": "error"',
       "❌ Error refreshing SMS status:",
       '"closed": 1',
-      '\"swal\": []',
+      '"swal": []',
     ],
     extraChecks: [
       ["خطا بیرون نمی‌زند", (r) => r.thrown === null],

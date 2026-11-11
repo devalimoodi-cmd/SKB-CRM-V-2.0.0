@@ -30,7 +30,9 @@ const check = (name, ok, extra = "") => {
   console.log(`${ok ? "PASS" : "FAIL"} - ${name}${extra ? " :: " + extra : ""}`);
 };
 const info = (message) => console.log(`ℹ️  ${message}`);
-const clone = (value) =>
+// ⚠️ موج ۱۳.۲۱ — در این اسنپ‌شات استفاده نمی‌شود؛ پیشوند `_` تا
+// `no-unused-vars` (که با `--max-warnings=0` دروازه را می‌شکند) ساکت بماند.
+const _clone = (value) =>
   value === undefined ? null : JSON.parse(JSON.stringify(value));
 
 // ---------- استاب مرورگر (قبل از import ماژول) ----------

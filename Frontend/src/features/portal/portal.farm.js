@@ -71,6 +71,9 @@ const payloadDataOf = (payload) => (payload && payload.data ? payload.data : {})
 export const FARM_LIST_STATUS_KEYS = ["", ...FARM_STATUS_KEYS];
 export const FARM_LIST_PAGE_LIMIT = 20;
 
+// ✅ ۱۳.۲۱ — شناسهٔ شیت درخواست در HTML (جای پنل «درخواست‌های من»)
+const SHEET_ID = "portalRequestSheet";
+
 // ============================================================
 // تقسیم‌بندی نوع‌ها بر اساس رفتار فرم
 // ============================================================
@@ -330,6 +333,8 @@ export const portalFarmMixin = {
       },
     };
     this.farmBound = false;
+    // ✅ ۱۳.۲۱ — نشان «شنوندهٔ شیت درخواست وصل شده»
+    this.sheetBound = false;
   },
 
   // ===== گیت‌ها (منبع اول: پاسخ سرور، بعد مجوز کلاینت) =====
@@ -424,9 +429,113 @@ export const portalFarmMixin = {
 
   // ===== ورود تب: همهٔ تب‌های خاص از همین نقطه می‌گذرند =====
   async loadExtraTab(key) {
-    if (key === "farm") return this.loadFarmTab();
+    // ⚠️ ۱۳.۲۱: `farm` دیگر پنل نیست (شیت است)؛ اگر کسی این کلید را
+    //  صدا زد، فقط گزینه‌ها/فهرست را می‌گیریم و شیت را باز می‌کنیم.
+    if (key === "farm") {
+      if (!this.extra.farm.loaded) return this.loadFarmTab();
+      return undefined;
+    }
     // پروفایل/داشبورد/مدارک همان منطق mixinهای قبلی
     return portalDocumentsMixin.loadExtraTab.call(this, key);
+  },
+
+  // ============================================================
+  // ✅ ۱۳.۲۱ — شیت «ثبت درخواست» (جای پنل حذف‌شدهٔ «درخواست‌های من»)
+  // ------------------------------------------------------------
+  //  چرا شیت؟ فرم باید از داخل همان ردیف (واحد/سالن/دوره/هفته) با
+  //  «نوع» و «هدف» از پیش انتخاب‌شده باز شود؛ پنل مستقل مجبور بود
+  //  کاربر را وادار کند نوع و هدف را دستی انتخاب کند.
+  //  🔒 شناسهٔ هدف از `data-farm-*` همان ردیف می‌آید؛ بعد از آن هم
+  //     خودِ سرور مالکیت/مجوز نوع را می‌سنجد (هیچ اعتماد به کلاینت).
+  // ============================================================
+  bindRequestSheet() {
+    if (this.sheetBound) return;
+    if (typeof document === "undefined" || !document.addEventListener) return;
+
+    const sheet = this.el(SHEET_ID);
+    if (!sheet) return;
+    this.sheetBound = true;
+
+    // بستن با backdrop یا دکمهٔ ضربدر (هر دو data-sheet-close دارند)
+    sheet.addEventListener("click", (event) => {
+      const target = event.target;
+      if (!target || !target.closest) return;
+      if (target.closest("[data-sheet-close]")) {
+        event.preventDefault();
+        this.closeRequestSheet();
+      }
+    });
+
+    // Esc ⇒ همان رفتار بستن (بدون trap فوکوس پیچیده)
+    document.addEventListener("keydown", (event) => {
+      if (event.key !== "Escape" && event.key !== "Esc") return;
+      if (!this.isRequestSheetOpen()) return;
+      event.preventDefault();
+      this.closeRequestSheet();
+    });
+  },
+
+  isRequestSheetOpen() {
+    const sheet = this.el(SHEET_ID);
+    return Boolean(sheet && sheet.hidden === false);
+  },
+
+  closeRequestSheet() {
+    const sheet = this.el(SHEET_ID);
+    if (!sheet) return false;
+    sheet.hidden = true;
+    if (typeof document !== "undefined" && document.body) {
+      document.body.classList.remove("portal-sheet-open");
+    }
+    return true;
+  },
+
+  // باز کردن شیت با نوع + هدف از پیش انتخاب‌شده
+  async openRequestSheet(rawType, rawTargetId = "") {
+    const type = String(rawType || "").trim();
+    // 🔒 فقط نوع‌های شناخته‌شدهٔ همان مشخصات ۱۳.۱۶ (منبع سرور)
+    if (!farmSpecOf(type).length) return null;
+
+    if (!this.canRequestFarm()) {
+      notificationService.notifyOnce({
+        key: "portal-farm-request-disabled",
+        message: "ثبت درخواست برای حساب شما فعال نیست؛ با مدیر سیستم تماس بگیرید.",
+        type: "warning",
+        cooldownMs: 8000,
+      });
+      return null;
+    }
+
+    const sheet = this.el(SHEET_ID);
+    if (!sheet) return null;
+
+    sheet.hidden = false;
+    if (typeof document !== "undefined" && document.body) {
+      document.body.classList.add("portal-sheet-open");
+    }
+
+    // گزینه‌ها/فهرست یک‌بار (همان کش ۱۳.۱۶ — بدون درخواست تکراری)
+    if (!this.extra.farm.loaded) await this.loadFarmTab();
+
+    const field = farmSpecOf(type)[0] || null;
+    const targetId = String(rawTargetId || "").trim();
+
+    // همان مسیر ۱۳.۱۵: تغییر نوع ⇒ پاک‌سازی فرم + رندر
+    this.switchFarmType(type);
+
+    if (field && targetId) {
+      this.farm.values = { [field.key]: targetId };
+      this.renderFarm();
+      // پیش‌پرکردن مقادیر فعلی برای ویرایش/حذف (همان onFarmFieldChange)
+      await this.loadFarmTargetDetails();
+    }
+
+    const first = sheet.querySelector(
+      "#portalFarmBody select, #portalFarmBody input, #portalFarmBody button",
+    );
+    if (first && typeof first.focus === "function") first.focus();
+
+    return type;
   },
 
   async loadFarmTab() {

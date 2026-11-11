@@ -2,11 +2,12 @@
 // features/portal/portal.views.js
 // نماهای خواندنی ناوبری پورتال — موج ۱۳.۱۷
 // ------------------------------------------------------------
-//  چهار پنل تازه که با «منوی» ۱۳.۱۷ باز می‌شوند:
-//    units       → واحدهای من            (GET /portal/farm/options)
-//    hallDetail  → ۴ بخش جزئیات سالن     (GET /portal/farm/halls/:id)
-//    placements  → دوره‌های جوجه‌ریزی من   (options + /farm/placements/:id)
-//    soon        → «به‌زودی» برای ۳ بخش بی‌اندپوینت (بدون هیچ درخواست)
+//  چهار پنل که با «منوی» ۱۳.۱۷ باز می‌شوند (۱۳.۲۱ بازآرایی‌شده):
+//    units       → واحدهای من (آکاردئون واحد ← سالن)  (GET /portal/farm/options)
+//    halls       → سالن‌ها با چهار بخش جزئیات تنبل      (GET /portal/farm/halls/:id)
+//    placements  → دوره‌های جوجه‌ریزی من (آکاردئون گله)  (options + /farm/placements/:id)
+//    tickets     → ارسال تیکت روی سامانهٔ پیشنهادها      (Suggestion/SuggestionMessage)
+//    soon        → «به‌زودی» برای بخش‌های بی‌اندپوینت (بدون هیچ درخواست)
 //
 //  🔒 قواعد سخت این فایل:
 //   ۱) هیچ POST/PATCH/DELETE — فقط سه GET بالا (گارد تست می‌سنجد).
@@ -20,7 +21,12 @@
 //   ۵) هر رندر کامل escape می‌شود (esc) — داده از DB می‌آید.
 // ============================================================
 import { portalApi } from "./portal.api.js";
-import { renderNotice } from "./portal.renderer.js";
+import {
+  renderNotice,
+  renderEmpty,
+  renderFlockList,
+  renderWeekList,
+} from "./portal.renderer.js";
 import {
   PAYLOAD_LABEL,
   PAYLOAD_KIND,
@@ -32,6 +38,16 @@ import {
 import { farmSpecOf } from "./portal.farm.rules.js";
 // برای واگذاری بارگذاری تب‌های قبلی (فارم/مدارک/پروفایل/داشبورد)
 import { portalFarmMixin } from "./portal.farm.js";
+// ✅ ۱۳.۲۱ — آکاردئون/درخت خالص + جدول ریسپانسیو + پنل تیکت
+import {
+  buildUnitTree,
+  groupPlacementsByFlock,
+  groupWeeksByFlock,
+  treeAccordion,
+  treeTotals,
+} from "./portal.tree.js";
+import { decorateTables } from "./portal.table.js";
+import { TICKETS_TAB } from "./portal.tickets.js";
 
 // ✅ ۱۳.۱۹: اندازهٔ صفحهٔ «پایان دوره» (سرور سقف ۵۰ می‌گذارد)
 const COMPLETION_PAGE = 20;
@@ -51,18 +67,16 @@ export const VIEW_TABS = {
     statusId: "portalUnitsStatus",
     requires: "customer.portal.farm",
   },
-  hallDetail: {
-    permission: "customer.portal.menu.farm.physical",
-    permissionAny: [
-      "customer.portal.menu.farm.physical",
-      "customer.portal.menu.farm.systems",
-      "customer.portal.menu.farm.waterFeed",
-      "customer.portal.menu.farm.hygiene",
-    ],
-    title: "جزئیات سالن",
-    bodyId: "portalHallDetailBody",
-    statusId: "portalHallDetailStatus",
-    requires: "customer.portal.farm",
+  // ✅ ۱۳.۲۱ — «سالن‌ها» از فهرست صفحه‌بندی‌شدهٔ service به یک نمای
+  //    آکاردئونی منتقل شد: هر سالن ← چهار بخش (فیزیکی/سیستم‌ها/آب‌خوری/
+  //    بهداشت). کلید محتوا همان customer.portal.halls است و چهار کلید
+  //    منوی قبلی، گیت نمایش هر بخش‌اند (بدون مسیر تازه).
+  halls: {
+    permission: "customer.portal.menu.farm.halls",
+    title: "سالن‌ها",
+    bodyId: "portalHallsBody",
+    statusId: "portalHallsStatus",
+    requires: "customer.portal.halls",
   },
   placements: {
     permission: "customer.portal.menu.hatchery.placements",
@@ -100,6 +114,8 @@ export const VIEW_TABS = {
       "customer.portal.completion.report",
     ],
   },
+  // ✅ ۱۳.۲۱ — «ارسال تیکت» (منطق و رندر در portal.tickets.js)
+  tickets: TICKETS_TAB,
 };
 
 // متن «به‌زودی» — به تفکیک مسیر (صادقانه: چه چیزی نیست و چرا)
@@ -242,10 +258,13 @@ const labelFor = (key) => EXTRA_LABELS[key] || labelOf(key);
 
 // ============================================================
 // ۱) واحدهای من
+// ------------------------------------------------------------
+//  ✅ ۱۳.۲۱ — آکاردئون: هر واحد یک <details> با اطلاعات تکمیلی،
+//  فهرست سالن‌های همان واحد و دکمه‌های ثبت/ویرایش/حذف.
+//  ⚠️ هیچ دادهٔ تازه‌ای ساخته نمی‌شود: همین فیلدهای options.
 // ============================================================
-const unitCard = (unit) => {
+const unitMetaRows = (unit) => {
   const rows = [
-    ["hall_count", unit.hall_count],
     ["capacity", unit.capacity],
     ["manager_name", unit.manager_name],
     ["manager_phone", unit.manager_phone],
@@ -261,42 +280,109 @@ const unitCard = (unit) => {
     )
     .join("");
 
-  return `<div class="portal-views__card" data-view-unit="${esc(unit.id)}">
-    <div class="portal-views__card-head">
-      <i class="fas fa-warehouse" aria-hidden="true"></i>
-      <span>${esc(unit.unit_name || "واحد بدون نام")}</span>
-    </div>
-    <div class="portal-views__meta">${rows || "<span>اطلاعات تکمیلی ثبت نشده است.</span>"}</div>
-  </div>`;
+  return rows
+    ? `<div class="portal-views__meta">${rows}</div>`
+    : `<div class="portal-views__note">اطلاعات تکمیلی این واحد ثبت نشده است.</div>`;
 };
 
-export const renderUnitsView = (units) => {
-  const rows = Array.isArray(units) ? units : [];
-  if (!rows.length) {
+// دکمه‌های اقدام هر ردیف — همه به «شیت درخواست» وصل می‌شوند (بدون فرم تازه)
+const farmActionButton = (action, label, icon, attrs = "") =>
+  `<button type="button" class="portal-btn portal-btn--sm" data-farm-action="${esc(
+    action,
+  )}"${attrs ? " " + attrs : ""}><i class="fas ${esc(icon)}" aria-hidden="true"></i> ${esc(
+    label,
+  )}</button>`;
+
+// یک سالن داخل آکاردئون واحد: نام + دکمه‌های اقدام + پرش به آکاردئون سالن
+const hallRow = (hall, canWrite) => {
+  const id = esc(hall.id);
+  const actions = canWrite
+    ? `<div class="portal-acc__row-actions">
+        ${farmActionButton("hall_update", "ویرایش", "fa-pen-to-square", `data-farm-hall="${id}"`)}
+        ${farmActionButton("hall_delete", "حذف", "fa-trash-can", `data-farm-hall="${id}"`)}
+      </div>`
+    : "";
+  return `<li class="portal-acc__row" data-hall-id="${id}">
+    <span class="portal-acc__row-title">
+      <i class="fas fa-warehouse" aria-hidden="true"></i>
+      ${esc(hall.name)}
+    </span>
+    <a class="portal-acc__row-link" href="#/farm/halls" data-hall-focus="${id}">جزئیات سالن</a>
+    ${actions}
+  </li>`;
+};
+
+export const renderUnitsView = (units, options = {}) => {
+  const tree = buildUnitTree({ units, halls: options.halls });
+  const canWrite = options.canWrite === true;
+
+  if (!tree.length) {
     return renderNotice(
       "واحدی برای این پرونده ثبت نشده است",
-      "اگر واحدی دارید که این‌جا نیست، از بخش «درخواست‌های من» درخواست ثبت واحد بفرستید.",
+      canWrite
+        ? "برای ثبت واحد، دکمهٔ «ثبت واحد» در بالای همین صفحه را بزنید؛ درخواست برای تأیید کارشناس می‌رود."
+        : "اگر واحدی دارید که این‌جا نیست، با کارشناس خود تماس بگیرید.",
       "info",
     );
   }
-  return `<div class="portal-views__grid" data-view-units>${rows.map(unitCard).join("")}</div>`;
-};
 
-// ============================================================
-// ۲) جزئیات سالن (چهار بخش)
-// ============================================================
-const hallOptions = (halls, selectedId) => {
-  const rows = Array.isArray(halls) ? halls : [];
-  return rows
-    .map((hall) => {
-      const name = hall.hall_name || "سالن بدون نام";
-      const number = hall.hall_number ? ` — ${hall.hall_number}` : "";
-      const selected = String(hall.id) === String(selectedId) ? " selected" : "";
-      return `<option value="${esc(hall.id)}"${selected}>${esc(name + number)}</option>`;
+  const totals = treeTotals(tree);
+  const toolbar = `<div class="portal-views__toolbar">
+    <div class="portal-views__note">
+      <i class="fas fa-layer-group" aria-hidden="true"></i>
+      ${esc(totals.units)} واحد · ${esc(totals.halls)} سالن
+    </div>
+    ${
+      canWrite
+        ? farmActionButton("unit_create", "ثبت واحد", "fa-plus")
+        : ""
+    }
+  </div>`;
+
+  const blocks = tree
+    .map((unit) => {
+      const badge = `${unit.halls.length} سالن`;
+      const actions = canWrite
+        ? [
+            farmActionButton("unit_update", "ویرایش واحد", "fa-pen-to-square", `data-farm-unit="${esc(unit.id)}"`),
+            farmActionButton("unit_delete", "حذف واحد", "fa-trash-can", `data-farm-unit="${esc(unit.id)}"`),
+            farmActionButton("hall_create", "ثبت سالن", "fa-plus", `data-farm-unit="${esc(unit.id)}"`),
+          ].join("")
+        : "";
+
+      const body = `${unitMetaRows(unit.raw)}${
+        unit.halls.length
+          ? `<ul class="portal-acc__rows">${unit.halls
+              .map((hall) => hallRow(hall, canWrite))
+              .join("")}</ul>`
+          : `<div class="portal-views__empty">
+              <i class="fas fa-circle-info" aria-hidden="true"></i>
+              برای این واحد سالنی ثبت نشده است${
+                canWrite ? "؛ با دکمهٔ «ثبت سالن» درخواست بفرستید." : "."
+              }
+            </div>`
+      }`;
+
+      return treeAccordion({
+        id: `unit-${unit.id}`,
+        title: unit.name,
+        badge,
+        actions,
+        body,
+        level: 1,
+      });
     })
     .join("");
+
+  return `${toolbar}<div class="portal-acc__stack" data-view-units>${blocks}</div>`;
 };
 
+// ============================================================
+// ۲) جزئیات سالن — سازندهٔ ردیف‌های «کلید/مقدار» و جدول تجهیزات
+// ------------------------------------------------------------
+//  ✅ ۱۳.۲۱: انتخاب‌گر سالن (hallOptions) حذف شد؛ آکاردئون خودِ
+//  سالن‌ها جای آن را گرفت (بدون <select> و بدون درخواست اضافه).
+// ============================================================
 const fieldRows = (keys, source, dictionaries) =>
   keys
     .map((key) => {
@@ -335,83 +421,146 @@ const itemsTable = (items) => {
   </div>`;
 };
 
-export const renderHallDetailView = ({
-  section = "physical",
-  halls = [],
-  selectedHallId = "",
-  detail = null,
-  dictionaries = {},
-} = {}) => {
-  if (!halls.length) {
-    return renderNotice(
-      "سالنی برای نمایش نیست",
-      "برای این پرونده سالنی ثبت نشده است؛ ابتدا از بخش «درخواست‌های من» درخواست ثبت سالن بفرستید.",
-      "info",
-    );
-  }
-
-  const label = HALL_SECTION_LABELS[section] || HALL_SECTION_LABELS.physical;
+// ============================================================
+// ۲) آکاردئون سالن ← چهار بخش
+// ------------------------------------------------------------
+//  ⚠️ ۱۳.۲۱: پنل جداگانهٔ «hallDetail» حذف شد. هر سالن یک <details>
+//  است و داخل آن چهار بخش. دادهٔ هر سالن **تنبل** می‌آید: تا کاربر
+//  سالن را باز نکند هیچ درخواستی فرستاده نمی‌شود (همان درس ۱۳.۱۷).
+//  گیت هر بخش = کلید منوی همان بخش (sections از تنظیمات مجاز می‌آید).
+// ============================================================
+const sectionBody = (section, detail, dictionaries) => {
   const data = detail && detail.details ? detail.details[section] : null;
-
-  const toolbar = `<div class="portal-views__toolbar">
-    <div class="portal-views__field">
-      <label for="portalHallDetailSelect">سالن</label>
-      <select id="portalHallDetailSelect" data-view-hall>
-        ${hallOptions(halls, selectedHallId)}
-      </select>
-    </div>
-  </div>`;
-
   if (!data) {
-    return `${toolbar}<div class="portal-views__empty">
+    return `<div class="portal-views__empty">
       <i class="fas fa-circle-info" aria-hidden="true"></i>
-      برای این سالن، بخش «${esc(label)}» هنوز ثبت نشده است.
+      بخش «${esc(HALL_SECTION_LABELS[section])}» هنوز ثبت نشده است.
     </div>`;
   }
 
-  return `${toolbar}
-    <div class="portal-views__table-wrap">
+  return `<div class="portal-views__table-wrap">
       <table class="portal-table" data-view-section="${esc(section)}">
         <tbody>${fieldRows(hallSectionKeys(section), data, dictionaries)}</tbody>
       </table>
     </div>
-    ${section === "system" ? itemsTable(data.items) : ""}
-    <p class="portal-views__note">
-      <i class="fas fa-lock" aria-hidden="true"></i>
-      این اطلاعات فقط خواندنی است؛ برای اصلاح، از بخش «درخواست‌های من» درخواست ویرایش بفرستید.
-    </p>`;
+    ${section === "system" ? itemsTable(data.items) : ""}`;
+};
+
+export const renderHallsAccordion = ({
+  halls = [],
+  details = {},
+  dictionaries = {},
+  sections = [],
+  canWrite = false,
+  pending = {},
+  errors = {},
+} = {}) => {
+  const rows = Array.isArray(halls) ? halls : [];
+  if (!rows.length) {
+    return renderNotice(
+      "سالنی برای نمایش نیست",
+      canWrite
+        ? "برای ثبت سالن، از بخش «واحدها» دکمهٔ «ثبت سالن» همان واحد را بزنید."
+        : "برای این پرونده سالنی ثبت نشده است.",
+      "info",
+    );
+  }
+
+  const allowed = sections.filter((section) => HALL_SECTION_TYPES[section]);
+
+  const blocks = rows.map((hall) => {
+    const hallId = String(hall.id);
+    const detail = details[hallId] || null;
+    const error = String(errors[hallId] || "");
+
+    const actions = canWrite
+      ? [
+          farmActionButton("hall_update", "ویرایش سالن", "fa-pen-to-square", `data-farm-hall="${esc(hallId)}"`),
+          farmActionButton("hall_delete", "حذف سالن", "fa-trash-can", `data-farm-hall="${esc(hallId)}"`),
+        ].join("")
+      : "";
+
+    // ۱) خطای همان سالن (بقیهٔ سالن‌ها سالم می‌مانند)
+    // ۲) در حال دریافت
+    // ۳) داده آمده ⇒ چهار بخش (فقط بخش‌های مجاز)
+    // ۴) هنوز باز نشده ⇒ هیچ درخواستی نرفته
+    let body = "";
+    if (error) {
+      body = `<div class="portal-views__note portal-views__note--error">
+        <i class="fas fa-triangle-exclamation" aria-hidden="true"></i>
+        ${esc(error)}
+      </div>`;
+    } else if (!detail && pending[hallId]) {
+      body = `<div class="portal-views__loading" data-hall-pending="${esc(hallId)}">
+        <i class="fas fa-spinner fa-spin" aria-hidden="true"></i> در حال دریافت بخش‌ها…
+      </div>`;
+    } else if (detail && !allowed.length) {
+      body = `<div class="portal-views__empty">
+        <i class="fas fa-lock" aria-hidden="true"></i>
+        نمایش بخش‌های این سالن برای نقش شما بسته است.
+      </div>`;
+    } else if (detail) {
+      body = `<div class="portal-acc__stack">${allowed
+        .map((section) =>
+          treeAccordion({
+            id: `hall-${hallId}-${section}`,
+            title: HALL_SECTION_LABELS[section],
+            level: 2,
+            actions: canWrite
+              ? farmActionButton(
+                  HALL_SECTION_TYPES[section],
+                  "ثبت/ویرایش",
+                  "fa-pen",
+                  `data-farm-hall="${esc(hallId)}"`,
+                )
+              : "",
+            body: sectionBody(section, detail, dictionaries),
+          }),
+        )
+        .join("")}</div>`;
+    } else {
+      body = `<div class="portal-views__loading" data-hall-closed="${esc(hallId)}">
+        <i class="fas fa-circle-info" aria-hidden="true"></i>
+        برای دیدن بخش‌ها، همین سالن را باز کنید (تا آن‌وقت هیچ درخواستی فرستاده نمی‌شود).
+      </div>`;
+    }
+
+    return treeAccordion({
+      id: `hall-${hallId}`,
+      title: hall.hall_name || hall.name || "سالن بدون نام",
+      subtitle: hall.unit_name ? `واحد: ${hall.unit_name}` : "",
+      badge: allowed.length ? `${allowed.length} بخش` : "",
+      actions,
+      body,
+      level: 1,
+    });
+  });
+
+  return `<div class="portal-acc__stack" data-view-halls>${blocks.join("")}</div>`;
 };
 
 // ============================================================
-// ۳) دوره‌های جوجه‌ریزی
+// ۳) دوره‌های جوجه‌ریزی — آکاردئون «گله ← دوره‌ها» (۱۳.۲۱)
 // ============================================================
-const placementCard = (placement) => `<div class="portal-views__card"
-    data-view-placement-card="${esc(placement.id)}">
-    <div class="portal-views__card-head">
-      <i class="fas fa-egg" aria-hidden="true"></i>
-      <span>دورهٔ ${esc(dateOf(placement.placement_date) || "بدون تاریخ")}</span>
-    </div>
-    <div class="portal-views__meta">
-      <span>${esc(labelFor("flock_number"))}: <strong>${valueOf(
-        "flock_number",
-        placement.flock_number,
-      )}</strong></span>
-      <span>${esc(labelFor("total_chicks_count"))}: <strong>${valueOf(
-        "total_chicks_count",
-        placement.total_chicks_count,
-      )}</strong></span>
-      <span>${esc(labelFor("is_active"))}: <strong>${valueOf(
-        "is_active",
-        placement.is_active,
-      )}</strong></span>
-    </div>
-    <div class="portal-views__note">
-      <button type="button" class="portal-btn" data-view-placement="${esc(placement.id)}">
-        <i class="fas fa-list" aria-hidden="true"></i>
-        مشاهدهٔ جزئیات و هفته‌ها
-      </button>
-    </div>
-  </div>`;
+// هر دوره داخل آکاردئون گله — همان دکمهٔ «جزئیات» (رویداد موجود)
+const placementItem = (placement) => `<li class="portal-acc__row" data-view-placement-card="${esc(
+  placement.id,
+)}">
+  <span class="portal-acc__row-title">
+    <i class="fas fa-egg" aria-hidden="true"></i>
+    دورهٔ ${esc(dateOf(placement.placement_date) || "بدون تاریخ")}
+  </span>
+  <span class="portal-acc__row-meta">
+    ${esc(labelFor("total_chicks_count"))}: ${valueOf("total_chicks_count", placement.total_chicks_count)}
+    · ${esc(labelFor("is_active"))}: ${valueOf("is_active", placement.is_active)}
+  </span>
+  <button type="button" class="portal-btn portal-btn--sm" data-view-placement="${esc(
+    placement.id,
+  )}">
+    <i class="fas fa-list" aria-hidden="true"></i>
+    جزئیات و هفته‌ها
+  </button>
+</li>`;
 
 export const renderPlacementsView = ({
   placements = [],
@@ -419,9 +568,21 @@ export const renderPlacementsView = ({
   dictionaries = {},
 } = {}) => {
   const rows = Array.isArray(placements) ? placements : [];
+  const groups = groupPlacementsByFlock(rows);
+
   const list = rows.length
-    ? `<div class="portal-views__grid" data-view-placements>${rows
-        .map(placementCard)
+    ? `<div class="portal-acc__stack" data-view-placements>${groups
+        .map((group) =>
+          treeAccordion({
+            id: `flock-${group.key}`,
+            title: group.label,
+            badge: `${group.placements.length} دوره`,
+            level: 1,
+            body: `<ul class="portal-acc__rows">${group.placements
+              .map(placementItem)
+              .join("")}</ul>`,
+          }),
+        )
         .join("")}</div>`
     : renderNotice(
         "دوره‌ای ثبت نشده است",
@@ -958,6 +1119,56 @@ const viewErrorMessage = (error) => {
 };
 
 // ============================================================
+// ۴) آکاردئون گله‌ها و هفته‌ها (۱۳.۲۱)
+// ------------------------------------------------------------
+//  «مدیریت هفتگی» و «جوجه‌ریزی» هر کدام یک سطح بالاتر گرفتند:
+//  گله ← ردیف‌های همان گله. ردیف‌ها همان رندرکنندهٔ ۱۳.۳/۱۳.۴
+//  هستند (بدون تکرار برچسب/عدد/تاریخ) و دکمهٔ «جزئیات» هفته هم
+//  همان `data-portal-open="week"` قبلی است — صفر اندپوینت تازه.
+// ============================================================
+export const renderWeeksTree = (items = []) => {
+  const rows = Array.isArray(items) ? items : [];
+  if (!rows.length) return renderEmpty("هفتهٔ مدیریتی ثبت نشده است");
+
+  const groups = groupWeeksByFlock(rows);
+  return groups
+    .map(
+      (group) =>
+        `<li class="portal-acc__entry">${treeAccordion({
+          id: `weeks-${group.key}`,
+          title: group.label,
+          badge: `${group.weeks.length} هفته`,
+          level: 1,
+          body: `<ul class="portal-list">${renderWeekList(group.weeks)}</ul>`,
+        })}</li>`,
+    )
+    .join("");
+};
+
+export const renderFlocksTree = (items = []) => {
+  const rows = Array.isArray(items) ? items : [];
+  if (!rows.length) return renderEmpty("گله‌ای برای این پرونده ثبت نشده است");
+
+  return rows
+    .map((row) => {
+      const number =
+        row.flock_number === null || row.flock_number === undefined
+          ? ""
+          : String(row.flock_number);
+      const subtitle = row.placement_date ? dateOf(row.placement_date) : "";
+      return `<li class="portal-acc__entry">${treeAccordion({
+        id: `flock-row-${row.id}`,
+        title: number ? `گلهٔ ${number}` : "گلهٔ بدون شماره",
+        subtitle,
+        badge: row.ended_at ? "پایان‌یافته" : "در جریان",
+        level: 1,
+        body: `<ul class="portal-list">${renderFlockList([row])}</ul>`,
+      })}</li>`;
+    })
+    .join("");
+};
+
+// ============================================================
 // mixin — متدها روی PortalService.prototype سوار می‌شوند
 // ============================================================
 export const portalViewsMixin = {
@@ -966,15 +1177,17 @@ export const portalViewsMixin = {
     if (!this.extra || typeof this.extra !== "object") this.extra = {};
 
     this.extra.units = { loaded: false, loading: false };
-    this.extra.hallDetail = {
+    // ✅ ۱۳.۲۱ — «سالن‌ها» آکاردئونی شد: فهرست سالن‌ها + جزئیات تنبلِ هر
+    //  سالن. `details` کش همان پاسخ /farm/halls/:id است (هر سالن یک‌بار)
+    //  و `pending` ضد درخواست هم‌زمان برای همان سالن.
+    this.extra.halls = {
       loaded: false,
       loading: false,
       halls: [],
-      hallId: "",
-      section: "physical",
-      detail: null,
       dictionaries: {},
-      cache: new Map(),
+      details: {},
+      pending: {},
+      errors: {},
     };
     this.extra.placements = {
       loaded: false,
@@ -1016,14 +1229,84 @@ export const portalViewsMixin = {
     if (typeof document === "undefined" || !document.addEventListener) return;
     this.viewsBound = true;
 
-    const hallBody = this.el(VIEW_TABS.hallDetail.bodyId);
-    if (hallBody) {
-      // فقط «تغییر سالن» — گزینه‌ها از سرور می‌آیند، نه ورودی آزاد
-      hallBody.addEventListener("change", (event) => {
-        const select = event.target.closest("[data-view-hall]");
-        if (!select) return null;
-        return this.selectHallForDetail(select.value);
+    // ✅ ۱۳.۲۱ — هر دکمهٔ ردیف (ثبت/ویرایش/حذف واحد، سالن، دوره، هفته)
+    //  شیت درخواست را با «نوع» و «هدف» همان ردیف باز می‌کند.
+    //  🔒 شناسه از `data-farm-unit`/`data-farm-hall` همان دکمه می‌آید
+    //     (خروجی سرور) — نه از URL؛ و سرور مستقل همان را می‌سنجد.
+    const bindFarmActions = (body) => {
+      if (!body || typeof body.addEventListener !== "function") return;
+      body.addEventListener("click", (event) => {
+        const target = event.target;
+        if (!target || typeof target.closest !== "function") return null;
+
+        const action = target.closest("[data-farm-action]");
+        if (action) {
+          event.preventDefault();
+          const id =
+            action.getAttribute("data-farm-hall") ||
+            action.getAttribute("data-farm-unit") ||
+            action.getAttribute("data-farm-placement") ||
+            action.getAttribute("data-farm-weekly") ||
+            "";
+          return this.openRequestSheet(
+            action.getAttribute("data-farm-action"),
+            id,
+          );
+        }
+
+        // «جزئیات سالن» در آکاردئون واحدها ⇒ همان پنل سالن‌ها + باز کردن
+        const focus = target.closest("[data-hall-focus]");
+        if (focus) {
+          event.preventDefault();
+          return this.openHallAccordion(focus.getAttribute("data-hall-focus"));
+        }
+
+        return null;
       });
+    };
+
+    bindFarmActions(this.el(VIEW_TABS.units.bodyId));
+    bindFarmActions(this.el(VIEW_TABS.halls.bodyId));
+    bindFarmActions(this.el(VIEW_TABS.placements.bodyId));
+
+    // ✅ ۱۳.۲۱ — دادهٔ هر سالن فقط با «باز شدن» همان <details> گرفته
+    //  می‌شود (همان درس ۱۳.۱۷: صفر درخواست برای سالن بسته).
+    //  ⚠️ رویداد toggle بابل نمی‌شود ⇒ شنوندهٔ capture روی ظرف پنل.
+    const hallsBody = this.el(VIEW_TABS.halls.bodyId);
+    if (hallsBody) {
+      hallsBody.addEventListener(
+        "toggle",
+        (event) => {
+          const node = event.target;
+          if (!node || typeof node.getAttribute !== "function") return null;
+          if (!node.open) return null;
+
+          const accId = String(node.getAttribute("data-acc-id") || "");
+          if (!accId.startsWith("hall-")) return null;
+
+          // بخش‌های تودرتو (`hall-<id>-<section>`) شناسهٔ سالن نیستند؛
+          // ensureHallDetail خودش عضویت در فهرست سرور را می‌سنجد.
+          const hallId = accId.slice("hall-".length);
+          this.setHallOpen(hallId, true);
+          return this.ensureHallDetail(hallId);
+        },
+        { capture: true },
+      );
+
+      // بسته شدن هم ثبت می‌شود تا رندر بعدی وضعیت بازها را حفظ کند
+      hallsBody.addEventListener(
+        "toggle",
+        (event) => {
+          const node = event.target;
+          if (!node || typeof node.getAttribute !== "function") return null;
+          if (node.open) return null;
+          const accId = String(node.getAttribute("data-acc-id") || "");
+          if (!accId.startsWith("hall-")) return null;
+          this.setHallOpen(accId.slice("hall-".length), false);
+          return null;
+        },
+        { capture: true },
+      );
     }
 
     const placementsBody = this.el(VIEW_TABS.placements.bodyId);
@@ -1076,12 +1359,14 @@ export const portalViewsMixin = {
   // ===== ورود پنل: همهٔ تب‌های خاص از همین نقطه می‌گذرند =====
   async loadExtraTab(key) {
     if (key === "units") return this.loadUnitsView();
-    if (key === "hallDetail") return this.loadHallDetailView();
+    // ✅ ۱۳.۲۱ — «سالن‌ها» پنل آکاردئونی شد (جای hallDetail حذف‌شده)
+    if (key === "halls") return this.loadHallsView();
     if (key === "placements") return this.loadPlacementsView();
     if (key === "completion") return this.loadCompletionView();
     if (key === "finalReport") return this.loadFinalReportView();
+    if (key === "tickets") return this.loadTicketsView();
     if (key === "soon") return this.loadSoonView();
-    // فارم/مدارک/پروفایل/داشبورد ⇒ همان منطق لایه‌های قبلی
+    // مدارک/پروفایل/داشبورد ⇒ همان منطق لایه‌های قبلی
     return portalFarmMixin.loadExtraTab.call(this, key);
   },
 
@@ -1141,7 +1426,7 @@ export const portalViewsMixin = {
       const options = await this.farmOptionsCached();
       state.loaded = true;
       this.setExtraStatus("units", "ready");
-      this.renderUnits(options.units);
+      this.renderUnits(options.units, options.halls, options.dictionaries);
     } catch (error) {
       state.loaded = true;
       this.setExtraStatus("units", "error", viewErrorMessage(error));
@@ -1150,96 +1435,184 @@ export const portalViewsMixin = {
     }
   },
 
-  renderUnits(units) {
-    const body = this.el(VIEW_TABS.units.bodyId);
-    if (body) body.innerHTML = renderUnitsView(units);
+  // ✅ ۱۳.۲۱ — دکمه‌های ثبت/ویرایش/حذف فقط با features.farm_request
+  //  (همان گیت ۱۳.۲۰؛ سرور هم مستقل همان را می‌سنجد)
+  unitsCanWrite() {
+    return typeof this.canRequestFarm === "function"
+      ? this.canRequestFarm()
+      : false;
   },
 
-  // ===== ۲) جزئیات سالن (چهار بخش) =====
-  async loadHallDetailView() {
-    const state = this.extra.hallDetail;
+  renderUnits(units, halls = [], dictionaries = {}) {
+    const body = this.el(VIEW_TABS.units.bodyId);
+    if (!body) return;
+    body.innerHTML = renderUnitsView(units, {
+      halls,
+      dictionaries,
+      canWrite: this.unitsCanWrite(),
+    });
+    decorateTables(body);
+  },
+
+  // ===== ۲) سالن‌ها (آکاردئون: سالن ← چهار بخش) — ✅ ۱۳.۲۱ =====
+  //  🔒 یک GET برای فهرست (options) + یک GET تنبل برای هر سالن که
+  //     کاربر باز می‌کند؛ سالن بسته هیچ درخواستی نمی‌فرستد.
+  async loadHallsView() {
+    const state = this.extra.halls;
     if (!state || state.loading) return;
     state.loading = true;
-    this.setExtraStatus("hallDetail", "loading");
+    this.setExtraStatus("halls", "loading");
 
     try {
-      if (!this.canViewContent(VIEW_TABS.hallDetail)) {
+      if (!this.canViewContent(VIEW_TABS.halls)) {
         state.loaded = true;
-        this.setExtraStatus("hallDetail", "ready");
-        this.renderViewDenied("hallDetail");
+        this.setExtraStatus("halls", "ready");
+        this.renderViewDenied("halls");
         return;
       }
       const options = await this.farmOptionsCached();
       state.halls = options.halls;
       state.dictionaries = options.dictionaries;
       state.loaded = true;
-      this.setExtraStatus("hallDetail", "ready");
-      await this.renderHallDetailSection(state.section);
+      this.setExtraStatus("halls", "ready");
+      this.renderHalls();
+
+      // اگر از دکمهٔ «جزئیات سالن» در آکاردئون واحدها آمده‌ایم
+      const focus = String(state.focusId || "");
+      if (focus) {
+        state.focusId = "";
+        await this.openHallAccordion(focus);
+      }
     } catch (error) {
       state.loaded = true;
-      this.setExtraStatus("hallDetail", "error", viewErrorMessage(error));
+      this.setExtraStatus("halls", "error", viewErrorMessage(error));
     } finally {
       state.loading = false;
     }
   },
 
-  // انتخاب سالن — فقط اگر در فهرست مجازِ سرور باشد
-  selectHallForDetail(rawId) {
-    const state = this.extra.hallDetail;
-    const id = String(rawId ?? "").trim();
-    if (!state || !id) return null;
-    const allowed = state.halls.some((hall) => String(hall.id) === id);
-    if (!allowed) return null;
-    state.hallId = id;
-    return this.renderHallDetailSection(state.section);
-  },
-
-  async renderHallDetailSection(rawSection) {
-    const state = this.extra.hallDetail;
-    const body = this.el(VIEW_TABS.hallDetail.bodyId);
+  // رندر آکاردئون سالن‌ها (وضعیت بازها حفظ می‌شود)
+  renderHalls() {
+    const state = this.extra.halls;
+    const body = this.el(VIEW_TABS.halls.bodyId);
     if (!state || !body) return;
 
-    const section = HALL_SECTION_LABELS[rawSection] ? rawSection : "physical";
-    state.section = section;
-
-    if (!state.halls.length) {
-      body.innerHTML = renderHallDetailView({ section, halls: [] });
-      return;
-    }
-
-    if (!state.hallId) state.hallId = String(state.halls[0].id);
-
-    const cacheKey = String(state.hallId);
-    if (!state.cache.has(cacheKey)) {
-      body.innerHTML = `<div class="portal-views__loading">
-        <i class="fas fa-spinner fa-spin" aria-hidden="true"></i> در حال دریافت…
-      </div>`;
-      try {
-        const detail = payloadDataOf(
-          await portalApi.getFarmHallDetails(state.hallId),
-        );
-        state.cache.set(cacheKey, detail);
-      } catch (error) {
-        body.innerHTML = renderNotice(
-          "دریافت جزئیات سالن ناموفق بود",
-          viewErrorMessage(error),
-          "error",
-        );
-        return;
-      }
-    }
-
-    state.detail = state.cache.get(cacheKey) || null;
-    body.innerHTML = renderHallDetailView({
-      section,
+    body.innerHTML = renderHallsAccordion({
       halls: state.halls,
-      selectedHallId: state.hallId,
-      detail: state.detail,
+      details: state.details,
       dictionaries: state.dictionaries,
+      sections: this.hallSectionsAllowed(),
+      canWrite: this.unitsCanWrite(),
+      pending: state.pending,
+      errors: state.errors,
     });
 
-    const title = this.el("portalHallDetailTitle");
-    if (title) title.textContent = HALL_SECTION_LABELS[section];
+    // همان سالن‌هایی که کاربر باز کرده، باز می‌مانند
+    const openIds = Array.isArray(state.openIds) ? state.openIds : [];
+    if (openIds.length) {
+      Array.from(body.querySelectorAll("[data-acc-id]")).forEach((node) => {
+        const accId = String(node.getAttribute("data-acc-id") || "");
+        if (openIds.includes(accId.slice("hall-".length)) && accId.startsWith("hall-")) {
+          node.open = true;
+        }
+      });
+    }
+
+    decorateTables(body);
+  },
+
+  // گیت هر بخش آکاردئون = کلید منوی همان بخش (بدون کلید تازه)
+  hallSectionsAllowed() {
+    const gate = {
+      physical: "customer.portal.menu.farm.physical",
+      system: "customer.portal.menu.farm.systems",
+      water_feed: "customer.portal.menu.farm.waterFeed",
+      hygiene: "customer.portal.menu.farm.hygiene",
+    };
+    const can = (token) =>
+      typeof this.canPermission === "function"
+        ? this.canPermission(token) !== false
+        : true;
+    return Object.keys(gate).filter((section) => can(gate[section]));
+  },
+
+  // ثبت وضعیت باز/بستهٔ آکاردئون‌ها (بدون رندر — رندر بعدی حفظ می‌کند)
+  setHallOpen(rawId, open) {
+    const state = this.extra.halls;
+    const id = String(rawId ?? "").trim();
+    if (!state || !id) return;
+    const list = Array.isArray(state.openIds) ? state.openIds : [];
+    const without = list.filter((row) => row !== id);
+    state.openIds = open ? [...without, id] : without;
+  },
+
+  // گرهٔ <details> همان سالن (بدون ساختن selector از دادهٔ سرور)
+  hallNodeOf(body, id) {
+    if (!body || typeof body.querySelectorAll !== "function") return null;
+    const wanted = `hall-${id}`;
+    return (
+      Array.from(body.querySelectorAll("[data-acc-id]")).find(
+        (node) => String(node.getAttribute("data-acc-id") || "") === wanted,
+      ) || null
+    );
+  },
+
+  // پرش از آکاردئون واحدها به آکاردئون همان سالن
+  openHallAccordion(rawId) {
+    const state = this.extra.halls;
+    const id = String(rawId ?? "").trim();
+    if (!state || !id) return null;
+
+    if (
+      this.activeRoute !== "#/farm/halls" &&
+      typeof this.goToRoute === "function"
+    ) {
+      this.goToRoute("#/farm/halls");
+    }
+
+    const known = state.halls.some((hall) => String(hall.id) === id);
+    if (!known) {
+      // هنوز فهرست نیامده ⇒ بعد از بارگذاری باز می‌شود
+      if (!state.loaded) state.focusId = id;
+      return null;
+    }
+
+    this.setHallOpen(id, true);
+    const body = this.el(VIEW_TABS.halls.bodyId);
+    const node = body ? this.hallNodeOf(body, id) : null;
+    if (node) node.open = true;
+    return this.ensureHallDetail(id);
+  },
+
+  // جزئیات یک سالن — هر سالن یک‌بار (کش) و ضد درخواست هم‌زمان
+  async ensureHallDetail(rawId) {
+    const state = this.extra.halls;
+    const id = String(rawId ?? "").trim();
+    if (!state || !id) return null;
+
+    // 🔒 شناسه فقط از فهرست خودِ سرور معتبر است (ضد IDOR)
+    const known = state.halls.some((hall) => String(hall.id) === id);
+    if (!known) return null;
+    if (state.details[id]) return state.details[id];
+    if (state.pending[id]) return null;
+    // هیچ بخشی باز نیست ⇒ درخواست بی‌فایده نمی‌فرستیم
+    if (!this.hallSectionsAllowed().length) return null;
+
+    state.pending[id] = true;
+    this.renderHalls();
+
+    try {
+      const detail = payloadDataOf(await portalApi.getFarmHallDetails(id));
+      state.details[id] = detail;
+      delete state.errors[id];
+      return detail;
+    } catch (error) {
+      state.errors[id] = viewErrorMessage(error);
+      return null;
+    } finally {
+      delete state.pending[id];
+      this.renderHalls();
+    }
   },
 
   // ===== ۳) دوره‌های جوجه‌ریزی =====
@@ -1279,6 +1652,8 @@ export const portalViewsMixin = {
       detail: state.detail,
       dictionaries: state.dictionaries,
     });
+    // ✅ ۱۳.۲۱ — جدول جزئیات دوره در موبایل کارت می‌شود (بدون اسکرول افقی)
+    decorateTables(body);
   },
 
   // جزئیات یک دوره — شناسه فقط از فهرست «دوره‌های خودم» پذیرفته می‌شود
@@ -1542,16 +1917,11 @@ export const portalViewsMixin = {
     if (!entry || typeof entry !== "object") return "";
     const state = this.extra || {};
 
-    if (entry.panel === "hallDetail") {
-      const section = HALL_SECTION_LABELS[entry.section]
-        ? entry.section
-        : "physical";
-      if (state.hallDetail && state.hallDetail.loaded) {
-        this.renderHallDetailSection(section);
-      } else if (state.hallDetail) {
-        state.hallDetail.section = section;
-      }
-      return section;
+    // ✅ ۱۳.۲۱ — پنل «سالن‌ها» آکاردئونی است: مسیر فقط پنل را نشان
+    //  می‌دهد؛ باز شدن سالنِ خاص از دکمهٔ همان ردیف می‌آید (نه URL).
+    if (entry.panel === "halls") {
+      if (state.halls && state.halls.loaded) this.renderHalls();
+      return "halls";
     }
 
     if (entry.panel === "soon") return this.renderSoon(entry.route);
@@ -1581,11 +1951,9 @@ export const portalViewsMixin = {
       return "units";
     }
 
-    // «ثبت هفته» = تب درخواست‌ها با نوع weekly_create — فقط اگر عوض شده
-    if (entry.farmType && this.farm && this.farm.activeType !== entry.farmType) {
-      this.switchFarmType(entry.farmType);
-      return entry.farmType;
-    }
+    // ✅ ۱۳.۲۱ — مسیر «ثبت هفته/درخواست تازه» از منو حذف شد؛ اگر ورودی
+    //  مسیر هنوز farmType داشت، همان نوع در «شیت» باز می‌شود (نه پنل).
+    if (entry.farmType) return this.openRequestSheet(entry.farmType, "");
 
     return "";
   },

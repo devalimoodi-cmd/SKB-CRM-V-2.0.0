@@ -93,8 +93,10 @@ globalThis.$ = globalThis.$ || $;
 const consoleErrors = [];
 const consoleWarns = [];
 const consoleLogs = [];
-const consoleError = console.error;
-const consoleWarn = console.warn;
+// ⚠️ موج ۱۳.۲۱ — نسخهٔ اصلی برای بازگرداندن console نگه داشته می‌شود؛
+// در این اسنپ‌شات استفاده نمی‌شود، پس پیشوند `_` می‌گیرد (no-unused-vars).
+const _consoleError = console.error;
+const _consoleWarn = console.warn;
 const consoleLog = console.log;
 console.error = (...args) => consoleErrors.push(args.map(String).join(" "));
 console.warn = (...args) => consoleWarns.push(args.map(String).join(" "));

@@ -57,6 +57,10 @@ const KEYS = Object.freeze({
   FARM: "customer.portal.farm",
   FARM_REQUEST: "customer.portal.farm.request",
   FARM_CANCEL: "customer.portal.farm.cancel",
+  // ✅ موج ۱۳.۲۱ — «ارسال تیکت» (گفتگو با پشتیبانی از داخل پورتال).
+  //    امروز این پنل روی همان روت /api/suggestions اجرا می‌شود و کلید
+  //    فقط «دیده‌شدن» را کنترل می‌کند؛ گیت سرور در ۱۳.۲۲ می‌آید.
+  TICKETS: "customer.portal.tickets",
   COMPLETION: "customer.portal.completion",
   COMPLETION_REPORT: "customer.portal.completion.report",
   // نمودارهای داشبورد — فقط «نمایش کارت نمودار» را کنترل می‌کنند
@@ -75,7 +79,8 @@ const PORTAL_BASE_KEY = KEYS.VIEW;
 const PORTAL_ROLE = "customer";
 
 // ============================================================
-// ۲) پنل‌ها (۱۴ = تعداد data-portal-panel در portal.html)
+// ۲) پنل‌ها (۱۳ = تعداد data-portal-panel در portal.html)
+//    ➕ ۱۳.۲۱: «شیت‌ها» جدا شمرده می‌شوند (بخش ۲.۱) — فرم شناور بدون مسیر.
 // ------------------------------------------------------------
 //  content.keys + content.mode  → «لایهٔ محتوا» (همان چیزی که سرور
 //  اجرا می‌کند). mode: "any" یعنی یکی کافی است، "all" یعنی همه.
@@ -111,13 +116,14 @@ const PORTAL_PANELS = [
     note: "تنها بخش آپلود فایل؛ فایل در private/portal_documents",
   },
   {
-    id: "farm",
-    title: "درخواست‌های فارم",
-    route: "#/requests",
-    menuKeys: ["customer.portal.menu.requests"],
-    content: { keys: [KEYS.FARM], mode: "any" },
+    // ✅ موج ۱۳.۲۱ — «ارسال تیکت» جای منوی «درخواست‌های من» را گرفت.
+    id: "tickets",
+    title: "ارسال تیکت",
+    route: "#/tickets",
+    menuKeys: ["customer.portal.menu.tickets"],
+    content: { keys: [KEYS.TICKETS], mode: "any" },
     status: "live",
-    note: "الگوی ب: درخواست مشتری + تأیید کارشناس",
+    note: "گفتگو با پشتیبانی؛ همان مدل Suggestion/SuggestionMessage",
   },
   {
     id: "halls",
@@ -164,20 +170,9 @@ const PORTAL_PANELS = [
     status: "live",
     note: "خروجی /farm/options (واحد/سالن/جوجه‌ریزی)",
   },
-  {
-    id: "hallDetail",
-    title: "جزئیات سالن",
-    route: "#/farm/physical",
-    menuKeys: [
-      "customer.portal.menu.farm.physical",
-      "customer.portal.menu.farm.systems",
-      "customer.portal.menu.farm.waterFeed",
-      "customer.portal.menu.farm.hygiene",
-    ],
-    content: { keys: [KEYS.FARM], mode: "any" },
-    status: "live",
-    note: "چهار زیرمنو، یک پنل — خروجی /farm/halls/:id",
-  },
+  // ⚠️ موج ۱۳.۲۱ — پنل «hallDetail» حذف شد: چهار بخش سالن حالا
+  //    آکاردئون تودرتو در همان پنل «halls» است (همان چهار کلید منو
+  //    بدون تغییر، به‌عنوان گیت هر بخش).
   {
     id: "placements",
     title: "دوره‌های جوجه‌ریزی",
@@ -214,6 +209,29 @@ const PORTAL_PANELS = [
     content: { keys: [], mode: "any" },
     status: "soon",
     note: "تاریخچهٔ ضدعفونی در DB نیست ⇒ دادهٔ ساختگی نشان نمی‌دهیم",
+  },
+];
+
+// ============================================================
+// ۲.۱) شیت‌ها (فرم شناور بدون مسیر و بدون آیتم منو) — موج ۱۳.۲۱
+// ------------------------------------------------------------
+//  «درخواست‌های من» از درخت منو حذف شد؛ فرم‌های ثبت/ویرایش/حذف واحد،
+//  سالن، دوره و هفته از داخل همان پنلی باز می‌شوند که داده در آن است
+//  (`data-portal-sheet="requests"`). بنابراین:
+//   • هیچ مسیر/آیتم منویی به این شناسه اشاره نمی‌کند (menuKeys خالی)،
+//   • کلید محتوا و کلیدهای نوشتن **بدون تغییر** همان KEYS.FARM،
+//     KEYS.FARM_REQUEST و KEYS.FARM_CANCEL هستند،
+//   • اندپوینت‌هایش همان چهار مسیر /farm/* است (panel: "farm").
+// ============================================================
+const PORTAL_SHEETS = [
+  {
+    id: "farm",
+    title: "ثبت درخواست",
+    route: "",
+    menuKeys: [],
+    content: { keys: [KEYS.FARM], mode: "any" },
+    status: "live",
+    note: "شیت contextual: نوع/هدف از دکمهٔ همان ردیف می‌آید، نه از URL",
   },
 ];
 
@@ -580,7 +598,9 @@ const PORTAL_ENDPOINTS = [
     id: "FARM_HALL_DETAIL",
     method: "get",
     path: "/farm/halls/:id",
-    panel: "hallDetail",
+    // ✅ ۱۳.۲۱ — پنل «hallDetail» حذف شد؛ این پاسخ را آکاردئون همان
+    //    پنل «سالن‌ها» مصرف می‌کند (تنبل، فقط سالنِ باز‌شده).
+    panel: "halls",
     keys: [KEYS.FARM],
     scope: "row",
     ownership: [
@@ -590,7 +610,7 @@ const PORTAL_ENDPOINTS = [
     otp: false,
     upload: false,
     handler: { module: "portalFarmController", method: "getMyHall" },
-    note: "پیش‌پرکردن فرم ویرایش سالن",
+    note: "پیش‌پرکردن فرم ویرایش سالن + چهار بخش آکاردئون",
   },
   {
     id: "FARM_PLACEMENT_DETAIL",
@@ -748,6 +768,9 @@ const PORTAL_FEATURES = [
   { key: "documents_upload", panel: "documents", extra: KEYS.DOCUMENTS_UPLOAD },
   { key: "documents_delete", panel: "documents", extra: KEYS.DOCUMENTS_DELETE },
   { key: "completion_report", panel: "completion", extra: KEYS.COMPLETION_REPORT },
+  // ✅ ۱۳.۲۱ — دکمه/فرم «ارسال تیکت». امروز فقط «دیده‌شدن» را کنترل
+  //    می‌کند (روت /api/suggestions با protect)؛ گیت سرور در ۱۳.۲۲.
+  { key: "tickets", panel: "tickets", extra: KEYS.TICKETS },
 ];
 
 // پنل‌هایی که در sections پاسخ /me می‌آیند (به همین ترتیب)
@@ -828,7 +851,7 @@ const indexBy = (rows) =>
     return map;
   }, {});
 
-const PANELS_BY_ID = indexBy(PORTAL_PANELS);
+const PANELS_BY_ID = indexBy([...PORTAL_PANELS, ...PORTAL_SHEETS]);
 const ENDPOINTS_BY_ID = indexBy(PORTAL_ENDPOINTS);
 
 const panelById = (id) => PANELS_BY_ID[id] || null;
@@ -861,6 +884,7 @@ const panelOpen = (panelId, has) => {
 // زنجیرهٔ «مشترک» همهٔ مسیرها — کنترلر/گارد برای مستندسازی
 const PORTAL_TOTALS = Object.freeze({
   panels: PORTAL_PANELS.length,
+  sheets: PORTAL_SHEETS.length,
   panelsLive: PORTAL_PANELS.filter((panel) => panel.status === "live").length,
   panelsSoon: PORTAL_PANELS.filter((panel) => panel.status === "soon").length,
   endpoints: PORTAL_ENDPOINTS.length,
@@ -874,6 +898,7 @@ module.exports = {
   PORTAL_BASE_KEY,
   PORTAL_ROLE,
   PORTAL_PANELS,
+  PORTAL_SHEETS,
   PORTAL_ENDPOINTS,
   PORTAL_FEATURES,
   PORTAL_SECTION_PANELS,

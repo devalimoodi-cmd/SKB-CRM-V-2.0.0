@@ -46,17 +46,23 @@ check(
   //    «پورتال مشتری» = ۲۴ + ۲۸ = ۵۲ کلید)
   // ✅ موج ۱۳.۱۹: ۲ کلید «پایان دوره» (فهرست) و «گزارش تفصیلی پایان
   //    دوره» ⇒ ۲۲۵ + ۲ = ۲۲۷ کلید؛ همان ۱۸ گروه (پورتال = ۵۴ کلید)
-  catalog.TOTAL_PERMISSIONS === 227 && catalog.PERMISSION_GROUPS.length === 18,
+  // ⚠️ موج ۱۳.۲۱: چهار کلید منوی حذف‌شده (requests/requests.new/
+  //    requests.list/weekly.create) − دو کلید تازه (menu.tickets +
+  //    customer.portal.tickets) ⇒ ۲۲۷ − ۴ + ۲ = ۲۲۵ کلید؛ ۱۸ گروه
+  catalog.TOTAL_PERMISSIONS === 225 && catalog.PERMISSION_GROUPS.length === 18,
   `keys=${catalog.TOTAL_PERMISSIONS} groups=${catalog.PERMISSION_GROUPS.length}`,
 );
 
 // ============================================================
 // ✅ موج ۱۳.۱۷ — کلیدهای «منو/زیرمنوی» پورتال (ناوبری دو لایه)
 // ------------------------------------------------------------
-//  این ۲۸ کلید فقط ناوبری را کنترل می‌کنند، نه داده را. تست سه چیز
+//  این ۲۱ کلید فقط ناوبری را کنترل می‌کنند، نه داده را. تست سه چیز
 //  را می‌سنجد: (۱) همه در گروه portal هستند، (۲) پیش‌فرضشان دقیقاً
 //  «فقط مشتری» است، (۳) هیچ‌کدام قفل‌شده نیستند (مدیر می‌تواند
 //  با ماتریس نقش‌ها باز/بسته کند).
+//  ⚠️ موج ۱۳.۲۱: چهار کلید حذف شد (منوی «درخواست‌های من» + «ثبت هفته»)
+//     و چهار کلید بخش سالن باقی ماند — ولی دیگر «مسیر» نیستند؛ گیت
+//     نمایش هر بخش آکاردئون‌اند. «ارسال تیکت» کلید منوی تازه گرفت.
 // ============================================================
 const PORTAL_MENU_KEYS = [
   "customer.portal.menu.dashboard",
@@ -68,6 +74,7 @@ const PORTAL_MENU_KEYS = [
   "customer.portal.menu.farm",
   "customer.portal.menu.farm.units",
   "customer.portal.menu.farm.halls",
+  // ⚠️ گیت بخش‌های آکاردئون سالن (بدون مسیر/آیتم منو)
   "customer.portal.menu.farm.physical",
   "customer.portal.menu.farm.systems",
   "customer.portal.menu.farm.waterFeed",
@@ -78,20 +85,17 @@ const PORTAL_MENU_KEYS = [
   "customer.portal.menu.hatchery.hygiene",
   "customer.portal.menu.hatchery.completion",
   "customer.portal.menu.weekly",
-  "customer.portal.menu.weekly.create",
   "customer.portal.menu.weekly.list",
   "customer.portal.menu.weekly.trend",
-  "customer.portal.menu.requests",
-  "customer.portal.menu.requests.new",
-  "customer.portal.menu.requests.list",
+  "customer.portal.menu.tickets",
   "customer.portal.menu.reports",
   "customer.portal.menu.reports.visits",
   "customer.portal.menu.reports.final",
 ];
 
 check(
-  "۱۳.۱۷ · کاتالوگ: ۲۸ کلید منو/زیرمنوی پورتال با پیش‌فرض «فقط مشتری»",
-  PORTAL_MENU_KEYS.length === 28 &&
+  "۱۳.۲۱ · کاتالوگ: ۲۵ کلید منو/زیرمنو/گیت‌بخش پورتال با پیش‌فرض «فقط مشتری»",
+  PORTAL_MENU_KEYS.length === 25 &&
     PORTAL_MENU_KEYS.every((key) => {
       const entry = catalog.PERMISSIONS[key];
       return (
@@ -154,21 +158,16 @@ check(
 );
 
 check(
-  "۱۳.۱۷ · کاتالوگ: هر منوی اصلی حداقل یک زیرمنو دارد",
-  [
-    "dashboard",
-    "profile",
-    "farm",
-    "hatchery",
-    "weekly",
-    "requests",
-    "reports",
-  ].every((menu) => {
+  "۱۳.۲۱ · کاتالوگ: هر منوی اصلی حداقل یک زیرمنو دارد",
+  // ⚠️ ۱۳.۲۱: «درخواست‌های من» حذف شد؛ «ارسال تیکت» عمداً بدون زیرمنو
+  //  است (یک پنل تک‌صفحه‌ای) ⇒ در این فهرست نیست.
+  ["dashboard", "profile", "farm", "hatchery", "weekly", "reports"].every((menu) => {
     const prefix = `customer.portal.menu.${menu}.`;
     return PORTAL_MENU_KEYS.some(
       (key) => key.startsWith(prefix) && key !== `customer.portal.menu.${menu}`,
     );
-  }),
+  }) &&
+    Boolean(catalog.PERMISSIONS["customer.portal.menu.tickets"]),
 );
 
 check(

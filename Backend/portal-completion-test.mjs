@@ -446,8 +446,8 @@ check(
 );
 
 check(
-  "۱۳.۱۹ · کاتالوگ: ۲۲۷ کلید و ۱۸ گروه (۲ کلید تازه در گروه portal)",
-  catalog.TOTAL_PERMISSIONS === 227 &&
+  "۱۳.۲۱ · کاتالوگ: ۲۲۵ کلید و ۱۸ گروه (۴ کلید منو حذف، ۲ کلید تیکت اضافه)",
+  catalog.TOTAL_PERMISSIONS === 225 &&
     catalog.PERMISSION_GROUPS.length === 18 &&
     catalog.PERMISSIONS["customer.portal.completion"].group === "portal" &&
     catalog.PERMISSIONS["customer.portal.completion.report"].group === "portal",
@@ -472,8 +472,8 @@ check(
 );
 
 check(
-  "۱۳.۱۹ · permissions-test: انتظار ۲۲۷ کلید به‌روز شده است",
-  /TOTAL_PERMISSIONS === 227 && catalog\.PERMISSION_GROUPS\.length === 18/.test(
+  "۱۳.۲۱ · permissions-test: انتظار ۲۲۵ کلید به‌روز شده است",
+  /TOTAL_PERMISSIONS === 225 && catalog\.PERMISSION_GROUPS\.length === 18/.test(
     read(FILES.permissionsTest),
   ),
 );

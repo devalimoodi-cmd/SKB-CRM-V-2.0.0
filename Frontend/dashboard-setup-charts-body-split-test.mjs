@@ -38,7 +38,9 @@ const check = (name, ok, extra = "") => {
 const info = (message) => consoleLog(`ℹ️  ${message}`);
 const clone = (value) =>
   value === undefined ? null : JSON.parse(JSON.stringify(value));
-const safe = (fn) => {
+// ⚠️ موج ۱۳.۲۱ — در این اسنپ‌شات استفاده نمی‌شود؛ پیشوند `_` تا
+// `no-unused-vars` (که با `--max-warnings=0` دروازه را می‌شکند) ساکت بماند.
+const _safe = (fn) => {
   try {
     return clone(fn());
   } catch (error) {

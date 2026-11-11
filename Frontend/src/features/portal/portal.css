@@ -1851,3 +1851,603 @@
   font-weight: 600;
 }
 
+/* ============================================================
+   ✅ موج ۱۳.۲۱ — «آکاردئون / شیت / تیکت / جدول ریسپانسیو»
+   ------------------------------------------------------------
+   • همهٔ بلوک‌ها با <details> بومی کار می‌کنند ⇒ بدون JS باز/بسته
+     می‌شوند و در «ذخیرهٔ صفحه/چاپ» هم درست‌اند.
+   • موبایل‌اول: در عرض کم هر ردیف یک کارت می‌شود؛ هیچ اسکرول افقی
+     روی بدنهٔ صفحه نمی‌ماند (فقط داخل جدول‌ها اگر لازم شد).
+   • رنگ‌ها همان متغیرهای global.css — تم تیره بدون استایل دوم.
+   ============================================================ */
+
+/* ===== پایهٔ نمای‌ها (کلاس‌های ۱۳.۱۷ که تا امروز استایل نداشتند) ===== */
+.portal-views {
+  display: block;
+  padding: 4px 16px 16px;
+}
+
+.portal-views__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  margin-bottom: 10px;
+}
+
+.portal-views__grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+.portal-views__card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px;
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 14px;
+}
+
+.portal-views__card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.portal-views__card-head i {
+  color: var(--primary);
+}
+
+.portal-views__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  font-size: 0.78rem;
+  color: var(--text-gray, #475569);
+}
+
+.portal-views__meta strong {
+  color: var(--text-main);
+  font-weight: 600;
+}
+
+.portal-views__note {
+  margin: 8px 0 0;
+  font-size: 0.76rem;
+  color: var(--text-light, #64748b);
+}
+
+.portal-views__note--error {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  color: var(--danger, #dc2626);
+  background: rgba(220, 38, 38, 0.08);
+}
+
+.portal-views__empty,
+.portal-views__loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  font-size: 0.78rem;
+  color: var(--text-light, #64748b);
+  background: var(--bg-surface-2, #f8fafc);
+  border: 1px dashed var(--border, #e2e8f0);
+  border-radius: 12px;
+}
+
+.portal-views__field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+
+.portal-views__field label {
+  font-size: 0.74rem;
+  color: var(--text-light, #64748b);
+}
+
+.portal-views__field select,
+.portal-views__field input,
+.portal-views__field textarea {
+  width: 100%;
+  padding: 8px 10px;
+  font-family: inherit;
+  font-size: 0.8rem;
+  color: var(--text-main);
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 9px;
+}
+
+.portal-views__field select:focus,
+.portal-views__field input:focus,
+.portal-views__field textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-soft, rgba(14, 165, 233, 0.18));
+}
+
+.portal-views__table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  border-radius: 12px;
+}
+
+.portal-views__kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 8px 0;
+}
+
+/* ===== آکاردئون (واحد ← سالن، سالن ← چهار بخش، گله ← ردیف‌ها) ===== */
+.portal-acc__stack {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.portal-acc__entry {
+  list-style: none;
+}
+
+.portal-acc {
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 12px;
+  background: var(--bg-surface, #fff);
+  overflow: hidden;
+}
+
+.portal-acc--l2 {
+  background: var(--bg-surface-2, #f8fafc);
+  border-style: dashed;
+}
+
+.portal-acc__sum {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  cursor: pointer;
+  list-style: none;
+  font-size: 0.84rem;
+  color: var(--text-main);
+}
+
+/* پیکان آکاردئون (جای marker پیش‌فرض مرورگر) */
+.portal-acc__sum::-webkit-details-marker {
+  display: none;
+}
+
+.portal-acc__sum::before {
+  content: "‹";
+  display: inline-block;
+  width: 14px;
+  color: var(--text-light, #64748b);
+  transform: rotate(-90deg);
+  transition: transform 0.15s ease;
+}
+
+.portal-acc[open] > .portal-acc__sum::before {
+  transform: rotate(0deg);
+}
+
+.portal-acc__sum:hover {
+  background: rgba(148, 163, 184, 0.08);
+}
+
+.portal-acc__title {
+  font-weight: 600;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.portal-acc__badge {
+  flex: 0 0 auto;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  color: var(--primary);
+  background: var(--primary-soft, rgba(14, 165, 233, 0.14));
+}
+
+.portal-acc__sub {
+  flex: 0 0 auto;
+  font-size: 0.72rem;
+  color: var(--text-light, #64748b);
+}
+
+.portal-acc__body {
+  padding: 0 12px 12px;
+  border-top: 1px solid var(--border-light, #e2e8f0);
+}
+
+.portal-acc__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 10px 0 4px;
+}
+
+.portal-acc__rows {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.portal-acc__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  padding: 8px 10px;
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border-light, #e2e8f0);
+  border-radius: 10px;
+}
+
+.portal-acc__row-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1 1 140px;
+  min-width: 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.portal-acc__row-meta {
+  font-size: 0.72rem;
+  color: var(--text-light, #64748b);
+}
+
+.portal-acc__row-actions {
+  display: inline-flex;
+  gap: 6px;
+  margin-inline-start: auto;
+}
+
+.portal-acc__row-link {
+  font-size: 0.72rem;
+  color: var(--primary);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.portal-acc__row-link:hover {
+  text-decoration: underline;
+}
+
+/* دکمهٔ کوچک ردیف‌های آکاردئون */
+.portal-btn--sm {
+  padding: 4px 10px;
+  font-size: 0.72rem;
+  border-radius: 8px;
+}
+
+/* ============================================================
+   شیت «ثبت درخواست» — پایین‌کش شناور (بدون مسیر/آیتم منو)
+   ============================================================ */
+.portal-sheet[hidden] {
+  display: none;
+}
+
+.portal-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.portal-sheet__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(1px);
+}
+
+.portal-sheet__dialog {
+  position: relative;
+  width: min(760px, 100%);
+  max-height: min(88vh, 880px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 18px 18px 0 0;
+  box-shadow: 0 -12px 40px rgba(15, 23, 42, 0.25);
+}
+
+.portal-sheet__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  font-weight: 600;
+  color: var(--text-main);
+  border-bottom: 1px solid var(--border, #e2e8f0);
+}
+
+.portal-sheet__head i {
+  color: var(--primary);
+}
+
+.portal-sheet__close {
+  margin-inline-start: auto;
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-light, #64748b);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  cursor: pointer;
+}
+
+.portal-sheet__close:hover {
+  color: var(--danger, #dc2626);
+  border-color: currentColor;
+}
+
+/* تنها بخش اسکرول‌شونده: بدنهٔ فرم (سرصفحه ثابت می‌ماند) */
+.portal-sheet__dialog > #portalFarmBody {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 12px 16px 20px;
+}
+
+/* وقتی شیت باز است، صفحهٔ پشت آن اسکرول نشود */
+body.portal-sheet-open {
+  overflow: hidden;
+}
+
+/* ============================================================
+   پنل «ارسال تیکت» (گفتگو با پشتیبانی)
+   ============================================================ */
+.portal-tk {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.portal-tk__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.portal-tk__unread {
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  color: var(--text-inverse, #fff);
+  background: var(--danger, #dc2626);
+}
+
+.portal-tk__list,
+.portal-tk__messages {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.portal-tk__item {
+  list-style: none;
+}
+
+.portal-tk__open {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  font-family: inherit;
+  text-align: right;
+  color: var(--text-main);
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.portal-tk__open:hover {
+  border-color: var(--primary);
+}
+
+.portal-tk__row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.portal-tk__title {
+  font-size: 0.84rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.portal-tk__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--danger, #dc2626);
+}
+
+.portal-tk__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  font-size: 0.72rem;
+  color: var(--text-light, #64748b);
+}
+
+.portal-tk__badge {
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  color: var(--primary);
+  background: var(--primary-soft, rgba(14, 165, 233, 0.14));
+}
+
+.portal-tk__badge[data-ticket-status="answered"],
+.portal-tk__badge[data-ticket-status="closed"] {
+  color: var(--success, #16a34a);
+  background: rgba(22, 163, 74, 0.12);
+}
+
+.portal-tk__msg {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: var(--bg-surface-2, #f8fafc);
+}
+
+.portal-tk__msg.is-mine {
+  background: var(--primary-soft, rgba(14, 165, 233, 0.14));
+}
+
+.portal-tk__msg-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 0.7rem;
+  color: var(--text-light, #64748b);
+}
+
+.portal-tk__msg-body {
+  font-size: 0.82rem;
+  color: var(--text-main);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.portal-tk__compose {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+  background: var(--bg-surface-2, #f8fafc);
+  border: 1px solid var(--border-light, #e2e8f0);
+  border-radius: 14px;
+}
+
+.portal-tk__hint {
+  font-size: 0.72rem;
+  color: var(--text-light, #64748b);
+}
+
+/* ============================================================
+   جدول ریسپانسیو — در عرض کم هر ردیف یک «کارت» می‌شود
+   (برچسب هر خانه از decorateTables ⇒ data-label می‌آید)
+   ============================================================ */
+@media (max-width: 640px) {
+  table.portal-table[data-cards="1"] {
+    border-collapse: separate;
+    border-spacing: 0 8px;
+  }
+
+  /* سرستون فقط برای صفحه‌خوان‌ها می‌ماند */
+  table.portal-table[data-cards="1"] thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  table.portal-table[data-cards="1"] tbody,
+  table.portal-table[data-cards="1"] tr,
+  table.portal-table[data-cards="1"] td {
+    display: block;
+    width: 100%;
+  }
+
+  table.portal-table[data-cards="1"] tr {
+    padding: 6px 10px;
+    background: var(--bg-surface, #fff);
+    border: 1px solid var(--border, #e2e8f0);
+    border-radius: 12px;
+  }
+
+  table.portal-table[data-cards="1"] td {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 6px 2px;
+    white-space: normal;
+    text-align: right;
+    border: 0;
+    border-bottom: 1px dashed var(--border-light, #e2e8f0);
+  }
+
+  table.portal-table[data-cards="1"] td:last-child {
+    border-bottom: 0;
+  }
+
+  table.portal-table[data-cards="1"] td::before {
+    content: attr(data-label);
+    flex: 0 0 42%;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--text-light, #64748b);
+  }
+}
+
+/* در موبایل، دکمه‌های ردیف‌های آکاردئون تمام‌عرض و انگشتی می‌شوند */
+@media (max-width: 480px) {
+  .portal-acc__row-actions {
+    width: 100%;
+    margin-inline-start: 0;
+  }
+
+  .portal-acc__row-actions .portal-btn {
+    flex: 1 1 0;
+    justify-content: center;
+  }
+
+  .portal-sheet__dialog {
+    max-height: 92vh;
+    border-radius: 16px 16px 0 0;
+  }
+}
+
+
+
+
+

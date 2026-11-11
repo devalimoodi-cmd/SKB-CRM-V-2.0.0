@@ -19,9 +19,6 @@ import {
   renderWeeks,
   renderVisits,
   renderNotice,
-  renderHallList,
-  renderFlockList,
-  renderWeekList,
   renderVisitList,
   renderPager,
   renderWeekDetail,
@@ -35,8 +32,16 @@ import { EXTRA_TABS, applyPortalExtra } from "./portal.extra.js";
 import { DOCUMENT_TABS, applyPortalDocuments } from "./portal.documents.js";
 // ✅ موج ۱۳.۱۱ — تب «درخواست‌های فارم» (درخواست مشتری + تأیید کارشناس)
 import { FARM_TABS, applyPortalFarm } from "./portal.farm.js";
-// ✅ موج ۱۳.۱۷ — نماهای خواندنی تازه (واحدها/جزئیات سالن/دوره‌ها/به‌زودی)
-import { VIEW_TABS, applyPortalViews } from "./portal.views.js";
+// ✅ موج ۱۳.۱۷ — نماهای خواندنی تازه (واحدها/سالن‌ها/دوره‌ها/به‌زودی)
+// ✅ ۱۳.۲۱ — رندر آکاردئونی گله‌ها/هفته‌ها هم از همین فایل می‌آید
+import {
+  VIEW_TABS,
+  applyPortalViews,
+  renderFlocksTree,
+  renderWeeksTree,
+} from "./portal.views.js";
+// ✅ ۱۳.۲۱ — پنل «ارسال تیکت» (متد/handler مستقل، هم‌الگوی بقیهٔ mixinها)
+import { applyPortalTickets } from "./portal.tickets.js";
 // ✅ موج ۱۳.۱۷ — پوستهٔ ناوبری (منو/زیرمنو + hash routing + drawer موبایل)
 import { applyPortalShell } from "./portal.shell.js";
 // مسیر جاری برای هم‌راستاسازی URL پس از بارگذاری
@@ -59,20 +64,17 @@ const payloadDataOf = (payload) => (payload && payload.data ? payload.data : {})
 // اندازهٔ صفحهٔ هر تب (سرور سقف ۵۰ می‌گذارد)
 const SECTION_LIMIT = 20;
 
-// پیکربندی چهار بخش دادهٔ کامل — کلید = مقدار data-portal-tab در HTML
+// پیکربندی بخش‌های فهرستِ صفحه‌بندی‌شده — کلید = مقدار data-portal-tab
 // ✅ ۱۳.۵: هر بخش کلید مجوز خودش را دارد؛ بستنِ هر تب از پنل مدیریت
-//    (customer.portal.{halls,flocks,weeks,visits}) دکمه و پنل همان تب را
+//    (customer.portal.{flocks,weeks,visits}) دکمه و پنل همان تب را
 //    پنهان می‌کند و هیچ درخواستی هم نمی‌فرستد.
+// ⚠️ ۱۳.۲۱: «سالن‌ها» از این فهرست بیرون رفت — پنلش حالا آکاردئون
+//    سالن ← چهار بخش است و با GET /farm/halls/:id تنبل پر می‌شود
+//    (VIEW_TABS.halls در portal.views.js). فهرست صفحه‌بندی‌شدهٔ قبلی
+//    با منوی حذف‌شدهٔ ۱۳.۲۱ دیگر مسیری نداشت.
+// ✅ ۱۳.۲۱: «گله‌ها» و «هفته‌ها» هم آکاردئونی شدند — همان دادهٔ سرور،
+//    یک سطح گروه‌بندی بالاتر (گله ← ردیف‌ها) بدون اندپوینت تازه.
 const SECTION_CONF = {
-  halls: {
-    permission: "customer.portal.halls",
-    title: "سالن‌ها",
-    listId: "portalHallsList",
-    pagerId: "portalHallsPager",
-    statusId: "portalHallsStatus",
-    fetch: (params) => portalApi.getHalls(params),
-    render: renderHallList,
-  },
   flocks: {
     permission: "customer.portal.flocks",
     title: "گله‌ها",
@@ -80,7 +82,7 @@ const SECTION_CONF = {
     pagerId: "portalFlocksPager",
     statusId: "portalFlocksStatus",
     fetch: (params) => portalApi.getFlocks(params),
-    render: renderFlockList,
+    render: renderFlocksTree,
   },
   weeks: {
     permission: "customer.portal.weeks",
@@ -89,7 +91,7 @@ const SECTION_CONF = {
     pagerId: "portalWeeksPager",
     statusId: "portalWeeksStatus",
     fetch: (params) => portalApi.getWeeks(params),
-    render: renderWeekList,
+    render: renderWeeksTree,
   },
   visits: {
     permission: "customer.portal.visits",
@@ -146,6 +148,8 @@ class PortalService {
     this.initFarmTab();
     // ✅ ۱۳.۱۷: وضعیت چهار نمای تازه + وضعیت پوستهٔ ناوبری
     this.initViews();
+    // ✅ ۱۳.۲۱: وضعیت پنل «ارسال تیکت» (فهرست/گفتگو/پیش‌نویس)
+    this.initTickets();
     this.initShell();
   }
 
@@ -178,10 +182,14 @@ class PortalService {
     this.bindExtra();
     // ✅ ۱۳.۱۰: رویدادهای تب «مدارک من» (آپلود/دانلود/حذف)
     this.bindDocuments();
-    // ✅ ۱۳.۱۱: رویدادهای تب «درخواست‌های فارم» (ثبت/لغو)
+    // ✅ ۱۳.۱۱: رویدادهای شیت «ثبت درخواست» (ثبت/لغو/فیلتر)
     this.bindFarm();
+    // ✅ ۱۳.۲۱: باز/بستن شیت درخواست (backdrop/Esc + دکمه‌های ردیف‌ها)
+    this.bindRequestSheet();
     // ✅ ۱۳.۱۷: رویدادهای چهار نمای تازه + پوستهٔ ناوبری (hash/drawer)
     this.bindViews();
+    // ✅ ۱۳.۲۱: رویدادهای پنل «ارسال تیکت» (فهرست/گفتگو/ارسال)
+    this.bindTickets();
     this.bindShell();
     await this.load();
   }
@@ -735,6 +743,10 @@ applyPortalFarm(PortalService);
 // ✅ ۱۳.۱۷: نماهای خواندنی تازه، *بعد* از فارم سوار می‌شوند تا
 //    loadExtraTab این فایل بتواند نسخهٔ فارم را واگذار کند.
 applyPortalViews(PortalService);
+
+// ✅ ۱۳.۲۱: پنل «ارسال تیکت» بعد از views سوار می‌شود تا
+//    loadExtraTab آن بتواند loadTicketsView را واگذار کند.
+applyPortalTickets(PortalService);
 
 // ✅ ۱۳.۱۷: پوستهٔ ناوبری آخرین mixin — فقط activateRoute،
 //    applyMenuVisibility و مدیریت drawer/hash را اضافه می‌کند.

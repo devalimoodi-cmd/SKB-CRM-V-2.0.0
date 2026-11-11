@@ -148,26 +148,26 @@ check(
 const subCount = PORTAL_MENUS.reduce((sum, menu) => sum + (menu.items || []).length, 0);
 
 check(
-  "۱۳.۱۷ · درخت منو: ۷ منو + ۲۱ زیرمنو = ۲۸ مسیر",
-  PORTAL_MENUS.length === 7 && subCount === 21 && PORTAL_ROUTE_LIST.length === 28,
+  "۱۳.۱۷ · درخت منو: ۷ منو + ۱۴ زیرمنو = ۲۱ مسیر",
+  // ✅ ۱۳.۲۱ — «درخواست‌های من» و «ثبت هفته» و چهار مسیر بخش سالن حذف شدند
+  PORTAL_MENUS.length === 7 && subCount === 14 && PORTAL_ROUTE_LIST.length === 21,
   `menus=${PORTAL_MENUS.length} subs=${subCount} routes=${PORTAL_ROUTE_LIST.length}`,
 );
 
 check(
-  "۱۳.۱۷ · ۱۴ پنل یکتا در مدل تعریف شده است",
-  PORTAL_MENU_PANELS.length === 14 &&
+  "۱۳.۲۱ · ۱۳ پنل یکتا در مدل تعریف شده است",
+  PORTAL_MENU_PANELS.length === 13 &&
     [
       "completion",
       "dashboard",
       "documents",
-      "farm",
       "finalReport",
       "flocks",
-      "hallDetail",
       "halls",
       "placements",
       "profile",
       "soon",
+      "tickets",
       "units",
       "visits",
       "weeks",
@@ -189,8 +189,8 @@ check(
 );
 
 check(
-  "۱۳.۱۷ · ۲۸ کلید منو یکتاست (هیچ دو آیتمی کلید مشترک ندارند)",
-  new Set(PORTAL_ROUTE_LIST.map((route) => PORTAL_ROUTES[route].key)).size === 28,
+  "۱۳.۱۷ · ۲۱ کلید منو یکتاست (هیچ دو آیتمی کلید مشترک ندارند)",
+  new Set(PORTAL_ROUTE_LIST.map((route) => PORTAL_ROUTES[route].key)).size === 21,
 );
 
 check(
@@ -224,10 +224,12 @@ check(
 );
 
 check(
-  "۱۳.۱۷ · شش منو alias دارند و منوی ریشه‌شان پنل مستقل ندارد",
+  "۱۳.۲۱ · پنج منو alias دارند و منوی ریشه‌شان پنل مستقل ندارد",
+  // ⚠️ ۱۳.۲۱: «درخواست‌های من» حذف شد و «ارسال تیکت» پنل مستقل دارد
   PORTAL_MENUS.filter((menu) => menu.alias).map((menu) => menu.id).join(",") ===
-    "profile,farm,hatchery,weekly,requests,reports" &&
-    PORTAL_MENUS.find((menu) => menu.id === "dashboard").alias === false,
+    "profile,farm,hatchery,weekly,reports" &&
+    PORTAL_MENUS.find((menu) => menu.id === "dashboard").alias === false &&
+    PORTAL_MENUS.find((menu) => menu.id === "tickets").alias === false,
 );
 
 check(
@@ -284,9 +286,12 @@ check(
 );
 
 check(
-  "۱۳.۱۷ · مسیر مجاز دست‌نخورده می‌ماند",
+  "۱۳.۲۱ · مسیر مجاز دست‌نخورده می‌ماند و لینک قدیمی هدایت می‌شود",
   resolveRoute("#/farm/halls", null) === "#/farm/halls" &&
-    resolveRoute("#/requests/list", null) === "#/requests/list",
+    // ✅ ۱۳.۲۱: «درخواست‌های من» حذف شد ⇒ مسیر قدیمی به واحدها می‌رود
+    resolveRoute("#/requests/list", null) === "#/farm/units" &&
+    resolveRoute("#/farm/physical", null) === "#/farm/halls" &&
+    resolveRoute("#/weekly/new", null) === "#/weekly/list",
 );
 
 const denyFarm = (entry) => entry.contentKey !== "customer.portal.farm";
@@ -310,8 +315,13 @@ check(
 );
 
 check(
-  "۱۳.۱۷ · menuById فقط منوهای واقعی را برمی‌گرداند",
-  menuById("farm")?.items.length === 6 && menuById("nah") === null,
+  "۱۳.۲۱ · menuById فقط منوهای واقعی را برمی‌گرداند",
+  // ✅ ۱۳.۲۱: «واحدهای من» دو زیرمنو دارد (واحدها/سالن‌ها) و منوی
+  //  «درخواست‌های من» دیگر وجود ندارد.
+  menuById("farm")?.items.length === 2 &&
+    menuById("tickets")?.panel === "tickets" &&
+    menuById("requests") === null &&
+    menuById("nah") === null,
 );
 
 // ============================================================
@@ -328,8 +338,8 @@ const htmlLinkRoutes = htmlLinks.map((link) => link.route).sort();
 const modelRoutes = [...PORTAL_ROUTE_LIST].sort();
 
 check(
-  "۱۳.۱۷ · HTML دقیقاً همان ۲۸ مسیر مدل را لینک کرده است",
-  htmlLinks.length === 28 &&
+  "۱۳.۲۱ · HTML دقیقاً همان ۲۱ مسیر مدل را لینک کرده است",
+  htmlLinks.length === 21 &&
     htmlLinkRoutes.length === modelRoutes.length &&
     htmlLinkRoutes.every((route, index) => route === modelRoutes[index]),
   `html=${htmlLinks.length}`,
@@ -399,11 +409,12 @@ check(
 );
 
 check(
-  "۱۳.۱۷ · هر پنل تازه بدنهٔ رندر دارد (units/hallDetail/placements/completion/finalReport/soon)",
+  "۱۳.۲۱ · هر پنل تازه بدنهٔ رندر دارد (units/halls/placements/tickets/completion/finalReport/soon)",
   [
     'id="portalUnitsBody"',
-    'id="portalHallDetailBody"',
+    'id="portalHallsBody"',
     'id="portalPlacementsBody"',
+    'id="portalTicketsBody"',
     'id="portalCompletionBody"',
     'id="portalFinalBody"',
     'id="portalSoonBody"',
@@ -443,8 +454,10 @@ check(
 );
 
 check(
-  "۱۳.۱۷ · شناسهٔ سالن/دوره فقط از پاسخ GET می‌آید (نه از URL)",
-  /state\.hallId/.test(CODE.views) &&
+  "۱۳.۲۱ · شناسهٔ سالن/دوره فقط از پاسخ GET می‌آید (نه از URL)",
+  // ✅ ۱۳.۲۱: کش سالن‌ها state.halls است و شناسه با فهرست سرور سنجیده می‌شود
+  /state\.halls/.test(CODE.views) &&
+    /state\.placements\.find/.test(CODE.views) &&
     !/parseHash|location\.hash|URLSearchParams/.test(CODE.views),
 );
 
@@ -490,13 +503,14 @@ try {
 }
 
 check(
-  "۱۳.۱۷ · شش پنل تازه در رجیستری VIEW_TABS ثبت شده‌اند",
+  "۱۳.۲۱ · پنل‌های تازه در رجیستری VIEW_TABS ثبت شده‌اند (هفت پنل)",
   Boolean(views) &&
     Object.keys(views.VIEW_TABS).sort().join(",") ===
-      "completion,finalReport,hallDetail,placements,soon,units" &&
+      "completion,finalReport,halls,placements,soon,tickets,units" &&
     Object.values(views.VIEW_TABS).every(
       (conf) => conf.permission?.startsWith("customer.portal.menu.") && conf.bodyId,
-    ),
+    ) &&
+    !("hallDetail" in views.VIEW_TABS),
 );
 
 check(
@@ -518,34 +532,37 @@ check(
 );
 
 check(
-  "۱۳.۱۷ · فهرست خالی واحدها ⇒ پیام (نه ردیف جعلی) و ردیف واقعی ⇒ کارت",
+  "۱۳.۲۱ · فهرست خالی واحدها ⇒ پیام (نه ردیف جعلی) و ردیف واقعی ⇒ آکاردئون",
   Boolean(views) &&
     views.renderUnitsView([]).includes("portal-notice") &&
-    views.renderUnitsView([
-      { id: 1, unit_name: "واحد یک", hall_count: 2, capacity: 1000, is_active: true },
-    ]).includes('data-view-unit="1"'),
+    views.renderUnitsView(
+      [{ id: 1, unit_name: "واحد یک", hall_count: 2, capacity: 1000, is_active: true }],
+      { canWrite: true },
+    ).includes('data-acc-id="unit-1"'),
 );
 
 check(
-  "۱۳.۱۷ · جزئیات سالن: انتخابگر سالن + جدول بخش + نام دیکشنری",
+  "۱۳.۲۱ · آکاردئون سالن: هر سالن یک <details> با چهار بخش گیت‌شده",
   Boolean(views) &&
     (() => {
-      const html = views.renderHallDetailView({
-        section: "physical",
+      const html = views.renderHallsAccordion({
         halls: [{ id: 7, hall_name: "سالن الف" }],
-        selectedHallId: 7,
-        detail: {
-          details: {
-            physical: { length: 100, width: 12, floor_type_id: 2 },
-            system: null,
-            water_feed: null,
-            hygiene: null,
+        details: {
+          7: {
+            details: {
+              physical: { length: 100, width: 12, floor_type_id: 2 },
+              system: null,
+              water_feed: null,
+              hygiene: null,
+            },
           },
         },
+        sections: ["physical", "system", "water_feed", "hygiene"],
         dictionaries: { floor_types: [{ id: 2, name: "بتن" }] },
       });
       return (
-        html.includes("data-view-hall") &&
+        html.includes('data-acc-id="hall-7"') &&
+        html.includes('data-acc-id="hall-7-physical"') &&
         html.includes('data-view-section="physical"') &&
         html.includes("بتن")
       );
@@ -553,14 +570,13 @@ check(
 );
 
 check(
-  "۱۳.۱۷ · دادهٔ سالن escape می‌شود (بدون HTML تزریقی)",
+  "۱۳.۲۱ · دادهٔ سالن escape می‌شود (بدون HTML تزریقی)",
   Boolean(views) &&
     (() => {
-      const html = views.renderHallDetailView({
-        section: "physical",
+      const html = views.renderHallsAccordion({
         halls: [{ id: 1, hall_name: "<img src=x onerror=alert(1)>" }],
-        selectedHallId: 1,
-        detail: { details: { physical: { notes: "<script>alert(1)</script>" } } },
+        details: { 1: { details: { physical: { notes: "<script>alert(1)</script>" } } } },
+        sections: ["physical"],
         dictionaries: {},
       });
       return !/<script>/.test(html) && !/<img src=x/.test(html) && html.includes("&lt;");
@@ -846,10 +862,16 @@ check(
 // ۶) سیم‌کشی سرویس (mixin ها و ترتیب بارگذاری)
 // ============================================================
 check(
-  "۱۳.۱۷ · سرویس، VIEW_TABS و پوسته را import و ثبت می‌کند",
-  /import\s*\{\s*VIEW_TABS,\s*applyPortalViews\s*\}/.test(SRC.service) &&
+  "۱۳.۲۱ · سرویس، VIEW_TABS/تیکت و پوسته را import و ثبت می‌کند",
+  /import\s*\{[\s\S]{0,200}?VIEW_TABS,[\s\S]{0,120}?applyPortalViews,[\s\S]{0,120}?\}\s*from\s*"\.\/portal\.views\.js"/.test(
+    SRC.service,
+  ) &&
+    /import\s*\{\s*applyPortalTickets\s*\}\s*from\s*"\.\/portal\.tickets\.js"/.test(
+      SRC.service,
+    ) &&
     /import\s*\{\s*applyPortalShell\s*\}/.test(SRC.service) &&
-    /Object\.assign\(EXTRA_TABS,[^)]*VIEW_TABS\)/.test(SRC.service),
+    /Object\.assign\(EXTRA_TABS,[^)]*VIEW_TABS\)/.test(SRC.service) &&
+    /applyPortalTickets\(PortalService\)/.test(SRC.service),
 );
 
 check(
@@ -889,32 +911,44 @@ check(
 );
 
 check(
-  "۱۳.۱۷ · نمونهٔ سرویس همهٔ متدهای پوسته و پنل‌های تازه را دارد",
+  "۱۳.۲۱ · نمونهٔ سرویس همهٔ متدهای پوسته و پنل‌های تازه را دارد",
   Boolean(service) &&
     ["initShell", "bindShell", "activateRoute", "goToRoute", "syncNav", "applyMenuVisibility"]
       .every((name) => typeof service.portalService[name] === "function") &&
-    ["units", "hallDetail", "placements", "completion", "finalReport", "soon"].every(
-      (key) => key in service.portalService.extra,
-    ),
+    [
+      "units",
+      "halls",
+      "placements",
+      "completion",
+      "finalReport",
+      "tickets",
+      "soon",
+    ].every((key) => key in service.portalService.extra),
 );
 
 check(
-  "۱۳.۱۹ · canSee برای پنل‌های تازه پاسخ می‌دهد (بدون مجوز = باز، هم‌الگو با ۱۳.۵)",
+  "۱۳.۲۱ · canSee برای پنل‌های تازه پاسخ می‌دهد (بدون مجوز = باز، هم‌الگو با ۱۳.۵)",
   Boolean(service) &&
-    ["units", "hallDetail", "placements", "completion", "finalReport", "soon"].every(
-      (key) => service.portalService.canSee(key) === true,
-    ),
+    [
+      "units",
+      "halls",
+      "placements",
+      "completion",
+      "finalReport",
+      "tickets",
+      "soon",
+    ].every((key) => service.portalService.canSee(key) === true),
 );
 
 // ============================================================
-// ۷) مجوزها: ۲۸ کلید «لایهٔ منو»
+// ۷) مجوزها: ۲۱ کلید «لایهٔ منو»
 // ============================================================
 const catalog = require(path.join(ROOT, "Backend", "config", "permissions.js"));
 const menuKeys = PORTAL_ROUTE_LIST.map((route) => PORTAL_ROUTES[route].key);
 
 check(
-  "۱۳.۱۷ · کاتالوگ: همهٔ ۲۸ کلید منوی پورتال ثبت شده‌اند",
-  menuKeys.every((key) => Boolean(catalog.PERMISSIONS[key])),
+  "۱۳.۲۱ · کاتالوگ: همهٔ ۲۱ کلید منوی پورتال ثبت شده‌اند",
+  menuKeys.length === 21 && menuKeys.every((key) => Boolean(catalog.PERMISSIONS[key])),
 );
 
 check(
@@ -951,24 +985,27 @@ check(
 );
 
 check(
-  "۱۳.۱۷ · کاتالوگ: شمارش کلیدها با permissions-test هم‌خوان است (۲۲۷ / ۱۸)",
-  // ✅ ۱۳.۱۹: دو کلید «پایان دوره» ⇒ ۲۲۵ + ۲ = ۲۲۷
-  catalog.TOTAL_PERMISSIONS === 227 &&
+  "۱۳.۲۱ · کاتالوگ: شمارش کلیدها با permissions-test هم‌خوان است (۲۲۵ / ۱۸)",
+  // ⚠️ ۱۳.۲۱: چهار کلید منوی حذف‌شده (requests/requests.new/requests.list/
+  //  weekly.create) − دو کلید تازه (menu.tickets + tickets) = ۲۲۵
+  catalog.TOTAL_PERMISSIONS === 225 &&
     catalog.PERMISSION_GROUPS.length === 18 &&
-    /TOTAL_PERMISSIONS === 227 && catalog\.PERMISSION_GROUPS\.length === 18/.test(
+    /TOTAL_PERMISSIONS === 225 && catalog\.PERMISSION_GROUPS\.length === 18/.test(
       SRC.permissionsTest,
     ),
 );
 
 check(
-  "۱۳.۱۷ · کاتالوگ: گروه «portal» سه کلید تازهٔ ۱۳.۱۶ و ۲۸ کلید منو را با هم دارد",
+  "۱۳.۲۱ · کاتالوگ: گروه «portal» کلیدهای ۱۳.۱۶ و ۲۱ کلید منو را با هم دارد",
   (() => {
     const portalGroup = catalog.PERMISSION_GROUPS.find((group) => group.key === "portal");
     const keys = portalGroup ? portalGroup.items.map((item) => item.key) : [];
     return (
       menuKeys.every((key) => keys.includes(key)) &&
       keys.includes("portal.requests.view") === false &&
-      keys.length >= 30
+      keys.includes("customer.portal.menu.requests") === false &&
+      keys.includes("customer.portal.tickets") &&
+      keys.length >= 26
     );
   })(),
 );

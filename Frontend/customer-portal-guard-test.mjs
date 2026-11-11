@@ -781,9 +781,10 @@ check(
   // ✅ موج ۱۳.۱۱: ۶ کلید «درخواست‌های فارم» + یک گروه تازه (۱۹۱ ⇒ ۱۹۷ / ۱۸)
   // ✅ موج ۱۳.۱۷: ۲۸ کلید «لایهٔ منوی» پورتال (۱۹۷ ⇒ ۲۲۵ / همان ۱۸ گروه)
   // ✅ موج ۱۳.۱۹: ۲ کلید «پایان دوره» و «گزارش تفصیلی» (۲۲۵ ⇒ ۲۲۷)
-  catalog.TOTAL_PERMISSIONS === 227 &&
+  // ⚠️ موج ۱۳.۲۱: ۴ کلید منوی حذف‌شده − ۲ کلید تازهٔ «تیکت» ⇒ ۲۲۵
+  catalog.TOTAL_PERMISSIONS === 225 &&
     catalog.PERMISSION_GROUPS.length === 18 &&
-    /TOTAL_PERMISSIONS === 227 && catalog\.PERMISSION_GROUPS\.length === 18/.test(
+    /TOTAL_PERMISSIONS === 225 && catalog\.PERMISSION_GROUPS\.length === 18/.test(
       SRC.permissionsTest,
     ),
   `keys=${catalog.TOTAL_PERMISSIONS} groups=${catalog.PERMISSION_GROUPS.length}`,
@@ -1082,7 +1083,7 @@ check(
 );
 
 check(
-  "۱۳.۳ · صفحهٔ پورتال: تب‌ها و پنل‌های چهارگانه (فقط خواندنی) موجودند",
+  "۱۳.۲۱ · صفحهٔ پورتال: تب‌ها و پنل‌های دادهٔ کامل (فقط خواندنی) موجودند",
   [
     'id="portalTabs"',
     'id="portalTabPanels"',
@@ -1090,11 +1091,14 @@ check(
     'data-portal-tab="flocks"',
     'data-portal-tab="weeks"',
     'data-portal-tab="visits"',
-    'id="portalHallsList"',
+    // ✅ ۱۳.۲۱: «سالن‌ها» آکاردئون شد ⇒ فهرست صفحه‌بندی‌شده جایش را
+    //  به بدنهٔ نمای آکاردئونی داد (portalHallsBody/Status).
+    'id="portalHallsBody"',
+    'id="portalHallsStatus"',
     'id="portalFlocksList"',
     'id="portalWeeksList"',
     'id="portalVisitsList"',
-    'id="portalHallsPager"',
+    'id="portalFlocksPager"',
   ].every((needle) => SRC.portalHtml.includes(needle)),
 );
 
@@ -1332,12 +1336,17 @@ check(
 );
 
 check(
-  "۱۳.۵ · فرانت: هر تب پورتال کلید مجوز خودش را دارد (SECTION_CONF.permission)",
-  portalSectionKeys.every((name) =>
+  "۱۳.۲۱ · فرانت: هر پنل داده کلید محتوای خودش را دارد (SECTION_CONF/VIEW_TABS)",
+  // ✅ ۱۳.۲۱: «سالن‌ها» از SECTION_CONF به VIEW_TABS.halls منتقل شد؛
+  //  آنجا کلید محتوا با نام `requires` است (قرارداد دو لایهٔ ۱۳.۱۷).
+  ["flocks", "weeks", "visits"].every((name) =>
     new RegExp(`permission: "customer\\.portal\\.${name}"`).test(
       SRC.portalService,
     ),
-  ),
+  ) &&
+    /requires: "customer\.portal\.halls"/.test(
+      read("Frontend/src/features/portal/portal.views.js"),
+    ),
 );
 
 check(
@@ -2507,11 +2516,15 @@ check(
 );
 
 check(
-  "۱۳.۱۱ · صفحهٔ پورتال: تب/پنل جدید بدون تگ فرم",
-  /data-portal-tab="farm"/.test(SRC.portalHtml) &&
-    /data-portal-panel="farm"/.test(SRC.portalHtml) &&
+  "۱۳.۲۱ · صفحهٔ پورتال: شیت درخواست (جای تب پنل ۱۳.۱۱) بدون تگ فرم",
+  // ✅ ۱۳.۲۱: پنل «درخواست‌های من» حذف و به «شیت» تبدیل شد؛ شناسه‌های
+  //  داخلی (portalFarmBody/Status) همان قبلی مانده‌اند.
+  /data-portal-sheet="requests"/.test(SRC.portalHtml) &&
+    /id="portalRequestSheet"/.test(SRC.portalHtml) &&
     /id="portalFarmBody"/.test(SRC.portalHtml) &&
     /id="portalFarmStatus"/.test(SRC.portalHtml) &&
+    !/data-portal-panel="farm"/.test(SRC.portalHtml) &&
+    !/data-portal-tab="farm"/.test(SRC.portalHtml) &&
     !/<form|type="submit"|method="post"/i.test(SRC.portalHtml) &&
     !/<form|type="submit"/i.test(SRC.portalFarmRenderer),
 );

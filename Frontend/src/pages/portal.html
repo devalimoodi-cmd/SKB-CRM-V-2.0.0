@@ -215,7 +215,7 @@
                                     data-portal-tab="units" data-permission="customer.portal.menu.farm"
                                     aria-selected="false">
                                     <i class="fas fa-warehouse" aria-hidden="true"></i>
-                                    <span>مزرعهٔ من</span>
+                                    <span>واحدهای من</span>
                                 </a>
                                 <ul class="portal-nav__sub">
                                     <li>
@@ -228,26 +228,10 @@
                                             data-portal-route="#/farm/halls" data-portal-tab="halls"
                                             data-permission="customer.portal.menu.farm.halls">سالن‌ها</a>
                                     </li>
-                                    <li>
-                                        <a class="portal-nav__sublink" href="#/farm/physical"
-                                            data-portal-route="#/farm/physical" data-portal-tab="hallDetail"
-                                            data-permission="customer.portal.menu.farm.physical">اطلاعات فیزیکی</a>
-                                    </li>
-                                    <li>
-                                        <a class="portal-nav__sublink" href="#/farm/systems"
-                                            data-portal-route="#/farm/systems" data-portal-tab="hallDetail"
-                                            data-permission="customer.portal.menu.farm.systems">سیستم‌ها</a>
-                                    </li>
-                                    <li>
-                                        <a class="portal-nav__sublink" href="#/farm/water-feed"
-                                            data-portal-route="#/farm/water-feed" data-portal-tab="hallDetail"
-                                            data-permission="customer.portal.menu.farm.waterFeed">آبخوری و دانخوری</a>
-                                    </li>
-                                    <li>
-                                        <a class="portal-nav__sublink" href="#/farm/hygiene"
-                                            data-portal-route="#/farm/hygiene" data-portal-tab="hallDetail"
-                                            data-permission="customer.portal.menu.farm.hygiene">بهداشت</a>
-                                    </li>
+                                    <!-- ✅ ۱۳.۲۱: چهار مسیر «بخش سالن» حذف شدند؛
+                                         هر بخش یک آکاردئون داخل همین پنل «سالن‌ها»
+                                         است و کلید منوی همان بخش، نمایش آن را
+                                         کنترل می‌کند (بدون مسیر تازه). -->
                                 </ul>
                             </li>
 
@@ -297,11 +281,6 @@
                                 </a>
                                 <ul class="portal-nav__sub">
                                     <li>
-                                        <a class="portal-nav__sublink" href="#/weekly/new"
-                                            data-portal-route="#/weekly/new" data-portal-tab="farm"
-                                            data-permission="customer.portal.menu.weekly.create">ثبت هفته</a>
-                                    </li>
-                                    <li>
                                         <a class="portal-nav__sublink" href="#/weekly/list"
                                             data-portal-route="#/weekly/list" data-portal-tab="weeks"
                                             data-permission="customer.portal.menu.weekly.list">هفته‌های ثبت‌شده</a>
@@ -314,25 +293,16 @@
                                 </ul>
                             </li>
 
-                            <li class="portal-nav__item" data-portal-menu="requests">
-                                <a class="portal-nav__link" href="#/requests" data-portal-route="#/requests"
-                                    data-portal-tab="farm" data-permission="customer.portal.menu.requests"
+                            <!-- ✅ ۱۳.۲۱ — منوی «درخواست‌های من» حذف شد؛ جای آن
+                                 «ارسال تیکت» است. فرم‌های ثبت/ویرایش/حذف فارم
+                                 از شیت (data-portal-sheet) باز می‌شوند. -->
+                            <li class="portal-nav__item" data-portal-menu="tickets">
+                                <a class="portal-nav__link" href="#/tickets" data-portal-route="#/tickets"
+                                    data-portal-tab="tickets" data-permission="customer.portal.menu.tickets"
                                     aria-selected="false">
-                                    <i class="fas fa-paper-plane" aria-hidden="true"></i>
-                                    <span>درخواست‌های من</span>
+                                    <i class="fas fa-headset" aria-hidden="true"></i>
+                                    <span>ارسال تیکت</span>
                                 </a>
-                                <ul class="portal-nav__sub">
-                                    <li>
-                                        <a class="portal-nav__sublink" href="#/requests/new"
-                                            data-portal-route="#/requests/new" data-portal-tab="farm"
-                                            data-permission="customer.portal.menu.requests.new">ثبت درخواست</a>
-                                    </li>
-                                    <li>
-                                        <a class="portal-nav__sublink" href="#/requests/list"
-                                            data-portal-route="#/requests/list" data-portal-tab="farm"
-                                            data-permission="customer.portal.menu.requests.list">پیگیری درخواست‌ها</a>
-                                    </li>
-                                </ul>
                             </li>
 
                             <li class="portal-nav__item" data-portal-menu="reports">
@@ -422,34 +392,35 @@
                         </p>
                     </div>
 
-                    <!-- ✅ موج ۱۳.۱۱ — «درخواست‌های من» (الگوی ب)
-                         🔒 بدون تگ فرم: همهٔ ورودی‌ها با شناسه و ارسال با
-                         دکمهٔ type="button" (هم‌الگو با تب مدارک/پروفایل).
-                         ساختار ثابت است تا سرویس فقط محتوای دو ناحیه را
-                         عوض کند (گارد تست همین شناسه‌ها را می‌سنجد).
-                         ⚠️ تا تأیید کارشناس هیچ ردیفی در واحد/سالن/
-                         جوجه‌ریزی ساخته نمی‌شود. -->
-                    <div class="portal-card portal-tabpanel" data-portal-panel="farm" role="tabpanel" hidden>
-                        <div class="portal-card__head">
-                            <i class="fas fa-paper-plane"></i>
-                            <span>درخواست‌های من (واحد، سالن، جوجه‌ریزی)</span>
-                        </div>
-                        <div class="portal-tab__status" id="portalFarmStatus"></div>
-                        <div class="portal-farm" id="portalFarmBody"></div>
-                        <p class="portal-docs__note">
-                            <i class="fas fa-user-check" aria-hidden="true"></i>
-                            هر درخواست پس از ثبت، برای «تأیید کارشناس» می‌رود؛ تا آن لحظه هیچ داده‌ای در سیستم
-                            ثبت نمی‌شود و می‌توانید درخواستِ در انتظار را لغو کنید. دلیل رد (اگر باشد) همین‌جا نمایش داده می‌شود.
-                        </p>
-                    </div>
+                    <!-- ✅ موج ۱۳.۲۱ — «درخواست‌های من» از پنل‌ها خارج شد و
+                         به «شیت» (فرم شناور) تبدیل شد: انتهای همین بلوک با
+                         data-portal-sheet="requests". شناسه‌های داخلی
+                         (portalFarmStatus / portalFarmBody) دست‌نخورده‌اند تا
+                         منطق ۱۳.۱۱/۱۳.۱۶ بدون تغییر روی همان‌ها کار کند. -->
                     <div class="portal-card portal-tabpanel" data-portal-panel="halls" role="tabpanel">
                         <div class="portal-card__head">
                             <i class="fas fa-warehouse"></i>
-                            <span>همهٔ سالن‌های من</span>
+                            <span>سالن‌های من</span>
                         </div>
                         <div class="portal-tab__status" id="portalHallsStatus"></div>
-                        <ul class="portal-list" id="portalHallsList"></ul>
-                        <div class="portal-list__pager" id="portalHallsPager"></div>
+                        <!-- ✅ ۱۳.۲۱ — آکاردئون: سالن ← چهار بخش (فیزیکی/سیستم‌ها/
+                             آب‌خوری/بهداشت). محتوای هر بخش با کلید منوی همان
+                             بخش گیت می‌شود و فقط با باز شدن، یک‌بار گرفته می‌شود. -->
+                        <div class="portal-views" id="portalHallsBody"></div>
+                    </div>
+
+                    <div class="portal-card portal-tabpanel" data-portal-panel="tickets" role="tabpanel" hidden>
+                        <div class="portal-card__head">
+                            <i class="fas fa-headset"></i>
+                            <span>ارسال تیکت و گفتگو با پشتیبانی</span>
+                        </div>
+                        <div class="portal-tab__status" id="portalTicketsStatus"></div>
+                        <div class="portal-views" id="portalTicketsBody"></div>
+                        <p class="portal-docs__note">
+                            <i class="fas fa-shield-halved" aria-hidden="true"></i>
+                            گفتگو فقط برای شما و پشتیبانی قابل مشاهده است؛ عنوان و متن را
+                            واضح بنویسید تا سریع‌تر پاسخ بگیرید.
+                        </p>
                     </div>
 
                     <div class="portal-card portal-tabpanel" data-portal-panel="flocks" role="tabpanel" hidden>
@@ -502,14 +473,9 @@
                         <div class="portal-views" id="portalUnitsBody"></div>
                     </div>
 
-                    <div class="portal-card portal-tabpanel" data-portal-panel="hallDetail" role="tabpanel" hidden>
-                        <div class="portal-card__head">
-                            <i class="fas fa-ruler-combined"></i>
-                            <span id="portalHallDetailTitle">جزئیات سالن</span>
-                        </div>
-                        <div class="portal-tab__status" id="portalHallDetailStatus"></div>
-                        <div class="portal-views" id="portalHallDetailBody"></div>
-                    </div>
+                    <!-- ⚠️ ۱۳.۲۱ — پنل «hallDetail» حذف شد؛ چهار بخش سالن
+                         آکاردئون تودرتو داخل پنل «سالن‌ها» شدند (همان چهار
+                         کلید منو، به‌عنوان گیت هر بخش). -->
 
                     <div class="portal-card portal-tabpanel" data-portal-panel="placements" role="tabpanel" hidden>
                         <div class="portal-card__head">
@@ -554,6 +520,31 @@
                         <div class="portal-views" id="portalSoonBody"></div>
                     </div>
                 </div>
+
+                    <!-- ===== ✅ موج ۱۳.۲۱ — شیت «ثبت درخواست» (بدون مسیر/آیتم منو)
+                         🔒 چرا شیت و نه پنل؟ فرم باید از داخل همان ردیف
+                         (واحد/سالن/دوره/هفته) با نوع و هدفِ از پیش انتخاب‌شده
+                         باز شود. ساختار داخلی همان ۱۳.۱۱/۱۳.۱۶ است:
+                           portalFarmStatus / portalFarmBody
+                         ⇒ منطق بارگذاری، اعتبارسنجی و لغو بدون تغییر.
+                         نمایش: فقط با features.farm_request (سرور) و
+                         دکمهٔ هر ردیف؛ لینک مستقیم ندارد. -->
+                    <div class="portal-sheet" id="portalRequestSheet" data-portal-sheet="requests" hidden>
+                        <div class="portal-sheet__backdrop" data-sheet-close="1"></div>
+                        <div class="portal-sheet__dialog" role="dialog" aria-modal="true"
+                            aria-labelledby="portalRequestSheetTitle">
+                            <div class="portal-sheet__head">
+                                <i class="fas fa-paper-plane" aria-hidden="true"></i>
+                                <span id="portalRequestSheetTitle">ثبت درخواست</span>
+                                <button type="button" class="portal-sheet__close" data-sheet-close="1"
+                                    aria-label="بستن">
+                                    <i class="fas fa-xmark" aria-hidden="true"></i>
+                                </button>
+                            </div>
+                            <div class="portal-tab__status" id="portalFarmStatus"></div>
+                            <div class="portal-farm" id="portalFarmBody"></div>
+                        </div>
+                    </div>
                     </section>
                 </div>
             </div>

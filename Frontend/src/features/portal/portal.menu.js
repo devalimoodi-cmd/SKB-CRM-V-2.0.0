@@ -39,10 +39,21 @@ const MENU = "customer.portal.menu";
 // ✅ ۱۳.۱۹ — «پایان دوره» (فهرست) و «گزارش تفصیلی» (دو کلید محتوا)
 const COMPLETION = "customer.portal.completion";
 const COMPLETION_REPORT = "customer.portal.completion.report";
+// ✅ ۱۳.۲۱ — «ارسال تیکت» (محتوای پنل تیکت؛ گیت سرور در ۱۳.۲۲)
+const TICKETS = "customer.portal.tickets";
 
 // ============================================================
-// درخت منو: ۷ منو + ۲۱ زیرمنو = ۲۸ آیتم
+// درخت منو: ۷ منو + ۱۴ زیرمنو = ۲۱ آیتم
 // ------------------------------------------------------------
+//  ✅ موج ۱۳.۲۱ — بازآرایی:
+//   • منوی «درخواست‌های من» حذف شد؛ فرم‌ها از شیت همان بخش باز
+//     می‌شوند (ثبت/ویرایش/حذف واحد، سالن، دوره، هفته).
+//   • «مزرعهٔ من» ⇐ «واحدهای من» با دو زیرمنوی واحدها/سالن‌ها؛
+//     چهار مسیر بخش سالن حذف و به آکاردئون همان پنل منتقل شد
+//     (کلیدهایشان به‌عنوان گیت بخش باقی است).
+//   • «ثبت هفته» از منو حذف شد (دکمهٔ داخل پنل هفتگی).
+//   • منوی تازهٔ «ارسال تیکت».
+// ============================================================
 //  alias: true ⇒ مسیرِ ریشه خودش پنل مستقل ندارد و به «اولین
 //  زیرمنوی مجاز» همان منو می‌رود (تا کلیک روی منو هرگز صفحهٔ خالی
 //  نشان ندهد). داشبورد تنها منویی است که ریشه‌اش پنل واقعی دارد.
@@ -108,7 +119,7 @@ export const PORTAL_MENUS = [
   },
   {
     id: "farm",
-    label: "مزرعهٔ من",
+    label: "واحدهای من",
     icon: "fa-warehouse",
     key: `${MENU}.farm`,
     route: "#/farm",
@@ -131,42 +142,6 @@ export const PORTAL_MENUS = [
         panel: "halls",
         key: `${MENU}.farm.halls`,
         contentKey: HALLS,
-      },
-      {
-        id: "physical",
-        label: "اطلاعات فیزیکی",
-        route: "#/farm/physical",
-        panel: "hallDetail",
-        key: `${MENU}.farm.physical`,
-        contentKey: FARM,
-        section: "physical",
-      },
-      {
-        id: "systems",
-        label: "سیستم‌ها",
-        route: "#/farm/systems",
-        panel: "hallDetail",
-        key: `${MENU}.farm.systems`,
-        contentKey: FARM,
-        section: "system",
-      },
-      {
-        id: "waterFeed",
-        label: "آبخوری و دانخوری",
-        route: "#/farm/water-feed",
-        panel: "hallDetail",
-        key: `${MENU}.farm.waterFeed`,
-        contentKey: FARM,
-        section: "water_feed",
-      },
-      {
-        id: "hygiene",
-        label: "بهداشت",
-        route: "#/farm/hygiene",
-        panel: "hallDetail",
-        key: `${MENU}.farm.hygiene`,
-        contentKey: FARM,
-        section: "hygiene",
       },
     ],
   },
@@ -229,17 +204,9 @@ export const PORTAL_MENUS = [
     contentKey: WEEKS,
     alias: true,
     items: [
-      {
-        id: "create",
-        label: "ثبت هفته",
-        route: "#/weekly/new",
-        panel: "farm",
-        key: `${MENU}.weekly.create`,
-        contentKey: FARM,
-        // همان تب «درخواست‌ها» با نوع «ثبت هفته» انتخاب‌شده
-        farmType: "weekly_create",
-        focus: "portalFarmBody",
-      },
+      // ⚠️ ۱۳.۲۱: «ثبت هفته» از منو حذف شد — دکمهٔ «ثبت هفته» در همان
+      //    پنل هفته‌های ثبت‌شده شیت درخواست را با نوع weekly_create باز
+      //    می‌کند (همان کلید محتوایی FARM).
       {
         id: "list",
         label: "هفته‌های ثبت‌شده",
@@ -260,34 +227,16 @@ export const PORTAL_MENUS = [
     ],
   },
   {
-    id: "requests",
-    label: "درخواست‌های من",
-    icon: "fa-paper-plane",
-    key: `${MENU}.requests`,
-    route: "#/requests",
-    panel: "farm",
-    contentKey: FARM,
-    alias: true,
-    items: [
-      {
-        id: "new",
-        label: "ثبت درخواست",
-        route: "#/requests/new",
-        panel: "farm",
-        key: `${MENU}.requests.new`,
-        contentKey: FARM,
-        focus: "portalFarmBody",
-      },
-      {
-        id: "list",
-        label: "پیگیری درخواست‌ها",
-        route: "#/requests/list",
-        panel: "farm",
-        key: `${MENU}.requests.list`,
-        contentKey: FARM,
-        focus: "portalFarmBody",
-      },
-    ],
+    // ✅ ۱۳.۲۱ — جای «درخواست‌های من»: پنل تیکت (گفتگو با پشتیبانی).
+    id: "tickets",
+    label: "ارسال تیکت",
+    icon: "fa-headset",
+    key: `${MENU}.tickets`,
+    route: "#/tickets",
+    panel: "tickets",
+    contentKey: TICKETS,
+    alias: false,
+    items: [],
   },
   {
     id: "reports",
@@ -322,6 +271,27 @@ export const PORTAL_MENUS = [
 
 // مسیر پیش‌فرض (اگر URL خالی/ناشناخته بود)
 export const DEFAULT_PORTAL_ROUTE = "#/dashboard";
+
+// ============================================================
+// نقشهٔ لینک‌های قدیمی — موج ۱۳.۲۱
+// ------------------------------------------------------------
+//  سه منو/چهار مسیر حذف شدند. بوکمارک یا لینک قدیمی نباید به صفحهٔ
+//  خالی بخورد؛ این نقشه فقط «هدایت» است (هیچ شناسهٔ ردیفی از URL
+//  خوانده نمی‌شود) و گارد تست هر هشت کلید را می‌سنجد.
+// ============================================================
+export const PORTAL_LEGACY_HASH = Object.freeze({
+  "#/requests": "#/farm/units",
+  "#/requests/new": "#/farm/units",
+  "#/requests/list": "#/farm/units",
+  "#/weekly/new": "#/weekly/list",
+  "#/farm/physical": "#/farm/halls",
+  "#/farm/systems": "#/farm/halls",
+  "#/farm/water-feed": "#/farm/halls",
+  "#/farm/hygiene": "#/farm/halls",
+});
+
+// مسیر جانشین برای لینک قدیمی (یا "" اگر قدیمی نبود)
+export const legacyRoute = (hash) => PORTAL_LEGACY_HASH[normalizeHash(hash)] || "";
 
 // ============================================================
 // نمای تخت: مسیر → مقصد
@@ -432,7 +402,8 @@ export const firstAllowedRoute = (allowed) => {
 //   • مسیرِ غیرمجاز        ⇒ اولین مجازِ همان منو، بعد کل پورتال
 //   • اگر هیچ مسیری مجاز نباشد ⇒ "" (پوسته پیام «بسته است» می‌دهد)
 export const resolveRoute = (hash, allowed) => {
-  const wanted = parseHash(hash);
+  // ✅ ۱۳.۲۱: لینک قدیمی (منو/مسیر حذف‌شده) به مسیر جانشین هدایت می‌شود
+  const wanted = parseHash(hash) || legacyRoute(hash) || "";
 
   if (!wanted) {
     const fallback = parseHash(DEFAULT_PORTAL_ROUTE);

@@ -90,8 +90,9 @@ const CODE = {
 const keyValues = Object.values(schema.KEYS);
 
 check(
-  "۱۳.۱۸ · اسکیما دقیقاً ۲۶ کلید مجوز دارد",
-  keyValues.length === 26,
+  "۱۳.۲۱ · اسکیما دقیقاً ۲۷ کلید مجوز دارد (۲۶ + تیکت)",
+  // ✅ ۱۳.۲۱: KEYS.TICKETS = customer.portal.tickets اضافه شد
+  keyValues.length === 27,
   String(keyValues.length),
 );
 
@@ -133,9 +134,23 @@ const htmlPanels = [
 ].map((match) => match[1]);
 
 check(
-  "۱۳.۱۸ · اسکیما ۱۴ پنل دارد",
-  panels.length === 14,
-  String(panels.length),
+  "۱۳.۲۱ · اسکیما ۱۳ پنل + ۱ شیت دارد",
+  // ⚠️ ۱۳.۲۱: «hallDetail» و «farm» از پنل‌ها بیرون رفتند؛ «tickets»
+  //  اضافه شد و «farm» یک شیت contextual است (بخش ۲ اسکیما).
+  panels.length === 13 && schema.PORTAL_SHEETS.length === 1,
+  `${panels.length}+${schema.PORTAL_SHEETS.length}`,
+);
+
+check(
+  "۱۳.۲۱ · شیت «درخواست» مسیر و کلید منو ندارد (فقط از دکمهٔ ردیف باز می‌شود)",
+  schema.PORTAL_SHEETS.every(
+    (sheet) =>
+      sheet.route === "" &&
+      Array.isArray(sheet.menuKeys) &&
+      sheet.menuKeys.length === 0 &&
+      Array.isArray(sheet.content.keys) &&
+      sheet.content.keys.length > 0,
+  ),
 );
 
 check(

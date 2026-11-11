@@ -95,22 +95,22 @@ const routePanels = [...new Set(PORTAL_ROUTE_LIST.map((route) => PORTAL_ROUTES[r
 const menuPanels = [...PORTAL_MENU_PANELS];
 
 check(
-  "۱۳.۱۸ · درخت منو ۷ منو و ۲۸ مسیر دارد",
-  PORTAL_MENUS.length === 7 && PORTAL_ROUTE_LIST.length === 28,
+  "۱۳.۲۱ · درخت منو ۷ منو و ۲۱ مسیر دارد",
+  PORTAL_MENUS.length === 7 && PORTAL_ROUTE_LIST.length === 21,
   `menus=${PORTAL_MENUS.length} routes=${PORTAL_ROUTE_LIST.length}`,
 );
 
 check(
-  "۱۳.۱۸ · هر مسیر منو به یک پنل موجود در اسکیما می‌رود",
+  "۱۳.۲۱ · هر مسیر منو به یک پنل موجود در اسکیما می‌رود",
   routePanels.every((panel) => panelIds.includes(panel)),
   routePanels.filter((panel) => !panelIds.includes(panel)).join(", "),
 );
 
 check(
-  "۱۳.۱۸ · پنل‌های منو دقیقاً همان ۱۴ پنل اسکیما هستند",
+  "۱۳.۲۱ · پنل‌های منو دقیقاً همان ۱۳ پنل اسکیما هستند",
   routePanels.length === panelIds.length &&
     panelIds.every((panel) => routePanels.includes(panel)) &&
-    menuPanels.length === 14,
+    menuPanels.length === 13,
   `menu=${menuPanels.length} schema=${panelIds.length}`,
 );
 
@@ -258,9 +258,29 @@ for (const match of tabsBody.matchAll(tabEntry)) {
   };
 }
 
+// ✅ ۱۳.۲۱ — پنل تیکت پیکربندی‌اش را از portal.tickets.js می‌آورد
+//  (`tickets: TICKETS_TAB`)؛ همان آبجکت خوانده می‌شود تا یک منبع بماند.
+if (/tickets:\s*TICKETS_TAB/.test(tabsBody)) {
+  const ticketSrc = read("Frontend/src/features/portal/portal.tickets.js");
+  const conf = /export const TICKETS_TAB = \{([\s\S]*?)\n\};/.exec(ticketSrc);
+  const body = conf ? conf[1] : "";
+  const requires = /requires: "([^"]*)"/.exec(body);
+  const permission = /permission: "([^"]*)"/.exec(body);
+  tabs.tickets = {
+    requires: requires ? requires[1] : "",
+    requiresAll: [],
+    permission: permission ? permission[1] : "",
+  };
+}
+
 check(
-  "۱۳.۱۸ · VIEW_TABS شش پنل را می‌شناسد (units/hallDetail/placements/soon/completion/finalReport)",
-  Object.keys(tabs).length === 6 && tabs.finalReport && tabs.completion,
+  "۱۳.۲۱ · VIEW_TABS هفت پنل را می‌شناسد (units/halls/placements/soon/completion/finalReport/tickets)",
+  Object.keys(tabs).length === 7 &&
+    tabs.finalReport &&
+    tabs.completion &&
+    tabs.tickets &&
+    tabs.halls &&
+    !tabs.hallDetail,
   Object.keys(tabs).join(","),
 );
 
