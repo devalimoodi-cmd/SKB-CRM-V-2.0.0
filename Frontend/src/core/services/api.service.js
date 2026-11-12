@@ -102,7 +102,7 @@ class ApiService {
       return await response.json();
     } catch (error) {
       console.error("❌ API Request failed:", error);
-      throw error;
+      throw this.toRequestError(error, endpoint);
     }
   }
 
@@ -213,6 +213,41 @@ class ApiService {
       .catch(() => {
         /* بی‌صدا */
       });
+  }
+
+  // ============================================================
+  // ✅ موج ۱۳.۲۴ — خطای «شبکه» از پاسخ HTTP ناموفق جدا می‌شود
+  // ------------------------------------------------------------
+  // fetch وقتی اصلاً به سرور نرسد TypeError با پیام «Failed to fetch»
+  // / «NetworkError» / «Load failed» می‌دهد (بسته به مرورگر).
+  // پاسخ‌های ۴xx/۵xx خطای شبکه نیستند و همین‌جا پیچیده نمی‌شوند.
+  // ============================================================
+  isNetworkError(error) {
+    if (!error) return false;
+    if (error.isNetworkError === true) return true;
+    const name = String(error.name || "");
+    if (name === "AbortError") return false;
+    if (name === "TypeError") return true;
+    const message = String(error.message || "");
+    return /failed to fetch|network ?error|load failed|fetch failed|err_connection/i.test(
+      message,
+    );
+  }
+
+  // خطای نهاییِ قابل نمایش به کاربر: پیام فارسی + پرچم‌های قابل بررسی
+  toRequestError(error, endpoint) {
+    if (!this.isNetworkError(error)) return error;
+
+    // یک توست کوچک (ضدنکرار) تا دلیل خطا روشن باشد
+    this.notifyServerUnavailable(endpoint);
+
+    const wrapped = new Error(
+      "ارتباط با سرور برقرار نشد. اتصال شبکه و اجرا بودن سرور را بررسی کنید.",
+    );
+    wrapped.cause = error;
+    wrapped.isNetworkError = true;
+    wrapped.serverUnavailable = true;
+    return wrapped;
   }
 
   async get(endpoint, params = {}) {
@@ -352,7 +387,7 @@ class ApiService {
       return await response.json();
     } catch (error) {
       console.error("❌ API Request failed:", error);
-      throw error;
+      throw this.toRequestError(error, endpoint);
     }
   }
 
@@ -435,7 +470,7 @@ class ApiService {
       return await response.json();
     } catch (error) {
       console.error("❌ API Request failed:", error);
-      throw error;
+      throw this.toRequestError(error, endpoint);
     }
   }
 }

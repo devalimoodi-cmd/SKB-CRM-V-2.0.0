@@ -742,6 +742,36 @@ npm run test:cache    :: نگهبانهای UI (وجود بخش، سه‌حال�
   داخل جریان صفحه نمی‌افتد. گارد: بخش ۱۲ در `test:customer-portal` (پیمایش همهٔ صفحه‌ها).
 - گزارش کامل: `docs/REVIEW-WAVE-13.2.md`، `docs/REVIEW-WAVE-13.3.md` و `docs/REVIEW-WAVE-13.4.md`.
 
+## ورود روی گوشی + نصب‌پذیری واقعی PWA (موج ۱۳.۲۴)
+
+دو گلایهٔ واقعی از تست با گوشی اندروید (`adb reverse`):
+
+۱. **«Failed to fetch» هنگام ورود**؛
+۲. **«افزودن به صفحهٔ اصلی» هیچ‌وقت پیشنهاد نمی‌شد**.
+
+| موضوع | قبل | بعد |
+|---|---|---|
+| آدرس API | روی localhost **مطلق** `http://localhost:5000/api` (cross-origin) | روی سرور پروژه (`:3000`) و دامنهٔ واقعی **هم‌مبدأ `/api`** ⇒ پروکسی `Frontend/server.js` |
+| کپچا | `/api/captcha` هم‌مبدأ (کار می‌کرد) | بدون تغییر |
+| علت خطا | لاگین از پورت ۵۰۰۰ می‌رفت؛ روی گوشی آن پورت (یا مبدأ) در دسترس/مجاز نبود | فقط پورت ۳۰۰۰ لازم است؛ نه CORS، نه `adb reverse tcp:5000` |
+| پیام خطا | متن خام مرورگر: `Failed to fetch` | پیام فارسی «ارتباط با سرور برقرار نشد…» + بررسی `/api/ping` در `login.html` |
+| manifest | آیکون `260x109` و SVG ⇒ **شرط ۱۹۲/۵۱۲ برقرار نبود** | `icon-192.png`، `icon-512.png`، `icon-maskable-512.png` (+ `apple-touch-icon-180.png`) |
+| صفحهٔ ورود | نه manifest، نه ثبت SW | manifest + `theme-color` + آیکون اپل + `pwa.service.js` (ثبت SW) |
+
+| فایل | نقش |
+|---|---|
+| `src/core/constants/config.const.js` | `resolveApiBaseUrl(loc, override)` — تابع **خالص**: `:3000` و دامنه ⇒ `/api`؛ `file://` و Live Server (`:5500`) ⇒ آدرس مطلق |
+| `src/core/services/api.service.js` | `isNetworkError()` + `toRequestError()` — خطای شبکه به پیام فارسی و پرچم `isNetworkError` تبدیل می‌شود (هر سه مسیر: JSON/`postFormData`/`putFormData`) |
+| `src/core/services/pwa.service.js` | تزریق idempotent تگ‌های PWA + ثبت `/sw.js` با `scope: "/"` + نگه‌داشتن `beforeinstallprompt` (`window.__skbInstallPrompt` + رویداد `skb:install-available`) |
+| `src/public/manifest.webmanifest` | آیکون‌های مربع ۱۹۲/۵۱۲/ماسک‌بل + `prefer_related_applications: false` |
+| `scripts/generate-pwa-icons.ps1` | ساخت آیکون‌ها از `skb-logo.png` با `System.Drawing` (بدون وابستگی npm؛ خروجی کامیت می‌شود) |
+| `pwa-install-test.mjs` (۲۱ بررسی) · `api-base-test.mjs` (۱۲ بررسی) | گاردهای همین موج |
+| `../Backend/utils/corsOrigins.js` + `cors-config-test.mjs` (۱۷ بررسی) | `ALLOWED_ORIGINS` / `CORS_ALLOW_LAN` واقعاً خوانده می‌شوند (پیش‌فرض‌ها حفظ، افزودنی، fail-closed) |
+
+⚠️ **نکتهٔ اجرا:** روی گوشی صفحه را با `http://localhost:3000` باز کن (با `adb reverse tcp:3000 tcp:3000`).
+پورت ۵۰۰۰ دیگر لازم نیست؛ اگر با IP لپ‌تاپ هم باز کنی پروکسی کار می‌کند (مبدأ همان سایت است).
+📄 گزارش کامل: `docs/REVIEW-WAVE-13.24.md`.
+
 ## PWA — پورتال نصب‌پذیر (موج ۱۳.۸ + تکمیل ۱۳.۹)
 
 پورتال `/portal` روی گوشی «نصب‌شدنی» است (Add to Home Screen) و در حالت آفلاین

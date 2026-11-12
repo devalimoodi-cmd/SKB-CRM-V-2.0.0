@@ -19,6 +19,9 @@ const path = require("path");
 const os = require("os");
 const { protect, authorize } = require("./middleware/auth");
 const { errorResponse } = require("./utils/response");
+// ✅ موج ۱۳.۲۴ — مبدأهای مجاز CORS از .env خوانده می‌شوند
+// (ALLOWED_ORIGINS / CORS_ALLOW_LAN؛ پیش‌فرض‌ها همان فهرست قبلی است)
+const { resolveCorsOrigins } = require("./utils/corsOrigins");
 const {
   applySecurityHeaders,
   apiLimiter,
@@ -95,17 +98,13 @@ app.set("trust proxy", "loopback");
 // ✅ هدرهای امنیتی (بدون پکیج خارجی - در middleware/rateLimit.js)
 app.use(applySecurityHeaders);
 
+// ✅ موج ۱۳.۲۴ — فهرست مبدأها دیگر هاردکد نیست:
+//    پیش‌فرض‌ها + هرچه در ALLOWED_ORIGINS بیاید + (با CORS_ALLOW_LAN=true)
+//    خودکار همهٔ IPv4های محلی روی پورت ۳۰۰۰/۵۰۰۰.
+//    مسیر پیاده‌سازی: utils/corsOrigins.js (خالص و تست‌شده)
 app.use(
   cors({
-    origin: [
-      "http://localhost:3000",
-      "http://localhost:5500",
-      "http://127.0.0.1:5500",
-      // ✅ سرور اختصاصی
-      "http://192.168.168.72:3000",
-      "http://192.168.168.72",
-      "http://192.168.168.72:5000",
-    ],
+    origin: resolveCorsOrigins(process.env),
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],

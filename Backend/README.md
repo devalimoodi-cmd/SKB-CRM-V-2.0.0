@@ -87,6 +87,32 @@ npm run db:verify         # تأیید
 
 ---
 
+## CORS — مبدأهای مجاز مرورگر (موج ۱۳.۲۴)
+
+پیش از این، فهرست مبدأها **هاردکد** در `server.js` بود و متغیر `ALLOWED_ORIGINS`
+در `.env` خوانده **نمی‌شد** (بی‌اثر). حالا از `utils/corsOrigins.js` می‌آید:
+
+| متغیر | اثر |
+|---|---|
+| پیش‌فرض‌ها | `http://localhost:3000` · `http://localhost:5500` · `http://127.0.0.1:5500` · `http://192.168.168.72{,:3000,:5000}` |
+| `ALLOWED_ORIGINS=http://a:3000,http://b:3000` | به پیش‌فرض‌ها **اضافه** می‌شود (جایگزین نمی‌کند) |
+| `CORS_ALLOW_LAN=true` | خودکار `http://<هر IPv4 محلی>:3000` و `:5000` اضافه می‌شود (تست با گوشی در شبکهٔ محلی) |
+
+قواعد: تطابق **دقیق** است (پروتکل+دامنه+پورت، بدون اسلش انتهایی)؛ `*` و مقادیر
+غیر`http(s)` دور ریخته می‌شوند و خروجی هرگز خالی/`*` نیست (fail-closed).
+
+| فایل | نقش |
+|---|---|
+| `utils/corsOrigins.js` | `resolveCorsOrigins(env, defaults)` + `normalizeOrigin` / `parseOriginList` / `collectLanOrigins` |
+| `server.js` | `cors({ origin: resolveCorsOrigins(process.env), credentials: true, … })` |
+| `cors-config-test.mjs` (۱۷ بررسی) | گارد: پیش‌فرض‌ها، افزودنی بودن، trim/dedupe، fail-closed، LAN، سیم‌کشی `server.js` |
+
+> ℹ️ نکتهٔ معماری: فرانت‌اند وقتی از `Frontend/server.js` سرو شود، API را
+> **هم‌مبدأ** (`/api`) صدا می‌زند؛ پس CORS فقط برای حالت‌های استثنا لازم است
+> (Live Server روی ۵۵۰۰ یا اجرای فرانت و بک‌اند روی دو دستگاه/دامنهٔ جدا).
+
+---
+
 ## استقرار روی لینوکس (PM2)
 
 روی سرور لینوکسی از `deploy.sh` استفاده کن (معادل `deploy.bat`):

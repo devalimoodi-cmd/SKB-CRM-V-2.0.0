@@ -13,18 +13,25 @@
   "theme_color": "#2c7a6e",
   "icons": [
     {
-      "src": "/assets/images/skb-logo.png",
-      "sizes": "260x109",
+      "src": "/assets/images/pwa/icon-192.png",
+      "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/assets/images/default-avatar.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
+      "src": "/assets/images/pwa/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
       "purpose": "any"
+    },
+    {
+      "src": "/assets/images/pwa/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ],
+  "prefer_related_applications": false,
   "shortcuts": [
     {
       "name": "پروفایل من",

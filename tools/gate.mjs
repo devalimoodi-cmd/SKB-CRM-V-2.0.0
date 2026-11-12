@@ -68,6 +68,9 @@ const STEPS = [
   'test:portal-charts',
   'test:portal-tickets',
   'test:registration',
+  'test:api-base',
+  'test:pwa',
+  'test:cors-config',
   'audit:size', 'audit:dead-exports', 'audit:surface', 'audit:big-methods',
 ];
 

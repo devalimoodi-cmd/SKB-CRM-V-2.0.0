@@ -18,6 +18,17 @@
 
     <link rel="icon" type="image/png" href="/assets/images/favicon.ico">
 
+    <!-- ===== ✅ موج ۱۳.۲۴ — PWA (نصب‌پذیری روی موبایل) =====
+         چرا اینجا هم؟ کاربر معمولاً روی «صفحهٔ ورود» می‌ایستد؛ بدون
+         manifest و آیکون ۱۹۲/۵۱۲ مرورگر رویداد beforeinstallprompt را
+         هرگز نمی‌فرستد. تگ‌ها اینجا ثابت‌اند و pwa.service.js هم
+         (idempotent) همان‌ها را تضمین می‌کند. -->
+    <link rel="manifest" href="/manifest.webmanifest">
+    <meta name="theme-color" content="#2c7a6e">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="پورتال SKB">
+    <link rel="apple-touch-icon" href="/assets/images/pwa/apple-touch-icon-180.png">
+
     <style>
         /* ===== Login Page Styles ===== */
         * {
@@ -592,6 +603,9 @@
     <!-- ✅ Core Scripts (همه با type="module") -->
     <script type="module" src="/core/constants/api.const.js"></script>
     <script type="module" src="./../core/constants/config.const.js"></script>
+    <!-- ✅ موج ۱۳.۲۴ — PWA: تگ‌های head + ثبت service worker + نگه‌داشتن
+         رویداد beforeinstallprompt (پیش از این فقط پورتال این را داشت) -->
+    <script type="module" src="/core/services/pwa.service.js"></script>
     <script type="module" src="/core/services/cache.service.js"></script>
     <script type="module" src="/core/services/api.service.js"></script>
     <script type="module" src="/core/services/auth.service.js"></script>
@@ -673,6 +687,25 @@
 
             showSessionExpiredOnce();
 
+
+            // ✅ موج ۱۳.۲۴ — بررسی دسترسی به سرور (بدون احراز هویت)
+            // چرا؟ اگر بک‌اند/پروکسی بالا نباشد، کاربر فقط «Failed to
+            // fetch» می‌دید و نمی‌دانست مشکل از صفحه است یا سرور.
+            // /api/ping عمومی است (بدون protect) و از پروکسی هم‌مبدأ می‌آید.
+            async function probeServer() {
+                try {
+                    const response = await fetch('/api/ping', {
+                        headers: { Accept: 'application/json' },
+                        cache: 'no-store',
+                    });
+                    if (!response.ok) throw new Error('HTTP ' + response.status);
+                    return true;
+                } catch (error) {
+                    console.error('❌ Server probe failed:', error);
+                    showMessage('ارتباط با سرور برقرار نشد — از اجرا بودن بک‌اند مطمئن شوید', 'error');
+                    return false;
+                }
+            }
 
             async function loadCaptcha(clearMessage = true) {
                 try {
@@ -852,6 +885,8 @@
 
             // ✅ دریافت کد امنیتی هنگام باز شدن صفحه
             loadCaptcha(false);
+            // ✅ موج ۱۳.۲۴ — و یک بررسی سبک از دسترسی به سرور (پیام گویا)
+            probeServer();
 
             form.addEventListener('submit', async function (e) {
                 e.preventDefault();

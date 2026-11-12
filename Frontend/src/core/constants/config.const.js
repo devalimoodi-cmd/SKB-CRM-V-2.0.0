@@ -1,38 +1,62 @@
+// ================================================================
+// ✅ تشخیص خودکار آدرس API بر اساس مبدأ صفحه (موج ۱۳.۲۴)
+// ----------------------------------------------------------------
+// 🔴 مشکلی که این موج رفع می‌کند («Failed to fetch» روی گوشی):
+//   پیش از این روی localhost آدرس **مطلق** `http://localhost:5000/api`
+//   برمی‌گشت؛ یعنی درخواست لاگین cross-origin به پورت ۵۰۰۰ می‌رفت،
+//   در حالی که خودِ صفحه و کپچا از پروکسی هم‌مبدأ `/api` می‌آمدند.
+//   روی گوشی (adb reverse یا شبکهٔ محلی) یا پورت ۵۰۰۰ در دسترس نبود
+//   یا مبدأ صفحه در فهرست مجاز CORS نبود ⇒ مرورگر فقط
+//   «Failed to fetch» نشان می‌داد.
+//
+// ✅ قاعدهٔ تازه:
+//   • صفحه از سرور پروژه (`Frontend/server.js` روی پورت ۳۰۰۰) یا از
+//     دامنهٔ واقعی/شبکه سرو شود ⇒ همان‌مبدأ `/api` (پروکسی خودکار)
+//     ⇒ نه CORS لازم است، نه دسترسی به پورت ۵۰۰۰ از دستگاه.
+//   • فقط جایی که پروکسی وجود ندارد (file:// یا Live Server روی ۵۵۰۰)
+//     آدرس مطلق بک‌اند لوکال استفاده می‌شود.
+// ================================================================
+const LOOPBACK_HOSTS = ["localhost", "127.0.0.1", "[::1]"];
+const LOCAL_API_BASE_URL = "http://localhost:5000/api";
+
+/**
+ * آدرس پایهٔ API را از مبدأ صفحه حساب می‌کند.
+ * تابع **خالص** است (به window دست نمی‌زند) تا در گارد-تست اجرا شود.
+ * @param {{protocol?:string, hostname?:string, port?:string}|null} loc
+ * @param {string} [override] - مقدار دستی window.__API_BASE_URL__
+ * @returns {string} آدرس مطلق یا مسیر هم‌مبدأ «/api»
+ */
+export const resolveApiBaseUrl = (loc, override) => {
+  // ✅ امکان تعیین دستی از بیرون (اختیاری)
+  // مثال قبل از لود config:  window.__API_BASE_URL__ = "https://api.example.com/api"
+  if (override) return String(override);
+
+  // باز کردن مستقیم فایل (file://) → بک‌اند لوکال (هیچ پروکسی‌ای نیست)
+  if (!loc || loc.protocol === "file:") return LOCAL_API_BASE_URL;
+
+  const hostname = String(loc.hostname || "");
+  const port = String(loc.port || "");
+
+  if (LOOPBACK_HOSTS.includes(hostname)) {
+    // ۳۰۰۰ = سرور فرانت پروژه (npm start) که /api را به بک‌اند پروکسی می‌کند
+    if (port === "3000") return "/api";
+    // هر سرور استاتیک دیگر (مثل Live Server روی ۵۵۰۰) پروکسی ندارد
+    return LOCAL_API_BASE_URL;
+  }
+
+  // ✅ شبکهٔ داخلی، دامنهٔ واقعی و گوشی با IP لپ‌تاپ → پروکسی هم‌مبدأ
+  // Frontend/server.js مسیر /api را به بک‌اند پروکسی می‌کند؛
+  // بنابراین مرورگر فقط به پورتِ خودِ سایت نیاز دارد (نه پورت ۵۰۰۰)
+  // و مشکل فایروال/عدم دسترسی به IP خصوصی از اینترنت حل می‌شود.
+  return "/api";
+};
+
 const CONFIG = (() => {
   const ENV = localStorage.getItem("app_env") || "development";
 
-  // ================================================================
-  // ✅ تشخیص خودکار آدرس API بر اساس hostname مرورگر
-  // بدون نیاز به تغییر دستی بین لوکال و سرور
-  // ================================================================
   const detectApiBaseUrl = () => {
-    if (typeof window === "undefined") {
-      return "http://localhost:5000/api";
-    }
-
-    // ✅ امکان تعیین دستی از بیرون (اختیاری)
-    // مثال قبل از لود config:  window.__API_BASE_URL__ = "https://api.example.com/api"
-    if (window.__API_BASE_URL__) {
-      return window.__API_BASE_URL__;
-    }
-
-    // باز کردن مستقیم فایل (file://) → بک‌اند لوکال
-    if (window.location.protocol === "file:") {
-      return "http://localhost:5000/api";
-    }
-
-    const hostname = window.location.hostname;
-
-    // لوکال / توسعه روی لپ‌تاپ → بک‌اند لوکال
-    if (hostname === "localhost" || hostname === "127.0.0.1") {
-      return "http://localhost:5000/api";
-    }
-
-    // ✅ در همه حالت‌های دیگر (شبکهٔ داخلی و اینترنت) → پروکسی هم‌مبدأ
-    // Frontend/server.js مسیر /api را به بک‌اند پروکسی می‌کند؛
-    // بنابراین مرورگر فقط به پورتِ خودِ سایت نیاز دارد (نه پورت ۵۰۰۰)
-    // و مشکل فایروال/عدم دسترسی به IP خصوصی از اینترنت حل می‌شود.
-    return "/api";
+    if (typeof window === "undefined") return LOCAL_API_BASE_URL;
+    return resolveApiBaseUrl(window.location, window.__API_BASE_URL__);
   };
 
   const detectedApi = detectApiBaseUrl();
