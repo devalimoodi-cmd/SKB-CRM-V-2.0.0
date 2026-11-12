@@ -26,6 +26,7 @@ const {
   REQUEST_TYPES,
   REQUEST_MESSAGES,
   customerRequestView,
+  normalizeGroupFilter,
   normalizeStatusFilter,
 } = require("../services/portalRequestRules");
 
@@ -108,9 +109,13 @@ const listMyRequests = async (req, res) => {
     });
 
     const status = normalizeStatusFilter(req.query.status);
+    // ✅ ۱۳.۲۳ — فیلتر گروه (بخش‌های پورتال): مقدار ناشناخته ⇒ بدون فیلتر
+    const group = normalizeGroupFilter(req.query.group);
+
     const { rows, count, counts } = await service.listMyRequests({
       customerId,
       status,
+      types: group ? group.keys : null,
       limit,
       offset,
     });
@@ -126,6 +131,8 @@ const listMyRequests = async (req, res) => {
           pages: Math.max(1, Math.ceil(count / limit)),
         },
         meta: uiMeta(counts),
+        // گروه اعمال‌شده (برای شفافیت کلاینت/تست؛ null = همه)
+        group: group ? group.groups : null,
       },
       "درخواست‌های شما",
     );

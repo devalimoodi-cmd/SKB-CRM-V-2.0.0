@@ -1,0 +1,162 @@
+/* ============================================================
+   features/portal/portal.inline.css
+   ✅ موج ۱۳.۲۳ — «فرم درون‌خطی» ثبت/ویرایش درخواست
+   ------------------------------------------------------------
+   چرا فایل جدا؟
+    • شیت مودال ۱۳.۲۱ حذف شد؛ استایلش هم از portal.css برداشته
+      شد (گارد ۱۳.۳ اندازهٔ آن فایل را می‌سنجد).
+    • این فایل فقط نگرانی «میزبان/جایگاه فرم» است: یک بلوک درون
+      همان بخش، در جریان عادی صفحه، بدون لایهٔ شناور و بدون z-index
+      بالا ⇒ صفحه هیچ‌وقت قفل نمی‌شود.
+
+   🔒 قواعد:
+    ۱) `.portal-inline[hidden]` صریحاً display:none است (مرورگر
+       با flex/hidden اشتباه نمی‌کند).
+    ۲) هیچ قاعده‌ای نباید عنصر را از جریان صفحه بیرون ببرد یا
+       اسکرول صفحه را قفل کند (گارد ۱۳.۲۳ همین را می‌سنجد).
+    ۳) دکمهٔ بستن ≥۴۴px لمس (موبایل) و فوکوس‌پذیر است.
+   ============================================================ */
+
+/* ===== جایگاه فرم در هر بخش ===== */
+.portal-inline-slot {
+  display: block;
+}
+
+/* وقتی فرم بسته است، جایگاه هیچ فاصلهٔ اضافه‌ای نمی‌سازد */
+.portal-inline-slot:empty {
+  display: none;
+}
+
+/* نوار دکمهٔ «درخواست تازه» بالای فهرست همان بخش */
+.portal-inline-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-block-end: 10px;
+}
+
+.portal-inline-bar:empty {
+  display: none;
+}
+
+.portal-inline-bar .portal-btn {
+  min-height: 40px;
+}
+
+/* ===== میزبان فرم (درون‌خطی، جریان عادی صفحه) ===== */
+.portal-inline[hidden] {
+  display: none;
+}
+
+.portal-inline {
+  display: block;
+  margin-block: 4px 14px;
+  padding: 12px 14px 14px;
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border, #e2e8f0);
+  border-inline-start: 4px solid var(--primary, #2c7a6e);
+  border-radius: 14px;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
+  /* اسکرول‌شدن به فرم، سرصفحهٔ چسبان ناوبری را زیر خود نبرد */
+  scroll-margin-top: 84px;
+}
+
+.portal-inline__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-block-end: 8px;
+  margin-block-end: 4px;
+  border-block-end: 1px solid var(--border, #e2e8f0);
+}
+
+.portal-inline__title {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--text-main, #0f172a);
+}
+
+.portal-inline__close {
+  margin-inline-start: auto;
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-light, #64748b);
+  background: transparent;
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+.portal-inline__close:hover {
+  color: var(--danger, #dc2626);
+  border-color: currentColor;
+}
+
+.portal-inline__close:focus-visible,
+.portal-inline-bar .portal-btn:focus-visible {
+  outline: 2px solid var(--primary, #2c7a6e);
+  outline-offset: 2px;
+}
+
+/* بدنهٔ فرم: همان استایل فرم که بود، بدون سقف ارتفاع شیت */
+.portal-inline #portalFarmBody {
+  padding-block-start: 8px;
+}
+
+/* ===== ردیف هدف (همان ردیفی که دکمه‌اش زده شد) ===== */
+.portal-acc__row.is-target {
+  /* fallback برای مرورگرهای بدون color-mix */
+  background: rgba(44, 122, 110, 0.12);
+  background: color-mix(in srgb, var(--primary, #2c7a6e) 10%, transparent);
+  border-radius: 10px;
+  box-shadow: inset 3px 0 0 var(--primary, #2c7a6e);
+  animation: portal-inline-target 1.2s ease-out 1;
+}
+
+@keyframes portal-inline-target {
+  from {
+    background: rgba(44, 122, 110, 0.26);
+    background: color-mix(in srgb, var(--primary, #2c7a6e) 24%, transparent);
+  }
+  to {
+    background: rgba(44, 122, 110, 0.12);
+    background: color-mix(in srgb, var(--primary, #2c7a6e) 10%, transparent);
+  }
+}
+
+/* ===== موبایل ===== */
+@media (max-width: 640px) {
+  .portal-inline {
+    margin-block: 2px 12px;
+    padding: 10px 10px 12px;
+    border-radius: 12px;
+    scroll-margin-top: 72px;
+  }
+
+  .portal-inline__close {
+    width: 44px;
+    height: 44px;
+  }
+
+  .portal-inline-bar .portal-btn {
+    width: 100%;
+    justify-content: center;
+    min-height: 44px;
+  }
+}
+
+/* احترام به کاهش حرکت (هم‌راستا با اسکرول نرم JS) */
+@media (prefers-reduced-motion: reduce) {
+  .portal-acc__row.is-target {
+    animation: none;
+  }
+
+  .portal-inline__close {
+    transition: none;
+  }
+}

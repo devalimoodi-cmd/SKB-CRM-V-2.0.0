@@ -1,0 +1,135 @@
+/* ============================================================
+   features/portal/portal.responsive.css
+   ✅ موج ۱۳.۲۳ — «نظم و ریسپانسیو» پورتال مشتری
+   ------------------------------------------------------------
+   چرا فایل جدا؟
+    • portal.css پایهٔ دسکتاپ است و گارد ۱۳.۳ اندازه‌اش را می‌سنجد;
+      لایهٔ ریسپانسیو آخرین لینک صفحه است تا بر همه غالب باشد.
+    • ناوبری (سایدبار/drawer) استایل خودش را در portal.nav.css دارد
+      و اینجا دست‌کاری نمی‌شود.
+
+   🔒 قواعد:
+    ۱) در هیچ عرضی اسکرول افقی نباید باشد: هر جدول/تصویر/بلاک با
+       `max-width:100%` و شکستن متن مهار می‌شود.
+    ۲) هر دکمهٔ لمسی ≥۴۴×۴۴px (موبایل) و فیلدها ≥۱۶px فونت
+       (ضد zoom خودکار iOS).
+    ۳) ارتفاع‌ها با 100dvh (نوار آدرس موبایل) و
+       env(safe-area-inset-*) برای گوشی‌های ناچ‌دار تنظیم می‌شود.
+    ۴) هیچ `position: fixed` تازه‌ای اضافه نمی‌شود؛ فقط پنل جزئیات
+       موجود در موبایل تمام‌صفحه می‌شود.
+   ============================================================ */
+
+/* ===== ۱) مهار سیل افقی ===== */
+html.portal-page,
+body:has(> .portal-page) {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+.portal-page img,
+.portal-page svg,
+.portal-page canvas,
+.portal-page table {
+  max-width: 100%;
+}
+
+.portal-page pre,
+.portal-page code,
+.portal-row__sub,
+.portal-card__head span {
+  overflow-wrap: anywhere;
+}
+
+/* سلول‌های جدول در موبایل متن را نشکنند (کارت‌شدن جای nowrap) */
+@media (max-width: 639px) {
+  .portal-page table.portal-table:not([data-cards="1"]) td,
+  .portal-page table.portal-table:not([data-cards="1"]) th {
+    white-space: normal;
+  }
+}
+
+/* ===== ۲) سرصفحهٔ کارت‌ها: عنوان + توضیح کوتاه، بدون سرریز ===== */
+.portal-page .portal-card__head {
+  flex-wrap: wrap;
+  row-gap: 4px;
+}
+
+.portal-page .portal-card__head > span {
+  min-width: 0;
+}
+
+/* ===== ۳) لمس راحت (فقط جایی که از قبل دکمه بوده) ===== */
+@media (max-width: 768px) {
+  .portal-page .portal-btn,
+  .portal-page .btn {
+    min-height: 44px;
+  }
+
+  .portal-page input,
+  .portal-page select,
+  .portal-page textarea {
+    min-height: 44px;
+    font-size: 16px; /* ضد zoom خودکار iOS */
+  }
+}
+
+/* ===== ۴) پنل جزئیات در موبایل تمام‌صفحه ===== */
+@media (max-width: 480px) {
+  .portal-page .portal-detail__box {
+    width: 100%;
+    max-width: 100%;
+    max-height: 100dvh;
+    border-radius: 0;
+  }
+}
+
+/* ===== ۵) KPIها: ۱ ستون موبایل → ۲ ستون ۴۸۰ → ۴ ستون ۹۰۰ ===== */
+@media (max-width: 479px) {
+  .portal-page .portal-kpis {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (min-width: 480px) and (max-width: 899px) {
+  .portal-page .portal-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* ===== ۶) ارتفاع کامل صفحه با dvh (نوار آدرس موبایل) ===== */
+.portal-page {
+  min-height: 100dvh;
+}
+
+/* ===== ۷) فاصلهٔ عمودی یکنواخت بخش‌ها ===== */
+.portal-page .portal-sections,
+.portal-page .portal-tabpanels {
+  row-gap: 14px;
+}
+
+@media (max-width: 640px) {
+  .portal-page .portal-sections {
+    row-gap: 12px;
+  }
+
+  .portal-page .portal-card {
+    padding-inline: 10px;
+  }
+
+  /* نوار پایین فرم/کامپوزر با ناچ گوشی هم‌پوشانی نکند */
+  .portal-page .portal-tk__form {
+    padding-bottom: max(8px, env(safe-area-inset-bottom));
+  }
+}
+
+/* ===== ۸) احترام به کاهش حرکت ===== */
+@media (prefers-reduced-motion: reduce) {
+  .portal-page *,
+  .portal-page *::before,
+  .portal-page *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

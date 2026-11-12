@@ -159,9 +159,15 @@ const pendingCountOf = async (customerId) =>
   });
 
 // شمارنده‌های صفحهٔ «درخواست‌های من» برای UI
-const countsOf = async (customerId) => {
+// ✅ ۱۳.۲۳ — `types` اختیاری: شمارنده‌ها با فیلتر گروه همان بخش می‌آیند
+//  تا عدد «در انتظار» بیرون از بخش، دروغ نباشد.
+const countsOf = async (customerId, { types = null } = {}) => {
+  const where = { customer_id: customerId };
+  if (Array.isArray(types) && types.length) {
+    where.request_type = { [Op.in]: types };
+  }
   const rows = await PortalRequest.findAll({
-    where: { customer_id: customerId },
+    where,
     attributes: [
       "status",
       [sequelize.fn("COUNT", sequelize.col("id")), "total"],
@@ -301,10 +307,23 @@ const createRequest = async ({
 
 // ============================================
 // ۳) فهرست درخواست‌های خودم
+// ------------------------------------------------------------
+//  ✅ ۱۳.۲۳ — `types`: فهرست سفید نوع‌ها (از فیلتر گروه همان بخش
+//  پورتال). نبودِ آن ⇒ همهٔ نوع‌ها (رفتار ۱۳.۱۱ دست‌نخورده).
+//  🔒 customer_id فقط از توکن می‌آید و هرگز از query خوانده نمی‌شود.
 // ============================================
-const listMyRequests = async ({ customerId, status = null, limit = 20, offset = 0 }) => {
+const listMyRequests = async ({
+  customerId,
+  status = null,
+  types = null,
+  limit = 20,
+  offset = 0,
+}) => {
   const where = { customer_id: customerId };
   if (status) where.status = status;
+  if (Array.isArray(types) && types.length) {
+    where.request_type = { [Op.in]: types };
+  }
 
   const { rows, count } = await PortalRequest.findAndCountAll({
     where,
@@ -316,7 +335,11 @@ const listMyRequests = async ({ customerId, status = null, limit = 20, offset = 
     offset,
   });
 
-  return { rows, count: Number(count) || 0, counts: await countsOf(customerId) };
+  return {
+    rows,
+    count: Number(count) || 0,
+    counts: await countsOf(customerId, { types }),
+  };
 };
 
 // ============================================

@@ -1,0 +1,71 @@
+/* ============================================================
+   features/portal/portal.charts.css
+   ✅ موج ۱۳.۲۳ — نمودارهای تعاملی Chart.js در پورتال مشتری
+   ------------------------------------------------------------
+   چرا فایل جدا؟
+    • `.portal-chart*` پایه (سرصفحه/راهنما/حالت خالی) در
+      portal.css است؛ این فایل فقط «جعبهٔ canvas» را می‌سازد.
+    • گارد ۱۳.۳ اندازهٔ portal.css را می‌سنجد ⇒ رشد نکنَد.
+
+   🔒 قواعد:
+    ۱) جعبهٔ canvas باید ارتفاع صریح داشته باشد؛ وگرنه Chart.js با
+       `maintainAspectRatio:false` ارتفاع صفر می‌گیرد و نمودار
+       نامرئی می‌شود (تلهٔ کلاسیک).
+    ۲) هیچ عنصری از جریان صفحه بیرون نمی‌رود و هیچ z-index بالایی
+       در کار نیست.
+    ۳) در موبایل جعبه کوتاه‌تر می‌شود تا اسکرول طولانی نشود.
+   ============================================================ */
+
+.portal-chart--live {
+  margin: 0;
+  padding: 4px 12px 10px;
+}
+
+.portal-chart__box {
+  position: relative;
+  width: 100%;
+  height: 220px;
+  min-height: 180px;
+}
+
+/* canvas داخل جعبه دقیقاً همان اندازه را بگیرد (RTL هم بی‌اثر است) */
+.portal-chart__box > canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100%;
+}
+
+/* شبکهٔ نمودارهای داشبورد: یک‌ستون موبایل، دوستون از ۷۶۸px */
+#portalDashboardCharts {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+@media (min-width: 768px) {
+  .portal-chart__box {
+    height: 260px;
+  }
+
+  #portalDashboardCharts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 480px) {
+  .portal-chart--live {
+    padding: 2px 6px 8px;
+  }
+
+  .portal-chart__box {
+    height: 200px;
+  }
+}
+
+/* احترام به کاهش حرکت (JS هم animation را خاموش می‌کند) */
+@media (prefers-reduced-motion: reduce) {
+  .portal-chart__box > canvas {
+    transition: none;
+  }
+}

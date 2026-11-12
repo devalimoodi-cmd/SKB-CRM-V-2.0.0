@@ -925,6 +925,28 @@ npm run test:cache    :: نگهبانهای UI (وجود بخش، سه‌حال�
 
 📄 گزارش کامل: `docs/REVIEW-WAVE-13.22.md`.
 
+## «هر بخش، فرم و نمودارِ خودش» — حذف شیت + Chart.js (موج ۱۳.۲۳)
+
+شیت مودال ۱۳.۲۱ حذف شد و ثبت/ویرایش **درون‌خطی در همان بخش** انجام
+می‌شود؛ نمودارها هم از SVG تزئینی به **Chart.js واقعی** رسیدند.
+**۰ اندپوینت · ۰ کلید · ۰ مایگریشن** — فقط UI و یک پارامتر نمایشی.
+
+| موضوع | مقدار |
+|---|---|
+| فرم درون‌خطی | سه گره در HTML: میزبان واحد `#portalRequestForm` + پارکینگ `#portalInlinePark` + جایگاه هر بخش `data-inline-slot`؛ باز شدن = `appendChild` به همان بخش، بستن = بازگشت به پارکینگ ⇒ شناسه‌های `portalFarmBody/Status` یکتا می‌مانند و شنونده‌ها/وضعیت فرم پاک نمی‌شوند |
+| هر بخش، فرم خودش | `FARM_PANEL_GROUPS` (units → `unit+hall`, halls → `hall+hall_details`, placements → `placement`, weeks/flocks → `weekly`)؛ `renderFarmPanel({ scope })` فقط گروه‌های همان بخش را تب می‌کند |
+| هر بخش، فهرست خودش | `GET /api/portal/farm/requests?group=unit,hall` (پارامتر اختیاری، مقدار ناشناخته ⇒ بدون فیلتر) + شمارنده‌های همان گروه؛ نگاشت در `Backend/services/portalRequestRules.js` (`normalizeGroupFilter`) |
+| دکمهٔ هر بخش | `data-inline-open="units|halls|placements|weeks|flocks"` با نوع پیش‌فرض همان بخش (`FARM_PANEL_DEFAULT_TYPE`) |
+| ردیف هدف | `markFarmTarget(origin)` ⇒ کلاس `is-target` + باز نگه‌داشتن `<details>` والد + اسکرول محترم به `prefers-reduced-motion` |
+| نمودارها | `features/portal/portal.charts.js` — Chart.js از `node_modules/chart.js` (همان نسخهٔ `dashboard.html`) + تم `chart-theme.service` (app.service) + specهای `weeklyWeightSpec`/`dashboardSpecs`/`standardsSpec`، رجیستری `canvasId → Chart` (mount دوباره = destroy قبلی) و **fallback اجباری** به SVG ۱۳.۴ اگر `window.Chart` نبود |
+| سری‌های مشترک | `farmChartSeries` در `portal.renderer.js` ⇒ نمودار SVG و تعاملی هرگز دو عدد متفاوت نشان نمی‌دهند |
+| ریسپانسیو | `features/portal/portal.responsive.css` + `decorateTables` در «پایان دوره»، «گزارش نهایی» و «مقایسهٔ گله‌ها»؛ `100dvh`, `env(safe-area-inset-*)`, دکمه ≥۴۴px, فیلد ۱۶px |
+| استایل‌های تازه | `portal.inline.css` (فرم درون‌خطی، بدون `fixed`/قفل صفحه) · `portal.charts.css` (جعبهٔ canvas با ارتفاع صریح) · `portal.responsive.css` — `portal.css` سبک‌تر شد |
+| گاردها | `test:portal-inline` **۲۱** (تازه) · `test:portal-charts` **۲۴** (تازه) · `test:portal-tree` ۳۳ · `test:customer-portal` ۲۲۱ ⇒ دروازه **۵۳ گام** |
+| رفتار بدون Chart.js | پورتال دقیقاً مثل ۱۳.۲۲ کار می‌کند (SVG)؛ هیچ بررسی‌ای به کتابخانه گره نخورده است |
+
+📄 گزارش کامل: `docs/REVIEW-WAVE-13.23.md`.
+
 ## بازآرایی پورتال: آکاردئون، شیت درخواست و «ارسال تیکت» (موج ۱۳.۲۱)
 
 سه منو کارِ پنل را انجام می‌دادند که خودشان پنل نبودند: «درخواست‌های من»

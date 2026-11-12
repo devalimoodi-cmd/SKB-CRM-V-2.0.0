@@ -668,13 +668,20 @@ const typeTabHtml = (type, activeType) => `
   </button>`;
 
 // تب‌های گروه‌بندی‌شده (۵ گروه · ۱۸ نوع)
-const groupedTabsHtml = (typeMap, activeType) =>
-  FARM_FORM_GROUPS.map((group) => {
-    const types = group.types
-      .filter((key) => typeMap.has(key))
-      .map((key) => typeMap.get(key));
-    if (!types.length) return "";
-    return `
+// ✅ ۱۳.۲۳ — `scope` = گروه‌های مجاز همین بخش؛ خالی ⇒ همهٔ گروه‌ها.
+const groupedTabsHtml = (typeMap, activeType, scope = []) => {
+  const allowed = Array.isArray(scope) ? scope.filter(Boolean) : [];
+  const groups = allowed.length
+    ? FARM_FORM_GROUPS.filter((group) => allowed.includes(group.key))
+    : FARM_FORM_GROUPS;
+
+  return groups
+    .map((group) => {
+      const types = group.types
+        .filter((key) => typeMap.has(key))
+        .map((key) => typeMap.get(key));
+      if (!types.length) return "";
+      return `
       <div class="portal-farm__group">
         <h4 class="portal-farm__group-title">
           <i class="fas ${esc(group.icon)}" aria-hidden="true"></i>
@@ -684,7 +691,9 @@ const groupedTabsHtml = (typeMap, activeType) =>
           ${types.map((type) => typeTabHtml(type, activeType)).join("")}
         </div>
       </div>`;
-  }).join("");
+    })
+    .join("");
+};
 
 // ============================================================
 // ✅ ۱۳.۱۶ — فیلتر وضعیت + صفحه‌بندی «درخواست‌های من»
@@ -762,6 +771,8 @@ export const renderFarmPanel = ({
   prefillNote = "",
   confirmOpen = false,
   list = {},
+  // ✅ ۱۳.۲۳ — گروه‌های مجاز همین بخش (خالی ⇒ همهٔ ۵ گروه)
+  scope = [],
 } = {}) => {
   // ✅ ۱۳.۱۶: دیکشنری‌ها از همان پاسخ گزینه‌ها (بدون درخواست تازه)
   const dictionaries = (options && options.dictionaries) || {};
@@ -850,7 +861,7 @@ export const renderFarmPanel = ({
         <span class="portal-farm__counter">${faNumber(pending)} در انتظار · سقف ${faNumber(maxPending)}</span>
       </div>
 
-      <div class="portal-farm__groups">${groupedTabsHtml(typeMap, activeType)}</div>
+      <div class="portal-farm__groups">${groupedTabsHtml(typeMap, activeType, scope)}</div>
 
       ${
         canRequest

@@ -25,6 +25,12 @@ import {
   renderVisitDetail,
   renderWeeklyChart,
 } from "./portal.renderer.js";
+// ✅ ۱۳.۲۳ — نمودارهای تعاملی Chart.js (با fallback خودکار به SVG بالا)
+import {
+  mountWeeklyLiveChart,
+  renderWeeklyLiveChart,
+  resizeCharts,
+} from "./portal.charts.js";
 import { notificationService } from "../../core/services/notification.service.js";
 // ✅ موج ۱۳.۸ — تب‌های «پروفایل من» و «داشبورد تحلیلی» (mixin جدا)
 import { EXTRA_TABS, applyPortalExtra } from "./portal.extra.js";
@@ -182,10 +188,10 @@ class PortalService {
     this.bindExtra();
     // ✅ ۱۳.۱۰: رویدادهای تب «مدارک من» (آپلود/دانلود/حذف)
     this.bindDocuments();
-    // ✅ ۱۳.۱۱: رویدادهای شیت «ثبت درخواست» (ثبت/لغو/فیلتر)
+    // ✅ ۱۳.۱۱: رویدادهای «فرم درخواست» (ثبت/لغو/فیلتر)
     this.bindFarm();
-    // ✅ ۱۳.۲۱: باز/بستن شیت درخواست (backdrop/Esc + دکمه‌های ردیف‌ها)
-    this.bindRequestSheet();
+    // ✅ ۱۳.۲۳: باز/بستن «فرم درون‌خطی» (دکمهٔ ردیف‌ها + دکمهٔ هر بخش + Esc)
+    this.bindInlineForm();
     // ✅ ۱۳.۱۷: رویدادهای چهار نمای تازه + پوستهٔ ناوبری (hash/drawer)
     this.bindViews();
     // ✅ ۱۳.۲۱: رویدادهای پنل «ارسال تیکت» (فهرست/گفتگو/ارسال)
@@ -575,6 +581,17 @@ class PortalService {
       panel.hidden = panel.getAttribute("data-portal-panel") !== key;
     });
 
+    // ✅ ۱۳.۲۳ — فرم درون‌خطی به بخش خودش تعلق دارد؛ با رفتن به بخش
+    //  دیگر بسته می‌شود تا فرمِ سرگردان در پنلِ پنهان نماند.
+    if (typeof this.isRequestFormOpen === "function" && this.isRequestFormOpen()) {
+      const hostPanel = this.farm && this.farm.ui ? this.farm.ui.panel : "";
+      if (hostPanel && hostPanel !== key) this.closeRequestForm({ focusBack: false });
+    }
+
+    // ✅ ۱۳.۲۳ — canvas داخل پنل پنهان ارتفاع صفر می‌گیرد؛ بعد از نمایش
+    //  (و بعد از بسته‌شدن فرم) نمودارهای همان بخش هم‌اندازه می‌شوند.
+    resizeCharts();
+
     // ✅ ۱۳.۸: دو تب تازه فهرست صفحه‌بندی‌شده نیستند ⇒ بارگذاری جدا
     if (EXTRA_TABS[key]) {
       if (!this.extra[key].loaded) this.loadExtraTab(key);
@@ -663,10 +680,17 @@ class PortalService {
     if (key === "weeks") this.renderChart(state.items);
   }
 
-  // نمودار SVG از همان دادهٔ صفحه (بدون درخواست اضافه)
+  // نمودار روند وزن: Chart.js اگر بارگذاری شده باشد، وگرنه SVG ۱۳.۴
+  //  ✅ ۱۳.۲۳ — داده همان دادهٔ همین صفحه است (صفر درخواست اضافه).
   renderChart(items) {
     const box = this.el("portalChart");
     if (!box) return;
+    const live = renderWeeklyLiveChart(items);
+    if (live) {
+      box.innerHTML = live;
+      mountWeeklyLiveChart(items);
+      return;
+    }
     box.innerHTML = renderWeeklyChart(items);
   }
 

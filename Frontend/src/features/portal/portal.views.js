@@ -35,7 +35,7 @@ import {
 } from "./portal.payload.js";
 // ✅ فهرست/برچسب فیلدهای هر بخش سالن از همان مشخصات فرم ۱۳.۱۶ می‌آید
 //    (یک منبع؛ هیچ فهرست ستون دومی در این فایل ساخته نمی‌شود)
-import { farmSpecOf } from "./portal.farm.rules.js";
+import { farmPanelOfType, farmSpecOf } from "./portal.farm.rules.js";
 // برای واگذاری بارگذاری تب‌های قبلی (فارم/مدارک/پروفایل/داشبورد)
 import { portalFarmMixin } from "./portal.farm.js";
 // ✅ ۱۳.۲۱ — آکاردئون/درخت خالص + جدول ریسپانسیو + پنل تیکت
@@ -1229,8 +1229,8 @@ export const portalViewsMixin = {
     if (typeof document === "undefined" || !document.addEventListener) return;
     this.viewsBound = true;
 
-    // ✅ ۱۳.۲۱ — هر دکمهٔ ردیف (ثبت/ویرایش/حذف واحد، سالن، دوره، هفته)
-    //  شیت درخواست را با «نوع» و «هدف» همان ردیف باز می‌کند.
+    // ✅ ۱۳.۲۳ — هر دکمهٔ ردیف (ثبت/ویرایش/حذف واحد، سالن، دوره، هفته)
+    //  «فرم درون‌خطی» همان بخش را با نوع و هدف همان ردیف باز می‌کند.
     //  🔒 شناسه از `data-farm-unit`/`data-farm-hall` همان دکمه می‌آید
     //     (خروجی سرور) — نه از URL؛ و سرور مستقل همان را می‌سنجد.
     const bindFarmActions = (body) => {
@@ -1248,9 +1248,21 @@ export const portalViewsMixin = {
             action.getAttribute("data-farm-placement") ||
             action.getAttribute("data-farm-weekly") ||
             "";
-          return this.openRequestSheet(
+          // بخش میزبان = نزدیک‌ترین پنل همین دکمه (نه تبِ «فعال»)
+          const panelNode = action.closest("[data-portal-panel]");
+          const accNode = action.closest("[data-acc-id]");
+          return this.openRequestForm(
             action.getAttribute("data-farm-action"),
             id,
+            {
+              panel: panelNode
+                ? String(panelNode.getAttribute("data-portal-panel") || "").trim()
+                : "",
+              accId: accNode
+                ? String(accNode.getAttribute("data-acc-id") || "").trim()
+                : "",
+              origin: action,
+            },
           );
         }
 
@@ -1762,6 +1774,8 @@ export const portalViewsMixin = {
       pagination: state.pagination,
       canReport: this.completionCanReport(),
     });
+    // ✅ ۱۳.۲۳ — جدول‌های این پنل هم در موبایل کارت می‌شوند
+    decorateTables(body);
   },
 
   // ===== ۴) «به‌زودی» (بدون درخواست) =====
@@ -1885,6 +1899,8 @@ export const portalViewsMixin = {
       report: state.report,
       selectedId: state.completionId,
     });
+    // ✅ ۱۳.۲۳ — جدول‌های گزارش نهایی هم در موبایل کارت می‌شوند
+    decorateTables(body);
   },
 
   // پرش از کارت «پایان دوره» به گزارش نهایی همان دوره
@@ -1951,9 +1967,13 @@ export const portalViewsMixin = {
       return "units";
     }
 
-    // ✅ ۱۳.۲۱ — مسیر «ثبت هفته/درخواست تازه» از منو حذف شد؛ اگر ورودی
-    //  مسیر هنوز farmType داشت، همان نوع در «شیت» باز می‌شود (نه پنل).
-    if (entry.farmType) return this.openRequestSheet(entry.farmType, "");
+    // ✅ ۱۳.۲۳ — مسیر ثبت تازه: همان فرم، ولی درون‌خطی در بخشِ خانهٔ نوع
+    //  (نه شیت مودال؛ هیچ لایهٔ روی صفحه باز نمی‌شود).
+    if (entry.farmType) {
+      return this.openRequestForm(entry.farmType, "", {
+        panel: farmPanelOfType(entry.farmType),
+      });
+    }
 
     return "";
   },

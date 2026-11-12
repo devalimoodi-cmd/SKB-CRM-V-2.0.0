@@ -2143,86 +2143,13 @@
 }
 
 /* ============================================================
-   شیت «ثبت درخواست» — پایین‌کش شناور (بدون مسیر/آیتم منو)
+   ✅ ۱۳.۲۳ — شیت «ثبت درخواست» حذف شد
+   ------------------------------------------------------------
+   فرم اکنون «درون‌خطی» داخل همان بخش باز می‌شود؛ استایل آن در
+   فایل جدا `portal.inline.css` است تا این فایل (که گارد ۱۳.۳
+   اندازه‌اش را می‌سنجد) سبک‌تر شود. هیچ قاعدهٔ شیتِ درخواست یا
+   قفل‌کردن بدنهٔ صفحه نباید در این فایل بماند (گارد ۱۳.۲۳ می‌سنجد).
    ============================================================ */
-.portal-sheet[hidden] {
-  display: none;
-}
-
-.portal-sheet {
-  position: fixed;
-  inset: 0;
-  z-index: 1200;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-}
-
-.portal-sheet__backdrop {
-  position: absolute;
-  inset: 0;
-  background: rgba(15, 23, 42, 0.55);
-  backdrop-filter: blur(1px);
-}
-
-.portal-sheet__dialog {
-  position: relative;
-  width: min(760px, 100%);
-  max-height: min(88vh, 880px);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  background: var(--bg-surface, #fff);
-  border: 1px solid var(--border, #e2e8f0);
-  border-radius: 18px 18px 0 0;
-  box-shadow: 0 -12px 40px rgba(15, 23, 42, 0.25);
-}
-
-.portal-sheet__head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 16px;
-  font-weight: 600;
-  color: var(--text-main);
-  border-bottom: 1px solid var(--border, #e2e8f0);
-}
-
-.portal-sheet__head i {
-  color: var(--primary);
-}
-
-.portal-sheet__close {
-  margin-inline-start: auto;
-  width: 32px;
-  height: 32px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-light, #64748b);
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: 9px;
-  cursor: pointer;
-}
-
-.portal-sheet__close:hover {
-  color: var(--danger, #dc2626);
-  border-color: currentColor;
-}
-
-/* تنها بخش اسکرول‌شونده: بدنهٔ فرم (سرصفحه ثابت می‌ماند) */
-.portal-sheet__dialog > #portalFarmBody {
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow-y: auto;
-  padding: 12px 16px 20px;
-}
-
-/* وقتی شیت باز است، صفحهٔ پشت آن اسکرول نشود */
-body.portal-sheet-open {
-  overflow: hidden;
-}
 
 /* ============================================================
    پنل «ارسال تیکت» (گفتگو با پشتیبانی)
@@ -2439,11 +2366,6 @@ body.portal-sheet-open {
   .portal-acc__row-actions .portal-btn {
     flex: 1 1 0;
     justify-content: center;
-  }
-
-  .portal-sheet__dialog {
-    max-height: 92vh;
-    border-radius: 16px 16px 0 0;
   }
 }
 

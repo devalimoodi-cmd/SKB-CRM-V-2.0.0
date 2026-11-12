@@ -28,11 +28,17 @@ import {
 } from "./portal.api.js";
 import {
   FARM_DEFAULT_TYPE,
+  FARM_FORM_GROUPS,
   FARM_MAX_ID_LIST_ITEMS,
   FARM_MAX_LIST_ITEMS,
+  farmDefaultTypeOfPanel,
   farmFieldId,
+  farmGroupsOfPanel,
   farmIsDestructive,
+  farmPanelOfType,
   farmSpecOf,
+  farmTypeGroupOf,
+  farmTypeMeta,
 } from "./portal.farm.rules.js";
 import {
   farmItemRowHtml,
@@ -71,8 +77,16 @@ const payloadDataOf = (payload) => (payload && payload.data ? payload.data : {})
 export const FARM_LIST_STATUS_KEYS = ["", ...FARM_STATUS_KEYS];
 export const FARM_LIST_PAGE_LIMIT = 20;
 
-// ✅ ۱۳.۲۱ — شناسهٔ شیت درخواست در HTML (جای پنل «درخواست‌های من»)
-const SHEET_ID = "portalRequestSheet";
+// ✅ ۱۳.۲۳ — میزبان «فرم درون‌خطی» (شیت ۱۳.۲۱ حذف شد)
+//  🔒 یک نسخهٔ واحد در HTML؛ با باز شدن به جایگاه همان بخش منتقل
+//     می‌شود (appendChild) و با بستن به پارکینگ برمی‌گردد. چرا
+//     جابه‌جایی گره به‌جای ساختن چند نسخه؟ چون شناسه‌های
+//     portalFarmStatus/portalFarmBody یکتا می‌مانند و منطق
+//     ۱۳.۱۱/۱۳.۱۶ بدون تغییر روی همان‌ها کار می‌کند.
+const FORM_ID = "portalRequestForm";
+const FORM_TITLE_ID = "portalRequestFormTitle";
+const PARK_ID = "portalInlinePark";
+const SLOT_ATTR = "data-inline-slot";
 
 // ============================================================
 // تقسیم‌بندی نوع‌ها بر اساس رفتار فرم
@@ -333,8 +347,10 @@ export const portalFarmMixin = {
       },
     };
     this.farmBound = false;
-    // ✅ ۱۳.۲۱ — نشان «شنوندهٔ شیت درخواست وصل شده»
-    this.sheetBound = false;
+    // ✅ ۱۳.۲۳ — نشان «شنوندهٔ فرم درون‌خطی وصل شده» + جایگاه فعلی فرم
+    this.inlineBound = false;
+    // panel: بخش میزبان | accId: ردیف هدف | origin: دکمهٔ مبدأ (بازگشت فوکوس)
+    this.farm.ui = { panel: "", accId: "", origin: null };
   },
 
   // ===== گیت‌ها (منبع اول: پاسخ سرور، بعد مجوز کلاینت) =====
@@ -440,58 +456,117 @@ export const portalFarmMixin = {
   },
 
   // ============================================================
-  // ✅ ۱۳.۲۱ — شیت «ثبت درخواست» (جای پنل حذف‌شدهٔ «درخواست‌های من»)
+  // ✅ ۱۳.۲۳ — «فرم درون‌خطی» (جای شیت مودال ۱۳.۲۱)
   // ------------------------------------------------------------
-  //  چرا شیت؟ فرم باید از داخل همان ردیف (واحد/سالن/دوره/هفته) با
-  //  «نوع» و «هدف» از پیش انتخاب‌شده باز شود؛ پنل مستقل مجبور بود
-  //  کاربر را وادار کند نوع و هدف را دستی انتخاب کند.
+  //  چرا درون‌خطی؟ کاربر نباید برای ثبت/ویرایش از بخشی که در آن
+  //  است بیرون برود و پشتِ یک لایهٔ مودال بیفتد؛ فرم باید داخل همان
+  //  بخش، با «نوع» و «هدف» از پیش انتخاب‌شده، باز شود.
+  //  🔒 سه گره در HTML: یک میزبان واحد + یک پارکینگ + جایگاه هر بخش.
+  //     جابه‌جایی گره (نه ساخت دوباره) ⇒ شنونده‌های داخل فرم
+  //     (bindFarm) و وضعیت فرم پاک نمی‌شوند.
   //  🔒 شناسهٔ هدف از `data-farm-*` همان ردیف می‌آید؛ بعد از آن هم
   //     خودِ سرور مالکیت/مجوز نوع را می‌سنجد (هیچ اعتماد به کلاینت).
   // ============================================================
-  bindRequestSheet() {
-    if (this.sheetBound) return;
+  bindInlineForm() {
+    if (this.inlineBound) return;
     if (typeof document === "undefined" || !document.addEventListener) return;
 
-    const sheet = this.el(SHEET_ID);
-    if (!sheet) return;
-    this.sheetBound = true;
+    const form = this.el(FORM_ID);
+    if (!form) return;
+    this.inlineBound = true;
 
-    // بستن با backdrop یا دکمهٔ ضربدر (هر دو data-sheet-close دارند)
-    sheet.addEventListener("click", (event) => {
+    // دکمهٔ بستن (data-inline-close) — بدون backdrop اجباری
+    form.addEventListener("click", (event) => {
       const target = event.target;
       if (!target || !target.closest) return;
-      if (target.closest("[data-sheet-close]")) {
+      if (target.closest("[data-inline-close]")) {
         event.preventDefault();
-        this.closeRequestSheet();
+        this.closeRequestForm();
       }
+    });
+
+    // دکمهٔ «درخواست تازه» هر بخش (ثابت داخل جایگاه همان بخش)
+    document.addEventListener("click", (event) => {
+      const target = event.target;
+      if (!target || !target.closest) return;
+      const opener = target.closest("[data-inline-open]");
+      if (!opener) return;
+      event.preventDefault();
+      const panel = String(opener.getAttribute("data-inline-open") || "").trim();
+      return this.openRequestForm(farmDefaultTypeOfPanel(panel), "", {
+        panel,
+        origin: opener,
+      });
     });
 
     // Esc ⇒ همان رفتار بستن (بدون trap فوکوس پیچیده)
     document.addEventListener("keydown", (event) => {
       if (event.key !== "Escape" && event.key !== "Esc") return;
-      if (!this.isRequestSheetOpen()) return;
+      if (!this.isRequestFormOpen()) return;
       event.preventDefault();
-      this.closeRequestSheet();
+      this.closeRequestForm();
     });
   },
 
-  isRequestSheetOpen() {
-    const sheet = this.el(SHEET_ID);
-    return Boolean(sheet && sheet.hidden === false);
+  // جایگاه فرمِ یک بخش (فقط کلید حرفی — هیچ سلکتور آزادی از بیرون)
+  requestFormSlot(panel) {
+    const key = String(panel || "").trim();
+    if (!key || !/^[a-zA-Z]+$/.test(key)) return null;
+    if (typeof document === "undefined" || !document.querySelector) return null;
+    return document.querySelector(`[${SLOT_ATTR}="${key}"]`);
   },
 
-  closeRequestSheet() {
-    const sheet = this.el(SHEET_ID);
-    if (!sheet) return false;
-    sheet.hidden = true;
-    if (typeof document !== "undefined" && document.body) {
-      document.body.classList.remove("portal-sheet-open");
+  isRequestFormOpen() {
+    const form = this.el(FORM_ID);
+    return Boolean(form && form.hidden === false);
+  },
+
+  // انتقال میزبان فرم به بخش مقصد (null اگر جایگاهی نبود)
+  mountRequestForm(panel) {
+    const form = this.el(FORM_ID);
+    if (!form) return null;
+    const host = this.requestFormSlot(panel) || this.el(PARK_ID);
+    if (!host) return null;
+    if (form.parentNode !== host) host.appendChild(form);
+    form.hidden = false;
+    form.setAttribute("data-inline-panel", String(panel || ""));
+    return form;
+  },
+
+  // بازگرداندن میزبان فرم به پارکینگ (فرم بسته می‌شود)
+  unmountRequestForm() {
+    const form = this.el(FORM_ID);
+    if (!form) return false;
+    const park = this.el(PARK_ID);
+    if (park && form.parentNode !== park) park.appendChild(form);
+    form.hidden = true;
+    form.removeAttribute("data-inline-panel");
+    return true;
+  },
+
+  closeRequestForm({ focusBack = true } = {}) {
+    if (!this.isRequestFormOpen()) return false;
+    const origin = this.farm.ui ? this.farm.ui.origin : null;
+    if (this.farm.ui) this.farm.ui = { panel: "", accId: "", origin: null };
+
+    this.resetFarmForm();
+    const title = this.el(FORM_TITLE_ID);
+    if (title) title.textContent = "ثبت درخواست";
+    this.renderFarm();
+    this.unmountRequestForm();
+
+    if (focusBack && origin && origin.isConnected && typeof origin.focus === "function") {
+      origin.focus();
     }
     return true;
   },
 
-  // باز کردن شیت با نوع + هدف از پیش انتخاب‌شده
-  async openRequestSheet(rawType, rawTargetId = "") {
+  // باز کردن فرم درون‌خطی با نوع + هدف از پیش انتخاب‌شده
+  async openRequestForm(
+    rawType,
+    rawTargetId = "",
+    { panel = "", accId = "", origin = null } = {},
+  ) {
     const type = String(rawType || "").trim();
     // 🔒 فقط نوع‌های شناخته‌شدهٔ همان مشخصات ۱۳.۱۶ (منبع سرور)
     if (!farmSpecOf(type).length) return null;
@@ -506,18 +581,20 @@ export const portalFarmMixin = {
       return null;
     }
 
-    const sheet = this.el(SHEET_ID);
-    if (!sheet) return null;
+    // بخش میزبان: اول همان بخشی که کاربر در آن است، بعد «خانهٔ نوع»
+    const targetPanel = String(panel || farmPanelOfType(type) || "").trim();
+    const targetAcc = String(accId || "").trim();
 
-    sheet.hidden = false;
-    if (typeof document !== "undefined" && document.body) {
-      document.body.classList.add("portal-sheet-open");
-    }
+    const form = this.mountRequestForm(targetPanel);
+    if (!form) return null;
+
+    this.farm.ui = { panel: targetPanel, accId: targetAcc, origin: origin || null };
 
     // گزینه‌ها/فهرست یک‌بار (همان کش ۱۳.۱۶ — بدون درخواست تکراری)
     if (!this.extra.farm.loaded) await this.loadFarmTab();
 
     const field = farmSpecOf(type)[0] || null;
+    // 🔒 هدف فقط از `data-farm-*` همان دکمه؛ accId تنها برای هایلایت است
     const targetId = String(rawTargetId || "").trim();
 
     // همان مسیر ۱۳.۱۵: تغییر نوع ⇒ پاک‌سازی فرم + رندر
@@ -530,12 +607,65 @@ export const portalFarmMixin = {
       await this.loadFarmTargetDetails();
     }
 
-    const first = sheet.querySelector(
-      "#portalFarmBody select, #portalFarmBody input, #portalFarmBody button",
+    this.setRequestFormTitle(type, targetPanel);
+    this.revealInlineForm(form, origin);
+
+    const first = form.querySelector(
+      "#portalFarmBody select, #portalFarmBody input, #portalFarmBody textarea, #portalFarmBody button",
     );
     if (first && typeof first.focus === "function") first.focus();
 
     return type;
+  },
+
+  // عنوان فرم = برچسب همان نوع (خواناتر از «ثبت درخواست» عمومی)
+  setRequestFormTitle(type = "", panel = "") {
+    const title = this.el(FORM_TITLE_ID);
+    if (!title) return;
+    const groupMeta =
+      FARM_FORM_GROUPS.find((item) => item.key === farmTypeGroupOf(type)) || null;
+    const meta = farmTypeMeta(type) || {};
+    title.textContent = meta.label || (groupMeta ? groupMeta.label : "ثبت درخواست");
+    const form = this.el(FORM_ID);
+    if (form) form.setAttribute("data-inline-panel", String(panel || ""));
+  },
+
+  // اسکرول به فرم + هایلایت ردیف هدف و باز نگه‌داشتن آکاردئونِ والد
+  revealInlineForm(form, origin = null) {
+    if (typeof window === "undefined") return false;
+    const media =
+      typeof window.matchMedia === "function"
+        ? window.matchMedia("(prefers-reduced-motion: reduce)")
+        : null;
+    const behavior = media && media.matches ? "auto" : "smooth";
+
+    this.markFarmTarget(origin);
+
+    if (form && typeof form.scrollIntoView === "function") {
+      form.scrollIntoView({ behavior, block: "start" });
+    }
+    return true;
+  },
+
+  // هایلایت ردیف مبدأ (فقط یک کلاس؛ ساختار آکاردئون دست‌نخورده)
+  markFarmTarget(origin = null) {
+    if (typeof document === "undefined" || !document.querySelectorAll) return 0;
+    document.querySelectorAll(".portal-acc__row.is-target").forEach((row) => {
+      row.classList.remove("is-target");
+    });
+    if (!origin || typeof origin.closest !== "function") return 0;
+
+    const row =
+      origin.closest(".portal-acc__row") || origin.closest("[data-acc-id]");
+    if (!row || !row.classList) return 0;
+    row.classList.add("is-target");
+
+    let parent = row.parentElement;
+    while (parent && parent !== document.body) {
+      if (String(parent.tagName || "").toUpperCase() === "DETAILS") parent.open = true;
+      parent = parent.parentElement;
+    }
+    return 1;
   },
 
   async loadFarmTab() {
@@ -567,10 +697,14 @@ export const portalFarmMixin = {
       ? String(list.status || "")
       : "";
 
+    // ✅ ۱۳.۲۳ — فهرست و شمارنده‌ها فقط برای گروه‌های همین بخش
+    const panelGroups = farmGroupsOfPanel(this.farm.ui ? this.farm.ui.panel : "");
+
     const [optionsPayload, listPayload] = await Promise.all([
       append ? Promise.resolve(null) : portalApi.getFarmOptions(),
       portalApi.getFarmRequests({
         status,
+        groups: panelGroups,
         page: Math.max(1, Number(list.page) || 1),
         limit: FARM_LIST_PAGE_LIMIT,
       }),
@@ -652,6 +786,8 @@ export const portalFarmMixin = {
       loading: this.farm.loadingDetails,
       prefillNote: this.farm.prefillNote,
       confirmOpen: this.farm.confirmOpen,
+      // ✅ ۱۳.۲۳ — فقط گروه‌های همین بخش (فرم درون‌خطی، نه ۱۸ نوع)
+      scope: farmGroupsOfPanel(this.farm.ui ? this.farm.ui.panel : ""),
       // ✅ ۱۳.۱۶ — فیلتر وضعیت + صفحه‌بندی فهرست
       list: this.farm.list,
     });

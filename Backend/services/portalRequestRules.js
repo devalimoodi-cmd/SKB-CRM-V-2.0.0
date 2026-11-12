@@ -221,6 +221,65 @@ const targetFieldOf = (key) => {
 };
 
 // ============================================
+// ✅ ۱۳.۲۳ — گروه هر نوع («هر بخش، درخواست‌های خودش»)
+// ------------------------------------------------------------
+//  چرا نگاشت جدا و نه فیلد `group` در هر آیتم؟ چون آرایهٔ REQUEST_TYPES
+//  آینهٔ چند گارد و سند است؛ نگاشت جدا صفر تغییر در شکل پاسخ می‌دهد و
+//  همان پنج گروه `FARM_FORM_GROUPS` کلاینت را آینه می‌کند.
+//  🔒 فیلتر گروه فقط «نمایش» را تنگ می‌کند؛ مالکیت و وضعیت دست‌نخورده.
+// ============================================
+const REQUEST_TYPE_GROUPS = {
+  unit_create: "unit",
+  unit_update: "unit",
+  unit_delete: "unit",
+  hall_create: "hall",
+  hall_update: "hall",
+  hall_delete: "hall",
+  hall_physical_save: "hall_details",
+  hall_system_save: "hall_details",
+  hall_water_feed_save: "hall_details",
+  hall_hygiene_save: "hall_details",
+  placement_create: "placement",
+  placement_update: "placement",
+  placement_activate: "placement",
+  placement_deactivate: "placement",
+  placement_delete: "placement",
+  weekly_create: "weekly",
+  weekly_update: "weekly",
+  weekly_delete: "weekly",
+};
+
+const REQUEST_GROUP_KEYS = [
+  "unit",
+  "hall",
+  "hall_details",
+  "placement",
+  "weekly",
+];
+
+const groupOf = (key) => REQUEST_TYPE_GROUPS[key] || "";
+
+const keysOfGroup = (group) =>
+  Object.keys(REQUEST_TYPE_GROUPS).filter(
+    (key) => REQUEST_TYPE_GROUPS[key] === group,
+  );
+
+// «unit,hall» یا «unit» ⇒ { groups:[…], keys:[…] } — ورودی نامعتبر ⇒ null
+const normalizeGroupFilter = (value) => {
+  const raw = String(value == null ? "" : value).trim();
+  if (!raw || raw === "all" || raw === "همه") return null;
+  const groups = raw
+    .split(",")
+    .map((item) => item.trim())
+    .filter((item) => REQUEST_GROUP_KEYS.includes(item));
+  if (!groups.length) return null;
+  const keys = Object.keys(REQUEST_TYPE_GROUPS).filter((key) =>
+    groups.includes(REQUEST_TYPE_GROUPS[key]),
+  );
+  return keys.length ? { groups, keys } : null;
+};
+
+// ============================================
 // ۲) وضعیت‌ها
 // ------------------------------------------------------------
 //  pending   = در انتظار بازبینی کارشناس (تنها وضعیت قابل تأیید/رد)
@@ -1352,6 +1411,12 @@ module.exports = {
   typeOf,
   typeLabel,
   targetFieldOf,
+  // ✅ ۱۳.۲۳ — فیلتر نمایشی گروه (بخش‌های پورتال)
+  REQUEST_TYPE_GROUPS,
+  REQUEST_GROUP_KEYS,
+  groupOf,
+  keysOfGroup,
+  normalizeGroupFilter,
   hasPayloadValidator,
   statusOf,
   statusLabel,

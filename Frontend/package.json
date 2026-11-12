@@ -29,6 +29,8 @@
     "test:portal-schema": "node ../Backend/portal-schema-test.mjs",
     "test:portal-schema-guard": "node portal-schema-guard-test.mjs",
     "test:portal-tree": "node portal-tree-test.mjs",
+    "test:portal-inline": "node portal-inline-forms-test.mjs",
+    "test:portal-charts": "node portal-charts-test.mjs",
     "test:portal-tickets": "node ../Backend/portal-tickets-test.mjs",
     "test:registration": "node registration-guard-test.mjs",
     "test:weekly": "node weekly-calculations-test.mjs",

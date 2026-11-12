@@ -18,6 +18,7 @@ import { apiService } from "../../core/services/api.service.js";
 import { API_CONSTANTS } from "../../core/constants/api.const.js";
 // ✅ موج ۱۳.۱۵: قواعد فرم/payload در یک فایل مشترک (آینهٔ سرور)
 import {
+  FARM_GROUP_KEYS,
   FARM_MAX_NOTE_LENGTH,
   FARM_MAX_PENDING,
   farmPayload,
@@ -404,6 +405,15 @@ export const portalApi = {
     const query = pageParams(params);
     const status = String(params.status ?? "").trim();
     if (FARM_STATUS_KEYS.includes(status)) query.status = status;
+
+    // ✅ ۱۳.۲۳ — فیلتر گروه (هر بخش، درخواست‌های خودش):
+    //  🔒 فقط کلیدهای شناخته‌شدهٔ همان پنج گروه به کوئری می‌روند؛
+    //     هیچ رشتهٔ آزادی از بیرون به URL نمی‌رسد.
+    const groups = (Array.isArray(params.groups) ? params.groups : [])
+      .map((item) => String(item || "").trim())
+      .filter((item) => FARM_GROUP_KEYS.includes(item));
+    if (groups.length) query.group = groups.join(",");
+
     return apiService.get(
       API_CONSTANTS.ENDPOINTS.PORTAL.FARM_REQUESTS,
       query,

@@ -100,6 +100,9 @@ export const FARM_REQUEST_TYPES = [
 
 export const FARM_TYPE_KEYS = FARM_REQUEST_TYPES.map((item) => item.key);
 
+// ✅ ۱۳.۲۳ — کلید پنج گروه (هم‌ترتیب سرور: unit/hall/hall_details/placement/weekly)
+export const FARM_GROUP_KEYS = FARM_FORM_GROUPS.map((group) => group.key);
+
 // چهار نوع «حذف» (سرور: DESTRUCTIVE_TYPES) — تأیید دوم اجباری است
 export const FARM_DESTRUCTIVE_TYPES = FARM_REQUEST_TYPES.filter(
   (item) => item.destructive,
@@ -118,6 +121,73 @@ const GROUP_OF_TYPE = FARM_FORM_GROUPS.reduce((acc, group) => {
 
 export const farmTypeGroupOf = (type) =>
   GROUP_OF_TYPE[String(type || "").trim()] || "";
+
+// ============================================================
+// ✅ ۱۳.۲۳ — «هر بخش، فرم خودش»
+// ------------------------------------------------------------
+//  تا ۱۳.۲۲ هر ۱۸ نوع در یک شیت واحد بود؛ حالا فرم درون‌خطی همان
+//  بخش است و فقط گروه‌های همان بخش را نشان می‌دهد.
+//  🔒 چرا نگاشت صریح (و نه استنتاج خودکار)؟ چون «سالن» دو گروه دارد
+//     (خودِ سالن + اطلاعات تکمیلی) و «واحدها» هم گروه سالن را لازم
+//     دارد (ثبت سالن زیر همان واحد). یک منبع، دو مصرف (رندر + گارد).
+// ============================================================
+export const FARM_PANEL_GROUPS = {
+  units: ["unit", "hall"],
+  halls: ["hall", "hall_details"],
+  placements: ["placement"],
+  weeks: ["weekly"],
+  flocks: ["weekly"],
+};
+
+// نوع پیش‌فرض دکمهٔ «درخواست تازه» هر بخش (اولین انتخاب طبیعی کاربر)
+export const FARM_PANEL_DEFAULT_TYPE = {
+  units: "unit_create",
+  halls: "hall_create",
+  placements: "placement_create",
+  weeks: "weekly_create",
+  flocks: "weekly_create",
+};
+
+export const FARM_PANEL_KEYS = Object.keys(FARM_PANEL_GROUPS);
+
+// ✅ ۱۳.۲۳ — «خانهٔ» هر گروه: یکتا و صریح.
+//  ⚠️ چرا نگاشت جدا؟ چون گروه `hall` در دو بخش مجاز است (واحدها
+//     برای «ثبت سالن زیر همان واحد» و سالن‌ها)، ولی خانهٔ نوع‌های
+//     سالن همیشه بخش «سالن‌ها» است. اگر خانه را از ترتیب
+//     FARM_PANEL_GROUPS می‌گرفتیم، `hall_delete` به «واحدها» می‌رفت.
+export const FARM_GROUP_HOME_PANEL = {
+  unit: "units",
+  hall: "halls",
+  hall_details: "halls",
+  placement: "placements",
+  weekly: "weeks",
+};
+
+// گروه‌های مجاز یک بخش (آرایهٔ تازه؛ دست‌کاری خروجی روی منبع اثر ندارد)
+export const farmGroupsOfPanel = (panel) => {
+  const key = String(panel || "").trim();
+  return Array.isArray(FARM_PANEL_GROUPS[key]) ? FARM_PANEL_GROUPS[key].slice() : [];
+};
+
+// بخشِ خانهٔ هر نوع (برای مسیرها و دکمه‌هایی که پنل را نمی‌دانند)
+export const farmPanelOfType = (type) => {
+  const group = farmTypeGroupOf(type);
+  if (!group) return "";
+  return FARM_GROUP_HOME_PANEL[group] || "";
+};
+
+export const farmDefaultTypeOfPanel = (panel) => {
+  const key = String(panel || "").trim();
+  return FARM_PANEL_DEFAULT_TYPE[key] || FARM_DEFAULT_TYPE;
+};
+
+// آیا این نوع در این بخش مجاز است؟ (گیت کلاینت؛ سرور مستقل می‌سنجد)
+export const farmTypeAllowedInPanel = (type, panel) => {
+  const group = farmTypeGroupOf(type);
+  if (!group) return false;
+  const groups = farmGroupsOfPanel(panel);
+  return groups.length === 0 || groups.includes(group);
+};
 
 // نوع پیش‌فرض تب (اولین نوعی که مشتری بیشترین نیاز را دارد)
 export const FARM_DEFAULT_TYPE = "unit_create";

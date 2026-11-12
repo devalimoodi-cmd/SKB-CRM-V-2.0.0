@@ -123,6 +123,10 @@ const FILES = {
   farmController: "Backend/controllers/portalFarmController.js",
   farmRules: "Backend/services/portalRequestRules.js",
   farmService: "Backend/services/portalRequestService.js",
+  // ✅ موج ۱۳.۲۳ — نمودارهای تعاملی + استایل فرم درون‌خطی
+  portalCharts: "Frontend/src/features/portal/portal.charts.js",
+  portalChartsCss: "Frontend/src/features/portal/portal.charts.css",
+  portalInlineCss: "Frontend/src/features/portal/portal.inline.css",
   // ✅ موج ۱۳.۱۳ — هستهٔ نوشتن + مسیرها + اعتبارسنجی جزئیات سالن
   farmRoutes: "Backend/routes/portalRoutes.js",
   farmUnitWrite: "Backend/services/farm/unitWrite.js",
@@ -212,6 +216,10 @@ const SRC = {
   // ✅ موج ۱۳.۱۵
   portalFarmRules: read(FILES.portalFarmRules),
   portalFarmWeeks: read(FILES.portalFarmWeeks),
+  // ✅ موج ۱۳.۲۳ — نمودارها و استایل‌های تازه
+  portalCharts: read(FILES.portalCharts),
+  portalChartsCss: read(FILES.portalChartsCss),
+  portalInlineCss: read(FILES.portalInlineCss),
   // ✅ موج ۱۳.۱۶
   portalPayload: read(FILES.portalPayload),
   farmController: read(FILES.farmController),
@@ -1261,10 +1269,21 @@ check(
 );
 
 check(
-  "۱۳.۴ · فرانت: نمودار فقط SVG دست‌ساز است (بدون کتابخانهٔ تازه)",
+  "۱۳.۲۳ · فرانت: SVG پایه می‌ماند و Chart.js فقط از فایل نمودار می‌آید",
+  // ✅ ۱۳.۲۳: رندرر همچنان بدون <script> و بدون کتابخانه است؛
+  //  Chart.js فقط در portal.charts.js (با fallback به همان SVG) است.
+  //  ⚠️ الگوی کتابخانه‌های رقیب با \b مهار شده تا «resizeCharts» را
+  //     اشتباهاً «eCharts» نبیند.
   /<svg class="portal-chart__svg"/.test(SRC.portalRenderer) &&
-    !/chart\.js|d3|apexcharts|echarts|highcharts/i.test(SRC.portalRenderer) &&
-    !/<script/.test(SRC.portalRenderer),
+    !/<script/.test(SRC.portalRenderer) &&
+    !/window\.Chart/.test(SRC.portalRenderer) &&
+    !/\b(apexcharts|echarts|highcharts)\b|\bd3\b/i.test(SRC.portalRenderer) &&
+    /window\.Chart/.test(SRC.portalCharts) &&
+    /export const renderWeeklyLiveChart/.test(SRC.portalCharts) &&
+    !/<script/.test(SRC.portalCharts) &&
+    !/\b(apexcharts|echarts|highcharts)\b|\bd3\b/i.test(SRC.portalCharts) &&
+    /chart\.umd\.min\.js/.test(SRC.portalHtml) &&
+    !/\b(apexcharts|echarts|highcharts)\b|\bd3\b/i.test(SRC.portalHtml),
 );
 
 check(
@@ -2516,11 +2535,19 @@ check(
 );
 
 check(
-  "۱۳.۲۱ · صفحهٔ پورتال: شیت درخواست (جای تب پنل ۱۳.۱۱) بدون تگ فرم",
-  // ✅ ۱۳.۲۱: پنل «درخواست‌های من» حذف و به «شیت» تبدیل شد؛ شناسه‌های
-  //  داخلی (portalFarmBody/Status) همان قبلی مانده‌اند.
-  /data-portal-sheet="requests"/.test(SRC.portalHtml) &&
-    /id="portalRequestSheet"/.test(SRC.portalHtml) &&
+  "۱۳.۲۳ · صفحهٔ پورتال: فرم درون‌خطی (جای شیت ۱۳.۲۱) بدون تگ فرم",
+  // ✅ ۱۳.۲۳: شیت مودال حذف شد؛ یک میزبان واحد + جایگاه در هر بخش.
+  //  شناسه‌های داخلی (portalFarmBody/Status) همان قبلی مانده‌اند.
+  !/data-portal-sheet|portalRequestSheet|portal-sheet/.test(SRC.portalHtml) &&
+    /id="portalRequestForm"/.test(SRC.portalHtml) &&
+    /id="portalRequestFormTitle"/.test(SRC.portalHtml) &&
+    /id="portalInlinePark"/.test(SRC.portalHtml) &&
+    /data-inline-close/.test(SRC.portalHtml) &&
+    /data-inline-slot="units"/.test(SRC.portalHtml) &&
+    /data-inline-slot="halls"/.test(SRC.portalHtml) &&
+    /data-inline-slot="placements"/.test(SRC.portalHtml) &&
+    /data-inline-slot="weeks"/.test(SRC.portalHtml) &&
+    /data-inline-slot="flocks"/.test(SRC.portalHtml) &&
     /id="portalFarmBody"/.test(SRC.portalHtml) &&
     /id="portalFarmStatus"/.test(SRC.portalHtml) &&
     !/data-portal-panel="farm"/.test(SRC.portalHtml) &&
@@ -2997,7 +3024,8 @@ check(
 check(
   "۱۳.۱۵ · UI: تب‌های گروه‌بندی‌شده + پنج گروه چک‌باکس شناسه",
   /portal-farm__group-title/.test(SRC.portalFarmRenderer) &&
-    /groupedTabsHtml\(typeMap, activeType\)/.test(SRC.portalFarmRenderer) &&
+    // ✅ ۱۳.۲۳: پارامتر `scope` اضافه شد (فرم درون‌خطی فقط گروه‌های بخش خودش)
+    /groupedTabsHtml\(typeMap, activeType, scope\)/.test(SRC.portalFarmRenderer) &&
     /data-farm-multi="\$\{esc\(field\.key\)\}"/.test(SRC.portalFarmRenderer) &&
     /readFarmMulti\(key\)/.test(SRC.portalFarm) &&
     /portal-farm__group-title \{/.test(SRC.portalCss) &&

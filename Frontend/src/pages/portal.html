@@ -40,6 +40,12 @@
     <!-- ✅ موج ۱۳.۱۷ — پوستهٔ ناوبری (سایدبار دسکتاپ + drawer موبایل)
          فایل جدا تا portal.css (که گارد ۱۳.۳ اندازه‌اش را می‌سنجد) رشد نکند. -->
     <link rel="stylesheet" href="/features/portal/portal.nav.css">
+    <!-- ✅ موج ۱۳.۲۳ — فرم درون‌خطی (جای شیت ۱۳.۲۱؛ بدون هیچ لایهٔ مودال) -->
+    <link rel="stylesheet" href="/features/portal/portal.inline.css">
+    <!-- ✅ موج ۱۳.۲۳ — جعبهٔ نمودارهای Chart.js (ارتفاع صریح canvas) -->
+    <link rel="stylesheet" href="/features/portal/portal.charts.css">
+    <!-- ✅ موج ۱۳.۲۳ — لایهٔ ریسپانسیو (آخر از همه تا غالب باشد) -->
+    <link rel="stylesheet" href="/features/portal/portal.responsive.css">
 
     <link rel="icon" type="image/png" href="/assets/images/favicon.ico">
 </head>
@@ -293,9 +299,10 @@
                                 </ul>
                             </li>
 
-                            <!-- ✅ ۱۳.۲۱ — منوی «درخواست‌های من» حذف شد؛ جای آن
-                                 «ارسال تیکت» است. فرم‌های ثبت/ویرایش/حذف فارم
-                                 از شیت (data-portal-sheet) باز می‌شوند. -->
+                            <!-- ✅ ۱۳.۲۳ — منوی «درخواست‌های من» هنوز حذف است؛
+                                 فرم‌های ثبت/ویرایش/حذف فارم به‌صورت «درون‌خطی»
+                                 داخل همان بخش (units/halls/placements/weeks/flocks)
+                                 باز می‌شوند، نه در شیت/مودال. -->
                             <li class="portal-nav__item" data-portal-menu="tickets">
                                 <a class="portal-nav__link" href="#/tickets" data-portal-route="#/tickets"
                                     data-portal-tab="tickets" data-permission="customer.portal.menu.tickets"
@@ -392,9 +399,9 @@
                         </p>
                     </div>
 
-                    <!-- ✅ موج ۱۳.۲۱ — «درخواست‌های من» از پنل‌ها خارج شد و
-                         به «شیت» (فرم شناور) تبدیل شد: انتهای همین بلوک با
-                         data-portal-sheet="requests". شناسه‌های داخلی
+                    <!-- ✅ موج ۱۳.۲۳ — «درخواست‌های من» نه پنل است و نه شیت؛
+                         فرمِ هر بخش به‌صورت درون‌خطی در جایگاه همان بخش
+                         (data-inline-slot) باز می‌شود. شناسه‌های داخلی
                          (portalFarmStatus / portalFarmBody) دست‌نخورده‌اند تا
                          منطق ۱۳.۱۱/۱۳.۱۶ بدون تغییر روی همان‌ها کار کند. -->
                     <div class="portal-card portal-tabpanel" data-portal-panel="halls" role="tabpanel">
@@ -403,6 +410,18 @@
                             <span>سالن‌های من</span>
                         </div>
                         <div class="portal-tab__status" id="portalHallsStatus"></div>
+                        <!-- ✅ ۱۳.۲۳ — جایگاه «فرم درون‌خطی» همین بخش؛
+                             میزبان واحد فرم با باز شدن، به همین‌جا منتقل
+                             می‌شود (appendChild) و با بستن برمی‌گردد. -->
+                        <div class="portal-inline-slot" data-inline-slot="halls">
+                            <div class="portal-inline-bar">
+                                <button type="button" class="portal-btn portal-btn--primary"
+                                    data-inline-open="halls">
+                                    <i class="fas fa-plus" aria-hidden="true"></i>
+                                    <span>درخواست سالن تازه</span>
+                                </button>
+                            </div>
+                        </div>
                         <!-- ✅ ۱۳.۲۱ — آکاردئون: سالن ← چهار بخش (فیزیکی/سیستم‌ها/
                              آب‌خوری/بهداشت). محتوای هر بخش با کلید منوی همان
                              بخش گیت می‌شود و فقط با باز شدن، یک‌بار گرفته می‌شود. -->
@@ -429,6 +448,15 @@
                             <span>همهٔ گله‌های من</span>
                         </div>
                         <div class="portal-tab__status" id="portalFlocksStatus"></div>
+                        <div class="portal-inline-slot" data-inline-slot="flocks">
+                            <div class="portal-inline-bar">
+                                <button type="button" class="portal-btn portal-btn--primary"
+                                    data-inline-open="flocks">
+                                    <i class="fas fa-plus" aria-hidden="true"></i>
+                                    <span>ثبت اطلاعات هفتگی</span>
+                                </button>
+                            </div>
+                        </div>
                         <ul class="portal-list" id="portalFlocksList"></ul>
                         <div class="portal-list__pager" id="portalFlocksPager"></div>
                     </div>
@@ -439,6 +467,15 @@
                             <span>هفته‌های مدیریتی من</span>
                         </div>
                         <div class="portal-tab__status" id="portalWeeksStatus"></div>
+                        <div class="portal-inline-slot" data-inline-slot="weeks">
+                            <div class="portal-inline-bar">
+                                <button type="button" class="portal-btn portal-btn--primary"
+                                    data-inline-open="weeks">
+                                    <i class="fas fa-plus" aria-hidden="true"></i>
+                                    <span>ثبت هفتهٔ تازه</span>
+                                </button>
+                            </div>
+                        </div>
                         <ul class="portal-list" id="portalWeeksList"></ul>
                         <!-- ۱۳.۴ — نمودار SVG از دادهٔ همین صفحه (بدون کتابخانه/اندپوینت تازه) -->
                         <div class="portal-chart" id="portalChart"></div>
@@ -470,6 +507,15 @@
                             <span>واحدهای من</span>
                         </div>
                         <div class="portal-tab__status" id="portalUnitsStatus"></div>
+                        <div class="portal-inline-slot" data-inline-slot="units">
+                            <div class="portal-inline-bar">
+                                <button type="button" class="portal-btn portal-btn--primary"
+                                    data-inline-open="units">
+                                    <i class="fas fa-plus" aria-hidden="true"></i>
+                                    <span>درخواست واحد تازه</span>
+                                </button>
+                            </div>
+                        </div>
                         <div class="portal-views" id="portalUnitsBody"></div>
                     </div>
 
@@ -483,6 +529,15 @@
                             <span>دوره‌های جوجه‌ریزی من</span>
                         </div>
                         <div class="portal-tab__status" id="portalPlacementsStatus"></div>
+                        <div class="portal-inline-slot" data-inline-slot="placements">
+                            <div class="portal-inline-bar">
+                                <button type="button" class="portal-btn portal-btn--primary"
+                                    data-inline-open="placements">
+                                    <i class="fas fa-plus" aria-hidden="true"></i>
+                                    <span>درخواست دورهٔ تازه</span>
+                                </button>
+                            </div>
+                        </div>
                         <div class="portal-views" id="portalPlacementsBody"></div>
                     </div>
 
@@ -521,29 +576,27 @@
                     </div>
                 </div>
 
-                    <!-- ===== ✅ موج ۱۳.۲۱ — شیت «ثبت درخواست» (بدون مسیر/آیتم منو)
-                         🔒 چرا شیت و نه پنل؟ فرم باید از داخل همان ردیف
-                         (واحد/سالن/دوره/هفته) با نوع و هدفِ از پیش انتخاب‌شده
-                         باز شود. ساختار داخلی همان ۱۳.۱۱/۱۳.۱۶ است:
+                    <!-- ===== ✅ موج ۱۳.۲۳ — «فرم درون‌خطی» (شیت ۱۳.۲۱ حذف شد)
+                         🔒 یک میزبان واحد + یک پارکینگ + یک جایگاه در
+                         هر بخش (`data-inline-slot`). با باز شدن، همین
+                         گره با appendChild به جایگاه همان بخش منتقل
+                         می‌شود و با بستن به پارکینگ برمی‌گردد.
+                         ⇒ صفر مودال، صفر لایهٔ روی صفحه، صفر رندر دوباره
+                         (شنونده‌های داخل فرم و وضعیت آن حفظ می‌شوند).
+                         ساختار داخلی همان ۱۳.۱۱/۱۳.۱۶ است:
                            portalFarmStatus / portalFarmBody
-                         ⇒ منطق بارگذاری، اعتبارسنجی و لغو بدون تغییر.
-                         نمایش: فقط با features.farm_request (سرور) و
-                         دکمهٔ هر ردیف؛ لینک مستقیم ندارد. -->
-                    <div class="portal-sheet" id="portalRequestSheet" data-portal-sheet="requests" hidden>
-                        <div class="portal-sheet__backdrop" data-sheet-close="1"></div>
-                        <div class="portal-sheet__dialog" role="dialog" aria-modal="true"
-                            aria-labelledby="portalRequestSheetTitle">
-                            <div class="portal-sheet__head">
-                                <i class="fas fa-paper-plane" aria-hidden="true"></i>
-                                <span id="portalRequestSheetTitle">ثبت درخواست</span>
-                                <button type="button" class="portal-sheet__close" data-sheet-close="1"
-                                    aria-label="بستن">
-                                    <i class="fas fa-xmark" aria-hidden="true"></i>
-                                </button>
-                            </div>
-                            <div class="portal-tab__status" id="portalFarmStatus"></div>
-                            <div class="portal-farm" id="portalFarmBody"></div>
+                         🔒 هیچ تگ فرمی در کار نیست (type="button" + JS). -->
+                    <div id="portalInlinePark" hidden></div>
+                    <div class="portal-inline" id="portalRequestForm" hidden>
+                        <div class="portal-inline__head">
+                            <span class="portal-inline__title" id="portalRequestFormTitle">ثبت درخواست</span>
+                            <button type="button" class="portal-inline__close" data-inline-close
+                                aria-label="بستن فرم درخواست">
+                                <i class="fas fa-xmark" aria-hidden="true"></i>
+                            </button>
                         </div>
+                        <div class="portal-tab__status" id="portalFarmStatus"></div>
+                        <div class="portal-farm" id="portalFarmBody"></div>
                     </div>
                     </section>
                 </div>
@@ -595,6 +648,12 @@
     <script src="./../../node_modules/jquery/dist/jquery.min.js"></script>
     <script src="./../../node_modules/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="./../../node_modules/sweetalert2/dist/sweetalert2.all.min.js"></script>
+    <!-- ✅ موج ۱۳.۲۳ — Chart.js (همان نسخهٔ داشبورد کارشناس).
+         ⚠️ قبل از app.service بارگذاری می‌شود تا تم نمودارها
+         (chart-theme.service) روی همین نمونه اعمال شود.
+         🔒 اگر این فایل بارگذاری نشود، پورتال خودکار به SVG دست‌ساز
+         (۱۳.۴) برمی‌گردد و هیچ بخشی نمی‌شکند. -->
+    <script src="./../../node_modules/chart.js/dist/chart.umd.min.js"></script>
 
     <!-- ===== Core ===== -->
     <script type="module" src="/core/constants/api.const.js"></script>
@@ -623,6 +682,8 @@
 
     <!-- ===== Feature (پورتال) ===== -->
     <script type="module" src="/features/portal/portal.renderer.js"></script>
+    <!-- ✅ ۱۳.۲۳ — نمودارهای تعاملی (Chart.js + تم)؛ fallback داخل خودش -->
+    <script type="module" src="/features/portal/portal.charts.js"></script>
     <!-- ✅ ۱۳.۸ — تب‌های «پروفایل من» و «داشبورد تحلیلی» (mixin روی سرویس) -->
     <script type="module" src="/features/portal/portal.extra.js"></script>
     <!-- ✅ ۱۳.۱۷ — مدل منو → نماهای تازه → پوستهٔ ناوبری (ترتیب وابستگی) -->

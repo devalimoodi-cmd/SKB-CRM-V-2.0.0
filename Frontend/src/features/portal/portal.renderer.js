@@ -1058,6 +1058,17 @@ const fcrSeriesFrom = (flocks = []) =>
     return { name: flockSeriesName(row.flockInfo || {}), values };
   });
 
+// ✅ ۱۳.۲۳ — سری‌های نمودار برای Chart.js (portal.charts.js)
+//  🔒 عمداً همین سه تابع بالا استفاده می‌شوند تا نمودار SVG و نمودار
+//     تعاملی هرگز دو عدد متفاوت نشان ندهند (یک منبع، دو ارائه).
+export const farmChartSeries = {
+  weight: (flocks = []) => seriesFrom(flocks, "weighting"),
+  loss: (flocks = []) => seriesFrom(flocks, "loss"),
+  feed: (flocks = []) => seriesFrom(flocks, "feed"),
+  gain: (flocks = []) => gainSeriesFrom(flocks),
+  fcr: (flocks = []) => fcrSeriesFrom(flocks),
+};
+
 // جدول مقایسهٔ خلاصهٔ گله‌ها (خودم با خودم — تصمیم کارفرما در ۱۳.۸)
 export const renderDashboardTable = (data = {}, opts = {}) => {
   const flocks = Array.isArray(data.flocks) ? data.flocks : [];

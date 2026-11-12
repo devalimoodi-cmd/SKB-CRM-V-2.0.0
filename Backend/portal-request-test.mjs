@@ -89,6 +89,68 @@ check(
 );
 
 // ============================================================
+// ✅ ۱۳.۲۳ — گروه‌بندی نوع‌ها («هر بخش، درخواست‌های خودش»)
+// ------------------------------------------------------------
+//  🔒 فیلتر گروه فقط نمایش را تنگ می‌کند: مقدار ناشناخته ⇒ null
+//     (یعنی «هیچ فیلتری») و هرگز به کوئری نمی‌رسد.
+// ============================================================
+check(
+  "۱۳.۲۳ · هر ۱۸ نوع دقیقاً یک گروه دارند و پنج گروه کامل پوشش داده شده‌اند",
+  rules.REQUEST_TYPE_KEYS.every((key) =>
+    rules.REQUEST_GROUP_KEYS.includes(rules.groupOf(key)),
+  ) &&
+    rules.REQUEST_GROUP_KEYS.join(",") ===
+      "unit,hall,hall_details,placement,weekly" &&
+    rules.REQUEST_GROUP_KEYS.every((group) => rules.keysOfGroup(group).length > 0) &&
+    rules.REQUEST_GROUP_KEYS.reduce(
+      (sum, group) => sum + rules.keysOfGroup(group).length,
+      0,
+    ) === rules.REQUEST_TYPE_KEYS.length,
+);
+
+check(
+  "۱۳.۲۳ · normalizeGroupFilter: تک‌گروه/چندگروه، و مقدار ناشناخته ⇒ null",
+  (() => {
+    const single = rules.normalizeGroupFilter("unit");
+    const multi = rules.normalizeGroupFilter("unit,hall");
+    return (
+      Boolean(single) &&
+      single.groups.join(",") === "unit" &&
+      single.keys.join(",") === "unit_create,unit_update,unit_delete" &&
+      Boolean(multi) &&
+      multi.groups.join(",") === "unit,hall" &&
+      multi.keys.includes("hall_create") &&
+      multi.keys.includes("hall_update") &&
+      // 🔒 گروه `hall` شامل چهار نوع «اطلاعات تکمیلی» نیست
+      !multi.keys.includes("hall_physical_save") &&
+      rules.normalizeGroupFilter("") === null &&
+      rules.normalizeGroupFilter("all") === null &&
+      rules.normalizeGroupFilter("hack") === null &&
+      rules.normalizeGroupFilter("unit,hack") !== null &&
+      rules.normalizeGroupFilter("unit,hack").groups.join(",") === "unit" &&
+      rules.normalizeGroupFilter("hack,unit").keys.length === 3
+    );
+  })(),
+);
+
+check(
+  "۱۳.۲۳ · فیلتر گروه هیچ نوع خارج از گروه را برنمی‌گرداند (ضد نشت)",
+  (() => {
+    const weekly = rules.normalizeGroupFilter("weekly");
+    const details = rules.normalizeGroupFilter("hall_details");
+    return (
+      Boolean(weekly) &&
+      weekly.keys.join(",") ===
+        "weekly_create,weekly_update,weekly_delete" &&
+      Boolean(details) &&
+      details.keys.every((key) => rules.groupOf(key) === "hall_details") &&
+      !weekly.keys.includes("unit_delete") &&
+      !details.keys.includes("hall_delete")
+    );
+  })(),
+);
+
+// ============================================================
 // ۲) فهرست سفید payload — مهم‌ترین مرز امنیتی
 // ============================================================
 const ROGUE_KEYS = [

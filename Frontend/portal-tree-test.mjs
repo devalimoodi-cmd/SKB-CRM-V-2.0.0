@@ -9,8 +9,9 @@
 //   ۳) حذف منوها: «درخواست‌های من»، «ثبت هفته» و چهار مسیر بخش سالن
 //      نباید برگردند، و لینک قدیمی باید به مسیر جانشین هدایت شود.
 //   ۴) جدول ریسپانسیو: هر `td` برچسب سرستون را می‌گیرد (idempotent).
-//   ۵) صفحه: شیت `data-portal-sheet="requests"` وجود دارد و هیچ
-//      `<form>`/`type="submit"` در HTML یا فرم‌ها نیست.
+//   ۵) صفحه: فرم «درون‌خطی» (`#portalRequestForm` + `data-inline-slot`)
+//      وجود دارد، شیت ۱۳.۲۱ حذف شده و هیچ `<form>`/`type="submit"`
+//      در HTML یا فرم‌ها نیست. (۱۳.۲۳)
 //
 //  اجرا:  npm run test:portal-tree      (در پوشهٔ Frontend)
 // ============================================================
@@ -47,6 +48,8 @@ const FILES = {
   menu: "Frontend/src/features/portal/portal.menu.js",
   farmRules: "Frontend/src/features/portal/portal.farm.rules.js",
   css: "Frontend/src/features/portal/portal.css",
+  // ✅ ۱۳.۲۳ — استایل فرم درون‌خطی (شیت حذف شد)
+  inlineCss: "Frontend/src/features/portal/portal.inline.css",
   html: "Frontend/src/pages/portal.html",
   pkg: "Frontend/package.json",
   gate: "tools/gate.mjs",
@@ -67,6 +70,7 @@ const SRC = {
   views: read(FILES.views),
   farm: read(FILES.farm),
   css: read(FILES.css),
+  inlineCss: read(FILES.inlineCss),
   html: read(FILES.html),
   pkg: read(FILES.pkg),
 };
@@ -251,6 +255,8 @@ globalThis.localStorage = window.localStorage;
 
 const views = await import("../Frontend/src/features/portal/portal.views.js");
 const tickets = await import("../Frontend/src/features/portal/portal.tickets.js");
+// ✅ ۱۳.۲۳ — نگاشت «بخش ← گروه» در گارد هم **اجرا** می‌شود (نه grep)
+const farmRulesMod = await import("../Frontend/src/features/portal/portal.farm.rules.js");
 
 const unitsHtml = views.renderUnitsView(
   [
@@ -261,7 +267,7 @@ const unitsHtml = views.renderUnitsView(
 );
 
 check(
-  "۱۳.۲۱ · واحدها: هر واحد یک آکاردئون + دکمه‌های شیت (بدون فرم)",
+  "۱۳.۲۱ · واحدها: هر واحد یک آکاردئون + دکمه‌های درخواست (بدون فرم)",
   unitsHtml.includes('data-acc-id="unit-1"') &&
     unitsHtml.includes('data-farm-action="unit_update"') &&
     unitsHtml.includes('data-farm-action="hall_create"') &&
@@ -450,11 +456,22 @@ check(
 );
 
 // ============================================================
-// ۷) صفحه و استایل: شیت + آکاردئون + جدول ریسپانسیو
+// ۷) صفحه و استایل: فرم درون‌خطی + آکاردئون + جدول ریسپانسیو
 // ============================================================
 check(
-  "۱۳.۲۱ · portal.html: شیت درخواست و پنل تیکت (بدون پنل farm/hallDetail)",
-  /data-portal-sheet="requests"/.test(SRC.html) &&
+  "۱۳.۲۳ · portal.html: شیت حذف شد و جایگاه درون‌خطی هر بخش هست",
+  !/data-portal-sheet/.test(SRC.html) &&
+    !/portalRequestSheet/.test(SRC.html) &&
+    !/class="portal-sheet/.test(SRC.html) &&
+    /id="portalRequestForm"/.test(SRC.html) &&
+    /id="portalRequestFormTitle"/.test(SRC.html) &&
+    /id="portalInlinePark"/.test(SRC.html) &&
+    /data-inline-close/.test(SRC.html) &&
+    /data-inline-slot="units"/.test(SRC.html) &&
+    /data-inline-slot="halls"/.test(SRC.html) &&
+    /data-inline-slot="placements"/.test(SRC.html) &&
+    /data-inline-slot="weeks"/.test(SRC.html) &&
+    /data-inline-slot="flocks"/.test(SRC.html) &&
     /id="portalFarmBody"/.test(SRC.html) &&
     /data-portal-panel="tickets"/.test(SRC.html) &&
     /data-portal-panel="halls"/.test(SRC.html) &&
@@ -464,24 +481,72 @@ check(
 );
 
 check(
-  "۱۳.۲۱ · portal.css: کلاس‌های آکاردئون/شیت/تیکت و کارت‌شدن جدول",
+  "۱۳.۲۳ · portal.css: کلاس‌های آکاردئون/تیکت/جدول ماند و شیت پاک شد",
   /\.portal-acc__sum/.test(SRC.css) &&
     /\.portal-acc__row/.test(SRC.css) &&
-    /\.portal-sheet__dialog/.test(SRC.css) &&
-    /body\.portal-sheet-open/.test(SRC.css) &&
+    !/\.portal-sheet/.test(SRC.css) &&
+    !/body\.portal-sheet-open/.test(SRC.css) &&
     /\.portal-tk__msg/.test(SRC.css) &&
     /table\.portal-table\[data-cards="1"\] td::before/.test(SRC.css) &&
     /content: attr\(data-label\)/.test(SRC.css),
 );
 
 check(
-  "۱۳.۲۱ · سرویس: شیت با متد مستقل باز/بسته می‌شود (بدون پنل جدید)",
-  /bindRequestSheet\(\)/.test(SRC.farm) &&
-    /openRequestSheet\(rawType/.test(SRC.farm) &&
-    /closeRequestSheet\(\)/.test(SRC.farm) &&
-    /data-sheet-close/.test(SRC.farm) &&
+  "۱۳.۲۳ · portal.inline.css: بلوک درون‌خطی، بدون position:fixed و بدون قفل صفحه",
+  /\.portal-inline\[hidden\]/.test(SRC.inlineCss) &&
+    /\.portal-inline-slot/.test(SRC.inlineCss) &&
+    /\.portal-inline-bar/.test(SRC.inlineCss) &&
+    /\.portal-inline__close/.test(SRC.inlineCss) &&
+    /\.portal-acc__row\.is-target/.test(SRC.inlineCss) &&
+    !/position:\s*fixed/.test(SRC.inlineCss) &&
+    !/overflow:\s*hidden/.test(SRC.inlineCss) &&
+    /@media \(max-width: 640px\)/.test(SRC.inlineCss) &&
+    /prefers-reduced-motion/.test(SRC.inlineCss),
+);
+
+check(
+  "۱۳.۲۳ · سرویس: فرم درون‌خطی با متد مستقل باز/بسته می‌شود (بدون پنل جدید)",
+  /bindInlineForm\(\)/.test(SRC.farm) &&
+    /openRequestForm\(\s*rawType/.test(SRC.farm) &&
+    /closeRequestForm\(/.test(SRC.farm) &&
+    /mountRequestForm\(/.test(SRC.farm) &&
+    /unmountRequestForm\(/.test(SRC.farm) &&
+    /isRequestFormOpen\(\)/.test(SRC.farm) &&
+    /data-inline-close/.test(SRC.farm) &&
     /farmSpecOf\(type\)/.test(SRC.farm) &&
-    /portalRequestSheet/.test(SRC.farm),
+    !/portalRequestSheet|data-sheet-close|portal-sheet-open/.test(SRC.farm),
+);
+
+// ✅ ۱۳.۲۳ — نگاشت «بخش ← گروه‌های فرم» یک منبع دارد و کامل است
+check(
+  "۱۳.۲۳ · نگاشت بخش ← گروه (۵ بخش، ۱۸ نوع، خانهٔ هر نوع یکتا)",
+  (() => {
+    try {
+      const rules = farmRulesMod;
+      const panels = rules.FARM_PANEL_KEYS;
+      const covered = new Set(
+        panels.flatMap((panel) => rules.farmGroupsOfPanel(panel)),
+      );
+      const allGroups = rules.FARM_FORM_GROUPS.map((group) => group.key);
+      const homes = rules.FARM_TYPE_KEYS.map((type) => rules.farmPanelOfType(type));
+      return (
+        panels.length === 5 &&
+        panels.every((panel) => /^[a-z]+$/.test(panel)) &&
+        allGroups.every((group) => covered.has(group)) &&
+        homes.every((panel) => panels.includes(panel)) &&
+        homes.includes("units") &&
+        homes.includes("halls") &&
+        homes.includes("placements") &&
+        homes.includes("weeks") &&
+        rules.farmDefaultTypeOfPanel("units") === "unit_create" &&
+        rules.farmDefaultTypeOfPanel("weeks") === "weekly_create" &&
+        rules.farmTypeAllowedInPanel("weekly_create", "weeks") === true &&
+        rules.farmTypeAllowedInPanel("unit_delete", "weeks") === false
+      );
+    } catch {
+      return false;
+    }
+  })(),
 );
 
 check(
@@ -526,7 +591,7 @@ check(
 const passed = results.filter(Boolean).length;
 console.log("");
 console.log("============================================================");
-console.log(`  آکاردئون/شیت/تیکت پورتال — ${passed}/${results.length} بررسی`);
+console.log(`  آکاردئون/فرم درون‌خطی/تیکت پورتال — ${passed}/${results.length} بررسی`);
 console.log("============================================================");
 
 if (passed !== results.length) {

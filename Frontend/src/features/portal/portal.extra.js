@@ -30,6 +30,16 @@ import {
   buildDashboardCsv,
   renderNotice,
 } from "./portal.renderer.js";
+// ✅ ۱۳.۲۳ — نمودارهای تعاملی داشبورد/استاندارد نژاد (Chart.js)
+import {
+  destroyChartsIn,
+  mountDashboardLiveCharts,
+  mountStandardsLiveChart,
+  renderDashboardLiveCharts,
+  renderStandardsLiveChart,
+} from "./portal.charts.js";
+// ✅ ۱۳.۲۳ — جدول مقایسهٔ گله‌ها هم باید در موبایل کارتی شود
+import { decorateTables } from "./portal.table.js";
 import { notificationService } from "../../core/services/notification.service.js";
 
 // ============================================================
@@ -693,12 +703,18 @@ export const portalExtraMixin = {
       const charts = payloadDataOf(await portalApi.getDashboardCharts(selection));
       state.charts = charts || {};
       if (chartsBox) {
-        chartsBox.innerHTML = renderDashboardCharts(state.charts, { charts: allowed });
+        // ✅ ۱۳.۲۳ — Chart.js تعاملی؛ خالی‌بودن ⇒ همان SVG ۱۳.۸
+        destroyChartsIn(chartsBox);
+        const live = renderDashboardLiveCharts(state.charts, allowed);
+        chartsBox.innerHTML = live || renderDashboardCharts(state.charts, { charts: allowed });
+        if (live) mountDashboardLiveCharts(state.charts, allowed);
       }
       if (tableBox) {
         tableBox.innerHTML = renderDashboardTable(state.charts, {
           canCompare: this.canCompareDashboard(),
         });
+        // ✅ ۱۳.۲۳ — جدول مقایسهٔ گله‌ها در موبایل هم کارت می‌شود
+        decorateTables(tableBox);
       }
     } catch (error) {
       if (chartsBox) {
@@ -728,7 +744,12 @@ export const portalExtraMixin = {
           await portalApi.getDashboardAnalysis({ scope: "all" }),
         );
         state.analysis = analysis || {};
-        standardsBox.innerHTML = renderStandardsChart(state.analysis, { charts: allowed });
+        // ✅ ۱۳.۲۳ — Chart.js تعاملی؛ خالی‌بودن ⇒ همان SVG ۱۳.۸
+        destroyChartsIn(standardsBox);
+        const liveStandards = renderStandardsLiveChart(state.analysis, allowed);
+        standardsBox.innerHTML =
+          liveStandards || renderStandardsChart(state.analysis, { charts: allowed });
+        if (liveStandards) mountStandardsLiveChart(state.analysis, allowed);
       } catch (error) {
         standardsBox.innerHTML = renderNotice(
           "دریافت استاندارد نژاد ناموفق بود",
